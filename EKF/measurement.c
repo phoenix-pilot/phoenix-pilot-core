@@ -27,8 +27,11 @@
 #include <tools/rotas_dummy.h>
 #include <tools/phmatrix.h>
 
+quat_t nivel_accel;
+float scale_acc, raw[10];
+vec_t meas_data[2], nivel_gyro;
 
-static void askIMU(float * dataspace)
+static void askIMU(float *dataspace)
 {
 	msg_t msg = { 0 };
 	memset(&msg, 0, sizeof(msg));
@@ -55,8 +58,7 @@ void imu_calibrate_acc_gyr(void)
 
 	printf("calibrating accel/gyr...\n");
 	/* collect sample data of STATIONARY imu */
-	for (int i = 0; i < 100; i++)
-	{
+	for (int i = 0; i < 1000; i++) {
 		askIMU(data);
 		acc.x += data[0];
 		acc.y += data[1];
@@ -64,40 +66,51 @@ void imu_calibrate_acc_gyr(void)
 		gyr.x += data[3];
 		gyr.y += data[4];
 		gyr.z += data[5];
-		usleep(1000 * 50);
+		usleep(1000 * 5);
 	}
 	/* average collected data */
-	acc = vec_scl(&acc, 0.01);
-	gyr = vec_scl(&gyr, 0.01);
+	acc = vec_scl(&acc, 0.001);
+	gyr = vec_scl(&gyr, 0.001);
 
 	/* calculate acceleration rotation quaternion */
 	vec_t g_versor = vec(0, 0, 1);
 	vec_t acc_unit = vec(acc.x, acc.y, acc.z);
 	vec_normalize(&acc_unit);
-	quat_t qi = quat_vec2vec(&acc_unit, &g_versor);
-	float scale = 1.F / vec_len(&acc);
-	printf("scale: %f\n", scale);
+	nivel_accel = quat_vec2vec(&acc_unit, &g_versor);
+	init_q = quat(nivel_accel.a, nivel_accel.i, nivel_accel.j, nivel_accel.k);
+	scale_acc = 1.F / vec_len(&acc);
 
 	/* calculate gyroscope offset vector */
-	vec_t gyr_offset = vec_scl(&gyr, -1);
+	vec_t nivel_gyro = vec_scl(&gyr, -1);
 
-	for (int i=0 ; i<10; i++) {
-		usleep(1000*500);
-		askIMU(data);
-		acc.x = data[0];
-		acc.y = data[1];
-		acc.z = data[2];
-		gyr.x = data[3];
-		gyr.y = data[4];
-		gyr.z = data[5];
+	// for (int i=0 ; i<100; i++) {
+	// 	usleep(1000*50);
+	// 	askIMU(data);
+	// 	acc.x = data[0];
+	// 	acc.y = data[1];
+	// 	acc.z = data[2];
+	// 	gyr.x = data[3];
+	// 	gyr.y = data[4];
+	// 	gyr.z = data[5];
 
-		acc = vec_scl(&acc, scale);
-		quat_vecrot(&acc, &qi);
+	// 	acc = vec_scl(&acc, scale_acc);
+	// 	quat_vecrot(&acc, &init_q);
 
-		gyr = vec_add(&gyr, &gyr_offset);
+	// 	gyr = vec_add(&gyr, &nivel_gyro);
 
-		quat_print(&acc);
-		quat_print(&gyr);
-		printf("\n");
-	}
+	// 	printf("%f %f %f %f %f %f\n", acc.x, acc.y, acc.z, gyr.x, gyr.y, gyr.z);
+	// }
+}
+
+vec_t *imu_measurements(void)
+{
+	/* get data */
+	askIMU(raw);
+	meas_data[0] = vec(raw[0], raw[1], raw[2]);
+	meas_data[1] = vec(raw[3], raw[4], raw[5]);
+
+	meas_data[0] = vec_scl(&(meas_data[0]), scale_acc);
+	meas_data[1] = vec_add(&(meas_data[1]), &nivel_gyro);
+
+	return meas_data;
 }

@@ -25,24 +25,27 @@
 #include <tools/phmatrix.h>
 
 /* state values init */
-void init_state_vector(phmatrix_t * state) {
-	state->data[ixx] = state->data[ixy] = state->data[ixz] = 0;	/* start position at [0,0,0] */
-	state->data[ivx] = state->data[ivy] = state->data[ivz] = 0;	/* start velocity at [0,0,0] */
-	state->data[iax] = state->data[iay] = state->data[iaz] = 0;	/* start acceleration at [0,0,0] */
-	state->data[iwx] = state->data[iwy] = state->data[iwz] = 0;	/* start angular speed at [0,0,0] */
-	state->data[iqa] = 1; 										/* start rotation at identity quaternion */
-	state->data[iqb] = state->data[iqc] = state->data[iqd] = 0; /* start rotation at identity quaternion */
+void init_state_vector(phmatrix_t *state)
+{
+	state->data[ixx] = state->data[ixy] = state->data[ixz] = 0; /* start position at [0,0,0] */
+	state->data[ivx] = state->data[ivy] = state->data[ivz] = 0; /* start velocity at [0,0,0] */
+	state->data[iax] = state->data[iay] = state->data[iaz] = 0; /* start acceleration at [0,0,0] */
+	state->data[iwx] = state->data[iwy] = state->data[iwz] = 0; /* start angular speed at [0,0,0] */
+	state->data[iqa] = init_q.a;                                /* start rotation at identity quaternion */
+	state->data[iqb] = init_q.i;
+	state->data[iqc] = init_q.j;
+	state->data[iqd] = init_q.k;
 }
 
-void init_cov_vector(phmatrix_t * cov)
+void init_cov_vector(phmatrix_t *cov)
 {
 	/* covariance matrix P values init */
-	float errx = 0.1; /* err(x) = (10cm)^2 */
-	float errv = 0.1; /* err(v) = (10cm/s)^2 */
-	float erra = 0.1; /* err(a) = (10cm/s^2)^2 */
-	float errw = 0.1; /* err(w) = 0.1 rad/s */ /* FIXME: thats a lot! */
-	float errqa = DEG2RAD; /* err(qa) set to 1 degree */
-	float errqbcd = DEG2RAD; /* err(qb/qc/qd) set to 1 degree */
+	float errx = 0.0001;                          /* err(x) = (10cm)^2 */
+	float errv = 0.0001;                          /* err(v) = (10cm/s)^2 */
+	float erra = 0.0001;                          /* err(a) = (10cm/s^2)^2 */
+	float errw = 0.0001; /* err(w) = 0.1 rad/s */ /* FIXME: thats a lot! */
+	float errqa = DEG2RAD * DEG2RAD;              /* err(qa) set to 1 degree */
+	float errqbcd = DEG2RAD * DEG2RAD;            /* err(qb/qc/qd) set to 1 degree */
 
 	phx_zeroes(cov);
 	cov->data[cov->cols * ixx + ixx] = errx * errx;
@@ -64,26 +67,26 @@ void init_cov_vector(phmatrix_t * cov)
 }
 
 
-void init_prediction_matrices(phmatrix_t * state, phmatrix_t * state_est, phmatrix_t * cov, phmatrix_t * cov_est, phmatrix_t * F, phmatrix_t * Q, float dt)
+void init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, float dt)
 {
 	/* process noise Q matrix value init */
-	float anoise = 0.1;	/* noise(a) = (1cm/s^2)^2 */
-	float wnoise = (5 * DEG2RAD) * (5 * DEG2RAD);	/* noise(w) = (5 dps)^2 */
+	float anoise = 0.01;                          /* noise(a) = (1cm/s^2)^2 */
+	float wnoise = (5 * DEG2RAD) * (5 * DEG2RAD); /* noise(w) = (5 dps)^2 */
 
 	/* Q_meas noise matrix */
 	float Qm_data[STATE_ROWS * STATE_ROWS];
-	phmatrix_t Qm = {.cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = Qm_data};
+	phmatrix_t Qm = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = Qm_data };
 	float tmp_data[STATE_ROWS * STATE_ROWS];
-	phmatrix_t tmp = {.cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = tmp_data};
+	phmatrix_t tmp = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = tmp_data };
 
 	/* matrix initialization */
-	phx_newmatrix(state, 	STATE_ROWS,	STATE_COLS);	/* 16x1 */
-	phx_newmatrix(state_est,STATE_ROWS,	STATE_COLS);	/* 16x1 */
+	phx_newmatrix(state, STATE_ROWS, STATE_COLS);     /* 16x1 */
+	phx_newmatrix(state_est, STATE_ROWS, STATE_COLS); /* 16x1 */
 
-	phx_newmatrix(cov, 		STATE_ROWS,	STATE_ROWS);	/* 16x16 */
-	phx_newmatrix(cov_est, 	STATE_ROWS,	STATE_ROWS);	/* 16x16 */
-	phx_newmatrix(F, 		STATE_ROWS,	STATE_ROWS);	/* 16x16 */
-	phx_newmatrix(Q,		STATE_ROWS,	STATE_ROWS);	/* 16x16 */
+	phx_newmatrix(cov, STATE_ROWS, STATE_ROWS);     /* 16x16 */
+	phx_newmatrix(cov_est, STATE_ROWS, STATE_ROWS); /* 16x16 */
+	phx_newmatrix(F, STATE_ROWS, STATE_ROWS);       /* 16x16 */
+	phx_newmatrix(Q, STATE_ROWS, STATE_ROWS);       /* 16x16 */
 
 	init_state_vector(state);
 	init_cov_vector(cov);
@@ -96,14 +99,14 @@ void init_prediction_matrices(phmatrix_t * state, phmatrix_t * state_est, phmatr
 	phx_zeroes(Q);
 }
 
-void init_update_matrices(phmatrix_t * H, phmatrix_t * R)
+void init_update_matrices(phmatrix_t *H, phmatrix_t *R)
 {
-	float meas_anoise = 1; /* noise of accel reading */
-	float meas_wnoise = 1; /* noise of gyro reading */
+	float meas_anoise = 0.0563; /* noise of accel reading */
+	float meas_wnoise = 0.1;    /* noise of gyro reading */
 
 	/* matrix initialization */
-	phx_newmatrix(H, 	MEAS_ROWS,	STATE_ROWS);	/* 6x16 */
-	phx_newmatrix(R, 	MEAS_ROWS,	MEAS_ROWS);		/* 6x6 */
+	phx_newmatrix(H, MEAS_ROWS, STATE_ROWS); /* 6x16 */
+	phx_newmatrix(R, MEAS_ROWS, MEAS_ROWS);  /* 6x6 */
 
 	/* init of measurement noise matrix R */
 	R->data[R->cols * imax + imax] = meas_anoise;

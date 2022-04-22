@@ -22,11 +22,11 @@
 #include <tools/rotas_dummy.h>
 #include <tools/phmatrix.h>
 
-float t = 0, dt = 0.01;
+float t = 0, dt = 0.001;
 int verbose = 0, lastprint = -1;
 
 /* prints current state in readable format with possible interval set in seconds*/
-int print_state(phmatrix_t * state, float t, float interval)
+int print_state(phmatrix_t *state, float t, float interval)
 {
 	t *= 1000;
 	interval *= 1000;
@@ -43,20 +43,19 @@ int print_state(phmatrix_t * state, float t, float interval)
 
 	printf("X: [%.7f, %.7f, %.7f] | V:  [%.3f, %.3f, %.3f] | A:  [%.3f, %.3f, %.3f]\n", xx, xy, xz, vx, vy, vz, ax, ay, az);
 	printf("W: [%.3f, %.3f, %.3f] | Q: [%.3f, %.3f, %.3f, %.3f]\n", wx, wy, wz, qa, qb, qc, qd);
-	printf("t: %.3fs\n\n", t/1000);
+	printf("t: %.3fs\n\n", t / 1000);
 
 	/* short state output */
-//	printf("%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", t/1000, xx, xy, xz, vx, vy, vz);
-	getchar();
+	//printf("%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", t/1000, xx, xy, xz, vx, vy, vz);
 	return 0;
 }
 
 
-int main(int argc, char ** argv)
+int main(int argc, char **argv)
 {
 	phmatrix_t state, state_est, cov, cov_est, F, Q, H, R;
 
-	/* imu_calibrate_acc_gyr(); work in progress */
+	imu_calibrate_acc_gyr();
 	init_prediction_matrices(&state, &state_est, &cov, &cov_est, &F, &Q, dt);
 	init_update_matrices(&H, &R);
 
@@ -69,6 +68,7 @@ int main(int argc, char ** argv)
 		kalman_update(&state, &cov, &state_est, &cov_est, &H, &R, dt, 0);
 
 		t += dt;
+		usleep(dt * 1000 * 1000);
 		print_state(&state, t, 1); /* print state after 1s of simulation */
 	}
 }
