@@ -79,8 +79,27 @@
 #define wzp state->data[21]
 
 quat_t init_q;
+vec_t gyr_nivel;
+
+/* New elements can be added only at the end of structure */
+typedef struct {
+	float P_xerr;
+	float P_verr;
+	float P_aerr;
+	float P_werr;
+	float P_qaerr;
+	float P_qijkerr;
+
+	float R_acov;
+	float R_wcov;
+
+	float Q_acov;
+	float Q_wcov;
+} kalman_init_t;
 
 /* CALIBRATION AND MEASUREMENTS */
+
+void read_config(void);
 
 void imu_calibrate_acc_gyr(void);
 

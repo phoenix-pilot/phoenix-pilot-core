@@ -110,4 +110,11 @@ quat_t quat_vec2vec(vec_t *A, vec_t * B);
 vec_t * quat_vecrot(vec_t * vec, quat_t * rotquat);
 
 
+/* generates quaternion that rotates frame of (v1,v2) into (w1,w2) */
+quat_t quat_framerot(vec_t v1, vec_t v2, vec_t w1, vec_t w2);
+
+
+/* returns euler angles vector (heading, pitch, bank) */
+vec_t quat_quat2euler(quat_t q);
+
 #endif

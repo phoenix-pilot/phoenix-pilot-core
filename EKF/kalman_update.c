@@ -98,15 +98,15 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state)
 
 	/* trimming data from imu */
 	ameas = vec_scl(&ameas, EARTH_G);
-	wmeas = vec_scl(&wmeas, DEG2RAD);
+	//wmeas = vec_scl(&wmeas, DEG2RAD);
 
 	/* remove earth acceleration from measurements */
 	ameas.z -= EARTH_G;
 
 	phx_zeroes(Z);
-	Z->data[imax] = (float)((int)(ameas.x * 100)) / 100;
-	Z->data[imay] = (float)((int)(ameas.y * 100)) / 100;
-	Z->data[imaz] = (float)((int)(ameas.z * 100)) / 100;
+	Z->data[imax] = ameas.x;
+	Z->data[imay] = ameas.y;
+	Z->data[imaz] = ameas.z;
 	Z->data[imwx] = wmeas.x;
 	Z->data[imwy] = wmeas.y;
 	Z->data[imwz] = wmeas.z;

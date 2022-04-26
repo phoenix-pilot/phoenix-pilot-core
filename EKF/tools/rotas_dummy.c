@@ -207,3 +207,22 @@ vec_t * quat_vecrot(vec_t * vec, quat_t * rotquat)
 
 	return vec;
 }
+
+quat_t quat_framerot(vec_t v1, vec_t v2, vec_t w1, vec_t w2)
+{
+	quat_t q1 = quat_vec2vec(&v1, &w1), q2;
+	
+	quat_vecrot(&v2, &q1);
+	q2 = quat_vec2vec(&v2, &w2);
+
+	return quat_mlt(&q2, &q1);
+}
+
+vec_t quat_quat2euler(quat_t q)
+{
+	return vec(
+		atan2(2*(q.a * q.i + q.j * q.k), 1 - 2 * (q.i * q.i + q.j * q.j)),
+		asin(2 * (q.a * q.j - q.k * q.i)),
+		atan2(2 * (q.a * q.k + q.i * q.j), 1 - 2 * (q.j * q.j + q.k * q.k))
+	);
+}
