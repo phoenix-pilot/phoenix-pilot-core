@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <time.h>
 
 #include <sys/msg.h>
@@ -79,26 +80,40 @@ static phmatrix_t tmp5 = { .rows = STATE_ROWS, .cols = STATE_COLS, .transposed =
 static float S_inv_buff[MEAS_ROWS * MEAS_ROWS * 2];
 static unsigned int S_inv_buff_len = MEAS_ROWS * MEAS_ROWS * 2;
 
+/* constants */
+static vec_t true_g = {.x = 0, .y = 0, .z = 1};
+static vec_t x_versor = {.x = 1, .y = 0, .z = 0}; 
+
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
-static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state)
+static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R)
 {
-	vec_t *imu_meas;
-	vec_t ameas;
-	vec_t wmeas;
-	quat_t rot = { .a = qa, .i = qb, .j = qc, .k = qd };
-
+	vec_t *imu_meas, ameas, wmeas, mmeas, mmeas_unit, ameas_unit;
+	vec_t xp, diff;
+	quat_t q_est, rot = { .a = qa, .i = qb, .j = qc, .k = qd };
+	float err_q_est;
 
 	imu_meas = imu_measurements();
-	ameas = imu_meas[0];
-	wmeas = imu_meas[1];
+	ameas = imu_meas[0]; /* acceleration, expected to be in G */
+	wmeas = imu_meas[1]; /* rotation speed, expected to be in rad/s */
+	mmeas = imu_meas[2]; /* magnetic field, expected to be n uT */
+
+	mmeas_unit = mmeas;
+	ameas_unit = ameas;
+	vec_normalize(&mmeas_unit);
+	vec_normalize(&ameas_unit);
+	xp = vec_cross(&mmeas_unit, &ameas_unit);
+	vec_normalize(&xp);
+	q_est = quat_framerot(&ameas_unit, &xp, &true_g, &x_versor, &rot);
 
 	quat_vecrot(&ameas, &rot);
 	quat_vecrot(&wmeas, &rot);
 
+	diff = vec_sub(&true_g, &ameas);
+	err_q_est = 0.1 + 10 * sqrt(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z); /* vec_len^2 by hand */
+
 	/* trimming data from imu */
-	ameas = vec_scl(&ameas, EARTH_G);
-	//wmeas = vec_scl(&wmeas, DEG2RAD);
+	ameas = vec_times(&ameas, EARTH_G);
 
 	/* remove earth acceleration from measurements */
 	ameas.z -= EARTH_G;
@@ -107,12 +122,25 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state)
 	Z->data[imax] = ameas.x;
 	Z->data[imay] = ameas.y;
 	Z->data[imaz] = ameas.z;
+	
 	Z->data[imwx] = wmeas.x;
 	Z->data[imwy] = wmeas.y;
 	Z->data[imwz] = wmeas.z;
+	
+	Z->data[immx] = mmeas.x;
+	Z->data[immy] = mmeas.y;
+	Z->data[immz] = mmeas.z;
 
-	// phx_print(Z);
-	// printf("\n");
+	Z->data[imqa] = q_est.a;
+	Z->data[imqb] = q_est.i;
+	Z->data[imqc] = q_est.j;
+	Z->data[imqd] = q_est.k;
+
+	/* update measurement error */
+	R->data[R->cols * imqa + imqa] = err_q_est;
+	R->data[R->cols * imqb + imqb] = err_q_est;
+	R->data[R->cols * imqc + imqc] = err_q_est;
+	R->data[R->cols * imqd + imqd] = err_q_est;
 
 	return Z;
 }
@@ -126,9 +154,19 @@ static phmatrix_t *get_hx(phmatrix_t *state_est)
 	hx.data[imax] = ax;
 	hx.data[imay] = ay;
 	hx.data[imaz] = az;
+
 	hx.data[imwx] = wx;
 	hx.data[imwy] = wy;
 	hx.data[imwz] = wz;
+
+	hx.data[immx] = mx;
+	hx.data[immy] = my;
+	hx.data[immz] = mz;
+
+	hx.data[imqa] = qa;
+	hx.data[imqb] = qb;
+	hx.data[imqc] = qc;
+	hx.data[imqd] = qd;
 
 	return &hx;
 }
@@ -140,7 +178,7 @@ void kalman_update(phmatrix_t *state, phmatrix_t *cov, phmatrix_t *state_est, ph
 	phx_diag(&I);
 
 	/* y_k = z_k - h(x_(k|k-1)) */
-	phx_sub(get_measurements(&Z, state), get_hx(state_est), &Y);
+	phx_sub(get_measurements(&Z, state, R), get_hx(state_est), &Y);
 
 	/* S_k = H_k * P_(k|k-1) * transpose(H_k) + R*/
 	phx_sadwitch_product(H, cov_est, &S, &tmp3);

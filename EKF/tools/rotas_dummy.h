@@ -18,6 +18,7 @@
 
 /* identity quaternion macro */
 #define IDEN_QUAT (quat_t){.a=1,.i=0,.j=0,.k=0}
+#define PI_QUAT (quat_t){.a=0,.i=1,.j=0,.k=0}
 
 
 typedef struct {
@@ -39,6 +40,10 @@ vec_t vec(float x, float y, float z);
 vec_t vec_add(vec_t *A, vec_t *B);
 
 
+/* subtracts two vectors */
+vec_t vec_sub(vec_t *A, vec_t *B);
+
+
 /* returns cross product of given vectors */
 vec_t vec_cross(vec_t *A, vec_t *B);
 
@@ -48,7 +53,7 @@ float vec_dot(vec_t *A, vec_t *B);
 
 
 /* multiplies each vector element times scalar 'a' */
-vec_t vec_scl(vec_t *A, float a);
+vec_t vec_times(vec_t *A, float a);
 
 
 /* returns length of passed vector */
@@ -73,6 +78,10 @@ quat_t quat_add(const quat_t *A, const quat_t *B);
 
 /* A * B = C | multiply two quaternions and return the product */
 quat_t quat_mlt(const quat_t *A, const quat_t *B);
+
+
+/* x = AB | returns euclidian 4D dot product of two quaternions */ 
+float quat_dot(const quat_t *A, const quat_t *B);
 
 
 /* B = A* | return conjugated quaternion A */
@@ -102,16 +111,16 @@ quat_t * quat_times(quat_t * A, float x);
 /* Transforms */
 
 
-/* get rotation quaternion between two vectors vectors */
-quat_t quat_vec2vec(vec_t *A, vec_t * B);
+/* get rotation quaternion between two unit vectors */
+quat_t quat_uvec2uvec(vec_t *A, vec_t * B);
 
 
-/* rotate vector using rotation quaternion */
+/* rotates vector using rotation quaternion */
 vec_t * quat_vecrot(vec_t * vec, quat_t * rotquat);
 
 
-/* generates quaternion that rotates frame of (v1,v2) into (w1,w2) */
-quat_t quat_framerot(vec_t v1, vec_t v2, vec_t w1, vec_t w2);
+/* returns one of two quaternions that rotates (v1,v2) into (w1,w2) closest to help_q quat*/
+quat_t quat_framerot(vec_t *v1, vec_t *v2, vec_t *w1, vec_t *w2, quat_t * help_q);
 
 
 /* returns euler angles vector (heading, pitch, bank) */

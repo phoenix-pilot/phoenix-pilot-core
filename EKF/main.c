@@ -25,15 +25,26 @@
 #include <tools/phmatrix.h>
 
 float t = 0, dt = 0.001;
-int verbose = 0, lastprint = -1;
+int lastprint = -1;
 struct timeval last_time;
+phmatrix_t *TR;
+
+void print_UAV_versors(quat_t q) {
+	vec_t x = vec(1, 0, 0), y = vec(0, 1, 0), z = vec(0, 0, 1); 
+
+	quat_vecrot(&x, &q);
+	quat_vecrot(&y, &q);
+	quat_vecrot(&z, &q);
+
+	printf("%.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f\n", x.x, x.y, x.z, y.x, y.y, y.z, z.x, z.y, z.z);
+}
 
 /* prints current state in readable format with possible interval set in seconds*/
 int print_state(phmatrix_t *state, phmatrix_t *cov, float t, float interval)
 {
 	quat_t q = quat(qa, qb, qc, qd);
 	vec_t euler = quat_quat2euler(q);
-	euler = vec_scl(&euler, 180 * M_1_PI);
+	euler = vec_times(&euler, 180 * M_1_PI);
 	t *= 1000;
 	interval *= 1000;
 
@@ -46,24 +57,14 @@ int print_state(phmatrix_t *state, phmatrix_t *cov, float t, float interval)
 	}
 
 	/* detailed state output */
-	printf("X: [%.3f, %.3f, %.7f] | V:  [%.3f, %.3f, %.3f] | A:  [%.3f, %.3f, %.3f]\n", xx, xy, xz, vx, vy, vz, ax, ay, az);
-	printf("W: [%.3f, %.3f, %.3f] | Q: [%.5f, %.5f, %.5f, %.5f]\n", wx, wy, wz, qa, qb, qc, qd);
-	printf("E: [%.3f, %.3f, %.3f]\n", euler.x, euler.y, euler.z);
-	printf("t: %.3fs\n\n", t / 1000);
-
-	/* plain state output */
-	/*
-	printf("%.1f", t/1000);
-	printf(" %.3f %.3f %.3f", xx, xy, xz);
-	printf(" %.3f %.3f %.3f", vx, vy, vz);
-	printf(" %.3f %.3f %.3f", ax, ay, az);
-	printf(" %.3f %.3f %.3f", wx, wy, wz);
-	printf(" %.3f %.3f %.3f %.3f", qa, qb, qc, qd);
-	printf("\n");
-	*/
-	/*
-	printf("%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n", t/1000, xx, xy, xz, vx, vy, vz);
-	*/
+	if (verbose == 1) {
+		printf("X: [%.3f, %.3f, %.7f] | V:  [%.3f, %.3f, %.3f] | A:  [%.3f, %.3f, %.3f]\n", xx, xy, xz, vx, vy, vz, ax, ay, az);
+		printf("W: [%.3f, %.3f, %.3f] | Q: [%.5f, %.5f, %.5f, %.5f]\n", wx, wy, wz, qa, qb, qc, qd);
+		printf("M: [%.3f, %.3f, %.3f]\n", mx, my, mz);
+		printf("E: [%.3f, %.3f, %.3f]\n", euler.x, euler.y, euler.z);
+		printf("t: %.3f %f %f\n\n", t / 1000, cov->data[cov->cols * iqa + iqa], TR->data[TR->cols * imqa + imqa]);
+	}
+	print_UAV_versors(quat(qa, qb, qc, qd));
 	return 0;
 }
 
@@ -85,9 +86,10 @@ float get_dt(void)
 int main(int argc, char **argv)
 {
 	phmatrix_t state, state_est, cov, cov_est, F, Q, H, R;
+	TR = &R;
 
 	read_config();
-	imu_calibrate_acc_gyr();
+	imu_calibrate_acc_gyr_mag();
 	init_prediction_matrices(&state, &state_est, &cov, &cov_est, &F, &Q, dt);
 	init_update_matrices(&H, &R);
 
@@ -102,6 +104,7 @@ int main(int argc, char **argv)
 		kalman_update(&state, &cov, &state_est, &cov_est, &H, &R, dt, 0);
 
 		t += dt;
-		print_state(&state, &cov, t, 1); /* print state after 1s of simulation */
+		print_state(&state, &cov_est, t, 0.04); /* print state after 1s of simulation */
+
 	}
 }

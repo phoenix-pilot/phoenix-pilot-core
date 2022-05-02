@@ -84,4 +84,8 @@ extern void jacobian_H(phmatrix_t *state, phmatrix_t *H, float dt)
 	phx_zeroes(H);
 	phx_writesubmatrix(H, imax, iax, &I33);
 	phx_writesubmatrix(H, imwx, iwx, &I33);
+	phx_writesubmatrix(H, immx, imx, &I33);
+	/* using I33 and one direct write to write I44 */
+	phx_writesubmatrix(H, imqa, iqa, &I33);
+	H->data[H->cols * imqd + iqd] = 1;
 }

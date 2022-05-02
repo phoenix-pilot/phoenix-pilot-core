@@ -45,10 +45,12 @@ static void kalman_estimate_state(phmatrix_t *state, phmatrix_t *state_est, floa
 	state_est->data[ivy] = vy + ay * dt;
 	state_est->data[ivz] = vz + az * dt;
 
+	/* predition from w */
 	res = quat_mlt(&quat_w, &quat_q);
 	quat_times(&res, dt / 2);
 	quat_q = quat_add(&quat_q, &res);
 	quat_normalize(&quat_q);
+	
 	state_est->data[iqa] = quat_q.a;
 	state_est->data[iqb] = quat_q.i;
 	state_est->data[iqc] = quat_q.j;
@@ -61,6 +63,10 @@ static void kalman_estimate_state(phmatrix_t *state, phmatrix_t *state_est, floa
 	state_est->data[iwx] = wx;
 	state_est->data[iwy] = wy;
 	state_est->data[iwz] = wz;
+
+	state_est->data[imx] = mx;
+	state_est->data[imy] = my;
+	state_est->data[imz] = mz;
 }
 
 

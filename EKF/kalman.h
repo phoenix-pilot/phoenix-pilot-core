@@ -20,18 +20,27 @@
 #include <tools/rotas_dummy.h>
 
 #define STATE_COLS 1
-#define STATE_ROWS 16
-#define MEAS_ROWS  6
+#define STATE_ROWS 19
+#define MEAS_ROWS  13
 
 #define EARTH_G 9.80665F
 
+/* abbreviation of IndexMeasurement(valuename) */
 #define imax 0
 #define imay 1
 #define imaz 2
 #define imwx 3
 #define imwy 4
 #define imwz 5
+#define immx 6
+#define immy 7
+#define immz 8
+#define imqa 9
+#define imqb 10
+#define imqc 11
+#define imqd 12
 
+/* abbreviation of index(valuename */
 #define ixx  0
 #define ixy  1
 #define ixz  2
@@ -48,13 +57,12 @@
 #define iwx  13
 #define iwy  14
 #define iwz  15
-#define iaxp 16
-#define iayp 17
-#define iazp 18
-#define iwxp 19
-#define iwyp 20
-#define iwzp 21
+#define imx  16
+#define imy  17
+#define imz  18
 
+
+/* vale name */
 #define xx  state->data[0]
 #define xy  state->data[1]
 #define xz  state->data[2]
@@ -71,37 +79,44 @@
 #define wx  state->data[13]
 #define wy  state->data[14]
 #define wz  state->data[15]
-#define axp state->data[16]
-#define ayp state->data[17]
-#define azp state->data[18]
-#define wxp state->data[19]
-#define wyp state->data[20]
-#define wzp state->data[21]
+#define mx  state->data[16]
+#define my  state->data[17]
+#define mz  state->data[18]
 
+/* initial values calculated during calibration */
 quat_t init_q;
+vec_t init_m;
 vec_t gyr_nivel;
+int verbose;
 
 /* New elements can be added only at the end of structure */
 typedef struct {
+	int verbose;
+
 	float P_xerr;
 	float P_verr;
 	float P_aerr;
 	float P_werr;
+	float P_merr;
 	float P_qaerr;
 	float P_qijkerr;
 
 	float R_acov;
 	float R_wcov;
+	float R_mcov;
+	float R_qcov;
 
 	float Q_acov;
 	float Q_wcov;
+	float Q_mcov;
+	float Q_qcov;
 } kalman_init_t;
 
 /* CALIBRATION AND MEASUREMENTS */
 
 void read_config(void);
 
-void imu_calibrate_acc_gyr(void);
+void imu_calibrate_acc_gyr_mag(void);
 
 vec_t *imu_measurements(void);
 
