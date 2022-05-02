@@ -81,14 +81,15 @@ static float S_inv_buff[MEAS_ROWS * MEAS_ROWS * 2];
 static unsigned int S_inv_buff_len = MEAS_ROWS * MEAS_ROWS * 2;
 
 /* constants */
-static vec_t true_g = {.x = 0, .y = 0, .z = 1};
-static vec_t x_versor = {.x = 1, .y = 0, .z = 0}; 
+static vec_t true_g = { .x = 0, .y = 0, .z = 1 };
+static vec_t x_versor = { .x = 1, .y = 0, .z = 0 };
 
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R)
 {
-	vec_t *imu_meas, ameas, wmeas, mmeas, mmeas_unit, ameas_unit;
+	vec_t *imu_meas, ameas, wmeas, mmeas;
+	vec_t mmeas_unit, ameas_unit;
 	vec_t xp, diff;
 	quat_t q_est, rot = { .a = qa, .i = qb, .j = qc, .k = qd };
 	float err_q_est;
@@ -110,7 +111,9 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t
 	quat_vecrot(&wmeas, &rot);
 
 	diff = vec_sub(&true_g, &ameas);
-	err_q_est = 0.1 + 10 * sqrt(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z); /* vec_len^2 by hand */
+	err_q_est = 0.2 + vec_len(&diff) + vec_len(&wmeas); /* vec_len^2 by hand */
+	if (err_q_est > 1)
+		err_q_est = 1;
 
 	/* trimming data from imu */
 	ameas = vec_times(&ameas, EARTH_G);
@@ -122,11 +125,11 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t
 	Z->data[imax] = ameas.x;
 	Z->data[imay] = ameas.y;
 	Z->data[imaz] = ameas.z;
-	
+
 	Z->data[imwx] = wmeas.x;
 	Z->data[imwy] = wmeas.y;
 	Z->data[imwz] = wmeas.z;
-	
+
 	Z->data[immx] = mmeas.x;
 	Z->data[immy] = mmeas.y;
 	Z->data[immz] = mmeas.z;

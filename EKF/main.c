@@ -29,8 +29,9 @@ int lastprint = -1;
 struct timeval last_time;
 phmatrix_t *TR;
 
-void print_UAV_versors(quat_t q) {
-	vec_t x = vec(1, 0, 0), y = vec(0, 1, 0), z = vec(0, 0, 1); 
+void print_UAV_versors(quat_t q)
+{
+	vec_t x = vec(1, 0, 0), y = vec(0, 1, 0), z = vec(0, 0, 1);
 
 	quat_vecrot(&x, &q);
 	quat_vecrot(&y, &q);
@@ -105,6 +106,5 @@ int main(int argc, char **argv)
 
 		t += dt;
 		print_state(&state, &cov_est, t, 0.04); /* print state after 1s of simulation */
-
 	}
 }

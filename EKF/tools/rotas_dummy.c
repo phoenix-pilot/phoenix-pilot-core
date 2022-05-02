@@ -241,6 +241,7 @@ quat_t quat_framerot(vec_t *v1, vec_t *v2, vec_t *w1, vec_t *w2, quat_t * help_q
 	return q2;
 }
 
+
 vec_t quat_quat2euler(quat_t q)
 {
 	return vec(

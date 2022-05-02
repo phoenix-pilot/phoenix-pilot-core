@@ -95,7 +95,7 @@ void init_state_vector(phmatrix_t *state)
 	state->data[ivx] = state->data[ivy] = state->data[ivz] = 0; /* start velocity at [0,0,0] */
 	state->data[iax] = state->data[iay] = state->data[iaz] = 0; /* start acceleration at [0,0,0] */
 	state->data[iwx] = state->data[iwy] = state->data[iwz] = 0; /* start angular speed at [0,0,0] */
-	
+
 	/* start rotation at identity quaternion */
 	state->data[iqa] = init_q.a;
 	state->data[iqb] = init_q.i;
@@ -118,7 +118,7 @@ void init_cov_vector(phmatrix_t *cov)
 	cov->data[cov->cols * ivx + ivx] = init_values.P_verr * init_values.P_verr;
 	cov->data[cov->cols * ivy + ivy] = init_values.P_verr * init_values.P_verr;
 	cov->data[cov->cols * ivz + ivz] = init_values.P_verr * init_values.P_verr;
-	
+
 	cov->data[cov->cols * iax + iax] = init_values.P_aerr * init_values.P_aerr;
 	cov->data[cov->cols * iay + iay] = init_values.P_aerr * init_values.P_aerr;
 	cov->data[cov->cols * iaz + iaz] = init_values.P_aerr * init_values.P_aerr;

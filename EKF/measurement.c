@@ -50,7 +50,7 @@ static void askIMU(float *dataspace)
 	tx = data[0] + 0.01878438;
 	ty = data[1] + 0.01529312;
 	tz = data[2] - 0.00847015;
-	data[0] = 1.00314301e+00 * tx + 3.43707788e-03 * ty -3.07747253e-03 * tz;
+	data[0] = 1.00314301e+00 * tx + 3.43707788e-03 * ty - 3.07747253e-03 * tz;
 	data[1] = 3.43707788e-03 * tx + 9.99766169e-01 * ty + 5.66230781e-04 * tz;
 	data[2] = -3.07747253e-03 * tx + 5.66230781e-04 * ty + 9.97121509e-01 * tz;
 
@@ -64,9 +64,9 @@ static void askIMU(float *dataspace)
 	tmy = data[8] - (18.06055698);
 	tmz = data[9] - (-4.67724163);
 
-	data[7] =  0.99149195 * tmx -0.02531768 * tmy + 0.0042657 * tmz;
-	data[8] = -0.02531768 * tmx + 1.00750385 * tmy -0.00278795 * tmz;
-	data[9] =  0.0042657 * tmx -0.00278795 * tmy + 1.00173743 * tmz;
+	data[7] = 0.99149195 * tmx - 0.02531768 * tmy + 0.0042657 * tmz;
+	data[8] = -0.02531768 * tmx + 1.00750385 * tmy - 0.00278795 * tmz;
+	data[9] = 0.0042657 * tmx - 0.00278795 * tmy + 1.00173743 * tmz;
 
 	memmove(dataspace, data, 10 * sizeof(float));
 }
@@ -91,16 +91,16 @@ void imu_calibrate_acc_gyr_mag(void)
 		m_avg.x += data[7];
 		m_avg.y += data[8];
 		m_avg.z += data[9];
-		
+
 		usleep(1000 * 5);
 	}
 	a_avg = vec_times(&a_avg, 0.0005);
 	w_avg = vec_times(&w_avg, 0.0005);
 	m_avg = vec_times(&m_avg, 0.0005);
 
-	
+
 	gyr_nivel = w_avg; /* save gyro drift parameters */
-	init_m = m_avg; /* save initial magnetometer reading */
+	init_m = m_avg;    /* save initial magnetometer reading */
 
 	/* calculate initial rotation */
 	n = vec_cross(&a_avg, &init_m);

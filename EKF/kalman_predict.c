@@ -50,7 +50,7 @@ static void kalman_estimate_state(phmatrix_t *state, phmatrix_t *state_est, floa
 	quat_times(&res, dt / 2);
 	quat_q = quat_add(&quat_q, &res);
 	quat_normalize(&quat_q);
-	
+
 	state_est->data[iqa] = quat_q.a;
 	state_est->data[iqb] = quat_q.i;
 	state_est->data[iqc] = quat_q.j;

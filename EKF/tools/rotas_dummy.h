@@ -88,7 +88,7 @@ float quat_dot(const quat_t *A, const quat_t *B);
 quat_t quat_cjg(const quat_t *A);
 
 
-/* C = A * B * A* | make sandwich product of quaternions */
+/* C = A * B * cjg(A) | make sandwich product of quaternions */
 quat_t quat_sandwich(const quat_t *A, const quat_t *B);
 
 
@@ -119,11 +119,11 @@ quat_t quat_uvec2uvec(vec_t *A, vec_t * B);
 vec_t * quat_vecrot(vec_t * vec, quat_t * rotquat);
 
 
-/* returns one of two quaternions that rotates (v1,v2) into (w1,w2) closest to help_q quat*/
+/* returns one of two quaternions that rotates (v1,v2) into (w1,w2) closest to help_q quat */
 quat_t quat_framerot(vec_t *v1, vec_t *v2, vec_t *w1, vec_t *w2, quat_t * help_q);
 
 
-/* returns euler angles vector (heading, pitch, bank) */
+/* returns rotation euler angles vector (heading, pitch, bank) from rotation quaternion */
 vec_t quat_quat2euler(quat_t q);
 
 #endif
