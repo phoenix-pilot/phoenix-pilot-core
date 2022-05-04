@@ -88,16 +88,20 @@ static vec_t x_versor = { .x = 1, .y = 0, .z = 0 };
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R)
 {
-	vec_t *imu_meas, ameas, wmeas, mmeas;
+	vec_t ameas, wmeas, mmeas;
 	vec_t mmeas_unit, ameas_unit;
 	vec_t xp, diff;
 	quat_t q_est, rot = { .a = qa, .i = qb, .j = qc, .k = qd };
 	float err_q_est;
 
-	imu_meas = imu_measurements();
-	ameas = imu_meas[0]; /* acceleration, expected to be in G */
-	wmeas = imu_meas[1]; /* rotation speed, expected to be in rad/s */
-	mmeas = imu_meas[2]; /* magnetic field, expected to be in uT */
+	/* 
+		Sensors API wrapper call 
+
+		Accelerations in g
+		Angular rates in rad/s
+		magnetic flux field in uT 
+	*/
+	acquire_measurements(&ameas, &wmeas, &mmeas);
 
 	/* estimate rotation quaternion with assumption that imu is stationary */
 	mmeas_unit = mmeas;
@@ -112,7 +116,7 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t
 	quat_vecrot(&ameas, &rot);
 	quat_vecrot(&wmeas, &rot);
 
-	/* calculateing quaternion estimation error based on its nonstationarity. Empirically fitted parameters! */
+	/* calculate quaternion estimation error based on its nonstationarity. Empirically fitted parameters! */
 	diff = vec_sub(&true_g, &ameas);
 	err_q_est = 8 + 50 * vec_len(&diff) + 10 * vec_len(&wmeas);
 

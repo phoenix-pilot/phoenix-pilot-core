@@ -24,9 +24,11 @@
 #include <tools/rotas_dummy.h>
 #include <tools/phmatrix.h>
 
-float t = 0, dt = 0.001;
-int lastprint = -1;
-struct timeval last_time;
+
+kalman_common_t kalman_common;
+// float t = 0, dt = 0.001;
+// int lastprint = -1;
+// struct timeval last_time;
 phmatrix_t *TR;
 
 void print_UAV_versors(quat_t q)
@@ -50,10 +52,10 @@ int print_state(phmatrix_t *state, phmatrix_t *cov, float t, float interval)
 	t *= 1000;
 	interval *= 1000;
 	if (interval != 0) {
-		if ((int)t / (int)interval == lastprint) {
+		if ((int)t / (int)interval == kalman_common.lastprint) {
 			return 1;
 		}
-		lastprint = (int)t / (int)interval;
+		kalman_common.lastprint = (int)t / (int)interval;
 	}
 	t /= 1000;
 
@@ -77,13 +79,14 @@ int print_state(phmatrix_t *state, phmatrix_t *cov, float t, float interval)
 
 float get_dt(void)
 {
-	struct timeval current_time;
+	//struct timeval current_time;
+
 	usleep(800);
 
-	gettimeofday(&current_time, NULL);
-	long diff = current_time.tv_sec - last_time.tv_sec;
-	diff = current_time.tv_usec + diff * 1000000 - last_time.tv_usec;
-	last_time = current_time;
+	gettimeofday(&kalman_common.current_time, NULL);
+	long diff = kalman_common.current_time.tv_sec - kalman_common.last_time.tv_sec;
+	diff = kalman_common.current_time.tv_usec + diff * 1000000 - kalman_common.last_time.tv_usec;
+	kalman_common.last_time = kalman_common.current_time;
 
 	return (float)diff / 1000000;
 }
@@ -96,20 +99,20 @@ int main(int argc, char **argv)
 
 	read_config();
 	imu_calibrate_acc_gyr_mag();
-	init_prediction_matrices(&state, &state_est, &cov, &cov_est, &F, &Q, dt);
+	init_prediction_matrices(&state, &state_est, &cov, &cov_est, &F, &Q, kalman_common.dt);
 	init_update_matrices(&H, &R);
 
 	/* Kalman loop */
-	gettimeofday(&last_time, NULL);
+	gettimeofday(&kalman_common.last_time, NULL);
 	while (1) {
-		dt = get_dt();
+		kalman_common.dt = get_dt();
 
-		jacobian_F(&state, &F, dt);
-		kalman_predict(&state, &cov, &state_est, &cov_est, &F, &Q, dt, 0);
-		jacobian_H(&state_est, &H, dt);
-		kalman_update(&state, &cov, &state_est, &cov_est, &H, &R, dt, 0);
+		jacobian_F(&state, &F, kalman_common.dt);
+		kalman_predict(&state, &cov, &state_est, &cov_est, &F, &Q, kalman_common.dt, 0);
+		jacobian_H(&state_est, &H, kalman_common.dt);
+		kalman_update(&state, &cov, &state_est, &cov_est, &H, &R, kalman_common.dt, 0);
 
-		t += dt;
-		print_state(&state, &cov_est, t, 0.04); /* print state after 1s of simulation */
+		kalman_common.t += kalman_common.dt;
+		print_state(&state, &cov_est, kalman_common.t, 0.04); /* print state after 1s of simulation */
 	}
 }

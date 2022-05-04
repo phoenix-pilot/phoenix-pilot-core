@@ -16,6 +16,8 @@
 #ifndef PHKALMAN_H
 #define PHKALMAN_H
 
+#include <sys/time.h>
+
 #include <tools/phmatrix.h>
 #include <tools/rotas_dummy.h>
 
@@ -41,47 +43,47 @@
 #define imqd 12
 
 /* abbreviation of index(valuename */
-#define ixx  0
-#define ixy  1
-#define ixz  2
-#define ivx  3
-#define ivy  4
-#define ivz  5
-#define iqa  6
-#define iqb  7
-#define iqc  8
-#define iqd  9
-#define iax  10
-#define iay  11
-#define iaz  12
-#define iwx  13
-#define iwy  14
-#define iwz  15
-#define imx  16
-#define imy  17
-#define imz  18
+#define ixx 0
+#define ixy 1
+#define ixz 2
+#define ivx 3
+#define ivy 4
+#define ivz 5
+#define iqa 6
+#define iqb 7
+#define iqc 8
+#define iqd 9
+#define iax 10
+#define iay 11
+#define iaz 12
+#define iwx 13
+#define iwy 14
+#define iwz 15
+#define imx 16
+#define imy 17
+#define imz 18
 
 
 /* vale name */
-#define xx  state->data[0]
-#define xy  state->data[1]
-#define xz  state->data[2]
-#define vx  state->data[3]
-#define vy  state->data[4]
-#define vz  state->data[5]
-#define qa  state->data[6]
-#define qb  state->data[7]
-#define qc  state->data[8]
-#define qd  state->data[9]
-#define ax  state->data[10]
-#define ay  state->data[11]
-#define az  state->data[12]
-#define wx  state->data[13]
-#define wy  state->data[14]
-#define wz  state->data[15]
-#define mx  state->data[16]
-#define my  state->data[17]
-#define mz  state->data[18]
+#define xx state->data[0]
+#define xy state->data[1]
+#define xz state->data[2]
+#define vx state->data[3]
+#define vy state->data[4]
+#define vz state->data[5]
+#define qa state->data[6]
+#define qb state->data[7]
+#define qc state->data[8]
+#define qd state->data[9]
+#define ax state->data[10]
+#define ay state->data[11]
+#define az state->data[12]
+#define wx state->data[13]
+#define wy state->data[14]
+#define wz state->data[15]
+#define mx state->data[16]
+#define my state->data[17]
+#define mz state->data[18]
 
 /* initial values calculated during calibration */
 quat_t init_q;
@@ -112,13 +114,22 @@ typedef struct {
 	float Q_qcov;
 } kalman_init_t;
 
+
+typedef struct {
+	float t;
+	float dt;
+	int lastprint;
+	struct timeval last_time;
+	struct timeval current_time;
+} kalman_common_t;
+
 /* CALIBRATION AND MEASUREMENTS */
 
 void read_config(void);
 
 void imu_calibrate_acc_gyr_mag(void);
 
-vec_t *imu_measurements(void);
+void acquire_measurements(vec_t *accels, vec_t *gyros, vec_t *mags);
 
 /* T=0 VALUES INITIALIZATION METHODS */
 

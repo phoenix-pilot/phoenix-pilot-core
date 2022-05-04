@@ -25,12 +25,15 @@
 
 #include "kalman.h"
 
+#include <imx6ull-sensi2c.h>
 #include <tools/rotas_dummy.h>
 #include <tools/phmatrix.h>
 
-float imu_raw[10];
-vec_t meas_data[3];
 float g_scaleerr_common = 1;
+
+struct sens_imu_t imuSensor;
+struct sens_baro_t baroSensor;
+struct sens_mag_t magSensor;
 
 /* accelerometer calibration data */
 float tax, tay, taz;
@@ -71,50 +74,36 @@ static void ellipsoid_compensate(float *x, float *y, float *z, float *calib)
 }
 
 
-static void askIMU(float *dataspace)
+static void askIMU(void)
 {
-	msg_t msg = { 0 };
-	memset(&msg, 0, sizeof(msg));
-	float *data = (float *)msg.o.raw;
-
-	msg.type = mtRead;
-
-	msg.i.data = NULL;
-	msg.i.size = (size_t)0;
-	msg.o.data = (void*)NULL;
-	msg.o.size = 0;
-
-	msgSend(1, &msg);
+	sensImu(&imuSensor);
+	sensBaro(&baroSensor);
+	sensMag(&magSensor);
 
 	/* accelerometer calibration */
-	ellipsoid_compensate(&data[0], &data[1], &data[2], acc_calib1);
-	ellipsoid_compensate(&data[0], &data[1], &data[2], acc_finecalib);
+	ellipsoid_compensate(&imuSensor.accel_x, &imuSensor.accel_y, &imuSensor.accel_z, acc_calib1);
+	ellipsoid_compensate(&imuSensor.accel_x, &imuSensor.accel_y, &imuSensor.accel_z, acc_finecalib);
 
 	/* magnetometer calibration */
-	ellipsoid_compensate(&data[7], &data[8], &data[9], mag_calib1);
-
-	data[0] *= g_scaleerr_common;
-	data[1] *= g_scaleerr_common;
-	data[2] *= g_scaleerr_common;
+	ellipsoid_compensate(&magSensor.mag_x, &magSensor.mag_y, &magSensor.mag_z, mag_calib1);
 
 	/* gyro niveling */
-	data[3] -= gyr_nivel.x;
-	data[4] -= gyr_nivel.y;
-	data[5] -= gyr_nivel.z;
-
-	memmove(dataspace, data, 10 * sizeof(float));
+	imuSensor.gyr_x -= gyr_nivel.x;
+	imuSensor.gyr_y -= gyr_nivel.y;
+	imuSensor.gyr_z -= gyr_nivel.z;
 }
 
-float average_accel(int repeats, unsigned int mswait, const char *axisdir)
+
+static float average_accel(int repeats, unsigned int mswait, const char *axisdir)
 {
-	float data[10], len = 0;
+	float len = 0;
 	int i;
 	printf("Position IMU %s and press enter...\n", axisdir);
 	getchar();
 
 	for (i = 0; i < repeats; i++) {
-		askIMU(data);
-		len += sqrt(data[0] * data[0] + data[1] * data[1] + data[2] * data[2]);
+		askIMU();
+		len += sqrt(imuSensor.accel_x * imuSensor.accel_x + imuSensor.accel_y * imuSensor.accel_x + imuSensor.accel_z * imuSensor.accel_z);
 		usleep(mswait * 1000);
 	}
 	return len / repeats;
@@ -154,25 +143,25 @@ static void accel_fine_tune(void)
 void imu_calibrate_acc_gyr_mag(void)
 {
 	int i, avg = 2000;
-	float data[10];
+	//float data[10];
 	vec_t a_avg = vec(0, 0, 0), gvec = vec(0, 0, 1), w_avg = vec(0, 0, 0), m_avg = vec(0, 0, 0), x_versor = vec(1, 0, 0), n;
 	quat_t iden_q = IDEN_QUAT;
 
 	printf("Calibrating. It wil take 4 seconds...\n");
 
 	for (i = 0; i < avg; i++) {
-		askIMU(data);
-		a_avg.x += data[0];
-		a_avg.y += data[1];
-		a_avg.z += data[2];
+		askIMU();
+		a_avg.x += imuSensor.accel_x;
+		a_avg.y += imuSensor.accel_y;
+		a_avg.z += imuSensor.accel_z;
 
-		w_avg.x += data[3];
-		w_avg.y += data[4];
-		w_avg.z += data[5];
+		w_avg.x += imuSensor.gyr_x;
+		w_avg.y += imuSensor.gyr_y;
+		w_avg.z += imuSensor.gyr_z;
 
-		m_avg.x += data[7];
-		m_avg.y += data[8];
-		m_avg.z += data[9];
+		m_avg.x += magSensor.mag_x;
+		m_avg.y += magSensor.mag_y;
+		m_avg.z += magSensor.mag_z;
 
 		usleep(1000 * 5);
 	}
@@ -197,13 +186,11 @@ void imu_calibrate_acc_gyr_mag(void)
 	}
 }
 
-vec_t *imu_measurements(void)
+void acquire_measurements(vec_t *accels, vec_t *gyros, vec_t *mags)
 {
 	/* get data */
-	askIMU(imu_raw);
-	meas_data[0] = vec(imu_raw[0], imu_raw[1], imu_raw[2]);
-	meas_data[1] = vec(imu_raw[3], imu_raw[4], imu_raw[5]);
-	meas_data[2] = vec(imu_raw[7], imu_raw[8], imu_raw[9]);
-
-	return meas_data;
+	askIMU();
+	*accels = vec(imuSensor.accel_x, imuSensor.accel_y, imuSensor.accel_y);
+	*gyros = vec(imuSensor.gyr_x, imuSensor.gyr_y, imuSensor.gyr_z);
+	*mags = vec(magSensor.mag_x, magSensor.mag_y, magSensor.mag_z);
 }
