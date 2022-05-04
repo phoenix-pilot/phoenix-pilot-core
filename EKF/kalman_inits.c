@@ -141,10 +141,10 @@ void init_cov_vector(phmatrix_t *cov)
 void init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, float dt)
 {
 	/* Q_meas noise matrix */
-	float Qm_data[STATE_ROWS * STATE_ROWS];
-	phmatrix_t Qm = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = Qm_data };
-	float tmp_data[STATE_ROWS * STATE_ROWS];
-	phmatrix_t tmp = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = tmp_data };
+	// float Qm_data[STATE_ROWS * STATE_ROWS];
+	// phmatrix_t Qm = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = Qm_data };
+	// float tmp_data[STATE_ROWS * STATE_ROWS];
+	// phmatrix_t tmp = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = tmp_data };
 
 	/* matrix initialization */
 	phx_newmatrix(state, STATE_ROWS, STATE_COLS);

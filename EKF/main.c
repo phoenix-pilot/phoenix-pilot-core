@@ -43,27 +43,32 @@ void print_UAV_versors(quat_t q)
 /* prints current state in readable format with possible interval set in seconds*/
 int print_state(phmatrix_t *state, phmatrix_t *cov, float t, float interval)
 {
-	quat_t q = quat(qa, qb, qc, qd);
-	vec_t euler = quat_quat2euler(q);
-	euler = vec_times(&euler, 180 * M_1_PI);
-	t *= 1000;
-	interval *= 1000;
+	quat_t q;
+	vec_t euler;
 
 	/* decide if interval of time has passed to print the state to console */
+	t *= 1000;
+	interval *= 1000;
 	if (interval != 0) {
 		if ((int)t / (int)interval == lastprint) {
 			return 1;
 		}
 		lastprint = (int)t / (int)interval;
 	}
+	t /= 1000;
+
+	/* compute euler angles */
+	q = quat(qa, qb, qc, qd);
+	euler = quat_quat2euler(q);
+	euler = vec_times(&euler, 180 * M_1_PI);
 
 	/* detailed state output */
-	if (verbose == 1) {
+	if (0) {
 		printf("X: [%.3f, %.3f, %.7f] | V:  [%.3f, %.3f, %.3f] | A:  [%.3f, %.3f, %.3f]\n", xx, xy, xz, vx, vy, vz, ax, ay, az);
 		printf("W: [%.3f, %.3f, %.3f] | Q: [%.5f, %.5f, %.5f, %.5f]\n", wx, wy, wz, qa, qb, qc, qd);
 		printf("M: [%.3f, %.3f, %.3f]\n", mx, my, mz);
 		printf("E: [%.3f, %.3f, %.3f]\n", euler.x, euler.y, euler.z);
-		printf("t: %.3f %f %f\n\n", t / 1000, cov->data[cov->cols * iqa + iqa], TR->data[TR->cols * imqa + imqa]);
+		printf("t: %.3f\n\n", t);
 	}
 	print_UAV_versors(quat(qa, qb, qc, qd));
 	return 0;

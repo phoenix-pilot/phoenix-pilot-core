@@ -97,8 +97,9 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t
 	imu_meas = imu_measurements();
 	ameas = imu_meas[0]; /* acceleration, expected to be in G */
 	wmeas = imu_meas[1]; /* rotation speed, expected to be in rad/s */
-	mmeas = imu_meas[2]; /* magnetic field, expected to be n uT */
+	mmeas = imu_meas[2]; /* magnetic field, expected to be in uT */
 
+	/* estimate rotation quaternion with assumption that imu is stationary */
 	mmeas_unit = mmeas;
 	ameas_unit = ameas;
 	vec_normalize(&mmeas_unit);
@@ -107,16 +108,19 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t
 	vec_normalize(&xp);
 	q_est = quat_framerot(&ameas_unit, &xp, &true_g, &x_versor, &rot);
 
+	/* rotate measurements of a and w */
 	quat_vecrot(&ameas, &rot);
 	quat_vecrot(&wmeas, &rot);
 
+	/* calculateing quaternion estimation error based on its nonstationarity. Empirically fitted parameters! */
 	diff = vec_sub(&true_g, &ameas);
-	err_q_est = 0.2 + vec_len(&diff) + vec_len(&wmeas); /* vec_len^2 by hand */
-	if (err_q_est > 1)
-		err_q_est = 1;
+	err_q_est = 8 + 50 * vec_len(&diff) + 10 * vec_len(&wmeas);
 
 	/* trimming data from imu */
 	ameas = vec_times(&ameas, EARTH_G);
+	ameas.x *= (ameas.x * ameas.x) / (ameas.x * ameas.x + 0.1 * 0.1);
+	ameas.y *= (ameas.y * ameas.y) / (ameas.y * ameas.y + 0.1 * 0.1);
+	ameas.z *= (ameas.z * ameas.z) / (ameas.z * ameas.z + 0.1 * 0.1);
 
 	/* remove earth acceleration from measurements */
 	ameas.z -= EARTH_G;
