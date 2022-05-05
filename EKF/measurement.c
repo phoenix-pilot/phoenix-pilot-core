@@ -179,18 +179,21 @@ void imu_calibrate_acc_gyr_mag(void)
 	/* calculate accelerometer linear deviation from earth g */
 	g_scaleerr_common = 1.F / vec_len(&a_avg);
 
-	printf("Calibration done! Begin accel fine tune? (y)\n");
-	if (getchar() == 'y') {
-		getchar();
-		accel_fine_tune();
-	}
+	// printf("Calibration done! Begin accel fine tune? (y)\n");
+	// if (getchar() == 'y') {
+	// 	getchar();
+	// 	accel_fine_tune();
+	// }
 }
 
-void acquire_measurements(vec_t *accels, vec_t *gyros, vec_t *mags)
+void acquire_measurements(vec_t *accels, vec_t *gyros, vec_t *mags, float * pressure)
 {
 	/* get data */
 	askIMU();
-	*accels = vec(imuSensor.accel_x, imuSensor.accel_y, imuSensor.accel_y);
+	*accels = vec(imuSensor.accel_x, imuSensor.accel_y, imuSensor.accel_z);
 	*gyros = vec(imuSensor.gyr_x, imuSensor.gyr_y, imuSensor.gyr_z);
 	*mags = vec(magSensor.mag_x, magSensor.mag_y, magSensor.mag_z);
+	*pressure = baroSensor.press;
+
+	//printf("acc:%f %f %f\n", imuSensor.accel_x, imuSensor.accel_y, imuSensor.accel_z); getchar();
 }

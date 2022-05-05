@@ -88,4 +88,7 @@ extern void jacobian_H(phmatrix_t *state, phmatrix_t *H, float dt)
 	/* using I33 and one direct write to write I44 */
 	phx_writesubmatrix(H, imqa, iqa, &I33);
 	H->data[H->cols * imqd + iqd] = 1;
+
+	/* direct write to write 1 on pressure position on diagonal */
+	H->data[H->cols * impx + ipx] = 1;
 }

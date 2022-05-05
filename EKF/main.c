@@ -65,12 +65,12 @@ int print_state(phmatrix_t *state, phmatrix_t *cov, float t, float interval)
 	euler = vec_times(&euler, 180 * M_1_PI);
 
 	/* detailed state output */
-	if (0) {
+	if (1) {
 		printf("X: [%.3f, %.3f, %.7f] | V:  [%.3f, %.3f, %.3f] | A:  [%.3f, %.3f, %.3f]\n", xx, xy, xz, vx, vy, vz, ax, ay, az);
 		printf("W: [%.3f, %.3f, %.3f] | Q: [%.5f, %.5f, %.5f, %.5f]\n", wx, wy, wz, qa, qb, qc, qd);
 		printf("M: [%.3f, %.3f, %.3f]\n", mx, my, mz);
 		printf("E: [%.3f, %.3f, %.3f]\n", euler.x, euler.y, euler.z);
-		printf("t: %.3f\n\n", t);
+		printf("P: [%.3f] t: %.3f\n\n", px, t);
 	}
 	print_UAV_versors(quat(qa, qb, qc, qd));
 	return 0;
@@ -79,9 +79,7 @@ int print_state(phmatrix_t *state, phmatrix_t *cov, float t, float interval)
 
 float get_dt(void)
 {
-	//struct timeval current_time;
-
-	usleep(800);
+	usleep(600);
 
 	gettimeofday(&kalman_common.current_time, NULL);
 	long diff = kalman_common.current_time.tv_sec - kalman_common.last_time.tv_sec;
@@ -113,6 +111,6 @@ int main(int argc, char **argv)
 		kalman_update(&state, &cov, &state_est, &cov_est, &H, &R, kalman_common.dt, 0);
 
 		kalman_common.t += kalman_common.dt;
-		print_state(&state, &cov_est, kalman_common.t, 0.04); /* print state after 1s of simulation */
+		print_state(&state, &cov_est, kalman_common.t, 0.3); /* print state after 1s of simulation */
 	}
 }

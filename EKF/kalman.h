@@ -22,10 +22,12 @@
 #include <tools/rotas_dummy.h>
 
 #define STATE_COLS 1
-#define STATE_ROWS 19
-#define MEAS_ROWS  13
+#define STATE_ROWS 20
+#define MEAS_ROWS  14
 
-#define EARTH_G 9.80665F
+#define EARTH_G 9.80665F         /* m/s^2 */
+#define UNI_GAS_CONST 8.3144598F /* J/(mol * K) */
+#define AIR_MOL_MASS  0.0289644F /* kg/mol */
 
 /* abbreviation of IndexMeasurement(valuename) */
 #define imax 0
@@ -41,6 +43,7 @@
 #define imqb 10
 #define imqc 11
 #define imqd 12
+#define impx 13
 
 /* abbreviation of index(valuename */
 #define ixx 0
@@ -62,6 +65,7 @@
 #define imx 16
 #define imy 17
 #define imz 18
+#define ipx 19
 
 
 /* vale name */
@@ -84,6 +88,7 @@
 #define mx state->data[16]
 #define my state->data[17]
 #define mz state->data[18]
+#define px state->data[19]
 
 /* initial values calculated during calibration */
 quat_t init_q;
@@ -102,16 +107,19 @@ typedef struct {
 	float P_merr;
 	float P_qaerr;
 	float P_qijkerr;
+	float P_pxerr;
 
 	float R_acov;
 	float R_wcov;
 	float R_mcov;
 	float R_qcov;
+	float R_pcov;
 
 	float Q_acov;
 	float Q_wcov;
 	float Q_mcov;
 	float Q_qcov;
+	float Q_pcov;
 } kalman_init_t;
 
 
@@ -129,7 +137,7 @@ void read_config(void);
 
 void imu_calibrate_acc_gyr_mag(void);
 
-void acquire_measurements(vec_t *accels, vec_t *gyros, vec_t *mags);
+void acquire_measurements(vec_t *accels, vec_t *gyros, vec_t *mags, float * pressure);
 
 /* T=0 VALUES INITIALIZATION METHODS */
 

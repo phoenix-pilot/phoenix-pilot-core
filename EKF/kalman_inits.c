@@ -28,38 +28,41 @@
 kalman_init_t init_values = {
 	.verbose = 0,
 
-	.P_xerr = 0.1F,
-	.P_verr = 0.1F,
-	.P_aerr = 0.001F,
-	.P_werr = DEG2RAD,
-	.P_merr = 300,
-	.P_qaerr = 10 * DEG2RAD,
-	.P_qijkerr = 10 * DEG2RAD,
+	.P_xerr = 0.1F,            /* 0.1 m */
+	.P_verr = 0.1F,            /* 0.1 m/s */
+	.P_aerr = 0.001F,          /* 0.001 m/s^2 */
+	.P_werr = DEG2RAD,         /* 1 degree */
+	.P_merr = 300,             /* 300 uT */
+	.P_qaerr = 10 * DEG2RAD,   /* 10 degrees */
+	.P_qijkerr = 10 * DEG2RAD, /* 10 degrees */
+	.P_pxerr = 1,           /* 1 hPa */
 
 	.R_acov = 0.001F,
 	.R_wcov = 0.001F,
 	.R_mcov = 10,
 	.R_qcov = 1. / DEG2RAD,
+	.R_pcov = 0.1, 
 
 	/* better to keep Q low */
 	.Q_acov = 0,
 	.Q_wcov = 0.0001,
 	.Q_mcov = 0.001,
 	.Q_qcov = 0.001,
+	.Q_pcov = 0
 };
 
 /* NOTE: must be kept in the same order as 'init_values' */
 char *config_names[] = {
 	"verbose",
-	"P_xerr", "P_verr", "P_aerr", "P_werr", "P_merr", "P_qaerr", "P_qijkerr",
-	"R_acov", "R_wcov", "R_mcov", "R_qcov",
-	"Q_acov", "Q_wcov", "Q_mcov", "Q_qcov"
+	"P_xerr", "P_verr", "P_aerr", "P_werr", "P_merr", "P_qaerr", "P_qijkerr", "P_pxerr",
+	"R_acov", "R_wcov", "R_mcov", "R_qcov", "R_pcov",
+	"Q_acov", "Q_wcov", "Q_mcov", "Q_qcov", "Q_pcov"
 };
 
 
 void read_config(void)
 {
-	char buf[30], *p, *v;
+	char buf[32], *p, *v;
 	int i;
 	float val;
 	FILE *fd = fopen("config", "r");
@@ -106,7 +109,11 @@ void init_state_vector(phmatrix_t *state)
 	state->data[imx] = init_m.x;
 	state->data[imx] = init_m.y;
 	state->data[imx] = init_m.z;
+
+	/* start pressure set to 1013 hPa written in Pascals */
+	state->data[impx] = 1013;
 }
+
 
 void init_cov_vector(phmatrix_t *cov)
 {
@@ -135,17 +142,13 @@ void init_cov_vector(phmatrix_t *cov)
 	cov->data[cov->cols * imx + imx] = init_values.P_merr * init_values.P_merr;
 	cov->data[cov->cols * imy + imy] = init_values.P_merr * init_values.P_merr;
 	cov->data[cov->cols * imz + imz] = init_values.P_merr * init_values.P_merr;
+
+	cov->data[cov->cols * ipx + ipx] = init_values.P_pxerr * init_values.P_pxerr;
 }
 
 
 void init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, float dt)
 {
-	/* Q_meas noise matrix */
-	// float Qm_data[STATE_ROWS * STATE_ROWS];
-	// phmatrix_t Qm = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = Qm_data };
-	// float tmp_data[STATE_ROWS * STATE_ROWS];
-	// phmatrix_t tmp = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = tmp_data };
-
 	/* matrix initialization */
 	phx_newmatrix(state, STATE_ROWS, STATE_COLS);
 	phx_newmatrix(state_est, STATE_ROWS, STATE_COLS);
@@ -167,6 +170,7 @@ void init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix
 	Q->data[Q->cols * iqb + iqb] = init_values.Q_qcov;
 	Q->data[Q->cols * iqc + iqc] = init_values.Q_qcov;
 	Q->data[Q->cols * iqd + iqd] = init_values.Q_qcov;
+	Q->data[Q->cols * ipx + ipx] = init_values.Q_pcov;
 }
 
 void init_update_matrices(phmatrix_t *H, phmatrix_t *R)
@@ -192,4 +196,6 @@ void init_update_matrices(phmatrix_t *H, phmatrix_t *R)
 	R->data[R->cols * imqb + imqb] = init_values.R_qcov;
 	R->data[R->cols * imqc + imqc] = init_values.R_qcov;
 	R->data[R->cols * imqd + imqd] = init_values.R_qcov;
+
+	R->data[R->cols * impx + impx] = init_values.R_pcov;
 }

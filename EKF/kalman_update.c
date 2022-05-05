@@ -92,7 +92,7 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t
 	vec_t mmeas_unit, ameas_unit;
 	vec_t xp, diff;
 	quat_t q_est, rot = { .a = qa, .i = qb, .j = qc, .k = qd };
-	float err_q_est;
+	float err_q_est, pressure;
 
 	/* 
 		Sensors API wrapper call 
@@ -101,7 +101,7 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t
 		Angular rates in rad/s
 		magnetic flux field in uT 
 	*/
-	acquire_measurements(&ameas, &wmeas, &mmeas);
+	acquire_measurements(&ameas, &wmeas, &mmeas, &pressure);
 
 	/* estimate rotation quaternion with assumption that imu is stationary */
 	mmeas_unit = mmeas;
@@ -147,6 +147,8 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t
 	Z->data[imqc] = q_est.j;
 	Z->data[imqd] = q_est.k;
 
+	Z->data[impx] = pressure;
+
 	/* update measurement error */
 	R->data[R->cols * imqa + imqa] = err_q_est;
 	R->data[R->cols * imqb + imqb] = err_q_est;
@@ -178,6 +180,8 @@ static phmatrix_t *get_hx(phmatrix_t *state_est)
 	hx.data[imqb] = qb;
 	hx.data[imqc] = qc;
 	hx.data[imqd] = qd;
+
+	hx.data[impx] = px;
 
 	return &hx;
 }

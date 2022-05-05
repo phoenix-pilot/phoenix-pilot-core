@@ -67,6 +67,8 @@ static void kalman_estimate_state(phmatrix_t *state, phmatrix_t *state_est, floa
 	state_est->data[imx] = mx;
 	state_est->data[imy] = my;
 	state_est->data[imz] = mz;
+
+	state_est->data[ipx] = px;
 }
 
 
