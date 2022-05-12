@@ -263,7 +263,7 @@ void phx_diag(phmatrix_t * A)
 
 	phx_zeroes(A);
 	for(i = 0; i < A->cols && i < A->rows; i++) {
-		A->data[A->cols * i + i] = 1;
+		A->data[A->cols * i + i] = 1.F;
 	}
 }
 

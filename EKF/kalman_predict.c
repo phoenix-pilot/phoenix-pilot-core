@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include <time.h>
 
 #include "kalman.h"
@@ -31,19 +32,20 @@ phmatrix_t predict_tmp = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed =
 /* estimate system state */
 static void kalman_estimate_state(phmatrix_t *state, phmatrix_t *state_est, float dt)
 {
-	float dt2 = dt * dt;
+	float dt2 = dt * dt / 2, press_B;
 	quat_t quat_q, quat_w, /*quat_ap, quat_wp,*/ res;
 
 	quat_q = quat(qa, qb, qc, qd);
 	quat_w = quat(0, wx, wy, wz);
 
-	state_est->data[ixx] = xx + vx * dt + ax * dt2 / 2;
-	state_est->data[ixy] = xy + vy * dt + ay * dt2 / 2;
-	state_est->data[ixz] = xz + vz * dt + az * dt2 / 2;
+	state_est->data[ixx] = xx + vx * dt + ax * dt2;
+	state_est->data[ixy] = xy + vy * dt + ay * dt2;
+	state_est->data[ixz] = (xz + vz * dt + az * dt2) * 0.98 + 0.02 * hz; /* complementary-like filter on height data to cancel accel druft */
 
-	state_est->data[ivx] = vx + ax * dt;
-	state_est->data[ivy] = vy + ay * dt;
-	state_est->data[ivz] = vz + az * dt;
+	/* as no direct velocity measurements are done, so time corelation is introduced to velocity with assumption that velocity always decreases */
+	state_est->data[ivx] = (vx + ax * dt) * 0.9995;
+	state_est->data[ivy] = (vy + ay * dt) * 0.9995;
+	state_est->data[ivz] = (vz + az * dt) * 0.9995;
 
 	/* predition from w */
 	res = quat_mlt(&quat_w, &quat_q);
@@ -68,13 +70,13 @@ static void kalman_estimate_state(phmatrix_t *state, phmatrix_t *state_est, floa
 	state_est->data[imy] = my;
 	state_est->data[imz] = mz;
 
-	state_est->data[ipx] = px;
+	state_est->data[ihz] = hz;
 }
 
 
 static void predict_covar_estimate(phmatrix_t *F, phmatrix_t *P, phmatrix_t *P_estimate, phmatrix_t *Q)
 {
-	phx_sadwitch_product_sparse(F, P, P_estimate, &predict_tmp);
+	phx_sadwitch_product(F, P, P_estimate, &predict_tmp);
 	phx_add(P_estimate, Q, NULL);
 }
 

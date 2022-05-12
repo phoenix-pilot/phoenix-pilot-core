@@ -26,12 +26,9 @@
 
 
 kalman_common_t kalman_common;
-// float t = 0, dt = 0.001;
-// int lastprint = -1;
-// struct timeval last_time;
 phmatrix_t *TR;
 
-void print_UAV_versors(quat_t q)
+void print_UAV_versors(quat_t q, vec_t start)
 {
 	vec_t x = vec(1, 0, 0), y = vec(0, 1, 0), z = vec(0, 0, 1);
 
@@ -39,7 +36,7 @@ void print_UAV_versors(quat_t q)
 	quat_vecrot(&y, &q);
 	quat_vecrot(&z, &q);
 
-	printf("%.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f\n", x.x, x.y, x.z, y.x, y.y, y.z, z.x, z.y, z.z);
+	printf("%.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f\n", x.x, x.y, x.z, y.x, y.y, y.z, z.x, z.y, z.z, start.x, start.y, start.z);
 }
 
 /* prints current state in readable format with possible interval set in seconds*/
@@ -65,21 +62,25 @@ int print_state(phmatrix_t *state, phmatrix_t *cov, float t, float interval)
 	euler = vec_times(&euler, 180 * M_1_PI);
 
 	/* detailed state output */
-	if (1) {
+	if (verbose) {
 		printf("X: [%.3f, %.3f, %.7f] | V:  [%.3f, %.3f, %.3f] | A:  [%.3f, %.3f, %.3f]\n", xx, xy, xz, vx, vy, vz, ax, ay, az);
+		printf("covX: [%.3f, %.3f, %.7f]\n", cov->data[cov->cols * ixx + ixx], cov->data[cov->cols * ixy + ixy], cov->data[cov->cols * ixz + ixz]);
 		printf("W: [%.3f, %.3f, %.3f] | Q: [%.5f, %.5f, %.5f, %.5f]\n", wx, wy, wz, qa, qb, qc, qd);
 		printf("M: [%.3f, %.3f, %.3f]\n", mx, my, mz);
 		printf("E: [%.3f, %.3f, %.3f]\n", euler.x, euler.y, euler.z);
-		printf("P: [%.3f] t: %.3f\n\n", px, t);
+		printf("hz: [%.3f] %f t: %.3f\n\n", hz, cov->data[ixz * cov->cols + ixz], t);
+		//printf("%.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f\n", xx, xy, xz, vx, vy, vz, ax, ay, az);
 	}
-	print_UAV_versors(quat(qa, qb, qc, qd));
+	//printf("%f %f\n", xz, hz );
+	print_UAV_versors(quat(qa, qb, qc, qd), vec(xx, xy, xz));
+	//printf("%f\n", px);
 	return 0;
 }
 
 
 float get_dt(void)
 {
-	usleep(600);
+	usleep(2000);
 
 	gettimeofday(&kalman_common.current_time, NULL);
 	long diff = kalman_common.current_time.tv_sec - kalman_common.last_time.tv_sec;
@@ -92,25 +93,43 @@ float get_dt(void)
 
 int main(int argc, char **argv)
 {
-	phmatrix_t state, state_est, cov, cov_est, F, Q, H, R;
-	TR = &R;
+	phmatrix_t state, state_est, cov, cov_est, F, Q; /* state prediction matrices */
+	phmatrix_t imuH, imuR;                           /* imu measurements update matrices */
+	phmatrix_t baroH, baroR;                         /* barometer mesurement matices */
+	TR = &imuR;
 
 	read_config();
 	imu_calibrate_acc_gyr_mag();
+
 	init_prediction_matrices(&state, &state_est, &cov, &cov_est, &F, &Q, kalman_common.dt);
-	init_update_matrices(&H, &R);
+	imuUpdateInitializations(&imuH, &imuR);
+	baroUpdateInitializations(&baroH, &baroR);
 
 	/* Kalman loop */
 	gettimeofday(&kalman_common.last_time, NULL);
 	while (1) {
 		kalman_common.dt = get_dt();
 
-		jacobian_F(&state, &F, kalman_common.dt);
+		/* state prediction procedure */
+		calcPredictionJacobian(&state, &F, kalman_common.dt);
 		kalman_predict(&state, &cov, &state_est, &cov_est, &F, &Q, kalman_common.dt, 0);
-		jacobian_H(&state_est, &H, kalman_common.dt);
-		kalman_update(&state, &cov, &state_est, &cov_est, &H, &R, kalman_common.dt, 0);
+
+		/* barometer measurements update procedure */
+		calcBaroJacobian(&state_est, &baroH, kalman_common.dt);
+		if (kalman_updateBaro(&state, &cov, &state_est, &cov_est, &baroH, &baroR, kalman_common.dt, 0) < 0) {
+
+			/* imu measurements update procedure */
+			calcImuJacobian(&state_est, &imuH, kalman_common.dt);
+			kalman_updateImu(&state, &cov, &state_est, &cov_est, &imuH, &imuR, kalman_common.dt, 0);
+		}
 
 		kalman_common.t += kalman_common.dt;
-		print_state(&state, &cov_est, kalman_common.t, 0.3); /* print state after 1s of simulation */
+		print_state(&state, &cov_est, kalman_common.t, 0.1); /* print state after 1s of simulation */
+
+		// if (kalman_common.t > 10) {
+		// 	init_state_vector(&state);
+		// 	init_cov_vector(&cov);
+		// 	kalman_common.t = 0;
+		// }
 	}
 }

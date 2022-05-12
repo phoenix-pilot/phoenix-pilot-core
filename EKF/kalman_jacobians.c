@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
 
 #include "kalman.h"
 
@@ -24,9 +25,9 @@
 #include <tools/phmatrix.h>
 
 
-void jacobian_F(phmatrix_t *state, phmatrix_t *F, float dt)
+void calcPredictionJacobian(phmatrix_t *state, phmatrix_t *F, float dt)
 {
-	float dt2 = dt / 2; /* helper value */
+	float dt2 = dt / 2, press_B; /* helper value */
 
 	/* diagonal matrix */
 	float I33_data[9] = { 0 };
@@ -66,16 +67,21 @@ void jacobian_F(phmatrix_t *state, phmatrix_t *F, float dt)
 	phx_writesubmatrix(F, ivx, iax, &I33); /* dfv / da */
 
 	/* change I33 to (I * dt^2 / 2) matrix and write it to appropriate places */
-	phx_scalar_product(&I33, dt2 / 2);
+	phx_scalar_product(&I33, dt);
+	phx_scalar_product(&I33, 0.5);
 	phx_writesubmatrix(F, ixx, iax, &I33); /* dfx / dv */
 
 	/* write differentials matrices */
 	phx_writesubmatrix(F, iqa, iqa, &dfqdq);
 	phx_writesubmatrix(F, iqa, iwx, &dfqdw);
+
+	F->data[ihz * F->cols + ihz] = 1;
+	F->data[ihz * F->cols + ivz] = dt;
+
 }
 
 
-extern void jacobian_H(phmatrix_t *state, phmatrix_t *H, float dt)
+void calcImuJacobian(phmatrix_t *state, phmatrix_t *H, float dt)
 {
 	float I33_data[9] = { 0 };
 	phmatrix_t I33 = { .rows = 3, .cols = 3, .transposed = 0, .data = I33_data };
@@ -88,7 +94,12 @@ extern void jacobian_H(phmatrix_t *state, phmatrix_t *H, float dt)
 	/* using I33 and one direct write to write I44 */
 	phx_writesubmatrix(H, imqa, iqa, &I33);
 	H->data[H->cols * imqd + iqd] = 1;
+}
 
-	/* direct write to write 1 on pressure position on diagonal */
-	H->data[H->cols * impx + ipx] = 1;
+
+void calcBaroJacobian(phmatrix_t *state, phmatrix_t *H, float dt)
+{
+	H->data[H->cols * imhz + ihz] = 1;
+	H->data[H->cols * imxz + ixz] = 1;
+
 }

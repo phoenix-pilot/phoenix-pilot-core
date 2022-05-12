@@ -26,7 +26,7 @@
 
 /* NOTE: must be kept in the same order as 'config_names' */
 kalman_init_t init_values = {
-	.verbose = 0,
+	.verbose = 1,
 
 	.P_xerr = 0.1F,            /* 0.1 m */
 	.P_verr = 0.1F,            /* 0.1 m/s */
@@ -35,28 +35,33 @@ kalman_init_t init_values = {
 	.P_merr = 300,             /* 300 uT */
 	.P_qaerr = 10 * DEG2RAD,   /* 10 degrees */
 	.P_qijkerr = 10 * DEG2RAD, /* 10 degrees */
-	.P_pxerr = 1,           /* 1 hPa */
+	.P_pxerr = 10,             /* 10 hPa */
 
 	.R_acov = 0.001F,
 	.R_wcov = 0.001F,
 	.R_mcov = 10,
 	.R_qcov = 1. / DEG2RAD,
+
 	.R_pcov = 0.1, 
+	.R_hcov = 1,
+	.R_xzcov = 1,
 
 	/* better to keep Q low */
-	.Q_acov = 0,
+	.Q_hcov = 0.01,
+	.Q_avertcov = 0.01,
+	.Q_ahoricov = 0,
 	.Q_wcov = 0.0001,
 	.Q_mcov = 0.001,
 	.Q_qcov = 0.001,
-	.Q_pcov = 0
+	.Q_pcov = 0.01
 };
 
 /* NOTE: must be kept in the same order as 'init_values' */
 char *config_names[] = {
 	"verbose",
 	"P_xerr", "P_verr", "P_aerr", "P_werr", "P_merr", "P_qaerr", "P_qijkerr", "P_pxerr",
-	"R_acov", "R_wcov", "R_mcov", "R_qcov", "R_pcov",
-	"Q_acov", "Q_wcov", "Q_mcov", "Q_qcov", "Q_pcov"
+	"R_acov", "R_wcov", "R_mcov", "R_qcov", "R_pcov", "R_hcov", "R_xzcov",
+	"Q_hcov", "Q_avertcov", "Q_ahoricov", "Q_wcov", "Q_mcov", "Q_qcov", "Q_pcov"
 };
 
 
@@ -110,8 +115,8 @@ void init_state_vector(phmatrix_t *state)
 	state->data[imx] = init_m.y;
 	state->data[imx] = init_m.z;
 
-	/* start pressure set to 1013 hPa written in Pascals */
-	state->data[impx] = 1013;
+	/* start pressure set to 1013 hPa */
+	state->data[ihz] = 0;
 }
 
 
@@ -143,7 +148,7 @@ void init_cov_vector(phmatrix_t *cov)
 	cov->data[cov->cols * imy + imy] = init_values.P_merr * init_values.P_merr;
 	cov->data[cov->cols * imz + imz] = init_values.P_merr * init_values.P_merr;
 
-	cov->data[cov->cols * ipx + ipx] = init_values.P_pxerr * init_values.P_pxerr;
+	cov->data[cov->cols * ihz + ihz] = init_values.P_pxerr * init_values.P_pxerr;
 }
 
 
@@ -161,23 +166,29 @@ void init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix
 	init_state_vector(state);
 	init_cov_vector(cov);
 
-	jacobian_F(state, F, dt); /* F needed for Q matrix */
+	calcPredictionJacobian(state, F, dt); /* F needed for Q matrix */
 	phx_zeroes(Q);
-	Q->data[Q->cols * iax + iax] = Q->data[Q->cols * iay + iay] = Q->data[Q->cols * iaz + iaz] = init_values.Q_acov;
+	
+	/* acceleration process noise different for vertical and horizontal because different measurements are performed and different smoothing is neccessary */
+	Q->data[Q->cols * iax + iax] = Q->data[Q->cols * iay + iay] = init_values.Q_ahoricov;
+	Q->data[Q->cols * iaz + iaz] = init_values.Q_avertcov;
+
 	Q->data[Q->cols * iwx + iwx] = Q->data[Q->cols * iwy + iwy] = Q->data[Q->cols * iwz + iwz] = init_values.Q_wcov;
 	Q->data[Q->cols * imx + imx] = Q->data[Q->cols * imy + imy] = Q->data[Q->cols * imz + imz] = init_values.Q_mcov;
 	Q->data[Q->cols * iqa + iqa] = init_values.Q_qcov;
 	Q->data[Q->cols * iqb + iqb] = init_values.Q_qcov;
 	Q->data[Q->cols * iqc + iqc] = init_values.Q_qcov;
 	Q->data[Q->cols * iqd + iqd] = init_values.Q_qcov;
-	Q->data[Q->cols * ipx + ipx] = init_values.Q_pcov;
+	Q->data[Q->cols * ihz + ihz] = init_values.Q_hcov;
+	Q->data[Q->cols * ixz + ixz] = init_values.Q_hcov*1;
 }
 
-void init_update_matrices(phmatrix_t *H, phmatrix_t *R)
+
+void imuUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
 {
 	/* matrix initialization */
-	phx_newmatrix(H, MEAS_ROWS, STATE_ROWS);
-	phx_newmatrix(R, MEAS_ROWS, MEAS_ROWS);
+	phx_newmatrix(H, IMUMEAS_ROWS, STATE_ROWS);
+	phx_newmatrix(R, IMUMEAS_ROWS, IMUMEAS_ROWS);
 
 	/* init of measurement noise matrix R */
 	R->data[R->cols * imax + imax] = init_values.R_acov;
@@ -196,6 +207,14 @@ void init_update_matrices(phmatrix_t *H, phmatrix_t *R)
 	R->data[R->cols * imqb + imqb] = init_values.R_qcov;
 	R->data[R->cols * imqc + imqc] = init_values.R_qcov;
 	R->data[R->cols * imqd + imqd] = init_values.R_qcov;
+}
 
-	R->data[R->cols * impx + impx] = init_values.R_pcov;
+void baroUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
+{
+	phx_newmatrix(H, BAROMEAS_ROWS, STATE_ROWS);
+	phx_newmatrix(R, BAROMEAS_ROWS, BAROMEAS_ROWS);
+
+	//R->data[R->cols * impx + impx] = init_values.R_pcov;
+	R->data[R->cols * imhz + imhz] = init_values.R_hcov;
+	R->data[R->cols * imxz + imxz] = init_values.R_xzcov;
 }
