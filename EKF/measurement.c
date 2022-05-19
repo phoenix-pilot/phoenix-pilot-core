@@ -76,22 +76,6 @@ static void ellipsoid_compensate(float *x, float *y, float *z, float *calib)
 }
 
 
-// static float average_accel(int repeats, unsigned int mswait, const char *axisdir)
-// {
-// 	float len = 0;
-// 	int i;
-// 	printf("Position IMU %s and press enter...\n", axisdir);
-// 	getchar();
-
-// 	for (i = 0; i < repeats; i++) {
-// 		acquireImuMeasurements(NULL, NULL, NULL);
-// 		len += sqrt(imuSensor.accel_x * imuSensor.accel_x + imuSensor.accel_y * imuSensor.accel_x + imuSensor.accel_z * imuSensor.accel_z);
-// 		usleep(mswait * 1000);
-// 	}
-// 	return len / repeats;
-// }
-
-
 void imu_calibrate_acc_gyr_mag(void)
 {
 	int i, avg = 2000, press_avg = 0;
@@ -169,10 +153,14 @@ void acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags)
 }
 
 
-int acquireBaroMeasurements(float * pressure)
+int  acquireBaroMeasurements(float * pressure, float * temperature, float * dtBaro)
 {
+	struct timeval lastT = baroSensor.timestamp;
+
 	if (sensBaro(&baroSensor) > 0) {
 		*pressure = baroSensor.press;
+		*temperature = baroSensor.baro_temp;
+		*dtBaro = (baroSensor.timestamp.tv_sec - lastT.tv_sec) * 1000000 + baroSensor.timestamp.tv_usec - lastT.tv_usec;
 		return 0;
 	}
 	return -1;

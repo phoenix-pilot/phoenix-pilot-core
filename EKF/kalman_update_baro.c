@@ -85,21 +85,23 @@ static phmatrix_t tmp5 = { .rows = STATE_ROWS, .cols = STATE_COLS, .transposed =
 static float S_inv_buff[BAROMEAS_ROWS * BAROMEAS_ROWS * 2];
 static unsigned int S_inv_buff_len = BAROMEAS_ROWS * BAROMEAS_ROWS * 2;
 
-
+float baroMemory[25] = {0};
+int memoryPoint = 0;
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
-static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R)
+static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, float dt)
 {
-	float pressure;
+	float pressure, temp, dtBaro;
 
 	/* if there is no pressure measurement available return NULL */
-	if (acquireBaroMeasurements(&pressure) < 0) {
+	if (acquireBaroMeasurements(&pressure, &temp, &dtBaro) < 0) {
 		return NULL;
 	}
 
 	phx_zeroes(Z);
 	Z->data[imhz] = 8453.669 * log(base_pressure / pressure);
-	Z->data[imxz] = 0.2 * hz + 0.8 * xz;
+	Z->data[imxz] = 0.1 * hz + 0.9 * xz;
+	Z->data[imhv] = 10;
 
 	return Z;
 }
@@ -112,6 +114,7 @@ static phmatrix_t *get_hx(phmatrix_t *state_est)
 
 	hx.data[imhz] = hz;
 	hx.data[imxz] = xz;
+	hx.data[imhv] = hv;
 
 	return &hx;
 }
@@ -120,7 +123,7 @@ static phmatrix_t *get_hx(phmatrix_t *state_est)
 int kalman_updateBaro(phmatrix_t *state, phmatrix_t *cov, phmatrix_t *state_est, phmatrix_t *cov_est, phmatrix_t *H, phmatrix_t *R, float dt, int verbose)
 {
 	/* no new pressure measurement available */
-	if (get_measurements(&Z, state, R) == NULL) {
+	if (get_measurements(&Z, state, R, dt) == NULL) {
 		return -1;
 	}
 

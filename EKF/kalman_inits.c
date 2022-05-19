@@ -45,6 +45,7 @@ kalman_init_t init_values = {
 	.R_pcov = 0.1, 
 	.R_hcov = 1,
 	.R_xzcov = 1,
+	.R_hvcov = 1,
 
 	/* better to keep Q low */
 	.Q_hcov = 0.01,
@@ -53,15 +54,16 @@ kalman_init_t init_values = {
 	.Q_wcov = 0.0001,
 	.Q_mcov = 0.001,
 	.Q_qcov = 0.001,
-	.Q_pcov = 0.01
+	.Q_pcov = 0.01,
+	.Q_pvcov = 0.1
 };
 
 /* NOTE: must be kept in the same order as 'init_values' */
 char *config_names[] = {
 	"verbose",
 	"P_xerr", "P_verr", "P_aerr", "P_werr", "P_merr", "P_qaerr", "P_qijkerr", "P_pxerr",
-	"R_acov", "R_wcov", "R_mcov", "R_qcov", "R_pcov", "R_hcov", "R_xzcov",
-	"Q_hcov", "Q_avertcov", "Q_ahoricov", "Q_wcov", "Q_mcov", "Q_qcov", "Q_pcov"
+	"R_acov", "R_wcov", "R_mcov", "R_qcov", "R_pcov", "R_hcov", "R_xzcov", "R_hvcov",
+	"Q_hcov", "Q_avertcov", "Q_ahoricov", "Q_wcov", "Q_mcov", "Q_qcov", "Q_pcov", "Q_pvcov"
 };
 
 
@@ -117,6 +119,7 @@ void init_state_vector(phmatrix_t *state)
 
 	/* start pressure set to 1013 hPa */
 	state->data[ihz] = 0;
+	state->data[ihv] = 0;
 }
 
 
@@ -149,6 +152,7 @@ void init_cov_vector(phmatrix_t *cov)
 	cov->data[cov->cols * imz + imz] = init_values.P_merr * init_values.P_merr;
 
 	cov->data[cov->cols * ihz + ihz] = init_values.P_pxerr * init_values.P_pxerr;
+	cov->data[cov->cols * ihv + ihv] = init_values.P_verr * init_values.P_verr;
 }
 
 
@@ -180,7 +184,8 @@ void init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix
 	Q->data[Q->cols * iqc + iqc] = init_values.Q_qcov;
 	Q->data[Q->cols * iqd + iqd] = init_values.Q_qcov;
 	Q->data[Q->cols * ihz + ihz] = init_values.Q_hcov;
-	Q->data[Q->cols * ixz + ixz] = init_values.Q_hcov*1;
+	Q->data[Q->cols * ixz + ixz] = init_values.Q_hcov;
+	Q->data[Q->cols * ihv + ihv] = init_values.Q_pvcov;
 }
 
 
@@ -217,4 +222,5 @@ void baroUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
 	//R->data[R->cols * impx + impx] = init_values.R_pcov;
 	R->data[R->cols * imhz + imhz] = init_values.R_hcov;
 	R->data[R->cols * imxz + imxz] = init_values.R_xzcov;
+	R->data[R->cols * imhv + imhv] = init_values.R_hvcov;
 }

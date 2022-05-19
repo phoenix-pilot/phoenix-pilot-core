@@ -40,12 +40,12 @@ static void kalman_estimate_state(phmatrix_t *state, phmatrix_t *state_est, floa
 
 	state_est->data[ixx] = xx + vx * dt + ax * dt2;
 	state_est->data[ixy] = xy + vy * dt + ay * dt2;
-	state_est->data[ixz] = (xz + vz * dt + az * dt2) * 0.98 + 0.02 * hz; /* complementary-like filter on height data to cancel accel druft */
+	state_est->data[ixz] = xz + vz * dt + az * dt2; /* complementary-like filter on height data to cancel accel druft */
 
 	/* as no direct velocity measurements are done, so time corelation is introduced to velocity with assumption that velocity always decreases */
-	state_est->data[ivx] = (vx + ax * dt) * 0.9995;
-	state_est->data[ivy] = (vy + ay * dt) * 0.9995;
-	state_est->data[ivz] = (vz + az * dt) * 0.9995;
+	state_est->data[ivx] = (vx + ax * dt) * 0.9994;
+	state_est->data[ivy] = (vy + ay * dt) * 0.9994;
+	state_est->data[ivz] = (vz + az * dt) * 0.9994;
 
 	/* predition from w */
 	res = quat_mlt(&quat_w, &quat_q);
@@ -71,6 +71,7 @@ static void kalman_estimate_state(phmatrix_t *state, phmatrix_t *state_est, floa
 	state_est->data[imz] = mz;
 
 	state_est->data[ihz] = hz;
+	state_est->data[ihv] = hv;
 }
 
 

@@ -22,9 +22,9 @@
 #include <tools/rotas_dummy.h>
 
 #define STATE_COLS 1
-#define STATE_ROWS 20
+#define STATE_ROWS 21
 #define IMUMEAS_ROWS  13
-#define BAROMEAS_ROWS 2
+#define BAROMEAS_ROWS 3
 
 #define EARTH_G 9.80665F         /* m/s^2 */
 #define UNI_GAS_CONST 8.3144598F /* J/(mol * K) */
@@ -48,9 +48,9 @@
 #define imqd 12
 
 /* baro measurements */
-//#define impx 0
 #define imhz 0
 #define imxz 1
+#define imhv 2
 
 /* index of state variable of: */
 #define ixx 0  /* position x */
@@ -72,7 +72,8 @@
 #define imx 16 /* magnetic field x */
 #define imy 17 /* magnetic field y */
 #define imz 18 /* magnetic field z */
-#define ihz 19 /* pressure */
+#define ihz 19 /* baro height */
+#define ihv 20 /* baro speed */
 
 
 /* value name */
@@ -96,6 +97,7 @@
 #define my state->data[17]
 #define mz state->data[18]
 #define hz state->data[19]
+#define hv state->data[20]
 
 /* initial values calculated during calibration */
 quat_t init_q;
@@ -125,6 +127,7 @@ typedef struct {
 	float R_pcov;     /* measurement noise of pressure */
 	float R_hcov;     /* measurement noise of barometric altitude */
 	float R_xzcov;
+	float R_hvcov;
 
 	float Q_hcov;     /* process noise of altitude */
 	float Q_avertcov; /* process noise of vertical acceleration */
@@ -133,6 +136,7 @@ typedef struct {
 	float Q_mcov;     /* process noise of magnetic flux */ 
 	float Q_qcov;     /* process noise of rotation quaternion */
 	float Q_pcov;     /* process noise of pressure */
+	float Q_pvcov;
 } kalman_init_t;
 
 
@@ -152,7 +156,7 @@ void imu_calibrate_acc_gyr_mag(void);
 
 void acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags);
 
-int acquireBaroMeasurements(float * pressure);
+int  acquireBaroMeasurements(float * pressure, float * temperature, float * dtBaro);
 
 /* T=0 VALUES INITIALIZATION METHODS */
 

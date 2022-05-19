@@ -77,6 +77,7 @@ void calcPredictionJacobian(phmatrix_t *state, phmatrix_t *F, float dt)
 
 	F->data[ihz * F->cols + ihz] = 1;
 	F->data[ihz * F->cols + ivz] = dt;
+	F->data[ihv * F->cols + ihv] = 1;
 
 }
 
@@ -101,5 +102,5 @@ void calcBaroJacobian(phmatrix_t *state, phmatrix_t *H, float dt)
 {
 	H->data[H->cols * imhz + ihz] = 1;
 	H->data[H->cols * imxz + ixz] = 1;
-
+	H->data[H->cols * imhv + ihv] = 1;
 }

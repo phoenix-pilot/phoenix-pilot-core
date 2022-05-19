@@ -68,12 +68,10 @@ int print_state(phmatrix_t *state, phmatrix_t *cov, float t, float interval)
 		printf("W: [%.3f, %.3f, %.3f] | Q: [%.5f, %.5f, %.5f, %.5f]\n", wx, wy, wz, qa, qb, qc, qd);
 		printf("M: [%.3f, %.3f, %.3f]\n", mx, my, mz);
 		printf("E: [%.3f, %.3f, %.3f]\n", euler.x, euler.y, euler.z);
-		printf("hz: [%.3f] %f t: %.3f\n\n", hz, cov->data[ixz * cov->cols + ixz], t);
+		printf("hz/hv: [%.3f / %.3f] %f t: %.3f\n\n", hz, hv, cov->data[ixz * cov->cols + ixz], t);
 		//printf("%.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f\n", xx, xy, xz, vx, vy, vz, ax, ay, az);
 	}
-	//printf("%f %f\n", xz, hz );
 	print_UAV_versors(quat(qa, qb, qc, qd), vec(xx, xy, xz));
-	//printf("%f\n", px);
 	return 0;
 }
 
@@ -126,10 +124,5 @@ int main(int argc, char **argv)
 		kalman_common.t += kalman_common.dt;
 		print_state(&state, &cov_est, kalman_common.t, 0.1); /* print state after 1s of simulation */
 
-		// if (kalman_common.t > 10) {
-		// 	init_state_vector(&state);
-		// 	init_cov_vector(&cov);
-		// 	kalman_common.t = 0;
-		// }
 	}
 }
