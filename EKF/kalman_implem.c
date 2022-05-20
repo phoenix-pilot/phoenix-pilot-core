@@ -47,6 +47,7 @@ kalman_init_t init_values = {
 	.R_hcov = 1,
 	.R_xzcov = 1,
 	.R_hvcov = 1,
+	.R_vzcov = 2,
 
 	/* better to keep Q low */
 	.Q_hcov = 0.01,
@@ -56,7 +57,7 @@ kalman_init_t init_values = {
 	.Q_mcov = 0.001,
 	.Q_qcov = 0.001,
 	.Q_pcov = 0.01,
-	.Q_pvcov = 0.1
+	.Q_pvcov = 0.001
 };
 
 
@@ -64,7 +65,7 @@ kalman_init_t init_values = {
 char *config_names[] = {
 	"verbose",
 	"P_xerr", "P_verr", "P_aerr", "P_werr", "P_merr", "P_qaerr", "P_qijkerr", "P_pxerr",
-	"R_acov", "R_wcov", "R_mcov", "R_qcov", "R_pcov", "R_hcov", "R_xzcov", "R_hvcov",
+	"R_acov", "R_wcov", "R_mcov", "R_qcov", "R_pcov", "R_hcov", "R_xzcov", "R_hvcov", "R_vzcov",
 	"Q_hcov", "Q_avertcov", "Q_ahoricov", "Q_wcov", "Q_mcov", "Q_qcov", "Q_pcov", "Q_pvcov"
 };
 
@@ -303,6 +304,7 @@ update_engine_t baroUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
 	R->data[R->cols * imhz + imhz] = init_values.R_hcov;
 	R->data[R->cols * imxz + imxz] = init_values.R_xzcov;
 	R->data[R->cols * imhv + imhv] = init_values.R_hvcov;
+	R->data[R->cols * imvz + imvz] = init_values.R_vzcov;
 
 	return setupBaroUpdateEngine(H, R);
 }

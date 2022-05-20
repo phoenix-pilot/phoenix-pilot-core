@@ -153,14 +153,14 @@ void acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags)
 }
 
 
-int acquireBaroMeasurements(float *pressure, float *temperature, float *dtBaro)
+int acquireBaroMeasurements(float *pressure, float *temperature, float *dtBaroUs)
 {
 	struct timeval lastT = baroSensor.timestamp;
 
 	if (sensBaro(&baroSensor) > 0) {
 		*pressure = baroSensor.press;
 		*temperature = baroSensor.baro_temp;
-		*dtBaro = (baroSensor.timestamp.tv_sec - lastT.tv_sec) * 1000000 + baroSensor.timestamp.tv_usec - lastT.tv_usec;
+		*dtBaroUs = (baroSensor.timestamp.tv_sec - lastT.tv_sec) * 1000000 + baroSensor.timestamp.tv_usec - lastT.tv_usec;
 		return 0;
 	}
 	return -1;

@@ -26,7 +26,7 @@
 #define STATE_COLS    1
 #define STATE_ROWS    21
 #define IMUMEAS_ROWS  13
-#define BAROMEAS_ROWS 3
+#define BAROMEAS_ROWS 4
 
 #define EARTH_G       9.80665F   /* m/s^2 */
 #define UNI_GAS_CONST 8.3144598F /* J/(mol * K) */
@@ -53,6 +53,7 @@
 #define imhz 0
 #define imxz 1
 #define imhv 2
+#define imvz 3
 
 /* index of state variable of: */
 #define ixx 0  /* position x */
@@ -130,6 +131,7 @@ typedef struct {
 	float R_hcov; /* measurement noise of barometric altitude */
 	float R_xzcov;
 	float R_hvcov;
+	float R_vzcov;
 
 	float Q_hcov;     /* process noise of altitude */
 	float Q_avertcov; /* process noise of vertical acceleration */
@@ -158,7 +160,7 @@ void imu_calibrate_acc_gyr_mag(void);
 
 void acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags);
 
-int acquireBaroMeasurements(float *pressure, float *temperature, float *dtBaro);
+int acquireBaroMeasurements(float *pressure, float *temperature, float *dtBaroUs);
 
 /* PHMATRIX MATRICES INITIALIZATIONS */
 
