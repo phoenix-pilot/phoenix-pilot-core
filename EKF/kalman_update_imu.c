@@ -22,7 +22,7 @@
 
 #include <sys/msg.h>
 
-#include "kalman.h"
+#include "kalman_implem.h"
 
 #include <tools/rotas_dummy.h>
 #include <tools/phmatrix.h>
@@ -86,7 +86,7 @@ static vec_t x_versor = { .x = 1, .y = 0, .z = 0 };
 
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
-static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R)
+static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, float dt)
 {
 	vec_t ameas, wmeas, mmeas;
 	vec_t mmeas_unit, ameas_unit;
@@ -180,57 +180,46 @@ static phmatrix_t *get_hx(phmatrix_t *state_est)
 }
 
 
-void kalman_updateImu(phmatrix_t *state, phmatrix_t *cov, phmatrix_t *state_est, phmatrix_t *cov_est, phmatrix_t *H, phmatrix_t *R, float dt, int verbose)
+static void calcImuJacobian(phmatrix_t *H, phmatrix_t *state, float dt)
 {
-	/* prepare diag */
-	phx_diag(&I);
+	float I33_data[9] = { 0 };
+	phmatrix_t I33 = { .rows = 3, .cols = 3, .transposed = 0, .data = I33_data };
+	phx_diag(&I33);
 
-	/* y_k = z_k - h(x_(k|k-1)) */
-	phx_sub(get_measurements(&Z, state, R), get_hx(state_est), &Y);
+	phx_zeroes(H);
+	phx_writesubmatrix(H, imax, iax, &I33);
+	phx_writesubmatrix(H, imwx, iwx, &I33);
+	phx_writesubmatrix(H, immx, imx, &I33);
+	/* using I33 and one direct write to write I44 */
+	phx_writesubmatrix(H, imqa, iqa, &I33);
+	H->data[H->cols * imqd + iqd] = 1;
+}
 
-	/* S_k = H_k * P_(k|k-1) * transpose(H_k) + R*/
-	phx_sadwitch_product(H, cov_est, &S, &tmp3);
-	phx_add(&S, R, NULL);
 
-	/* only for debug purposes */
-	if (verbose) {
-		printf("tmp3:\n");
-		phx_print(&tmp3);
-		printf("Z:\n");
-		phx_print(&Z);
-		printf("S:\n");
-		phx_print(&S);
-		printf("hx:\n");
-		phx_print(&hx);
-		printf("H:\n");
-		phx_print(H);
-		printf("cov_est:\n");
-		phx_print(cov_est);
-	}
+update_engine_t setupImuUpdateEngine(phmatrix_t *H, phmatrix_t *R)
+{
+	update_engine_t e;
 
-	/* K_k = P_(k|k-1) * transpose(H_k) * inverse(S_k) */
-	phx_transpose(H);
-	phx_product(cov_est, H, &tmp2);
-	phx_transpose(H);
-	phx_inverse(&S, &tmp1, S_inv_buff, S_inv_buff_len);
-	phx_product(&tmp2, &tmp1, &K);
+	e.R = R;
+	e.H = H;
 
-	/* only for debug purposes */
-	if (verbose) {
-		printf("PkHt:\n");
-		phx_print(&tmp2);
-		printf("S-1:\n");
-		phx_print(&tmp1);
-		printf("K:\n");
-		phx_print(&K);
-	}
+	e.Z = &Z;
+	e.Y = &Y;
+	e.S = &S;
+	e.K = &K;
+	e.I = &I;
+	e.hx = &hx;
+	e.invBuf = S_inv_buff;
+	e.invBufLen = S_inv_buff_len;
+	e.tmp1 = &tmp1;
+	e.tmp2 = &tmp2;
+	e.tmp3 = &tmp3;
+	e.tmp4 = &tmp4;
+	e.tmp5 = &tmp5;
 
-	/* x_(k|k) = x_(k|k-1) + K_k * y_k */
-	phx_product(&K, &Y, &tmp5);
-	phx_add(state_est, &tmp5, state);
+	e.getData = get_measurements;
+	e.getJacobian = calcImuJacobian;
+	e.predictMeasurements = get_hx;
 
-	/* P_(k|k) = (I - K_k * H_k) * P_(k|k-1) */
-	phx_product(&K, H, &tmp4);
-	phx_sub(&I, &tmp4, NULL);
-	phx_product(&I, cov_est, cov);
+	return e;
 }

@@ -27,7 +27,7 @@
 
 #include <sys/msg.h>
 
-#include "kalman.h"
+#include "kalman_implem.h"
 
 #include <tools/rotas_dummy.h>
 #include <tools/phmatrix.h>
@@ -85,7 +85,7 @@ static phmatrix_t tmp5 = { .rows = STATE_ROWS, .cols = STATE_COLS, .transposed =
 static float S_inv_buff[BAROMEAS_ROWS * BAROMEAS_ROWS * 2];
 static unsigned int S_inv_buff_len = BAROMEAS_ROWS * BAROMEAS_ROWS * 2;
 
-float baroMemory[25] = {0};
+float baroMemory[25] = { 0 };
 int memoryPoint = 0;
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
@@ -120,64 +120,37 @@ static phmatrix_t *get_hx(phmatrix_t *state_est)
 }
 
 
-int kalman_updateBaro(phmatrix_t *state, phmatrix_t *cov, phmatrix_t *state_est, phmatrix_t *cov_est, phmatrix_t *H, phmatrix_t *R, float dt, int verbose)
+static void calcBaroJacobian(phmatrix_t *H, phmatrix_t *state, float dt)
 {
-	/* no new pressure measurement available */
-	if (get_measurements(&Z, state, R, dt) == NULL) {
-		return -1;
-	}
+	H->data[H->cols * imhz + ihz] = 1;
+	H->data[H->cols * imxz + ixz] = 1;
+	H->data[H->cols * imhv + ihv] = 1;
+}
 
-	/* prepare diag */
-	phx_diag(&I);
 
-	/* y_k = z_k - h(x_(k|k-1)) */
-	phx_sub(&Z, get_hx(state_est), &Y);
+update_engine_t setupBaroUpdateEngine(phmatrix_t *H, phmatrix_t *R)
+{
+	update_engine_t e;
 
-	/* S_k = H_k * P_(k|k-1) * transpose(H_k) + R*/
-	phx_sadwitch_product(H, cov_est, &S, &tmp3);
-	phx_add(&S, R, NULL);
+	e.H = H;
+	e.R = R;
 
-	/* only for debug purposes */
-	if (verbose) {
-		printf("tmp3:\n");
-		phx_print(&tmp3);
-		printf("Z:\n");
-		phx_print(&Z);
-		printf("S:\n");
-		phx_print(&S);
-		printf("hx:\n");
-		phx_print(&hx);
-		printf("H:\n");
-		phx_print(H);
-		printf("cov_est:\n");
-		phx_print(cov_est);
-	}
+	e.Z = &Z;
+	e.Y = &Y;
+	e.S = &S;
+	e.K = &K;
+	e.I = &I;
+	e.hx = &hx;
+	e.invBuf = S_inv_buff;
+	e.invBufLen = S_inv_buff_len;
+	e.tmp1 = &tmp1;
+	e.tmp2 = &tmp2;
+	e.tmp3 = &tmp3;
+	e.tmp4 = &tmp4;
+	e.tmp5 = &tmp5;
+	e.getData = get_measurements;
+	e.getJacobian = calcBaroJacobian;
+	e.predictMeasurements = get_hx;
 
-	/* K_k = P_(k|k-1) * transpose(H_k) * inverse(S_k) */
-	phx_transpose(H);
-	phx_product(cov_est, H, &tmp2);
-	phx_transpose(H);
-	phx_inverse(&S, &tmp1, S_inv_buff, S_inv_buff_len);
-	phx_product(&tmp2, &tmp1, &K);
-
-	/* only for debug purposes */
-	if (verbose) {
-		printf("PkHt:\n");
-		phx_print(&tmp2);
-		printf("S-1:\n");
-		phx_print(&tmp1);
-		printf("K:\n");
-		phx_print(&K);
-	}
-
-	/* x_(k|k) = x_(k|k-1) + K_k * y_k */
-	phx_product(&K, &Y, &tmp5);
-	phx_add(state_est, &tmp5, state);
-
-	/* P_(k|k) = (I - K_k * H_k) * P_(k|k-1) */
-	phx_product(&K, H, &tmp4);
-	phx_sub(&I, &tmp4, NULL);
-	phx_product(&I, cov_est, cov);
-
-	return 0;
+	return e;
 }

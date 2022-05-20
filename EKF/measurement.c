@@ -23,7 +23,7 @@
 
 #include <sys/msg.h>
 
-#include "kalman.h"
+#include "kalman_implem.h"
 
 #include <imx6ull-sensi2c.h>
 #include <tools/rotas_dummy.h>
@@ -38,21 +38,21 @@ struct sens_mag_t magSensor;
 /* accelerometer calibration data */
 float tax, tay, taz;
 float acc_calib1[12] = {
-		/* sphere offset */
-		0.01737944, -0.01926739, 0.00982283,
-		/* sphere deformation */
-		1.00138962,  0.00186323, -0.00175369,
- 		0.00186323,  0.99879068,  0.00357516,
- 		-0.00175369,  0.00357516,  0.99984077
-	};
+	/* sphere offset */
+	0.01737944, -0.01926739, 0.00982283,
+	/* sphere deformation */
+	1.00138962, 0.00186323, -0.00175369,
+	0.00186323, 0.99879068, 0.00357516,
+	-0.00175369, 0.00357516, 0.99984077
+};
 float acc_calib2[12] = {
 	/* sphere offset */
 	0.00116779, -0.00139108, -0.00371815,
 	/* sphere deformation */
-1.00284,    -0.00287202, -0.00229445,
- -0.00287202,  0.99934558,  0.00263417,
- -0.00229445,  0.00263417,  0.9978414 
-	};
+	1.00284, -0.00287202, -0.00229445,
+	-0.00287202, 0.99934558, 0.00263417,
+	-0.00229445, 0.00263417, 0.9978414
+};
 
 /* accelerometer calibration data */
 float tmx, tmy, tmz;
@@ -153,7 +153,7 @@ void acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags)
 }
 
 
-int  acquireBaroMeasurements(float * pressure, float * temperature, float * dtBaro)
+int acquireBaroMeasurements(float *pressure, float *temperature, float *dtBaro)
 {
 	struct timeval lastT = baroSensor.timestamp;
 

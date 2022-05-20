@@ -19,7 +19,8 @@
 #include <math.h>
 #include "sys/time.h"
 
-#include "kalman.h"
+#include "kalman_core.h"
+#include "kalman_implem.h"
 
 #include <tools/rotas_dummy.h>
 #include <tools/phmatrix.h>
@@ -91,6 +92,9 @@ float get_dt(void)
 
 int main(int argc, char **argv)
 {
+	update_engine_t imuEngine, baroEngine;
+	state_engine_t stateEngine;
+
 	phmatrix_t state, state_est, cov, cov_est, F, Q; /* state prediction matrices */
 	phmatrix_t imuH, imuR;                           /* imu measurements update matrices */
 	phmatrix_t baroH, baroR;                         /* barometer mesurement matices */
@@ -99,9 +103,9 @@ int main(int argc, char **argv)
 	read_config();
 	imu_calibrate_acc_gyr_mag();
 
-	init_prediction_matrices(&state, &state_est, &cov, &cov_est, &F, &Q, kalman_common.dt);
-	imuUpdateInitializations(&imuH, &imuR);
-	baroUpdateInitializations(&baroH, &baroR);
+	stateEngine = init_prediction_matrices(&state, &state_est, &cov, &cov_est, &F, &Q, kalman_common.dt);
+	imuEngine = imuUpdateInitializations(&imuH, &imuR);
+	baroEngine = baroUpdateInitializations(&baroH, &baroR);
 
 	/* Kalman loop */
 	gettimeofday(&kalman_common.last_time, NULL);
@@ -109,20 +113,12 @@ int main(int argc, char **argv)
 		kalman_common.dt = get_dt();
 
 		/* state prediction procedure */
-		calcPredictionJacobian(&state, &F, kalman_common.dt);
-		kalman_predict(&state, &cov, &state_est, &cov_est, &F, &Q, kalman_common.dt, 0);
-
-		/* barometer measurements update procedure */
-		calcBaroJacobian(&state_est, &baroH, kalman_common.dt);
-		if (kalman_updateBaro(&state, &cov, &state_est, &cov_est, &baroH, &baroR, kalman_common.dt, 0) < 0) {
-
-			/* imu measurements update procedure */
-			calcImuJacobian(&state_est, &imuH, kalman_common.dt);
-			kalman_updateImu(&state, &cov, &state_est, &cov_est, &imuH, &imuR, kalman_common.dt, 0);
+		kalmanPredictionStep(&stateEngine, kalman_common.dt, 0);
+		if (kalmanUpdateStep(kalman_common.dt, 0, &baroEngine, &stateEngine) < 0) { /* barometer measurements update procedure */
+			kalmanUpdateStep(kalman_common.dt, 0, &imuEngine, &stateEngine);        /* imu measurements update procedure */
 		}
 
 		kalman_common.t += kalman_common.dt;
 		print_state(&state, &cov_est, kalman_common.t, 0.1); /* print state after 1s of simulation */
-
 	}
 }
