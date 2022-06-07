@@ -24,6 +24,7 @@
 #include <sys/msg.h>
 
 #include "kalman_implem.h"
+#include "gpsserver.h"
 
 #include <imx6ull-sensi2c.h>
 #include <tools/rotas_dummy.h>
@@ -64,6 +65,113 @@ float mag_calib1[12] = {
 	-0.02531768, 1.00750385, -0.00278795,
 	0.0042657, -0.00278795, 1.00173743
 };
+
+vec_t geo2ecef(float lat, float lon, float h) {
+	float sinLat, sinLon, cosLat, cosLon, N;
+
+	/* point coordinates trigonometric values */
+	sinLat = sin(lat * DEG2RAD);
+	sinLon = sin(lon * DEG2RAD);
+	cosLat = cos(lat * DEG2RAD);
+	cosLon = cos(lon * DEG2RAD);
+	N = EARTH_SEMI_MAJOR / sqrt(1 - EARTH_ECCENTRICITY_SQUARED * sinLat);
+
+	return (vec_t){
+		.x = (N + h) * cosLat * cosLon,
+		.y = (N + h) * cosLat * sinLon,
+		.z = ((1 - EARTH_ECCENTRICITY_SQUARED) * N + h) * sinLat
+		};
+}
+
+/* convert gps geodetic coordinates into neu (north/east/up) vector with reference point */
+vec_t geo2neu(float lat, float lon, float h, float latRef, float lonRef, vec_t * refEcef)
+{
+	//float xEcef, yEcef, zEcef;
+
+	float sinLatRef, sinLonRef, cosLatRef, cosLonRef;
+	float rot_data[9], dif_data[3], enu_data[3];
+	phmatrix_t rot, dif, enu;
+	vec_t pointEcef;
+	
+	phx_assign(&rot, 3, 3, rot_data);
+	phx_assign(&dif, 3, 1, dif_data);
+	phx_assign(&enu, 3, 1, enu_data);
+
+	/* reference point coordinates trigonometric values */
+	sinLatRef = sin(latRef * DEG2RAD);
+	sinLonRef = sin(lonRef * DEG2RAD);
+	cosLatRef = cos(latRef * DEG2RAD);
+	cosLonRef = cos(lonRef * DEG2RAD);
+
+	/* rot matrix fill */
+	rot.data[0] = -sinLonRef;
+	rot.data[1] = cosLonRef;
+	rot.data[2] = 0;
+	rot.data[3] = -sinLatRef * cosLonRef;
+	rot.data[4] = -sinLatRef * sinLonRef;
+	rot.data[5] = cosLatRef;
+	rot.data[6] = cosLatRef * cosLonRef;
+	rot.data[7] = cosLatRef * sinLonRef;
+	rot.data[8] = sinLatRef;
+
+	/* diff matrix fill */
+	pointEcef = geo2ecef(lat, lon, h);
+	dif.data[0] = pointEcef.x - refEcef->x;
+	dif.data[1] = pointEcef.y - refEcef->y;
+	dif.data[2] = pointEcef.z - refEcef->z;
+
+	/* perform ECEF to ENU by calculating matrix product (rot * dif) */
+	phx_product(&rot, &dif, &enu);
+
+	return (vec_t){.x = enu.data[1], .y = enu.data[0], .z = enu.data[2]};
+}
+
+void gps_calibrate(void)
+{
+	int i, hdop, avg = 10;
+	gps_data_t data;
+	float refLat, refLon, refHeight;
+	
+	while (1) {
+		sensGps(&data);
+		if (data.lat != 0 && data.lon != 0 && data.groundSpeed > 0) {
+			break;
+		}
+		printf("Awaiting GPS fix...\n");
+		sleep(4);
+	}
+
+	while (1) {
+		sensGps(&data);
+		if (data.hdop < 500) {
+			break;
+		}
+		printf("Awaiting good quality GPS (current hdop = %d)\n", data.hdop);
+		sleep(4);
+	}
+
+	refLat = refLon = refHeight = 0;
+	i = 0;
+	while (i < avg) {
+		if (sensGps(&data) < 0){
+			sleep(1);
+			continue;
+		}
+		printf("Sampling gps position: sample %d/%d\n", i+1, avg);
+		refLat += (float)data.lat / 1e7;
+		refLon += (float)data.lon / 1e7;
+		i++;
+	}
+	refLat /= avg;
+	refLon /= avg;
+
+	gpsRefGeodetic.lat = refLat;
+	gpsRefGeodetic.lon = refLon;
+	gpsRefGeodetic.h = 0;
+	gpsRefEcef = geo2ecef(gpsRefGeodetic.lat, gpsRefGeodetic.lon, gpsRefGeodetic.h);
+
+	printf("Acquired GPS position of (lat/lon/h): %f/%f/%f\n", gpsRefGeodetic.lat, gpsRefGeodetic.lon, gpsRefGeodetic.h);
+}
 
 static void ellipsoid_compensate(float *x, float *y, float *z, float *calib)
 {
@@ -161,6 +269,32 @@ int acquireBaroMeasurements(float *pressure, float *temperature, float *dtBaroUs
 		*pressure = baroSensor.press;
 		*temperature = baroSensor.baro_temp;
 		*dtBaroUs = (baroSensor.timestamp.tv_sec - lastT.tv_sec) * 1000000 + baroSensor.timestamp.tv_usec - lastT.tv_usec;
+		return 0;
+	}
+	return -1;
+}
+
+int acquireGpsMeasurement(vec_t * neu, vec_t * ned_speed, float * hdop)
+{
+	gps_data_t data;
+
+	if (sensGps(&data) > 0) {
+
+		*neu = geo2neu(
+			(float)data.lat / 1e7,
+			(float)data.lon / 1e7,
+			0,
+			gpsRefGeodetic.lat,
+			gpsRefGeodetic.lon,
+			&gpsRefEcef
+			);
+
+		ned_speed->x = (float)data.velNorth / 1e3;
+		ned_speed->y = (float)data.velEast / 1e3;
+		ned_speed->z = 0;
+
+		*hdop = data.hdop / 100;
+
 		return 0;
 	}
 	return -1;

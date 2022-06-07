@@ -84,6 +84,27 @@ static unsigned int S_inv_buff_len = IMUMEAS_ROWS * IMUMEAS_ROWS * 2;
 static vec_t true_g = { .x = 0, .y = 0, .z = 1 };
 static vec_t x_versor = { .x = 1, .y = 0, .z = 0 };
 
+vec_t imu_memory[10];
+int imu_mem_entry = 0;
+
+static void addMemEntry(vec_t * a)
+{
+	imu_memory[imu_mem_entry] = *a;
+
+	imu_mem_entry = (imu_mem_entry >= (sizeof(imu_memory) / sizeof(imu_memory[0]) - 1)) ? 0 : imu_mem_entry + 1;
+}
+
+static vec_t getMemoryMean(void)
+{
+	int i;
+	vec_t amean = {0};
+
+	for (i = 0; i < (sizeof(imu_memory) / sizeof(imu_memory[0])); i++) {
+		amean = vec_add(&amean, &(imu_memory[i]));
+	}
+
+	return vec_times(&amean, 0.1);
+}
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, float dt)
@@ -92,7 +113,7 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t
 	vec_t mmeas_unit, ameas_unit;
 	vec_t xp, diff;
 	quat_t q_est, rot = { .a = qa, .i = qb, .j = qc, .k = qd };
-	float err_q_est;
+	float err_q_est, err_a_est;
 
 	/* 
 		Sensors API wrapper call 
@@ -102,6 +123,9 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t
 		magnetic flux field in uT 
 	*/
 	acquireImuMeasurements(&ameas, &wmeas, &mmeas);
+	addMemEntry(&ameas);
+	ameas = getMemoryMean();
+	//printf("ameas: %.3f %.3f %.3f ", ameas.x, ameas.y, ameas.z);
 
 	/* estimate rotation quaternion with assumption that imu is stationary */
 	mmeas_unit = mmeas;
@@ -115,10 +139,11 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t
 	/* rotate measurements of a and w */
 	quat_vecrot(&ameas, &rot);
 	quat_vecrot(&wmeas, &rot);
+	//printf("%.3f %.3f %.3f\n", ameas.x, ameas.y, ameas.z);
 
 	/* calculate quaternion estimation error based on its nonstationarity. Empirically fitted parameters! */
 	diff = vec_sub(&true_g, &ameas);
-	err_q_est = 8 + 10 * vec_len(&diff) + 10 * vec_len(&wmeas);
+	err_q_est = 8 + 50 * vec_len(&diff) + 10 * vec_len(&wmeas);
 
 	/* trimming data from imu */
 	ameas = vec_times(&ameas, EARTH_G);

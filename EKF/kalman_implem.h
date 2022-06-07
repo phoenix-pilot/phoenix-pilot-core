@@ -25,8 +25,10 @@
 
 #define STATE_COLS    1
 #define STATE_ROWS    21
+
 #define IMUMEAS_ROWS  13
 #define BAROMEAS_ROWS 4
+#define GPSMEAS_ROWS 4
 
 #define EARTH_G       9.80665F   /* m/s^2 */
 #define UNI_GAS_CONST 8.3144598F /* J/(mol * K) */
@@ -54,6 +56,12 @@
 #define imxz 1
 #define imhv 2
 #define imvz 3
+
+/* gps measurements */
+#define imgpsxx 0
+#define imgpsxy 1
+#define imgpsvx 2
+#define imgpsvy 3
 
 /* index of state variable of: */
 #define ixx 0  /* position x */
@@ -133,6 +141,8 @@ typedef struct {
 	float R_hvcov;
 	float R_vzcov;
 
+	float Q_xcov;
+	float Q_vcov;
 	float Q_hcov;     /* process noise of altitude */
 	float Q_avertcov; /* process noise of vertical acceleration */
 	float Q_ahoricov; /* process noise of horizontal accelerations */
@@ -153,14 +163,28 @@ typedef struct {
 } kalman_common_t;
 
 
+typedef struct {
+	float lat;
+	float lon;
+	float h;
+} geodetic_t;
+
+geodetic_t gpsRefGeodetic;
+vec_t gpsRefEcef;
+
+
 /* CALIBRATION AND MEASUREMENTS */
 void read_config(void);
 
 void imu_calibrate_acc_gyr_mag(void);
 
+void gps_calibrate(void);
+
 void acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags);
 
 int acquireBaroMeasurements(float *pressure, float *temperature, float *dtBaroUs);
+
+int acquireGpsMeasurement(vec_t * ned, vec_t * ned_acc, float * hdop);
 
 /* PHMATRIX MATRICES INITIALIZATIONS */
 
@@ -172,9 +196,16 @@ update_engine_t imuUpdateInitializations(phmatrix_t *H, phmatrix_t *R);
 
 update_engine_t setupImuUpdateEngine(phmatrix_t *H, phmatrix_t *R);
 
+
 /* barometer update initializations and engine composer */
 update_engine_t baroUpdateInitializations(phmatrix_t *H, phmatrix_t *R);
 
 update_engine_t setupBaroUpdateEngine(phmatrix_t *H, phmatrix_t *R);
+
+
+/* GPS update initializations and engine composer */
+update_engine_t gpsUpdateInitializations(phmatrix_t *H, phmatrix_t *R);
+
+update_engine_t setupGpsUpdateEngine(phmatrix_t *H, phmatrix_t *R);
 
 #endif

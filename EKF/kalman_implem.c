@@ -27,7 +27,7 @@
 
 /* NOTE: must be kept in the same order as 'config_names' */
 kalman_init_t init_values = {
-	.verbose = 1,
+	.verbose = 0,
 
 	.P_xerr = 0.1F,            /* 0.1 m */
 	.P_verr = 0.1F,            /* 0.1 m/s */
@@ -38,8 +38,8 @@ kalman_init_t init_values = {
 	.P_qijkerr = 10 * DEG2RAD, /* 10 degrees */
 	.P_pxerr = 10,             /* 10 hPa */
 
-	.R_acov = 0.001F,
-	.R_wcov = 0.001F,
+	.R_acov = 0.1,
+	.R_wcov = 0.01F,
 	.R_mcov = 10,
 	.R_qcov = 1. / DEG2RAD,
 
@@ -50,9 +50,11 @@ kalman_init_t init_values = {
 	.R_vzcov = 2,
 
 	/* better to keep Q low */
+	.Q_xcov = 0.00001,
+	.Q_vcov = 0.0001,
 	.Q_hcov = 0.01,
 	.Q_avertcov = 0.01,
-	.Q_ahoricov = 0,
+	.Q_ahoricov = 0.001,
 	.Q_wcov = 0.0001,
 	.Q_mcov = 0.001,
 	.Q_qcov = 0.001,
@@ -66,7 +68,7 @@ char *config_names[] = {
 	"verbose",
 	"P_xerr", "P_verr", "P_aerr", "P_werr", "P_merr", "P_qaerr", "P_qijkerr", "P_pxerr",
 	"R_acov", "R_wcov", "R_mcov", "R_qcov", "R_pcov", "R_hcov", "R_xzcov", "R_hvcov", "R_vzcov",
-	"Q_hcov", "Q_avertcov", "Q_ahoricov", "Q_wcov", "Q_mcov", "Q_qcov", "Q_pcov", "Q_pvcov"
+	"Q_xcov", "Q_vcov", "Q_hcov", "Q_avertcov", "Q_ahoricov", "Q_wcov", "Q_mcov", "Q_qcov", "Q_pcov", "Q_pvcov"
 };
 
 
@@ -161,6 +163,8 @@ static void init_cov_vector(phmatrix_t *cov)
 	cov->data[cov->cols * ihv + ihv] = init_values.P_verr * init_values.P_verr;
 }
 
+vec_t last_a = {0};
+vec_t last_v = {0};
 
 /* State estimation function definition */
 static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, float dt)
@@ -170,15 +174,25 @@ static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, f
 
 	quat_q = quat(qa, qb, qc, qd);
 	quat_w = quat(0, wx, wy, wz);
+	
+	/* trapezoidal integration */
+	state_est->data[ixx] = xx + (vx + last_v.x) * 0.5 * dt;// + (ax + last_a.x) * 0.5 * dt2;
+	state_est->data[ixy] = xy + (vy + last_v.y) * 0.5 * dt;// + (ay + last_a.y) * 0.5 * dt2;
+	state_est->data[ixz] = xz + (vz + last_v.z) * 0.5 * dt;// + (az + last_a.z) * 0.5 * dt2;
 
-	state_est->data[ixx] = xx + vx * dt + ax * dt2;
-	state_est->data[ixy] = xy + vy * dt + ay * dt2;
-	state_est->data[ixz] = xz + vz * dt + az * dt2; /* complementary-like filter on height data to cancel accel druft */
-
+	/* trapezoidal integration */
 	/* as no direct velocity measurements are done, time corelation is introduced to velocity with assumption that velocity always decreases */
-	state_est->data[ivx] = (vx + ax * dt) * 0.9994;
-	state_est->data[ivy] = (vy + ay * dt) * 0.9994;
-	state_est->data[ivz] = (vz + az * dt) * 0.9994;
+	state_est->data[ivx] = (vx + (ax + last_a.x) * 0.5 * dt);
+	state_est->data[ivy] = (vy + (ay + last_a.y) * 0.5 * dt);
+	state_est->data[ivz] = (vz + (az + last_a.z) * 0.5 * dt);
+
+	last_a.x = ax;
+	last_a.y = ay;
+	last_a.z = az;
+	
+	last_v.x = vx;
+	last_v.y = vy;
+	last_v.z = vz;
 
 	/* predition from w */
 	res = quat_mlt(&quat_w, &quat_q);
@@ -251,9 +265,9 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, float dt)
 	phx_writesubmatrix(F, ivx, iax, &I33); /* dfv / da */
 
 	/* change I33 to (I * dt^2 / 2) matrix and write it to appropriate places */
-	phx_scalar_product(&I33, dt);
-	phx_scalar_product(&I33, 0.5);
-	phx_writesubmatrix(F, ixx, iax, &I33); /* dfx / dv */
+	phx_scalar_product(&I33, dt / 2);
+	//phx_scalar_product(&I33, 0.5);
+	//phx_writesubmatrix(F, ixx, iax, &I33); /* dfx / dv */
 
 	/* write differentials matrices */
 	phx_writesubmatrix(F, iqa, iqa, &dfqdq);
@@ -310,6 +324,15 @@ update_engine_t baroUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
 }
 
 
+update_engine_t gpsUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
+{
+	phx_newmatrix(H, GPSMEAS_ROWS, STATE_ROWS);
+	phx_newmatrix(R, GPSMEAS_ROWS, GPSMEAS_ROWS);
+
+	return setupGpsUpdateEngine(H, R);
+}
+
+
 /* initialization of prediction step matrix values */
 state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, float dt)
 {
@@ -328,6 +351,9 @@ state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est
 	phx_zeroes(Q);
 
 	/* acceleration process noise different for vertical and horizontal because different measurements are performed and different smoothing is neccessary */
+	Q->data[Q->cols * ixx + ixx] = Q->data[Q->cols * ixy + ixy] = init_values.Q_xcov;
+	Q->data[Q->cols * ivx + ivx] = Q->data[Q->cols * ivy + ivy] = init_values.Q_vcov;
+	
 	Q->data[Q->cols * iax + iax] = Q->data[Q->cols * iay + iay] = init_values.Q_ahoricov;
 	Q->data[Q->cols * iaz + iaz] = init_values.Q_avertcov;
 

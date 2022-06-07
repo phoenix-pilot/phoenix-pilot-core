@@ -72,7 +72,7 @@ int kalmanUpdateStep(float dt, int verbose, update_engine_t *updateEngine, state
 		return -1;
 	}
 
-	updateEngine->getJacobian(updateEngine->H, stateEngine->state, dt);
+	updateEngine->getJacobian(updateEngine->H, stateEngine->state_est, dt);
 
 	/* prepare diag */
 	phx_diag(updateEngine->I);
@@ -109,12 +109,15 @@ int kalmanUpdateStep(float dt, int verbose, update_engine_t *updateEngine, state
 
 	/* only for debug purposes */
 	if (verbose) {
-		printf("PkHt:\n");
-		phx_print(updateEngine->tmp2);
-		printf("S-1:\n");
-		phx_print(updateEngine->tmp1);
+		//printf("PkHt:\n");
+		//phx_print(updateEngine->tmp2);
+		//printf("S-1:\n");
+		//phx_print(updateEngine->tmp1);
 		printf("K:\n");
 		phx_print(updateEngine->K);
+
+		printf("y:\n");
+		phx_print(updateEngine->Y);
 	}
 
 	/* x_(k|k) = x_(k|k-1) + K_k * y_k */

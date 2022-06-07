@@ -153,7 +153,7 @@ static phmatrix_t *get_measurements(phmatrix_t *Z, phmatrix_t *state, phmatrix_t
 
 	phx_zeroes(Z);
 	Z->data[imhz] = 8453.669 * log(base_pressure / pressure);
-	Z->data[imxz] = 0.1 * hz + 0.9 * xz;
+	Z->data[imxz] = hz;//0.2 * hz + 0.8 * xz;
 	Z->data[imhv] = filterBaroSpeed();
 	Z->data[imvz] = hv;
 
