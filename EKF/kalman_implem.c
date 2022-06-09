@@ -1,9 +1,11 @@
 /*
  * Phoenix-Pilot
  *
- * extended kalman filter 
+ * Extended kalman Filter 
  * 
- * matrix (memory and values) initialization 
+ * EKF implementation specific code. Defines:
+ *  - prediction engine functions and initializations
+ *  - measurement engines initializations
  *
  * Copyright 2022 Phoenix Systems
  * Author: Mateusz Niewiadomski
@@ -31,14 +33,14 @@ kalman_init_t init_values = {
 
 	.P_xerr = 0.1F,            /* 0.1 m */
 	.P_verr = 0.1F,            /* 0.1 m/s */
-	.P_aerr = 0.001F,          /* 0.001 m/s^2 */
+	.P_aerr = 0.01F,          /* 0.001 m/s^2 */
 	.P_werr = DEG2RAD,         /* 1 degree */
 	.P_merr = 300,             /* 300 uT */
 	.P_qaerr = 10 * DEG2RAD,   /* 10 degrees */
 	.P_qijkerr = 10 * DEG2RAD, /* 10 degrees */
 	.P_pxerr = 10,             /* 10 hPa */
 
-	.R_acov = 0.1,
+	.R_acov = 0.001,
 	.R_wcov = 0.01F,
 	.R_mcov = 10,
 	.R_qcov = 1. / DEG2RAD,
@@ -50,11 +52,11 @@ kalman_init_t init_values = {
 	.R_vzcov = 2,
 
 	/* better to keep Q low */
-	.Q_xcov = 0.00001,
-	.Q_vcov = 0.0001,
+	.Q_xcov = 0.001,
+	.Q_vcov = 0.001,
 	.Q_hcov = 0.01,
-	.Q_avertcov = 0.01,
-	.Q_ahoricov = 0.001,
+	.Q_avertcov = 0.0001,
+	.Q_ahoricov = 0.0001,
 	.Q_wcov = 0.0001,
 	.Q_mcov = 0.001,
 	.Q_qcov = 0.001,
@@ -176,15 +178,15 @@ static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, f
 	quat_w = quat(0, wx, wy, wz);
 	
 	/* trapezoidal integration */
-	state_est->data[ixx] = xx + (vx + last_v.x) * 0.5 * dt;// + (ax + last_a.x) * 0.5 * dt2;
-	state_est->data[ixy] = xy + (vy + last_v.y) * 0.5 * dt;// + (ay + last_a.y) * 0.5 * dt2;
-	state_est->data[ixz] = xz + (vz + last_v.z) * 0.5 * dt;// + (az + last_a.z) * 0.5 * dt2;
+	state_est->data[ixx] = xx + (vx + last_v.x) * 0.5 * dt + ax * dt2;
+	state_est->data[ixy] = xy + (vy + last_v.y) * 0.5 * dt + ay * dt2;
+	state_est->data[ixz] = xz + (vz + last_v.z) * 0.5 * dt + az * dt2;
 
 	/* trapezoidal integration */
 	/* as no direct velocity measurements are done, time corelation is introduced to velocity with assumption that velocity always decreases */
-	state_est->data[ivx] = (vx + (ax + last_a.x) * 0.5 * dt);
-	state_est->data[ivy] = (vy + (ay + last_a.y) * 0.5 * dt);
-	state_est->data[ivz] = (vz + (az + last_a.z) * 0.5 * dt);
+	state_est->data[ivx] = (vx + (ax + last_a.x) * 0.5 * dt) * 0.9995;
+	state_est->data[ivy] = (vy + (ay + last_a.y) * 0.5 * dt) * 0.9995;
+	state_est->data[ivz] = (vz + (az + last_a.z) * 0.5 * dt) * 0.9995;
 
 	last_a.x = ax;
 	last_a.y = ay;
@@ -205,9 +207,9 @@ static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, f
 	state_est->data[iqc] = quat_q.j;
 	state_est->data[iqd] = quat_q.k;
 
-	state_est->data[iax] = ax;
-	state_est->data[iay] = ay;
-	state_est->data[iaz] = az;
+	state_est->data[iax] = ax * 0.9995;
+	state_est->data[iay] = ay * 0.9995;
+	state_est->data[iaz] = az * 0.9995;
 
 	state_est->data[iwx] = wx;
 	state_est->data[iwy] = wy;
@@ -276,60 +278,6 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, float dt)
 	F->data[ihz * F->cols + ihz] = 1;
 	F->data[ihz * F->cols + ivz] = dt;
 	F->data[ihv * F->cols + ihv] = 1;
-}
-
-
-/* initialization function for IMU update step matrices values */
-update_engine_t imuUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
-{
-	/* matrix initialization */
-	phx_newmatrix(H, IMUMEAS_ROWS, STATE_ROWS);
-	phx_newmatrix(R, IMUMEAS_ROWS, IMUMEAS_ROWS);
-
-	/* init of measurement noise matrix R */
-	R->data[R->cols * imax + imax] = init_values.R_acov;
-	R->data[R->cols * imay + imay] = init_values.R_acov;
-	R->data[R->cols * imaz + imaz] = init_values.R_acov;
-
-	R->data[R->cols * imwx + imwx] = init_values.R_wcov;
-	R->data[R->cols * imwy + imwy] = init_values.R_wcov;
-	R->data[R->cols * imwz + imwz] = init_values.R_wcov;
-
-	R->data[R->cols * immx + immx] = init_values.R_mcov;
-	R->data[R->cols * immy + immy] = init_values.R_mcov;
-	R->data[R->cols * immz + immz] = init_values.R_mcov;
-
-	R->data[R->cols * imqa + imqa] = init_values.R_qcov;
-	R->data[R->cols * imqb + imqb] = init_values.R_qcov;
-	R->data[R->cols * imqc + imqc] = init_values.R_qcov;
-	R->data[R->cols * imqd + imqd] = init_values.R_qcov;
-
-	return setupImuUpdateEngine(H, R);
-}
-
-
-/* initialization function for barometer update step matrices values */
-update_engine_t baroUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
-{
-	phx_newmatrix(H, BAROMEAS_ROWS, STATE_ROWS);
-	phx_newmatrix(R, BAROMEAS_ROWS, BAROMEAS_ROWS);
-
-	//R->data[R->cols * impx + impx] = init_values.R_pcov;
-	R->data[R->cols * imhz + imhz] = init_values.R_hcov;
-	R->data[R->cols * imxz + imxz] = init_values.R_xzcov;
-	R->data[R->cols * imhv + imhv] = init_values.R_hvcov;
-	R->data[R->cols * imvz + imvz] = init_values.R_vzcov;
-
-	return setupBaroUpdateEngine(H, R);
-}
-
-
-update_engine_t gpsUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
-{
-	phx_newmatrix(H, GPSMEAS_ROWS, STATE_ROWS);
-	phx_newmatrix(R, GPSMEAS_ROWS, GPSMEAS_ROWS);
-
-	return setupGpsUpdateEngine(H, R);
 }
 
 

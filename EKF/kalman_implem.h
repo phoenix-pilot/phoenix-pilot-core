@@ -3,7 +3,7 @@
  *
  * extended kalman filter
  * 
- * header file
+ * EKF implementation specific code header file. Declares prediction and update engines routines/functions
  *
  * Copyright 2022 Phoenix Systems
  * Author: Mateusz Niewiadomski
@@ -110,13 +110,6 @@
 #define hz state->data[19]
 #define hv state->data[20]
 
-/* initial values calculated during calibration */
-quat_t init_q;
-vec_t init_m;
-vec_t gyr_nivel;
-float base_pressure, base_temp;
-int verbose;
-
 /* IMPORTANT: must be kept in order with 'char * config_names' in 'kalman.inits.c' */
 typedef struct {
 	int verbose;
@@ -169,16 +162,24 @@ typedef struct {
 	float h;
 } geodetic_t;
 
+/* initial values calculated during calibration */
+quat_t init_q;
+vec_t init_m, gyr_nivel, gpsRefEcef;
+float base_pressure, base_temp;
+int verbose;
 geodetic_t gpsRefGeodetic;
-vec_t gpsRefEcef;
 
 
-/* CALIBRATION AND MEASUREMENTS */
+/* CALIBRATIONS */
+
 void read_config(void);
 
 void imu_calibrate_acc_gyr_mag(void);
 
 void gps_calibrate(void);
+
+
+/* MEASUREMENT ACQUISITION */
 
 void acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags);
 
@@ -186,26 +187,20 @@ int acquireBaroMeasurements(float *pressure, float *temperature, float *dtBaroUs
 
 int acquireGpsMeasurement(vec_t * ned, vec_t * ned_acc, float * hdop);
 
+
 /* PHMATRIX MATRICES INITIALIZATIONS */
 
 /* initializes matices related to state prediction step of kalman filter */
 state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, float dt);
 
-/* imu update initializations and engine composer */
-update_engine_t imuUpdateInitializations(phmatrix_t *H, phmatrix_t *R);
-
+ /* imu update engine composer */
 update_engine_t setupImuUpdateEngine(phmatrix_t *H, phmatrix_t *R);
 
-
-/* barometer update initializations and engine composer */
-update_engine_t baroUpdateInitializations(phmatrix_t *H, phmatrix_t *R);
-
+/* barometer update engine composer */
 update_engine_t setupBaroUpdateEngine(phmatrix_t *H, phmatrix_t *R);
 
-
-/* GPS update initializations and engine composer */
-update_engine_t gpsUpdateInitializations(phmatrix_t *H, phmatrix_t *R);
-
+/* GPS update engine composer */
 update_engine_t setupGpsUpdateEngine(phmatrix_t *H, phmatrix_t *R);
+
 
 #endif

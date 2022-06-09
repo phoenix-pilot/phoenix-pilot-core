@@ -82,8 +82,8 @@ int print_state(phmatrix_t *state, phmatrix_t *cov, float t, float interval)
 void reset_state(phmatrix_t * state, phmatrix_t * cov) {
 	xx = xy = 0;
 	vx = vy = 0;
-	ax = ay = 0;
-	wx = wy = 0;
+	ax = ay = az = 0;
+	wx = wy = wz = 0;
 
 	phx_zeroes(cov);
 }
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 	phmatrix_t baroH, baroR;                         /* barometer mesurement matices */
 	phmatrix_t gpsH, gpsR;
 	TR = &imuR;
-	int reset;
+	int reset = 1;
 
 	//gpsThreadInit();
 
@@ -134,9 +134,9 @@ int main(int argc, char **argv)
 	//gps_calibrate();
 
 	stateEngine = init_prediction_matrices(&state, &state_est, &cov, &cov_est, &F, &Q, kalman_common.dt);
-	imuEngine = imuUpdateInitializations(&imuH, &imuR);
-	baroEngine = baroUpdateInitializations(&baroH, &baroR);
-	gpsEngine = gpsUpdateInitializations(&gpsH, &gpsR);
+	imuEngine = setupImuUpdateEngine(&imuH, &imuR);
+	baroEngine = setupBaroUpdateEngine(&baroH, &baroR);
+	gpsEngine = setupGpsUpdateEngine(&gpsH, &gpsR);
 
 	/* Kalman loop */
 	gettimeofday(&kalman_common.last_time, NULL);
@@ -146,9 +146,9 @@ int main(int argc, char **argv)
 		/* state prediction procedure */
 		kalmanPredictionStep(&stateEngine, kalman_common.dt, 0);
 		//if (kalmanUpdateStep(kalman_common.dt, 0, &gpsEngine, &stateEngine) < 0) {
-			//if (kalmanUpdateStep(kalman_common.dt, 0, &baroEngine, &stateEngine) < 0) { /* barometer measurements update procedure */
+			if (kalmanUpdateStep(kalman_common.dt, 0, &baroEngine, &stateEngine) < 0) { /* barometer measurements update procedure */
 				kalmanUpdateStep(kalman_common.dt, 0, &imuEngine, &stateEngine);        /* imu measurements update procedure */
-			//}
+			}
 		//}
 
 		kalman_common.t += kalman_common.dt;

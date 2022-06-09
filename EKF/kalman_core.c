@@ -78,7 +78,7 @@ int kalmanUpdateStep(float dt, int verbose, update_engine_t *updateEngine, state
 	phx_diag(updateEngine->I);
 
 	/* y_k = z_k - h(x_(k|k-1)) */
-	phx_sub(updateEngine->Z, updateEngine->predictMeasurements(stateEngine->state_est), updateEngine->Y);
+	phx_sub(updateEngine->Z, updateEngine->predictMeasurements(stateEngine->state_est, updateEngine->hx), updateEngine->Y);
 
 	/* S_k = H_k * P_(k|k-1) * transpose(H_k) + R*/
 	phx_sadwitch_product(updateEngine->H, stateEngine->cov_est, updateEngine->S, updateEngine->tmp3);
