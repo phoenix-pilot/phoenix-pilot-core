@@ -18,3 +18,20 @@ This version of EKF utilizes:
 and provides state information of following parameters (mentioned only those that are accurately estimated):
  - altitude from calibraition (start point)
  - rotation of the IMU relative to North-West-Down frame (will be subject to change to North-East-Down frame)
+
+# Structure
+
+ ### `kalman_core`
+ Core EKF calculations on matrices that perform prediction and update steps using abstractions of measurement model (`update_engine_t`) and prediction model (`prediction_model_t`). Utilizes `phmatrix` matrix library from `/tools/`. Provides macros for declaring all necessary measurement model matrices of correct sizes and for inserting them into `update_engine_t`. 
+
+ ### `kalman_implem`
+ Kalman filter implementation specific code. Defines initialization parameters and performs initialization of covariance and state matrices values. Defines prediction step algorithms. Creates prediction engine.
+
+ ### `kalman_update_*`
+ Measurement model specific code. Creates measurement engine, and defines all necessary functions for it.
+
+ ### `measurement`
+ Data acquisition code. Performs all necessary initialization measurements, calibration of data. All communication with sensor is done via this module. Provides interface for measurements modules to acquire calibrated data as close to desired measurement vector form as possible.
+
+ ### `main`
+ Sample code performing kalman filtering, data outputting.
