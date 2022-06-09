@@ -185,7 +185,7 @@ void acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags);
 
 int acquireBaroMeasurements(float *pressure, float *temperature, float *dtBaroUs);
 
-int acquireGpsMeasurement(vec_t * ned, vec_t * ned_acc, float * hdop);
+int acquireGpsMeasurement(vec_t * enu, vec_t * enu_speed, float * hdop);
 
 
 /* PHMATRIX MATRICES INITIALIZATIONS */

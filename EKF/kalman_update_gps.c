@@ -37,18 +37,18 @@ extern kalman_init_t init_values;
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, float dt)
 {
-	vec_t neu_pos, neu_speed;
+	vec_t enu_pos, enu_speed;
 	float hdop;
 
 	/* if there is no gps measurement available return NULL */
-	if (acquireGpsMeasurement(&neu_pos, &neu_speed, &hdop) < 0) {
+	if (acquireGpsMeasurement(&enu_pos, &enu_speed, &hdop) < 0) {
 		return NULL;
 	}
-	//printf("GPS: x=%f, y=%f, hdop: %f\n", neu_pos.x, neu_pos.y, hdop);
-	Z->data[imgpsxx] = neu_pos.x;
-	Z->data[imgpsxy] = neu_pos.y;
-	Z->data[imgpsvx] = neu_speed.x;
-	Z->data[imgpsvy] = neu_speed.y;
+	//printf("GPS: x=%f, y=%f, hdop: %f\n", enu_pos.x, enu_pos.y, hdop);
+	Z->data[imgpsxx] = enu_pos.x;
+	Z->data[imgpsxy] = enu_pos.y;
+	Z->data[imgpsvx] = enu_speed.x;
+	Z->data[imgpsvy] = enu_speed.y;
 
 	memset(R->data, 0, sizeof(R->rows * R->cols * sizeof(float)));
 	R->data[R->cols * imgpsxx + imgpsxx] = 3 * hdop;

@@ -370,7 +370,7 @@ static int nmeainterpretter_filedes(int filedes)
 {
     char buf[1024], *start;
     int n, ret;
-    nmea_t message;
+    nmea_t message = { 0 };
 
     while (1) {
             memset(buf, 0, sizeof(buf));

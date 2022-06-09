@@ -84,7 +84,7 @@ vec_t geo2ecef(float lat, float lon, float h) {
 }
 
 /* convert gps geodetic coordinates into neu (north/east/up) vector with reference point */
-vec_t geo2neu(float lat, float lon, float h, float latRef, float lonRef, vec_t * refEcef)
+vec_t geo2enu(float lat, float lon, float h, float latRef, float lonRef, vec_t * refEcef)
 {
 	//float xEcef, yEcef, zEcef;
 
@@ -123,12 +123,12 @@ vec_t geo2neu(float lat, float lon, float h, float latRef, float lonRef, vec_t *
 	/* perform ECEF to ENU by calculating matrix product (rot * dif) */
 	phx_product(&rot, &dif, &enu);
 
-	return (vec_t){.x = enu.data[1], .y = enu.data[0], .z = enu.data[2]};
+	return (vec_t){.x = enu.data[0], .y = enu.data[1], .z = enu.data[2]};
 }
 
 void gps_calibrate(void)
 {
-	int i, hdop, avg = 10;
+	int i, avg = 10;
 	gps_data_t data;
 	float refLat, refLon, refHeight;
 	
@@ -274,13 +274,13 @@ int acquireBaroMeasurements(float *pressure, float *temperature, float *dtBaroUs
 	return -1;
 }
 
-int acquireGpsMeasurement(vec_t * neu, vec_t * ned_speed, float * hdop)
+int acquireGpsMeasurement(vec_t * enu, vec_t * enu_speed, float * hdop)
 {
 	gps_data_t data;
 
 	if (sensGps(&data) > 0) {
 
-		*neu = geo2neu(
+		*enu = geo2enu(
 			(float)data.lat / 1e7,
 			(float)data.lon / 1e7,
 			0,
@@ -289,9 +289,9 @@ int acquireGpsMeasurement(vec_t * neu, vec_t * ned_speed, float * hdop)
 			&gpsRefEcef
 			);
 
-		ned_speed->x = (float)data.velNorth / 1e3;
-		ned_speed->y = (float)data.velEast / 1e3;
-		ned_speed->z = 0;
+		enu_speed->x = (float)data.velEast / 1e3;
+		enu_speed->y = (float)data.velNorth / 1e3;
+		enu_speed->z = 0;
 
 		*hdop = data.hdop / 100;
 
