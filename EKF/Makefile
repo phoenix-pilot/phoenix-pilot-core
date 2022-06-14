@@ -7,11 +7,11 @@
 #
 
 # Development is conducted on imx6ull platform, but final target should be Xylinx Zynq
-SENS_LIB ?= imx6ull-sensi2c
+#SENS_LIB ?= imx6ull-sensi2c
 
 NAME := ekf
-LOCAL_SRCS := main.c measurement.c tools/phmatrix.c tools/rotas_dummy.c kalman_implem.c kalman_core.c kalman_update_imu.c kalman_update_baro.c kalman_update_gps.c gpsserver.c
-LOCAL_HEADERS := tools/phmatrix.h tools/rotas_dummy.h kalman_core.h kalman_implem.h gpsserver.h
+LOCAL_SRCS := main.c measurement.c tools/phmatrix.c tools/rotas_dummy.c kalman_implem.c kalman_core.c sensors_client.c kalman_update_imu.c kalman_update_baro.c kalman_update_gps.c
+LOCAL_HEADERS := tools/phmatrix.h tools/rotas_dummy.h kalman_core.h kalman_implem.h
 LOCAL_LDFLAGS := -z stack-size=16096 -z noexecstack
 LIBS := $(SENS_LIB)
 

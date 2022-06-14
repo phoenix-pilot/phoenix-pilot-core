@@ -119,6 +119,7 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 	vec_t xp, diff;
 	quat_t q_est, rot = { .a = qa, .i = qb, .j = qc, .k = qd };
 	float err_q_est;
+	uint64_t timestamp;
 
 	/* 
 		Sensors API wrapper call 
@@ -127,7 +128,7 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 		Angular rates in rad/s
 		magnetic flux field in uT 
 	*/
-	acquireImuMeasurements(&ameas, &wmeas, &mmeas);
+	acquireImuMeasurements(&ameas, &wmeas, &mmeas, &timestamp);
 	addMemEntry(&ameas);
 	ameas = getMemoryMean();
 	//printf("ameas: %.3f %.3f %.3f ", ameas.x, ameas.y, ameas.z);
