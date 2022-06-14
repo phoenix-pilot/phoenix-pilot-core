@@ -22,7 +22,6 @@
 
 #include "kalman_core.h"
 #include "kalman_implem.h"
-#include "gpsserver.h"
 
 #include <tools/rotas_dummy.h>
 #include <tools/phmatrix.h>
@@ -101,33 +100,17 @@ float get_dt(void)
 	return (float)diff / 1000000;
 }
 
-int gpsThreadInit(void)
-{
-	size_t stacksz = 2048;
-	char * stack;
-
-	if ((stack = malloc(stacksz)) == NULL) {
-		printf("failed to allocate memory for gpsserver\n");
-		return 1;
-	}
-	beginthread((void *)gpsServerThread, 3, stack, stacksz, NULL);
-	return 0;
-}
-
 
 int main(int argc, char **argv)
 {
-	update_engine_t imuEngine, baroEngine, gpsEngine;
+	update_engine_t imuEngine, baroEngine;
 	state_engine_t stateEngine;
 
 	phmatrix_t state, state_est, cov, cov_est, F, Q; /* state prediction matrices */
 	phmatrix_t imuH, imuR;                           /* imu measurements update matrices */
 	phmatrix_t baroH, baroR;                         /* barometer mesurement matices */
-	phmatrix_t gpsH, gpsR;
 	TR = &imuR;
 	int reset = 1;
-
-	//gpsThreadInit();
 
 	read_config();
 	imu_calibrate_acc_gyr_mag();
@@ -136,7 +119,6 @@ int main(int argc, char **argv)
 	stateEngine = init_prediction_matrices(&state, &state_est, &cov, &cov_est, &F, &Q, kalman_common.dt);
 	imuEngine = setupImuUpdateEngine(&imuH, &imuR);
 	baroEngine = setupBaroUpdateEngine(&baroH, &baroR);
-	gpsEngine = setupGpsUpdateEngine(&gpsH, &gpsR);
 
 	/* Kalman loop */
 	gettimeofday(&kalman_common.last_time, NULL);
@@ -145,11 +127,9 @@ int main(int argc, char **argv)
 
 		/* state prediction procedure */
 		kalmanPredictionStep(&stateEngine, kalman_common.dt, 0);
-		//if (kalmanUpdateStep(kalman_common.dt, 0, &gpsEngine, &stateEngine) < 0) {
 			if (kalmanUpdateStep(kalman_common.dt, 0, &baroEngine, &stateEngine) < 0) { /* barometer measurements update procedure */
 				kalmanUpdateStep(kalman_common.dt, 0, &imuEngine, &stateEngine);        /* imu measurements update procedure */
 			}
-		//}
 
 		kalman_common.t += kalman_common.dt;
 		print_state(&state, &cov_est, kalman_common.t, 0.05); /* print state after 1s of simulation */

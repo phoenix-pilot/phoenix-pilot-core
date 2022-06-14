@@ -37,7 +37,7 @@ extern kalman_init_t init_values;
 /* barometric height memory */
 static float baroMemory[2][6] = { 0 };
 
-static enum baroDimension {value = 0, dt = 1};
+enum baroDimension {value = 0, dtime = 1};
 
 static int memoryPoint = 0;
 
@@ -45,7 +45,7 @@ static void insertToBaroMemory(float x, float dtBaro)
 {
 	memoryPoint = (memoryPoint >= sizeof(baroMemory[0]) / sizeof(float)) ? 0 : memoryPoint + 1;
 	baroMemory[value][memoryPoint] = x;
-	baroMemory[dt][memoryPoint] = dtBaro;
+	baroMemory[dtime][memoryPoint] = dtBaro;
 }
 
 
@@ -73,7 +73,7 @@ static float filterBaroSpeed(void)
 		weights += factor;
 		factor *= factor;
 
-		delta += baroMemoryAt(i, dt);
+		delta += baroMemoryAt(i, dtime);
 	}
 	hStart /= weights;
 	hEnd /= weights;
@@ -89,14 +89,21 @@ static float filterBaroSpeed(void)
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, float dt)
 {
-	float pressure, temp, dtBaroUs;
+	float pressure, temp;
+	uint64_t curr_tstamp;
+	static uint64_t last_tstamp; 
 
 	/* if there is no pressure measurement available return NULL */
-	if (acquireBaroMeasurements(&pressure, &temp, &dtBaroUs) < 0) {
+	if (acquireBaroMeasurements(&pressure, &temp, &curr_tstamp) < 0) {
 		return NULL;
 	}
 
-	insertToBaroMemory(hz, dtBaroUs);
+	if (curr_tstamp <= last_tstamp) {
+		return NULL;
+	}
+
+	insertToBaroMemory(hz, (float)(curr_tstamp - last_tstamp));
+	last_tstamp = curr_tstamp;
 
 	phx_zeroes(Z);
 	Z->data[imhz] = 8453.669 * log(base_pressure / pressure);

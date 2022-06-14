@@ -24,7 +24,6 @@
 #include <sys/msg.h>
 
 #include "kalman_implem.h"
-#include "gpsserver.h"
 
 #include <tools/rotas_dummy.h>
 #include <tools/phmatrix.h>

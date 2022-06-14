@@ -13,6 +13,10 @@
  * %LICENSE%
  */
 
+#define EARTH_SEMI_MAJOR 6378137.0
+#define EARTH_SEMI_MINOR 6356752.3
+#define EARTH_ECCENTRICITY_SQUARED  0.006694384
+
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
@@ -24,17 +28,22 @@
 #include <sys/msg.h>
 
 #include "kalman_implem.h"
-#include "gpsserver.h"
 
-#include <imx6ull-sensi2c.h>
+#include <libsensors.h>
 #include <tools/rotas_dummy.h>
 #include <tools/phmatrix.h>
 
+/* TODO: remove "2" from name */
+extern void sensImu2(sensor_event_t * accel_evt, sensor_event_t * gyro_evt, sensor_event_t * mag_evt);
+extern void sensBaro2(sensor_event_t * baro_evt);
+extern void sensGps2(sensor_event_t * gps_evt);
+
+
 float g_scaleerr_common = 1;
 
-struct sens_imu_t imuSensor;
-struct sens_baro_t baroSensor;
-struct sens_mag_t magSensor;
+//struct sens_imu_t imuSensor;
+//struct sens_baro_t baroSensor;
+//struct sens_mag_t magSensor;
 
 /* accelerometer calibration data */
 float tax, tay, taz;
@@ -128,6 +137,9 @@ vec_t geo2enu(float lat, float lon, float h, float latRef, float lonRef, vec_t *
 
 void gps_calibrate(void)
 {
+
+	/* code to be refactored after libsensors implementation */
+#if 0
 	int i, avg = 10;
 	gps_data_t data;
 	float refLat, refLon, refHeight;
@@ -171,6 +183,7 @@ void gps_calibrate(void)
 	gpsRefEcef = geo2ecef(gpsRefGeodetic.lat, gpsRefGeodetic.lon, gpsRefGeodetic.h);
 
 	printf("Acquired GPS position of (lat/lon/h): %f/%f/%f\n", gpsRefGeodetic.lat, gpsRefGeodetic.lon, gpsRefGeodetic.h);
+#endif
 }
 
 static void ellipsoid_compensate(float *x, float *y, float *z, float *calib)
@@ -186,6 +199,8 @@ static void ellipsoid_compensate(float *x, float *y, float *z, float *calib)
 
 void imu_calibrate_acc_gyr_mag(void)
 {
+	/* code to be refactored after libsensors implementation */
+#if 0
 	int i, avg = 2000, press_avg = 0;
 	float press_calib = 0, temp_calib = 0;
 	vec_t a_avg = vec(0, 0, 0), gvec = vec(0, 0, 1), w_avg = vec(0, 0, 0), m_avg = vec(0, 0, 0), x_versor = vec(1, 0, 0), n;
@@ -233,69 +248,80 @@ void imu_calibrate_acc_gyr_mag(void)
 
 	/* calculate accelerometer linear deviation from earth g */
 	g_scaleerr_common = 1.F / vec_len(&a_avg);
+#endif
 }
 
-void acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags)
+int acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 {
-	sensImu(&imuSensor);
-	sensMag(&magSensor);
+	sensor_event_t acc_evt, gyr_evt, mag_evt;
+
+	sensImu2(&acc_evt, &gyr_evt, &mag_evt);
+
+	/* these timestamps do not need to be very accurate */
+	*timestamp = (acc_evt.timestamp + gyr_evt.timestamp + mag_evt.timestamp) / 3;
+
+	/* accelerations from mm/s^2 -> m/s^2 */
+	accels->x = (float)acc_evt.accels.accelX / 1000;
+	accels->y = (float)acc_evt.accels.accelY / 1000;
+	accels->z = (float)acc_evt.accels.accelZ / 1000;
+
+	/* angulars from mrad/s -> rad/s */
+	gyros->x = (float)gyr_evt.gyro.gyroX / 1000;
+	gyros->y = (float)gyr_evt.gyro.gyroY / 1000;
+	gyros->z = (float)gyr_evt.gyro.gyroZ / 1000;
+
+	/* only magnitude matters from geomagnetism */
+	mags->x = (float)mag_evt.mag.magX;
+	mags->y = (float)mag_evt.mag.magY;
+	mags->z = (float)mag_evt.mag.magZ;
 
 	/* accelerometer calibration */
-	ellipsoid_compensate(&imuSensor.accel_x, &imuSensor.accel_y, &imuSensor.accel_z, acc_calib1);
-	ellipsoid_compensate(&imuSensor.accel_x, &imuSensor.accel_y, &imuSensor.accel_z, acc_calib2);
+	ellipsoid_compensate(&accels->x, &accels->y, &accels->z, acc_calib1);
+	ellipsoid_compensate(&accels->x, &accels->y, &accels->z, acc_calib2);
 
 	/* magnetometer calibration */
-	ellipsoid_compensate(&magSensor.mag_x, &magSensor.mag_y, &magSensor.mag_z, mag_calib1);
+	ellipsoid_compensate(&mags->x, &mags->y, &mags->z, mag_calib1);
 
 	/* gyro niveling */
-	imuSensor.gyr_x -= gyr_nivel.x;
-	imuSensor.gyr_y -= gyr_nivel.y;
-	imuSensor.gyr_z -= gyr_nivel.z;
+	*gyros = vec_sub(gyros, &gyr_nivel);
 
-	if (accels != NULL && gyros != NULL && mags != NULL) {
-		/* write data */
-		*accels = vec(imuSensor.accel_x, imuSensor.accel_y, imuSensor.accel_z);
-		*gyros = vec(imuSensor.gyr_x, imuSensor.gyr_y, imuSensor.gyr_z);
-		*mags = vec(magSensor.mag_x, magSensor.mag_y, magSensor.mag_z);
-	}
+	return 0;
 }
 
 
-int acquireBaroMeasurements(float *pressure, float *temperature, float *dtBaroUs)
+int acquireBaroMeasurements(float *pressure, float *temperature, uint64_t *timestamp)
 {
-	struct timeval lastT = baroSensor.timestamp;
+	sensor_event_t baro_evt;
 
-	if (sensBaro(&baroSensor) > 0) {
-		*pressure = baroSensor.press;
-		*temperature = baroSensor.baro_temp;
-		*dtBaroUs = (baroSensor.timestamp.tv_sec - lastT.tv_sec) * 1000000 + baroSensor.timestamp.tv_usec - lastT.tv_usec;
-		return 0;
-	}
-	return -1;
+	sensBaro2(&baro_evt);
+
+	*timestamp = baro_evt.timestamp;
+	*temperature = baro_evt.baro.temp;
+	*pressure = baro_evt.baro.pressure;
+
+	return 0;
 }
+
 
 int acquireGpsMeasurement(vec_t * enu, vec_t * enu_speed, float * hdop)
 {
-	gps_data_t data;
+	sensor_event_t gps_evt;
 
-	if (sensGps(&data) > 0) {
+	sensGps2(&gps_evt);
 
-		*enu = geo2enu(
-			(float)data.lat / 1e7,
-			(float)data.lon / 1e7,
-			0,
-			gpsRefGeodetic.lat,
-			gpsRefGeodetic.lon,
-			&gpsRefEcef
-			);
+	*enu = geo2enu(
+		(float)gps_evt.gps.lat / 1e7,
+		(float)gps_evt.gps.lon / 1e7,
+		0,
+		gpsRefGeodetic.lat,
+		gpsRefGeodetic.lon,
+		&gpsRefEcef);
 
-		enu_speed->x = (float)data.velEast / 1e3;
-		enu_speed->y = (float)data.velNorth / 1e3;
-		enu_speed->z = 0;
+	enu_speed->x = (float)gps_evt.gps.velEast / 1e3;
+	enu_speed->y = (float)gps_evt.gps.velNorth / 1e3;
+	enu_speed->z = 0;
 
-		*hdop = data.hdop / 100;
+	*hdop = (float)(gps_evt.gps.hdop) / 100;
 
-		return 0;
-	}
-	return -1;
+	return 0;
 }

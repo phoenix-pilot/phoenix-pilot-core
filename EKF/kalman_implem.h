@@ -17,6 +17,7 @@
 #define PHKALMAN_H
 
 #include <sys/time.h>
+#include <stdint.h>
 
 #include <tools/phmatrix.h>
 #include <tools/rotas_dummy.h>
@@ -181,9 +182,9 @@ void gps_calibrate(void);
 
 /* MEASUREMENT ACQUISITION */
 
-void acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags);
+int acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp);
 
-int acquireBaroMeasurements(float *pressure, float *temperature, float *dtBaroUs);
+int acquireBaroMeasurements(float *pressure, float *temperature, uint64_t *dtBaroUs);
 
 int acquireGpsMeasurement(vec_t * enu, vec_t * enu_speed, float * hdop);
 
