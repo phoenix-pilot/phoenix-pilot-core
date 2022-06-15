@@ -1,0 +1,46 @@
+/*
+ * Phoenix-RTOS
+ *
+ * PID (Proportional – Integral – Derivative Controller)
+ *
+ * Copyright 2022 Phoenix Systems
+ * Author: Hubert Buczynski
+ *
+ * This file is part of Phoenix-RTOS.
+ *
+ * %LICENSE%
+ */
+
+#ifndef _PID_H_
+#define _PID_H_
+
+
+typedef struct {
+	/* Coefficients */
+	float kp;      /* proportional gain */
+	float ki;      /* integral gain */
+	float kd;      /* derivative gain */
+
+	/* PID limits */
+	float max; /* Maximum allowed PID value */
+	float min; /* Minimum allowed PID value */
+
+	float integral; /* Accumulate for integral term */
+	float prevErr;  /* Previous error */
+	float lastPid;  /* Last calculated PID value */
+} pid_ctx_t;
+
+
+/* Initialize pid fields. The coefficients and max/min PID values should be set by the user */
+extern int pid_init(pid_ctx_t *pid);
+
+
+/* Calculate the PID value based on gain values */
+extern float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float dt);
+
+
+/* TODO: Tuning gain coefficients */
+extern int pid_tune(pid_ctx_t *pid);
+
+
+#endif
