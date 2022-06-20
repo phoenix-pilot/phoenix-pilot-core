@@ -19,8 +19,8 @@
 #include <sys/time.h>
 #include <stdint.h>
 
-#include <tools/phmatrix.h>
-#include <tools/rotas_dummy.h>
+#include "tools/phmatrix.h"
+#include "tools/rotas_dummy.h"
 
 #include "kalman_core.h"
 
@@ -152,8 +152,9 @@ typedef struct {
 	float t;                     /* total time since filtering begin */
 	float dt;                    /* current time step length */
 	int lastprint;               /* printing flag for periodic print purposes */
-	struct timeval last_time;    /* last kalman loop time */
-	struct timeval current_time; /* current kalman loop time */
+	int run;            /* proceed with ekf loop */
+	time_t last_time;            /* last kalman loop time */
+	time_t current_time;         /* current kalman loop time */
 } kalman_common_t;
 
 

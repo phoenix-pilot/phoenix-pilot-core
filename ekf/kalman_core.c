@@ -21,8 +21,8 @@
 
 #include "kalman_implem.h"
 
-#include <tools/rotas_dummy.h>
-#include <tools/phmatrix.h>
+#include "tools/rotas_dummy.h"
+#include "tools/phmatrix.h"
 
 /* buffer matrix for calculations */
 /* TODO: move this matrix to stateEngine to remove macros from core */

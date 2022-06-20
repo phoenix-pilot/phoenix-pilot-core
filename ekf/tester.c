@@ -23,8 +23,8 @@
 #include "kalman_core.h"
 #include "kalman_implem.h"
 
-#include <tools/rotas_dummy.h>
-#include <tools/phmatrix.h>
+#include "tools/rotas_dummy.h"
+#include "tools/phmatrix.h"
 
 kalman_common_t kalman_common;
 phmatrix_t *TR;

@@ -30,8 +30,8 @@
 #include "kalman_implem.h"
 
 #include <libsensors.h>
-#include <tools/rotas_dummy.h>
-#include <tools/phmatrix.h>
+#include "tools/rotas_dummy.h"
+#include "tools/phmatrix.h"
 
 
 extern void sensImu(sensor_event_t * accel_evt, sensor_event_t * gyro_evt, sensor_event_t * mag_evt);

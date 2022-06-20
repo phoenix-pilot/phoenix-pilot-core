@@ -69,7 +69,7 @@
 	(measurementEngine.tmp5) = &ekf_tmp5;
 
 
-#include <tools/phmatrix.h>
+#include "tools/phmatrix.h"
 
 /* Function that acquires measuremnets and puts it into Z matrix */
 typedef phmatrix_t *(*dataGetter)(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, float dt);

@@ -23,8 +23,8 @@
 
 #include "kalman_implem.h"
 
-#include <tools/rotas_dummy.h>
-#include <tools/phmatrix.h>
+#include "tools/rotas_dummy.h"
+#include "tools/phmatrix.h"
 
 
 /* NOTE: must be kept in the same order as 'config_names' */
