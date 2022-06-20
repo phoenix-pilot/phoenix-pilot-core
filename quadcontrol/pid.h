@@ -17,13 +17,14 @@
 
 typedef struct {
 	/* Coefficients */
-	float kp;      /* proportional gain */
-	float ki;      /* integral gain */
-	float kd;      /* derivative gain */
+	float kp; /* proportional gain */
+	float ki; /* integral gain */
+	float kd; /* derivative gain */
 
 	/* PID limits */
-	float max; /* Maximum allowed PID value */
-	float min; /* Minimum allowed PID value */
+	float max;      /* Maximum allowed PID value */
+	float min;      /* Minimum allowed PID value */
+	float maxInteg; /* Maximum integral value */
 
 	float integral; /* Accumulate for integral term */
 	float prevErr;  /* Previous error */
