@@ -12,8 +12,8 @@
 enum sensor_fd {client_imu, client_baro, client_termo, client_gps};
 
 struct sens_common_t {
-	int fd[4]; /* each for one sensor type */
 	sensors_data_t *data;
+	int fd[4]; /* each for one sensor type */
 	unsigned char buff[0x400];
 };
 
@@ -81,7 +81,7 @@ int initializeSensorClient(const char * sensorManagerPath)
 }
 
 
-void sensImu2(sensor_event_t * accel_evt, sensor_event_t * gyro_evt, sensor_event_t * mag_evt)
+void sensImu(sensor_event_t * accel_evt, sensor_event_t * gyro_evt, sensor_event_t * mag_evt)
 {
 	sensors_data_t *data;
 	data = (sensors_data_t *)(sens_common.buff);
@@ -117,7 +117,7 @@ void sensImu2(sensor_event_t * accel_evt, sensor_event_t * gyro_evt, sensor_even
 }
 
 
-void sensBaro2(sensor_event_t * baro_evt) {
+void sensBaro(sensor_event_t * baro_evt) {
 	sensors_data_t *data;
 	data = (sensors_data_t *)(sens_common.buff);
 
@@ -137,7 +137,7 @@ void sensBaro2(sensor_event_t * baro_evt) {
 }
 
 
-void sensGps2(sensor_event_t * gps_evt) {
+void sensGps(sensor_event_t * gps_evt) {
 	sensors_data_t *data;
 	data = (sensors_data_t *)(sens_common.buff);
 

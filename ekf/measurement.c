@@ -33,17 +33,16 @@
 #include <tools/rotas_dummy.h>
 #include <tools/phmatrix.h>
 
-/* TODO: remove "2" from name */
-extern void sensImu2(sensor_event_t * accel_evt, sensor_event_t * gyro_evt, sensor_event_t * mag_evt);
-extern void sensBaro2(sensor_event_t * baro_evt);
-extern void sensGps2(sensor_event_t * gps_evt);
+
+extern void sensImu(sensor_event_t * accel_evt, sensor_event_t * gyro_evt, sensor_event_t * mag_evt);
+
+extern void sensBaro(sensor_event_t * baro_evt);
+
+extern void sensGps(sensor_event_t * gps_evt);
 
 
 float g_scaleerr_common = 1;
 
-//struct sens_imu_t imuSensor;
-//struct sens_baro_t baroSensor;
-//struct sens_mag_t magSensor;
 
 /* accelerometer calibration data */
 float tax, tay, taz;
@@ -255,7 +254,7 @@ int acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *t
 {
 	sensor_event_t acc_evt, gyr_evt, mag_evt;
 
-	sensImu2(&acc_evt, &gyr_evt, &mag_evt);
+	sensImu(&acc_evt, &gyr_evt, &mag_evt);
 
 	/* these timestamps do not need to be very accurate */
 	*timestamp = (acc_evt.timestamp + gyr_evt.timestamp + mag_evt.timestamp) / 3;
@@ -293,7 +292,7 @@ int acquireBaroMeasurements(float *pressure, float *temperature, uint64_t *times
 {
 	sensor_event_t baro_evt;
 
-	sensBaro2(&baro_evt);
+	sensBaro(&baro_evt);
 
 	*timestamp = baro_evt.timestamp;
 	*temperature = baro_evt.baro.temp;
@@ -307,7 +306,7 @@ int acquireGpsMeasurement(vec_t * enu, vec_t * enu_speed, float * hdop)
 {
 	sensor_event_t gps_evt;
 
-	sensGps2(&gps_evt);
+	sensGps(&gps_evt);
 
 	*enu = geo2enu(
 		(float)gps_evt.gps.lat / 1e7,
