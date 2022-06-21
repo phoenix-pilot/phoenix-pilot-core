@@ -33,7 +33,7 @@ kalman_init_t init_values = {
 
 	.P_xerr = 0.1F,            /* 0.1 m */
 	.P_verr = 0.1F,            /* 0.1 m/s */
-	.P_aerr = 0.01F,          /* 0.001 m/s^2 */
+	.P_aerr = 0.01F,           /* 0.001 m/s^2 */
 	.P_werr = DEG2RAD,         /* 1 degree */
 	.P_merr = 300,             /* 300 uT */
 	.P_qaerr = 10 * DEG2RAD,   /* 10 degrees */
@@ -165,8 +165,8 @@ static void init_cov_vector(phmatrix_t *cov)
 	cov->data[cov->cols * ihv + ihv] = init_values.P_verr * init_values.P_verr;
 }
 
-vec_t last_a = {0};
-vec_t last_v = {0};
+vec_t last_a = { 0 };
+vec_t last_v = { 0 };
 
 /* State estimation function definition */
 static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, float dt)
@@ -176,7 +176,7 @@ static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, f
 
 	quat_q = quat(qa, qb, qc, qd);
 	quat_w = quat(0, wx, wy, wz);
-	
+
 	/* trapezoidal integration */
 	state_est->data[ixx] = xx + (vx + last_v.x) * 0.5 * dt + ax * dt2;
 	state_est->data[ixy] = xy + (vy + last_v.y) * 0.5 * dt + ay * dt2;
@@ -191,7 +191,7 @@ static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, f
 	last_a.x = ax;
 	last_a.y = ay;
 	last_a.z = az;
-	
+
 	last_v.x = vx;
 	last_v.y = vy;
 	last_v.z = vz;
@@ -301,7 +301,7 @@ state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est
 	/* acceleration process noise different for vertical and horizontal because different measurements are performed and different smoothing is neccessary */
 	Q->data[Q->cols * ixx + ixx] = Q->data[Q->cols * ixy + ixy] = init_values.Q_xcov;
 	Q->data[Q->cols * ivx + ivx] = Q->data[Q->cols * ivy + ivy] = init_values.Q_vcov;
-	
+
 	Q->data[Q->cols * iax + iax] = Q->data[Q->cols * iay + iay] = init_values.Q_ahoricov;
 	Q->data[Q->cols * iaz + iaz] = init_values.Q_avertcov;
 

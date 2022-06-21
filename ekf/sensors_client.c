@@ -9,7 +9,10 @@
 #include "tools/rotas_dummy.h"
 
 
-enum sensor_fd {client_imu, client_baro, client_termo, client_gps};
+enum sensor_fd { client_imu,
+	client_baro,
+	client_termo,
+	client_gps };
 
 struct sens_common_t {
 	sensors_data_t *data;
@@ -20,9 +23,10 @@ struct sens_common_t {
 struct sens_common_t sens_common;
 
 
-int setupSensorDescriptor(enum sensor_fd sensor_type, int sensor_type_flag) {
+int setupSensorDescriptor(enum sensor_fd sensor_type, int sensor_type_flag)
+{
 	sensor_type_t types;
-	sensors_ops_t ops = {0};
+	sensors_ops_t ops = { 0 };
 
 	ioctl(sens_common.fd[sensor_type], SMIOC_SENSORSAVAIL, &types);
 	ops.types = type & sensor_type_flag;
@@ -42,7 +46,7 @@ int setupSensorDescriptor(enum sensor_fd sensor_type, int sensor_type_flag) {
 }
 
 
-int initializeSensorClient(const char * sensorManagerPath)
+int initializeSensorClient(const char *sensorManagerPath)
 {
 	int i = 0;
 	unsigned int err = 0;
@@ -81,7 +85,7 @@ int initializeSensorClient(const char * sensorManagerPath)
 }
 
 
-void sensImu(sensor_event_t * accel_evt, sensor_event_t * gyro_evt, sensor_event_t * mag_evt)
+void sensImu(sensor_event_t *accel_evt, sensor_event_t *gyro_evt, sensor_event_t *mag_evt)
 {
 	sensors_data_t *data;
 	data = (sensors_data_t *)(sens_common.buff);
@@ -92,32 +96,33 @@ void sensImu(sensor_event_t * accel_evt, sensor_event_t * gyro_evt, sensor_event
 	/* decompose sensorhub output */
 	for (int j = 0; j < data->size; ++j) {
 		switch (data->events[j].type) {
-		case SENSOR_TYPE_ACCEL:
-			// printf("Accel, timestamp: %llu\n", data->events[j].timestamp);
-			// printf("acce - x: %u, y: %u, z: %u\n", data->events[j].accels.accelX, data->events[j].accels.accelY, data->events[j].accels.accelZ);
-			*accel_evt = data->events[j];
-			break;
+			case SENSOR_TYPE_ACCEL:
+				// printf("Accel, timestamp: %llu\n", data->events[j].timestamp);
+				// printf("acce - x: %u, y: %u, z: %u\n", data->events[j].accels.accelX, data->events[j].accels.accelY, data->events[j].accels.accelZ);
+				*accel_evt = data->events[j];
+				break;
 
-		case SENSOR_TYPE_MAG:
-			// printf("Baro, timestamp: %llu\n", data->events[j].timestamp);
-			// printf("baro - pressure: %u\n", data->events[j].baro.pressure);
-			*mag_evt = data->events[j];
-			break;
+			case SENSOR_TYPE_MAG:
+				// printf("Baro, timestamp: %llu\n", data->events[j].timestamp);
+				// printf("baro - pressure: %u\n", data->events[j].baro.pressure);
+				*mag_evt = data->events[j];
+				break;
 
-		case SENSOR_TYPE_GYRO:
-			// printf("Gyro, timestamp: %llu\n", data->events[j].timestamp);
-			// printf("gyro - x: %u, y: %u, z: %u\n", data->events[j].gyro.gyroX, data->events[j].gyro.gyroY, data->events[j].gyro.gyroZ);
-			*gyro_evt = data->events[j];
-			break;
+			case SENSOR_TYPE_GYRO:
+				// printf("Gyro, timestamp: %llu\n", data->events[j].timestamp);
+				// printf("gyro - x: %u, y: %u, z: %u\n", data->events[j].gyro.gyroX, data->events[j].gyro.gyroY, data->events[j].gyro.gyroZ);
+				*gyro_evt = data->events[j];
+				break;
 
-		default:
-			break;
+			default:
+				break;
 		}
 	}
 }
 
 
-void sensBaro(sensor_event_t * baro_evt) {
+void sensBaro(sensor_event_t *baro_evt)
+{
 	sensors_data_t *data;
 	data = (sensors_data_t *)(sens_common.buff);
 
@@ -126,18 +131,19 @@ void sensBaro(sensor_event_t * baro_evt) {
 
 	for (int j = 0; j < data->size; ++j) {
 		switch (data->events[j].type) {
-		case SENSOR_TYPE_BARO:
-			*baro_evt = data->events[j];
-			break;
+			case SENSOR_TYPE_BARO:
+				*baro_evt = data->events[j];
+				break;
 
-		default:
-			break;
+			default:
+				break;
 		}
 	}
 }
 
 
-void sensGps(sensor_event_t * gps_evt) {
+void sensGps(sensor_event_t *gps_evt)
+{
 	sensors_data_t *data;
 	data = (sensors_data_t *)(sens_common.buff);
 
@@ -146,12 +152,12 @@ void sensGps(sensor_event_t * gps_evt) {
 
 	for (int j = 0; j < data->size; ++j) {
 		switch (data->events[j].type) {
-		case SENSOR_TYPE_GYRO:
-			*gps_evt = data->events[j];
-			break;
+			case SENSOR_TYPE_GYRO:
+				*gps_evt = data->events[j];
+				break;
 
-		default:
-			break;
+			default:
+				break;
 		}
 	}
 }

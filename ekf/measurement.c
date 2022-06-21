@@ -13,9 +13,9 @@
  * %LICENSE%
  */
 
-#define EARTH_SEMI_MAJOR 6378137.0
-#define EARTH_SEMI_MINOR 6356752.3
-#define EARTH_ECCENTRICITY_SQUARED  0.006694384
+#define EARTH_SEMI_MAJOR           6378137.0
+#define EARTH_SEMI_MINOR           6356752.3
+#define EARTH_ECCENTRICITY_SQUARED 0.006694384
 
 #include <errno.h>
 #include <math.h>
@@ -34,11 +34,11 @@
 #include "tools/phmatrix.h"
 
 
-extern void sensImu(sensor_event_t * accel_evt, sensor_event_t * gyro_evt, sensor_event_t * mag_evt);
+extern void sensImu(sensor_event_t *accel_evt, sensor_event_t *gyro_evt, sensor_event_t *mag_evt);
 
-extern void sensBaro(sensor_event_t * baro_evt);
+extern void sensBaro(sensor_event_t *baro_evt);
 
-extern void sensGps(sensor_event_t * gps_evt);
+extern void sensGps(sensor_event_t *gps_evt);
 
 
 float g_scaleerr_common = 1;
@@ -74,7 +74,8 @@ float mag_calib1[12] = {
 	0.0042657, -0.00278795, 1.00173743
 };
 
-vec_t geo2ecef(float lat, float lon, float h) {
+vec_t geo2ecef(float lat, float lon, float h)
+{
 	float sinLat, sinLon, cosLat, cosLon, N;
 
 	/* point coordinates trigonometric values */
@@ -84,15 +85,15 @@ vec_t geo2ecef(float lat, float lon, float h) {
 	cosLon = cos(lon * DEG2RAD);
 	N = EARTH_SEMI_MAJOR / sqrt(1 - EARTH_ECCENTRICITY_SQUARED * sinLat);
 
-	return (vec_t){
+	return (vec_t) {
 		.x = (N + h) * cosLat * cosLon,
 		.y = (N + h) * cosLat * sinLon,
 		.z = ((1 - EARTH_ECCENTRICITY_SQUARED) * N + h) * sinLat
-		};
+	};
 }
 
 /* convert gps geodetic coordinates into neu (north/east/up) vector with reference point */
-vec_t geo2enu(float lat, float lon, float h, float latRef, float lonRef, vec_t * refEcef)
+vec_t geo2enu(float lat, float lon, float h, float latRef, float lonRef, vec_t *refEcef)
 {
 	//float xEcef, yEcef, zEcef;
 
@@ -100,7 +101,7 @@ vec_t geo2enu(float lat, float lon, float h, float latRef, float lonRef, vec_t *
 	float rot_data[9], dif_data[3], enu_data[3];
 	phmatrix_t rot, dif, enu;
 	vec_t pointEcef;
-	
+
 	phx_assign(&rot, 3, 3, rot_data);
 	phx_assign(&dif, 3, 1, dif_data);
 	phx_assign(&enu, 3, 1, enu_data);
@@ -131,7 +132,7 @@ vec_t geo2enu(float lat, float lon, float h, float latRef, float lonRef, vec_t *
 	/* perform ECEF to ENU by calculating matrix product (rot * dif) */
 	phx_product(&rot, &dif, &enu);
 
-	return (vec_t){.x = enu.data[0], .y = enu.data[1], .z = enu.data[2]};
+	return (vec_t) { .x = enu.data[0], .y = enu.data[1], .z = enu.data[2] };
 }
 
 void gps_calibrate(void)
@@ -302,7 +303,7 @@ int acquireBaroMeasurements(float *pressure, float *temperature, uint64_t *times
 }
 
 
-int acquireGpsMeasurement(vec_t * enu, vec_t * enu_speed, float * hdop)
+int acquireGpsMeasurement(vec_t *enu, vec_t *enu_speed, float *hdop)
 {
 	sensor_event_t gps_evt;
 

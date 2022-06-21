@@ -39,7 +39,7 @@ static vec_t x_versor = { .x = 1, .y = 0, .z = 0 };
 vec_t imu_memory[5];
 int imu_mem_entry = 0;
 
-static void addMemEntry(vec_t * a)
+static void addMemEntry(vec_t *a)
 {
 	imu_memory[imu_mem_entry] = *a;
 
@@ -49,7 +49,7 @@ static void addMemEntry(vec_t * a)
 static vec_t getMemoryMean(void)
 {
 	int i;
-	vec_t amean = {0};
+	vec_t amean = { 0 };
 
 	for (i = 0; i < (sizeof(imu_memory) / sizeof(imu_memory[0])); i++) {
 		amean = vec_add(&amean, &(imu_memory[i]));
@@ -130,7 +130,7 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 }
 
 
-static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t * hx)
+static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t *hx)
 {
 	phmatrix_t *state = state_est; /* aliasing for macros usage */
 	phx_zeroes(hx);

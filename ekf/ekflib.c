@@ -62,9 +62,9 @@ static void ekf_thread(void *arg)
 
 		/* state prediction procedure */
 		kalmanPredictionStep(&stateEngine, kalman_common.dt, 0);
-			if (kalmanUpdateStep(kalman_common.dt, 0, &baroEngine, &stateEngine) < 0) { /* barometer measurements update procedure */
-				kalmanUpdateStep(kalman_common.dt, 0, &imuEngine, &stateEngine);        /* imu measurements update procedure */
-			}
+		if (kalmanUpdateStep(kalman_common.dt, 0, &baroEngine, &stateEngine) < 0) { /* barometer measurements update procedure */
+			kalmanUpdateStep(kalman_common.dt, 0, &imuEngine, &stateEngine);        /* imu measurements update procedure */
+		}
 	}
 
 	kalman_common.run = 0;
@@ -89,17 +89,17 @@ void ekf_done(void)
 	/* TODO: use atomics */
 	if (kalman_common.run == 1) {
 		kalman_common.run = -1;
-		while(kalman_common.run != 0) {
+		while (kalman_common.run != 0) {
 			usleep(100);
 		}
 	}
 }
 
 
-void ekf_getstate(ekf_state_t * ekf_state)
+void ekf_getstate(ekf_state_t *ekf_state)
 {
 	vec_t euler;
-	
+
 	euler = quat_quat2euler(quat(stateEngine.state->data[iqa], stateEngine.state->data[iqb], stateEngine.state->data[iqc], stateEngine.state->data[iqd]));
 
 	/* TODO: shared memory read without any access maagement */

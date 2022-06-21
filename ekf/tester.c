@@ -78,7 +78,8 @@ int print_state(phmatrix_t *state, phmatrix_t *cov, float t, float interval)
 	return 0;
 }
 
-void reset_state(phmatrix_t * state, phmatrix_t * cov) {
+void reset_state(phmatrix_t *state, phmatrix_t *cov)
+{
 	xx = xy = 0;
 	vx = vy = 0;
 	ax = ay = az = 0;
@@ -127,14 +128,14 @@ int main(int argc, char **argv)
 
 		/* state prediction procedure */
 		kalmanPredictionStep(&stateEngine, kalman_common.dt, 0);
-			if (kalmanUpdateStep(kalman_common.dt, 0, &baroEngine, &stateEngine) < 0) { /* barometer measurements update procedure */
-				kalmanUpdateStep(kalman_common.dt, 0, &imuEngine, &stateEngine);        /* imu measurements update procedure */
-			}
+		if (kalmanUpdateStep(kalman_common.dt, 0, &baroEngine, &stateEngine) < 0) { /* barometer measurements update procedure */
+			kalmanUpdateStep(kalman_common.dt, 0, &imuEngine, &stateEngine);        /* imu measurements update procedure */
+		}
 
 		kalman_common.t += kalman_common.dt;
 		print_state(&state, &cov_est, kalman_common.t, 0.05); /* print state after 1s of simulation */
-	
-		if ((int)kalman_common.t > 1 && ((int)kalman_common.t)%10 == 0 && reset == 0) {
+
+		if ((int)kalman_common.t > 1 && ((int)kalman_common.t) % 10 == 0 && reset == 0) {
 			if (reset == 0) {
 				reset = 1;
 				reset_state(&state, &cov);

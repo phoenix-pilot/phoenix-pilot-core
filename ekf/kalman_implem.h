@@ -24,12 +24,12 @@
 
 #include "kalman_core.h"
 
-#define STATE_COLS    1
-#define STATE_ROWS    21
+#define STATE_COLS 1
+#define STATE_ROWS 21
 
 #define IMUMEAS_ROWS  13
 #define BAROMEAS_ROWS 4
-#define GPSMEAS_ROWS 4
+#define GPSMEAS_ROWS  4
 
 #define EARTH_G       9.80665F   /* m/s^2 */
 #define UNI_GAS_CONST 8.3144598F /* J/(mol * K) */
@@ -149,12 +149,12 @@ typedef struct {
 
 
 typedef struct {
-	float t;                     /* total time since filtering begin */
-	float dt;                    /* current time step length */
-	int lastprint;               /* printing flag for periodic print purposes */
-	int run;            /* proceed with ekf loop */
-	time_t last_time;            /* last kalman loop time */
-	time_t current_time;         /* current kalman loop time */
+	float t;             /* total time since filtering begin */
+	float dt;            /* current time step length */
+	int lastprint;       /* printing flag for periodic print purposes */
+	int run;             /* proceed with ekf loop */
+	time_t last_time;    /* last kalman loop time */
+	time_t current_time; /* current kalman loop time */
 } kalman_common_t;
 
 
@@ -187,7 +187,7 @@ int acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *t
 
 int acquireBaroMeasurements(float *pressure, float *temperature, uint64_t *dtBaroUs);
 
-int acquireGpsMeasurement(vec_t * enu, vec_t * enu_speed, float * hdop);
+int acquireGpsMeasurement(vec_t *enu, vec_t *enu_speed, float *hdop);
 
 
 /* PHMATRIX MATRICES INITIALIZATIONS */
@@ -195,7 +195,7 @@ int acquireGpsMeasurement(vec_t * enu, vec_t * enu_speed, float * hdop);
 /* initializes matices related to state prediction step of kalman filter */
 state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, float dt);
 
- /* imu update engine composer */
+/* imu update engine composer */
 update_engine_t setupImuUpdateEngine(phmatrix_t *H, phmatrix_t *R);
 
 /* barometer update engine composer */

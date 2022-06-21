@@ -37,7 +37,8 @@ extern kalman_init_t init_values;
 /* barometric height memory */
 static float baroMemory[2][6] = { 0 };
 
-enum baroDimension {value = 0, dtime = 1};
+enum baroDimension { value = 0,
+	dtime = 1 };
 
 static int memoryPoint = 0;
 
@@ -79,7 +80,7 @@ static float filterBaroSpeed(void)
 	hEnd /= weights;
 
 	if (delta > 0.2) {
-		return (hEnd - hStart) / (delta/1000000);
+		return (hEnd - hStart) / (delta / 1000000);
 	}
 	else {
 		return 0;
@@ -91,7 +92,7 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 {
 	float pressure, temp;
 	uint64_t curr_tstamp;
-	static uint64_t last_tstamp; 
+	static uint64_t last_tstamp;
 
 	/* if there is no pressure measurement available return NULL */
 	if (acquireBaroMeasurements(&pressure, &temp, &curr_tstamp) < 0) {
