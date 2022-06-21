@@ -1,9 +1,6 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <time.h>
 #include <unistd.h>
-#include <math.h>
 #include <errno.h>
 #include "sys/time.h"
 #include <sys/threads.h>
@@ -23,6 +20,7 @@ static update_engine_t imuEngine, baroEngine;
 static state_engine_t stateEngine;
 
 static phmatrix_t state, state_est, cov, cov_est, F, Q; /* state prediction matrices */
+
 
 int ekf_init(void)
 {
