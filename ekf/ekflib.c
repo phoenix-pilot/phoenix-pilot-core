@@ -16,15 +16,15 @@
 
 #include "ekflib.h"
 
-kalman_common_t kalman_common;
+static kalman_common_t kalman_common;
 
-update_engine_t imuEngine, baroEngine;
+static update_engine_t imuEngine, baroEngine;
 
-state_engine_t stateEngine;
+static state_engine_t stateEngine;
 
-phmatrix_t state, state_est, cov, cov_est, F, Q; /* state prediction matrices */
+static phmatrix_t state, state_est, cov, cov_est, F, Q; /* state prediction matrices */
 
-int ekfCalib(void)
+int ekf_init(void)
 {
 	read_config();
 	imu_calibrate_acc_gyr_mag();
@@ -43,7 +43,7 @@ static float get_dt(void)
 	time_t diff;
 
 	usleep(1000);
-	gettime(kalman_common.current_time);
+	gettime(&kalman_common.current_time, NULL);
 	diff = kalman_common.current_time - kalman_common.last_time;
 	kalman_common.last_time = kalman_common.current_time;
 
@@ -51,12 +51,12 @@ static float get_dt(void)
 }
 
 
-static void ekfThread(void)
+static void ekf_thread(void *arg)
 {
 	kalman_common.run = 1;
 
 	/* Kalman loop */
-	gettimeofday(&kalman_common.last_time, NULL);
+	gettime(&kalman_common.last_time, NULL);
 	while (kalman_common.run == 1) {
 		kalman_common.dt = get_dt();
 
@@ -71,7 +71,7 @@ static void ekfThread(void)
 }
 
 
-int ekfRun(void)
+int ekf_run(void)
 {
 	int *stack, stacksz = 1024;
 
@@ -80,27 +80,13 @@ int ekfRun(void)
 		return -ENOMEM;
 	}
 
-	return beginthread(ekfThread, 4, stack, stacksz, NULL);
+	return beginthread(ekf_thread, 4, stack, stacksz, NULL);
 }
 
 
-int ekfReset(void)
+void ekf_done(void)
 {
-	/* variables for satysfying macro usage */
-	phmatrix_t *state, *cov;
-	state = stateEngine.state;
-	cov = stateEngine.cov;
-
-	xx = xy = 0;
-	vx = vy = 0;
-	ax = ay = az = 0;
-	wx = wy = wz = 0;
-
-	phx_zeroes(cov);
-}
-
-void ekfStop(void)
-{
+	/* TODO: use atomics */
 	if (kalman_common.run == 1) {
 		kalman_common.run = -1;
 		while(kalman_common.run != 0) {
@@ -110,20 +96,17 @@ void ekfStop(void)
 }
 
 
-void getPos(float *xeast, float *xnorth, float *xalt) {
-	*xeast = stateEngine.state->data[ixx];
-	*xnorth = stateEngine.state->data[ixy];
-	*xalt = stateEngine.state->data[ixz];
-}
-
-
-void getAtt(float *yaw, float *pitch, float *roll)
+void ekf_getstate(ekf_state_t * ekf_state)
 {
-	phmatrix_t * state = stateEngine.state;
-	vec_t euler = quat_quat2euler(quat(state->data[iqa], state->data[iqb], state->data[iqc], state->data[iqd]));
+	vec_t euler;
+	
+	euler = quat_quat2euler(quat(stateEngine.state->data[iqa], stateEngine.state->data[iqb], stateEngine.state->data[iqc], stateEngine.state->data[iqd]));
 
-	/* quat_quat2euler() returns vector of (heading, pitch, bank) */
-	*yaw = euler.x;
-	*pitch = euler.y;
-	*roll = euler.z;
+	/* TODO: shared memory read without any access maagement */
+	ekf_state->enuX = stateEngine.state->data[ixx];
+	ekf_state->enuY = stateEngine.state->data[ixy];
+	ekf_state->enuZ = stateEngine.state->data[ixz];
+	ekf_state->yaw = euler.x;
+	ekf_state->pitch = euler.y;
+	ekf_state->roll = euler.z;
 }
