@@ -19,6 +19,6 @@ int ekf_run(void);
 
 void ekf_done(void);
 
-void ekfReset(void);
+void ekf_getstate(ekf_state_t * ekf_state);
 
 #endif

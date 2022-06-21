@@ -88,13 +88,13 @@ void reset_state(phmatrix_t * state, phmatrix_t * cov) {
 }
 
 
-float get_dt(void)
+static float get_dt(void)
 {
-	usleep(800);
+	time_t diff;
 
-	gettimeofday(&kalman_common.current_time, NULL);
-	long diff = kalman_common.current_time.tv_sec - kalman_common.last_time.tv_sec;
-	diff = kalman_common.current_time.tv_usec + diff * 1000000 - kalman_common.last_time.tv_usec;
+	usleep(1000);
+	gettime(&kalman_common.current_time, NULL);
+	diff = kalman_common.current_time - kalman_common.last_time;
 	kalman_common.last_time = kalman_common.current_time;
 
 	return (float)diff / 1000000;
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 	baroEngine = setupBaroUpdateEngine(&baroH, &baroR);
 
 	/* Kalman loop */
-	gettimeofday(&kalman_common.last_time, NULL);
+	gettime(&kalman_common.last_time, NULL);
 	while (1) {
 		kalman_common.dt = get_dt();
 
