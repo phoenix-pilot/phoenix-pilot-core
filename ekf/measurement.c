@@ -30,15 +30,9 @@
 #include "kalman_implem.h"
 
 #include <libsensors.h>
+#include "sensor_client.h"
 #include "tools/rotas_dummy.h"
 #include "tools/phmatrix.h"
-
-
-extern void sensImu(sensor_event_t *accel_evt, sensor_event_t *gyro_evt, sensor_event_t *mag_evt);
-
-extern void sensBaro(sensor_event_t *baro_evt);
-
-extern void sensGps(sensor_event_t *gps_evt);
 
 
 float g_scaleerr_common = 1;
@@ -95,8 +89,6 @@ vec_t geo2ecef(float lat, float lon, float h)
 /* convert gps geodetic coordinates into neu (north/east/up) vector with reference point */
 vec_t geo2enu(float lat, float lon, float h, float latRef, float lonRef, vec_t *refEcef)
 {
-	//float xEcef, yEcef, zEcef;
-
 	float sinLatRef, sinLonRef, cosLatRef, cosLonRef;
 	float rot_data[9], dif_data[3], enu_data[3];
 	phmatrix_t rot, dif, enu;
@@ -255,7 +247,7 @@ int acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *t
 {
 	sensor_event_t acc_evt, gyr_evt, mag_evt;
 
-	sensImu(&acc_evt, &gyr_evt, &mag_evt);
+	sensclient_sensImu(&acc_evt, &gyr_evt, &mag_evt);
 
 	/* these timestamps do not need to be very accurate */
 	*timestamp = (acc_evt.timestamp + gyr_evt.timestamp + mag_evt.timestamp) / 3;
@@ -293,7 +285,7 @@ int acquireBaroMeasurements(float *pressure, float *temperature, uint64_t *times
 {
 	sensor_event_t baro_evt;
 
-	sensBaro(&baro_evt);
+	sensclient_sensBaro(&baro_evt);
 
 	*timestamp = baro_evt.timestamp;
 	*temperature = baro_evt.baro.temp;
@@ -307,7 +299,7 @@ int acquireGpsMeasurement(vec_t *enu, vec_t *enu_speed, float *hdop)
 {
 	sensor_event_t gps_evt;
 
-	sensGps(&gps_evt);
+	sensclient_sensGps(&gps_evt);
 
 	*enu = geo2enu(
 		(float)gps_evt.gps.lat / 1e7,

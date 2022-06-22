@@ -1,12 +1,10 @@
 #
-#Makefile for kalman filter application for Phoenix Pilot
+#M akefile for kalman filter application for Phoenix Pilot
 #
-#This source code and Makefile is designed for compilation from _user directory of phoenix - rtos - project
+# This source code and Makefile is designed for compilation from _user directory of phoenix - rtos - project
 #
-#Copyright 2022 Phoenix Systems
+# Copyright 2022 Phoenix Systems
 #
-
-# Development is conducted on imx6ull platform, but final target should be Xylinx Zynq
 
 # Files structures
 KALMAN_SRCS := kalman_implem.c kalman_core.c kalman_update_imu.c kalman_update_baro.c kalman_update_gps.c

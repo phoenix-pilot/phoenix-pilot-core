@@ -6,6 +6,7 @@
 
 #include <libsensors.h>
 
+#include "sensor_client.h"
 #include "tools/rotas_dummy.h"
 
 
@@ -85,7 +86,7 @@ int initializeSensorClient(const char *sensorManagerPath)
 }
 
 
-void sensImu(sensor_event_t *accel_evt, sensor_event_t *gyro_evt, sensor_event_t *mag_evt)
+void sensclient_sensImu(sensor_event_t *accel_evt, sensor_event_t *gyro_evt, sensor_event_t *mag_evt)
 {
 	sensors_data_t *data;
 	data = (sensors_data_t *)(sens_common.buff);
@@ -121,7 +122,7 @@ void sensImu(sensor_event_t *accel_evt, sensor_event_t *gyro_evt, sensor_event_t
 }
 
 
-void sensBaro(sensor_event_t *baro_evt)
+void sensclient_sensBaro(sensor_event_t *baro_evt)
 {
 	sensors_data_t *data;
 	data = (sensors_data_t *)(sens_common.buff);
@@ -142,7 +143,7 @@ void sensBaro(sensor_event_t *baro_evt)
 }
 
 
-void sensGps(sensor_event_t *gps_evt)
+void sensclient_sensGps(sensor_event_t *gps_evt)
 {
 	sensors_data_t *data;
 	data = (sensors_data_t *)(sens_common.buff);

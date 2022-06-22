@@ -31,9 +31,9 @@
 kalman_init_t init_values = {
 	.verbose = 0,
 
-	.P_xerr = 0.1F,            /* 0.1 m */
-	.P_verr = 0.1F,            /* 0.1 m/s */
-	.P_aerr = 0.01F,           /* 0.001 m/s^2 */
+	.P_xerr = 0.1,            /* 0.1 m */
+	.P_verr = 0.1,            /* 0.1 m/s */
+	.P_aerr = 0.01,           /* 0.001 m/s^2 */
 	.P_werr = DEG2RAD,         /* 1 degree */
 	.P_merr = 300,             /* 300 uT */
 	.P_qaerr = 10 * DEG2RAD,   /* 10 degrees */
@@ -41,7 +41,7 @@ kalman_init_t init_values = {
 	.P_pxerr = 10,             /* 10 hPa */
 
 	.R_acov = 0.001,
-	.R_wcov = 0.01F,
+	.R_wcov = 0.01,
 	.R_mcov = 10,
 	.R_qcov = 1. / DEG2RAD,
 

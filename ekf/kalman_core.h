@@ -16,6 +16,8 @@
 #ifndef PHKALMAN_CORE_H
 #define PHKALMAN_CORE_H
 
+#include "tools/phmatrix.h"
+
 /* 
 * EKF needs matrices of correct sizes to perform update step. 
 * This macro provides a way to staticaly declare all necessary matrices/memory to populate measurement engine 
@@ -68,8 +70,6 @@
 	(measurementEngine.tmp4) = &ekf_tmp4; \
 	(measurementEngine.tmp5) = &ekf_tmp5;
 
-
-#include "tools/phmatrix.h"
 
 /* Function that acquires measuremnets and puts it into Z matrix */
 typedef phmatrix_t *(*dataGetter)(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, float dt);
