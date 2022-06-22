@@ -19,6 +19,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <board_config.h>
+
+
 #define NUMBER_MOTORS 4
 
 #define PWM_MIN_SCALER 100000
@@ -29,8 +32,17 @@ struct {
 } mma_common;
 
 
+static const char *motorsPwm[] = {
+	PWM_MOTOR1,
+	PWM_MOTOR2,
+	PWM_MOTOR3,
+	PWM_MOTOR4
+};
+
+
 void mma_control(float palt, float proll, float ppitch, float pyaw)
 {
+	int err;
 	unsigned int i;
 	uint32_t tmp;
 	float pwm[NUMBER_MOTORS];
@@ -50,17 +62,26 @@ void mma_control(float palt, float proll, float ppitch, float pyaw)
 
 		tmp = (uint32_t)((pwm[i] + 1.0f) * (float)PWM_MIN_SCALER);
 
-		fputc(tmp, mma_common.files[i]);
+		err = fprintf(mma_common.files[i], "%u\n", tmp);
+		if (err < 0) {
+			fprintf(stderr, "mma: cannot set PWM for motor: %u\n", i + 1);
+		}
+		fflush(mma_common.files[i]);
 	}
 }
 
 
 void mma_stop(void)
 {
+	int err;
 	unsigned int i;
 
 	for (i = 0; i < NUMBER_MOTORS; ++i) {
-		fputc(PWM_MIN_SCALER, mma_common.files[i]);
+		err = fprintf(mma_common.files[i], "%d\n", PWM_MIN_SCALER);
+		if (err < 0) {
+			fprintf(stderr, "mma: cannot set PWM for motor: %u\n", i + 1);
+		}
+		fflush(mma_common.files[i]);
 	}
 }
 
@@ -77,28 +98,39 @@ void mma_done(void)
 }
 
 
-/* TODO: hardcoded assumption that motors are connected to PWM0...PWM3
-         PWM definitions should be moved to board_config.h */
 int mma_init(const quad_coeffs_t *coeffs)
 {
-	int err;
 	unsigned int i;
-	char buff[32];
+	int cnt, err = 0;
 
+	/* Initialize motors */
 	for (i = 0; i < NUMBER_MOTORS; ++i) {
-		err = snprintf(buff, sizeof(buff), "/dev/pwm%u", i);
-		if (err >= sizeof(buff)) {
-			mma_done();
-			return -1;
+		cnt = 0;
+
+		mma_common.files[i] = fopen(motorsPwm[i], "r+");
+		while (mma_common.files[i] == NULL) {
+			usleep(10 * 1000);
+			++cnt;
+
+			if (cnt > 10000) {
+				fprintf(stderr, "mma: timeout waiting on %s \n", motorsPwm[i]);
+				mma_done();
+				return EXIT_FAILURE;
+			}
+			mma_common.files[i] = fopen(motorsPwm[i], "r+");
 		}
 
-		mma_common.files[i] = fopen(buff, "w");
-		if (mma_common.files[i] == NULL) {
-			fprintf(stderr, "mma: cannot open pwm file\n");
+		err = fprintf(mma_common.files[i], "%d\n", PWM_MIN_SCALER);
+		if (err < 0) {
+			fprintf(stderr, "mma: cannot set PWM for motor: %u\n", i + 1);
 			mma_done();
-			return -1;
+			return EXIT_FAILURE;
 		}
+		fflush(mma_common.files[i]);
 	}
+
+	/* Wait for motor initialization */
+	sleep(2);
 
 	/* TODO: mma_common.coeffs for future usage */
 	memcpy(&mma_common.coeffs, coeffs, sizeof(quad_coeffs_t));
