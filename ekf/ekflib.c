@@ -24,14 +24,6 @@ static phmatrix_t state, state_est, cov, cov_est, F, Q; /* state prediction matr
 
 int ekf_init(void)
 {
-	read_config();
-	imu_calibrate_acc_gyr_mag();
-	//gps_calibrate();
-
-	stateEngine = init_prediction_matrices(&state, &state_est, &cov, &cov_est, &F, &Q, kalman_common.dt);
-	imuEngine = setupImuUpdateEngine(NULL, NULL);
-	baroEngine = setupBaroUpdateEngine(NULL, NULL);
-
 	return 0;
 }
 
@@ -71,40 +63,17 @@ static void ekf_thread(void *arg)
 
 int ekf_run(void)
 {
-	int *stack, stacksz = 1024;
-
-	stack = malloc(stacksz);
-	if (stack == NULL) {
-		return -ENOMEM;
-	}
-
-	return beginthread(ekf_thread, 4, stack, stacksz, NULL);
+	return 0;
 }
 
 
 void ekf_done(void)
 {
-	/* TODO: use atomics */
-	if (kalman_common.run == 1) {
-		kalman_common.run = -1;
-		while (kalman_common.run != 0) {
-			usleep(100);
-		}
-	}
+	return;
 }
 
 
 void ekf_getstate(ekf_state_t *ekf_state)
 {
-	vec_t euler;
-
-	euler = quat_quat2euler(quat(stateEngine.state->data[iqa], stateEngine.state->data[iqb], stateEngine.state->data[iqc], stateEngine.state->data[iqd]));
-
-	/* TODO: shared memory read without any access maagement */
-	ekf_state->enuX = stateEngine.state->data[ixx];
-	ekf_state->enuY = stateEngine.state->data[ixy];
-	ekf_state->enuZ = stateEngine.state->data[ixz];
-	ekf_state->yaw = euler.x;
-	ekf_state->pitch = euler.y;
-	ekf_state->roll = euler.z;
+	return;
 }
