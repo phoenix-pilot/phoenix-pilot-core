@@ -9,6 +9,7 @@
 include ../phoenix-rtos-build/Makefile.common
 
 .DEFAULT_GOAL := all
+CFLAGS += -I$(PROJECT_PATH)/
 
 # default path for the programs to be installed in rootfs
 DEFAULT_INSTALL_PATH := /usr/bin
