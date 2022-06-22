@@ -149,12 +149,7 @@ typedef struct {
 
 
 typedef struct {
-	float t;             /* total time since filtering begin */
-	float dt;            /* current time step length */
-	int lastprint;       /* printing flag for periodic print purposes */
-	int run;             /* proceed with ekf loop */
-	time_t last_time;    /* last kalman loop time */
-	time_t current_time; /* current kalman loop time */
+
 } kalman_common_t;
 
 
@@ -193,7 +188,7 @@ int acquireGpsMeasurement(vec_t *enu, vec_t *enu_speed, float *hdop);
 /* PHMATRIX MATRICES INITIALIZATIONS */
 
 /* initializes matices related to state prediction step of kalman filter */
-state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, float dt);
+state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, time_t timeStep);
 
 /* imu update engine composer */
 update_engine_t setupImuUpdateEngine(phmatrix_t *H, phmatrix_t *R);

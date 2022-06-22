@@ -72,13 +72,13 @@
 
 
 /* Function that acquires measuremnets and puts it into Z matrix */
-typedef phmatrix_t *(*dataGetter)(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, float dt);
+typedef phmatrix_t *(*dataGetter)(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, time_t timeStep);
 
 /*  function that fills jacobian matrix H based on data from state vector and dt */
-typedef void (*updateJacobian)(phmatrix_t *H, phmatrix_t *state, float dt);
+typedef void (*updateJacobian)(phmatrix_t *H, phmatrix_t *state, time_t timeStep);
 
 /* function that fills state estimation based on current state and dt */
-typedef void (*stateEstimation)(phmatrix_t *state, phmatrix_t *state_est, float dt);
+typedef void (*stateEstimation)(phmatrix_t *state, phmatrix_t *state_est, time_t timeStep);
 
 /* function that calculates measurements of some update model based on current state estimation */
 typedef phmatrix_t *(*predictMeasurements)(phmatrix_t *state_est, phmatrix_t *hx);
@@ -136,11 +136,11 @@ typedef struct {
 
 
 /* performs kalman prediction step */
-void kalmanPredictionStep(state_engine_t *engine, float dt, int verbose);
+void kalmanPredictionStep(state_engine_t *engine, time_t timeStep, int verbose);
 
 
 /* performs kalman measurement update step */
-int kalmanUpdateStep(float dt, int verbose, update_engine_t *updateEngine, state_engine_t *stateEngine);
+int kalmanUpdateStep(time_t timeStep, int verbose, update_engine_t *updateEngine, state_engine_t *stateEngine);
 
 /* Initializes measurement engine. All measurement matrices HAVE TO BE PROVIDED at the time of this function call */
 void kalmanCreateMeasurementEngine(initMeasurementCov initMeasCov, dataGetter getData, updateJacobian getJacobian, predictMeasurements predictMeasurements);

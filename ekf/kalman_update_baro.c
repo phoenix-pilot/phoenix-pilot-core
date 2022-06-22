@@ -88,7 +88,7 @@ static float filterBaroSpeed(void)
 }
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
-static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, float dt)
+static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, time_t timeStep)
 {
 	float pressure, temp;
 	uint64_t curr_tstamp;
@@ -130,7 +130,7 @@ static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t *h
 }
 
 
-static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, float dt)
+static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, time_t timeStep)
 {
 	H->data[H->cols * imhz + ihz] = 1;
 	H->data[H->cols * imxz + ixz] = 1;

@@ -169,10 +169,13 @@ vec_t last_a = { 0 };
 vec_t last_v = { 0 };
 
 /* State estimation function definition */
-static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, float dt)
+static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, time_t timeStep)
 {
-	float dt2 = dt * dt / 2;
-	quat_t quat_q, quat_w, /*quat_ap, quat_wp,*/ res;
+	float dt, dt2;
+	quat_t quat_q, quat_w, res;
+
+	dt = timeStep / 1000000.;
+	dt2 = dt * dt / 2;
 
 	quat_q = quat(qa, qb, qc, qd);
 	quat_w = quat(0, wx, wy, wz);
@@ -225,9 +228,12 @@ static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, f
 
 
 /* prediction step jacobian calculation function */
-static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, float dt)
+static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t timeStep)
 {
-	float dt2 = dt / 2; /* helper value */
+	float dt, dt2;
+
+	dt = timeStep / 1000000.;
+	dt2 = dt / 2; /* helper value */
 
 	/* diagonal matrix */
 	float I33_data[9] = { 0 };
@@ -282,7 +288,7 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, float dt)
 
 
 /* initialization of prediction step matrix values */
-state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, float dt)
+state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, time_t timeStep)
 {
 	/* matrix initialization */
 	phx_newmatrix(state, STATE_ROWS, STATE_COLS);

@@ -59,7 +59,7 @@ static vec_t getMemoryMean(void)
 }
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
-static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, float dt)
+static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, time_t timeStep)
 {
 	vec_t ameas, wmeas, mmeas;
 	vec_t mmeas_unit, ameas_unit;
@@ -156,7 +156,7 @@ static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t *h
 }
 
 
-static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, float dt)
+static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, time_t timeStep)
 {
 	float I33_data[9] = { 0 };
 	phmatrix_t I33 = { .rows = 3, .cols = 3, .transposed = 0, .data = I33_data };

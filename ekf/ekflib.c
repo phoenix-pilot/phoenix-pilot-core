@@ -38,10 +38,9 @@ typedef struct {
 	phmatrix_t F;
 	phmatrix_t Q;
 
-	float dt;            /* current time step length */
 	unsigned int run;             /* proceed with ekf loop */
-	time_t last_time;    /* last kalman loop time */
-	time_t current_time; /* current kalman loop time */
+	time_t lastTime;    /* last kalman loop time */
+	time_t currTime;    /* current kalman loop time */
 } ekf_common_t;
 
 ekf_common_t ekf_common;
@@ -54,32 +53,33 @@ int ekf_init(void)
 }
 
 
-static float get_dt(void)
+static time_t get_dt(void)
 {
 	time_t diff;
 
 	usleep(1000);
-	gettime(&ekf_common.current_time, NULL);
-	diff = ekf_common.current_time - ekf_common.last_time;
-	ekf_common.last_time = ekf_common.current_time;
-
-	return (float)diff / 1000000.0f;
+	gettime(&ekf_common.currTime, NULL);
+	diff = ekf_common.currTime - ekf_common.lastTime;
+	ekf_common.lastTime = ekf_common.currTime;
+	return diff;
 }
 
 
 static void ekf_thread(void *arg)
 {
+	time_t timeStep;
+
 	__atomic_add_fetch(&(ekf_common.run), 1, __ATOMIC_RELAXED);
 
 	/* Kalman loop */
-	gettime(&ekf_common.last_time, NULL);
+	gettime(&ekf_common.lastTime, NULL);
 	while (ekf_common.run == 1) {
-		ekf_common.dt = get_dt();
+		timeStep = get_dt();
 
 		/* state prediction procedure */
-		kalmanPredictionStep(&ekf_common.stateEngine, ekf_common.dt, 0);
-		if (kalmanUpdateStep(ekf_common.dt, 0, &ekf_common.baroEngine, &ekf_common.stateEngine) < 0) { /* barometer measurements update procedure */
-			kalmanUpdateStep(ekf_common.dt, 0, &ekf_common.imuEngine, &ekf_common.stateEngine);        /* imu measurements update procedure */
+		kalmanPredictionStep(&ekf_common.stateEngine, timeStep, 0);
+		if (kalmanUpdateStep(timeStep, 0, &ekf_common.baroEngine, &ekf_common.stateEngine) < 0) { /* barometer measurements update procedure */
+			kalmanUpdateStep(timeStep, 0, &ekf_common.imuEngine, &ekf_common.stateEngine);        /* imu measurements update procedure */
 		}
 	}
 
