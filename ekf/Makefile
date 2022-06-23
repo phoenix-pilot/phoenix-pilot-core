@@ -1,7 +1,7 @@
 #
-#M akefile for kalman filter application for Phoenix Pilot
+# Makefile for kalman filter application for Phoenix Pilot
 #
-# This source code and Makefile is designed for compilation from _user directory of phoenix - rtos - project
+# This source code and Makefile is designed for compilation from _user directory of phoenix-rtos-project
 #
 # Copyright 2022 Phoenix Systems
 #

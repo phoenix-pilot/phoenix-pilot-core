@@ -26,7 +26,7 @@
 
 #include "ekflib.h"
 
-typedef struct {
+struct {
 	update_engine_t imuEngine;
 	update_engine_t baroEngine;
 	state_engine_t stateEngine;
@@ -41,9 +41,7 @@ typedef struct {
 	unsigned int run;             /* proceed with ekf loop */
 	time_t lastTime;    /* last kalman loop time */
 	time_t currTime;    /* current kalman loop time */
-} ekf_common_t;
-
-ekf_common_t ekf_common;
+} ekf_common;
 
 
 int ekf_init(void)
@@ -69,7 +67,7 @@ static void ekf_thread(void *arg)
 {
 	time_t timeStep;
 
-	__atomic_add_fetch(&(ekf_common.run), 1, __ATOMIC_RELAXED);
+	__atomic_store_n(&(ekf_common.run), 1, __ATOMIC_RELAXED);
 
 	/* Kalman loop */
 	gettime(&ekf_common.lastTime, NULL);
@@ -95,7 +93,7 @@ int ekf_run(void)
 
 void ekf_done(void)
 {
-	__atomic_sub_fetch(&(ekf_common.run), 1, __ATOMIC_RELAXED);
+	__atomic_store_n(&(ekf_common.run), 0, __ATOMIC_RELAXED);
 	return;
 }
 

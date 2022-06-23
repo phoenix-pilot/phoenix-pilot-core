@@ -9,15 +9,13 @@
 #include "sensor_client.h"
 #include "tools/rotas_dummy.h"
 
+#define SENSORHUB_PIPES 2 /* number of connections with sensorhub */ 
 
-enum sensor_fd { client_imu,
-	client_baro,
-	client_termo,
-	client_gps };
+enum sensor_fd { client_imu, client_baro };
 
 struct sens_common_t {
 	sensors_data_t *data;
-	int fd[4]; /* each for one sensor type */
+	int fd[SENSORHUB_PIPES]; /* each for one sensor type */
 	unsigned char buff[0x400];
 };
 
@@ -30,7 +28,7 @@ int setupSensorDescriptor(enum sensor_fd sensor_type, int sensor_type_flag)
 	sensors_ops_t ops = { 0 };
 
 	ioctl(sens_common.fd[sensor_type], SMIOC_SENSORSAVAIL, &types);
-	ops.types = type & sensor_type_flag;
+	ops.types = types & sensor_type_flag;
 
 	if (ops.types == 0) {
 		return -1;
@@ -74,8 +72,6 @@ int initializeSensorClient(const char *sensorManagerPath)
 	err = 0;
 	err += setupSensorDescriptor(client_imu, SENSOR_TYPE_ACCEL | SENSOR_TYPE_GYRO | SENSOR_TYPE_MAG);
 	err += setupSensorDescriptor(client_baro, SENSOR_TYPE_BARO);
-	err += setupSensorDescriptor(client_termo, SENSOR_TYPE_TEMP);
-	err += setupSensorDescriptor(client_gps, SENSOR_TYPE_GPS);
 
 	if (err != 0) {
 		printf("EKF sensor client: cannot setup sensor descriptors\n");
@@ -98,20 +94,14 @@ void sensclient_sensImu(sensor_event_t *accel_evt, sensor_event_t *gyro_evt, sen
 	for (int j = 0; j < data->size; ++j) {
 		switch (data->events[j].type) {
 			case SENSOR_TYPE_ACCEL:
-				// printf("Accel, timestamp: %llu\n", data->events[j].timestamp);
-				// printf("acce - x: %u, y: %u, z: %u\n", data->events[j].accels.accelX, data->events[j].accels.accelY, data->events[j].accels.accelZ);
 				*accel_evt = data->events[j];
 				break;
 
 			case SENSOR_TYPE_MAG:
-				// printf("Baro, timestamp: %llu\n", data->events[j].timestamp);
-				// printf("baro - pressure: %u\n", data->events[j].baro.pressure);
 				*mag_evt = data->events[j];
 				break;
 
 			case SENSOR_TYPE_GYRO:
-				// printf("Gyro, timestamp: %llu\n", data->events[j].timestamp);
-				// printf("gyro - x: %u, y: %u, z: %u\n", data->events[j].gyro.gyroX, data->events[j].gyro.gyroY, data->events[j].gyro.gyroZ);
 				*gyro_evt = data->events[j];
 				break;
 
