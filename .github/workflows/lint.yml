@@ -1,0 +1,16 @@
+name: ci
+
+# on events
+on:
+  push:
+    branches:
+      - main
+      - 'feature/*'
+  pull_request:
+    branches:
+      - main
+      - 'feature/*'
+
+jobs:
+  call-ci:
+    uses: phoenix-pilot/phoenix-pilot-project/.github/workflows/lint.yml@master
