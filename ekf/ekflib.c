@@ -47,6 +47,7 @@ struct {
 int ekf_init(void)
 {
 	ekf_common.run = 0;
+
 	return 0;
 }
 
@@ -55,10 +56,10 @@ static time_t ekf_dtGet(void)
 {
 	time_t diff;
 
-	usleep(1000);
 	gettime(&ekf_common.currTime, NULL);
 	diff = ekf_common.currTime - ekf_common.lastTime;
 	ekf_common.lastTime = ekf_common.currTime;
+
 	return diff;
 }
 
@@ -72,6 +73,7 @@ static void ekf_thread(void *arg)
 	/* Kalman loop */
 	gettime(&ekf_common.lastTime, NULL);
 	while (ekf_common.run == 1) {
+		usleep(1000);
 		timeStep = ekf_dtGet();
 
 		/* state prediction procedure */
@@ -94,11 +96,10 @@ int ekf_run(void)
 void ekf_done(void)
 {
 	__atomic_store_n(&(ekf_common.run), 0, __ATOMIC_RELAXED);
-	return;
 }
 
 
 void ekf_stateGet(ekf_state_t *ekf_state)
 {
-	return;
+	/* empty */
 }
