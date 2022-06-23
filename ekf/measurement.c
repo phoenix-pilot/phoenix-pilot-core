@@ -35,9 +35,6 @@
 #include "tools/phmatrix.h"
 
 
-float g_scaleerr_common = 1;
-
-
 /* accelerometer calibration data */
 float tax, tay, taz;
 float acc_calib1[12] = {
@@ -238,8 +235,6 @@ void imu_calibrate_acc_gyr_mag(void)
 	n = vec_cross(&a_avg, &init_m);
 	init_q = quat_framerot(&a_avg, &n, &gvec, &x_versor, &iden_q);
 
-	/* calculate accelerometer linear deviation from earth g */
-	g_scaleerr_common = 1.F / vec_len(&a_avg);
 #endif
 }
 

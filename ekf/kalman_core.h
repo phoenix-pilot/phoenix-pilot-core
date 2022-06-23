@@ -138,7 +138,6 @@ typedef struct {
 /* performs kalman prediction step */
 void kalmanPredictionStep(state_engine_t *engine, time_t timeStep, int verbose);
 
-
 /* performs kalman measurement update step */
 int kalmanUpdateStep(time_t timeStep, int verbose, update_engine_t *updateEngine, state_engine_t *stateEngine);
 

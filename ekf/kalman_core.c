@@ -25,9 +25,9 @@
 #include "tools/phmatrix.h"
 
 /* buffer matrix for calculations */
-/* TODO: move this matrix to stateEngine to remove macros from core */
-float predict_tmp_data[STATE_ROWS * STATE_ROWS];
-phmatrix_t predict_tmp = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = predict_tmp_data };
+/* TODO: move this matrix to stateEngine to remove macros and globals from core */
+static float predict_tmp_data[STATE_ROWS * STATE_ROWS];
+static phmatrix_t predict_tmp = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = predict_tmp_data };
 
 
 static void predict_covar_estimate(phmatrix_t *F, phmatrix_t *P, phmatrix_t *P_estimate, phmatrix_t *Q)
