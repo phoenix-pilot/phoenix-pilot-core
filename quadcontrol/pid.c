@@ -17,7 +17,7 @@
 #include <stdlib.h>
 
 
-float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float dt)
+float pid_calc(pid_ctx_t *pid, float setVal, float currVal, time_t dt)
 {
 	float err, out;
 	float p, i, d; /* Results for proportional, integral and derivative parts of PID */
@@ -26,7 +26,7 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float dt)
 		return -EINVAL;
 	}
 
-	if (__builtin_isfinite(setVal) == 0 || __builtin_isfinite(currVal) == 0 || __builtin_isfinite(dt) == 0) {
+	if (__builtin_isfinite(setVal) == 0 || __builtin_isfinite(currVal) == 0) {
 		return pid->lastPid;
 	}
 
