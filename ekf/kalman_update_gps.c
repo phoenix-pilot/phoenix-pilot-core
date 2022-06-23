@@ -25,8 +25,8 @@
 
 #include "kalman_implem.h"
 
-#include <tools/rotas_dummy.h>
-#include <tools/phmatrix.h>
+#include "tools/rotas_dummy.h"
+#include "tools/phmatrix.h"
 
 /* declare static calculation memory bank with matrices for EKF */
 DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, GPSMEAS_ROWS)
@@ -34,7 +34,7 @@ DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, GPSMEAS_ROWS)
 extern kalman_init_t init_values;
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
-static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, float dt)
+static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, time_t timeStep)
 {
 	vec_t enu_pos, enu_speed;
 	float hdop;
@@ -73,7 +73,7 @@ static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t *h
 }
 
 
-static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, float dt)
+static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, time_t timeStep)
 {
 	memset(H->data, 0, sizeof(H->rows * H->cols * sizeof(float)));
 	H->data[H->cols * imgpsxx + ixx] = 1;

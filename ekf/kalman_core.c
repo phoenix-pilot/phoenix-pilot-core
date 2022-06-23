@@ -21,13 +21,13 @@
 
 #include "kalman_implem.h"
 
-#include <tools/rotas_dummy.h>
-#include <tools/phmatrix.h>
+#include "tools/rotas_dummy.h"
+#include "tools/phmatrix.h"
 
 /* buffer matrix for calculations */
-/* TODO: move this matrix to stateEngine to remove macros from core */
-float predict_tmp_data[STATE_ROWS * STATE_ROWS];
-phmatrix_t predict_tmp = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = predict_tmp_data };
+/* TODO: move this matrix to stateEngine to remove macros and globals from core */
+static float predict_tmp_data[STATE_ROWS * STATE_ROWS];
+static phmatrix_t predict_tmp = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = predict_tmp_data };
 
 
 static void predict_covar_estimate(phmatrix_t *F, phmatrix_t *P, phmatrix_t *P_estimate, phmatrix_t *Q)
@@ -38,13 +38,13 @@ static void predict_covar_estimate(phmatrix_t *F, phmatrix_t *P, phmatrix_t *P_e
 
 
 /* performs kalman prediction step given state engine */
-void kalmanPredictionStep(state_engine_t *engine, float dt, int verbose)
+void kalmanPredictionStep(state_engine_t *engine, time_t timeStep, int verbose)
 {
 	/* calculate current state transition jacobian */
-	engine->getJacobian(engine->F, engine->state, dt);
+	engine->getJacobian(engine->F, engine->state, timeStep);
 
 	/* apriori estimation of state before measurement */
-	engine->estimateState(engine->state, engine->state_est, dt);
+	engine->estimateState(engine->state, engine->state_est, timeStep);
 
 	if (verbose) {
 		printf("stat_est:\n");
@@ -65,14 +65,14 @@ void kalmanPredictionStep(state_engine_t *engine, float dt, int verbose)
 }
 
 /* performs kalman update step calculations */
-int kalmanUpdateStep(float dt, int verbose, update_engine_t *updateEngine, state_engine_t *stateEngine)
+int kalmanUpdateStep(time_t timeStep, int verbose, update_engine_t *updateEngine, state_engine_t *stateEngine)
 {
 	/* no new measurement available = exit step */
-	if (updateEngine->getData(updateEngine->Z, stateEngine->state, updateEngine->R, dt) == NULL) {
+	if (updateEngine->getData(updateEngine->Z, stateEngine->state, updateEngine->R, timeStep) == NULL) {
 		return -1;
 	}
 
-	updateEngine->getJacobian(updateEngine->H, stateEngine->state_est, dt);
+	updateEngine->getJacobian(updateEngine->H, stateEngine->state_est, timeStep);
 
 	/* prepare diag */
 	phx_diag(updateEngine->I);

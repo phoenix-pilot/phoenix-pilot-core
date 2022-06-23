@@ -24,61 +24,8 @@
 
 #include "kalman_implem.h"
 
-#include <tools/rotas_dummy.h>
-#include <tools/phmatrix.h>
-
-/* DATA MATRICES */
-
-// /* measurements matrix */
-// static float Z_data[IMUMEAS_ROWS * STATE_COLS] = { 0 };
-// static phmatrix_t Z = { .rows = IMUMEAS_ROWS, .cols = STATE_COLS, .transposed = 0, .data = Z_data };
-
-// /* innovation matrix */
-// static float Y_data[IMUMEAS_ROWS * STATE_COLS] = { 0 };
-// static phmatrix_t Y = { .rows = IMUMEAS_ROWS, .cols = STATE_COLS, .transposed = 0, .data = Y_data };
-
-// /* innovation covariance matrix */
-// static float S_data[IMUMEAS_ROWS * IMUMEAS_ROWS] = { 0 };
-// static phmatrix_t S = { .rows = IMUMEAS_ROWS, .cols = IMUMEAS_ROWS, .transposed = 0, .data = S_data };
-
-// /* kalman gain matrix */ /* 16x6 */
-// static float K_data[STATE_ROWS * IMUMEAS_ROWS] = { 0 };
-// static phmatrix_t K = { .rows = STATE_ROWS, .cols = IMUMEAS_ROWS, .transposed = 0, .data = K_data };
-
-
-// /* TEMPORAL CALCULATION MATRICES */
-
-// /* square identity matrix */ /* 16x16 */
-// static float I_data[STATE_ROWS * STATE_ROWS] = { 0 };
-// static phmatrix_t I = { .rows = STATE_ROWS, .cols = STATE_ROWS, .transposed = 0, .data = I_data };
-
-// /* h(x) matrix */
-// static float hx_data[IMUMEAS_ROWS * STATE_COLS] = { 0 };
-// static phmatrix_t hx = { .rows = IMUMEAS_ROWS, .cols = STATE_COLS, .transposed = 0, .data = hx_data };
-
-// /* temporary matrix #1: small square */
-// static float tmp1_data[IMUMEAS_ROWS * IMUMEAS_ROWS] = { 0 };
-// static phmatrix_t tmp1 = { .rows = IMUMEAS_ROWS, .cols = IMUMEAS_ROWS, .transposed = 0, .data = tmp1_data };
-
-// /* temporary matrix #2: high rectangular */
-// static float tmp2_data[STATE_ROWS * IMUMEAS_ROWS] = { 0 };
-// static phmatrix_t tmp2 = { .rows = STATE_ROWS, .cols = IMUMEAS_ROWS, .transposed = 0, .data = tmp2_data };
-
-// /* temporary matrix #3: wide rectangular UNUSED */
-// static float tmp3_data[IMUMEAS_ROWS * STATE_ROWS] = { 0 };
-// static phmatrix_t tmp3 = { .rows = IMUMEAS_ROWS, .cols = STATE_ROWS, .transposed = 0, .data = tmp3_data };
-
-// /* temporary matrix #4: big square */
-// static float tmp4_data[STATE_ROWS * STATE_ROWS] = { 0 };
-// static phmatrix_t tmp4 = { .rows = STATE_ROWS, .cols = STATE_ROWS, .transposed = 0, .data = tmp4_data };
-
-// /* temporary matrix #4: state length column vector */
-// static float tmp5_data[STATE_ROWS * STATE_COLS] = { 0 };
-// static phmatrix_t tmp5 = { .rows = STATE_ROWS, .cols = STATE_COLS, .transposed = 0, .data = tmp5_data };
-
-// /* S inversion buffer */
-// static float S_inv_buff[IMUMEAS_ROWS * IMUMEAS_ROWS * 2];
-// static unsigned int S_inv_buff_len = IMUMEAS_ROWS * IMUMEAS_ROWS * 2;
+#include "tools/rotas_dummy.h"
+#include "tools/phmatrix.h"
 
 /* declare static calculation memory bank with matrices for EKF */
 DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, IMUMEAS_ROWS)
@@ -92,7 +39,7 @@ static vec_t x_versor = { .x = 1, .y = 0, .z = 0 };
 vec_t imu_memory[5];
 int imu_mem_entry = 0;
 
-static void addMemEntry(vec_t * a)
+static void addMemEntry(vec_t *a)
 {
 	imu_memory[imu_mem_entry] = *a;
 
@@ -102,7 +49,7 @@ static void addMemEntry(vec_t * a)
 static vec_t getMemoryMean(void)
 {
 	int i;
-	vec_t amean = {0};
+	vec_t amean = { 0 };
 
 	for (i = 0; i < (sizeof(imu_memory) / sizeof(imu_memory[0])); i++) {
 		amean = vec_add(&amean, &(imu_memory[i]));
@@ -112,7 +59,7 @@ static vec_t getMemoryMean(void)
 }
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
-static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, float dt)
+static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, time_t timeStep)
 {
 	vec_t ameas, wmeas, mmeas;
 	vec_t mmeas_unit, ameas_unit;
@@ -131,7 +78,6 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 	acquireImuMeasurements(&ameas, &wmeas, &mmeas, &timestamp);
 	addMemEntry(&ameas);
 	ameas = getMemoryMean();
-	//printf("ameas: %.3f %.3f %.3f ", ameas.x, ameas.y, ameas.z);
 
 	/* estimate rotation quaternion with assumption that imu is stationary */
 	mmeas_unit = mmeas;
@@ -155,8 +101,6 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 
 	/* remove earth acceleration from measurements */
 	ameas.z -= EARTH_G;
-
-	//printf("%.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f\n", xx, xy, xz, vx, vy, vz, ax, ay, az, ameas.x, ameas.y, ameas.z);
 
 	phx_zeroes(Z);
 	Z->data[imax] = ameas.x;
@@ -186,7 +130,7 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 }
 
 
-static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t * hx)
+static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t *hx)
 {
 	phmatrix_t *state = state_est; /* aliasing for macros usage */
 	phx_zeroes(hx);
@@ -212,7 +156,7 @@ static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t * 
 }
 
 
-static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, float dt)
+static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, time_t timeStep)
 {
 	float I33_data[9] = { 0 };
 	phmatrix_t I33 = { .rows = 3, .cols = 3, .transposed = 0, .data = I33_data };

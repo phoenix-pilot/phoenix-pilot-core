@@ -23,17 +23,17 @@
 
 #include "kalman_implem.h"
 
-#include <tools/rotas_dummy.h>
-#include <tools/phmatrix.h>
+#include "tools/rotas_dummy.h"
+#include "tools/phmatrix.h"
 
 
 /* NOTE: must be kept in the same order as 'config_names' */
 kalman_init_t init_values = {
 	.verbose = 0,
 
-	.P_xerr = 0.1F,            /* 0.1 m */
-	.P_verr = 0.1F,            /* 0.1 m/s */
-	.P_aerr = 0.01F,          /* 0.001 m/s^2 */
+	.P_xerr = 0.1,            /* 0.1 m */
+	.P_verr = 0.1,            /* 0.1 m/s */
+	.P_aerr = 0.01,           /* 0.001 m/s^2 */
 	.P_werr = DEG2RAD,         /* 1 degree */
 	.P_merr = 300,             /* 300 uT */
 	.P_qaerr = 10 * DEG2RAD,   /* 10 degrees */
@@ -41,7 +41,7 @@ kalman_init_t init_values = {
 	.P_pxerr = 10,             /* 10 hPa */
 
 	.R_acov = 0.001,
-	.R_wcov = 0.01F,
+	.R_wcov = 0.01,
 	.R_mcov = 10,
 	.R_qcov = 1. / DEG2RAD,
 
@@ -165,18 +165,21 @@ static void init_cov_vector(phmatrix_t *cov)
 	cov->data[cov->cols * ihv + ihv] = init_values.P_verr * init_values.P_verr;
 }
 
-vec_t last_a = {0};
-vec_t last_v = {0};
+vec_t last_a = { 0 };
+vec_t last_v = { 0 };
 
 /* State estimation function definition */
-static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, float dt)
+static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, time_t timeStep)
 {
-	float dt2 = dt * dt / 2;
-	quat_t quat_q, quat_w, /*quat_ap, quat_wp,*/ res;
+	float dt, dt2;
+	quat_t quat_q, quat_w, res;
+
+	dt = timeStep / 1000000.;
+	dt2 = dt * dt / 2;
 
 	quat_q = quat(qa, qb, qc, qd);
 	quat_w = quat(0, wx, wy, wz);
-	
+
 	/* trapezoidal integration */
 	state_est->data[ixx] = xx + (vx + last_v.x) * 0.5 * dt + ax * dt2;
 	state_est->data[ixy] = xy + (vy + last_v.y) * 0.5 * dt + ay * dt2;
@@ -191,7 +194,7 @@ static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, f
 	last_a.x = ax;
 	last_a.y = ay;
 	last_a.z = az;
-	
+
 	last_v.x = vx;
 	last_v.y = vy;
 	last_v.z = vz;
@@ -225,9 +228,12 @@ static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, f
 
 
 /* prediction step jacobian calculation function */
-static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, float dt)
+static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t timeStep)
 {
-	float dt2 = dt / 2; /* helper value */
+	float dt, dt2;
+
+	dt = timeStep / 1000000.;
+	dt2 = dt / 2; /* helper value */
 
 	/* diagonal matrix */
 	float I33_data[9] = { 0 };
@@ -282,7 +288,7 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, float dt)
 
 
 /* initialization of prediction step matrix values */
-state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, float dt)
+state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, time_t timeStep)
 {
 	/* matrix initialization */
 	phx_newmatrix(state, STATE_ROWS, STATE_COLS);
@@ -301,7 +307,7 @@ state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est
 	/* acceleration process noise different for vertical and horizontal because different measurements are performed and different smoothing is neccessary */
 	Q->data[Q->cols * ixx + ixx] = Q->data[Q->cols * ixy + ixy] = init_values.Q_xcov;
 	Q->data[Q->cols * ivx + ivx] = Q->data[Q->cols * ivy + ivy] = init_values.Q_vcov;
-	
+
 	Q->data[Q->cols * iax + iax] = Q->data[Q->cols * iay + iay] = init_values.Q_ahoricov;
 	Q->data[Q->cols * iaz + iaz] = init_values.Q_avertcov;
 

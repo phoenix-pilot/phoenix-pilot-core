@@ -25,8 +25,8 @@
 
 #include "kalman_implem.h"
 
-#include <tools/rotas_dummy.h>
-#include <tools/phmatrix.h>
+#include "tools/rotas_dummy.h"
+#include "tools/phmatrix.h"
 
 /* declare static calculation memory bank with matrices for EKF */
 DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, BAROMEAS_ROWS)
@@ -37,7 +37,8 @@ extern kalman_init_t init_values;
 /* barometric height memory */
 static float baroMemory[2][6] = { 0 };
 
-enum baroDimension {value = 0, dtime = 1};
+enum baroDimension { value = 0,
+	dtime = 1 };
 
 static int memoryPoint = 0;
 
@@ -79,7 +80,7 @@ static float filterBaroSpeed(void)
 	hEnd /= weights;
 
 	if (delta > 0.2) {
-		return (hEnd - hStart) / (delta/1000000);
+		return (hEnd - hStart) / (delta / 1000000);
 	}
 	else {
 		return 0;
@@ -87,11 +88,11 @@ static float filterBaroSpeed(void)
 }
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
-static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, float dt)
+static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, time_t timeStep)
 {
 	float pressure, temp;
 	uint64_t curr_tstamp;
-	static uint64_t last_tstamp; 
+	static uint64_t last_tstamp;
 
 	/* if there is no pressure measurement available return NULL */
 	if (acquireBaroMeasurements(&pressure, &temp, &curr_tstamp) < 0) {
@@ -129,7 +130,7 @@ static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t *h
 }
 
 
-static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, float dt)
+static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, time_t timeStep)
 {
 	H->data[H->cols * imhz + ihz] = 1;
 	H->data[H->cols * imxz + ixz] = 1;
