@@ -14,6 +14,7 @@
 #ifndef _PID_H_
 #define _PID_H_
 
+#include <time.h>
 
 typedef struct {
 	/* Coefficients */
@@ -37,7 +38,7 @@ extern int pid_init(pid_ctx_t *pid);
 
 
 /* Calculate the PID value based on gain values */
-extern float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float dt);
+extern float pid_calc(pid_ctx_t *pid, float setVal, float currVal, time_t dt);
 
 
 /* TODO: Tuning gain coefficients */
