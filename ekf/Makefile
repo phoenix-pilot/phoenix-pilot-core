@@ -14,3 +14,9 @@ TOOLS_SRCS := tools/phmatrix.c tools/rotas_dummy.c
 NAME := libekf
 LOCAL_SRCS := ekflib.c $(KALMAN_SRCS) $(TOOLS_SRCS) measurement.c sensc.c
 include $(static-lib.mk)
+
+# EKF development application
+NAME := devekf
+LOCAL_SRCS := tests/devekf.c
+DEP_LIBS := libekf
+include $(binary.mk)

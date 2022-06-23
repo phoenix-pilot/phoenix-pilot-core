@@ -20,6 +20,7 @@
 
 #include "kalman_core.h"
 #include "kalman_implem.h"
+#include "sensc.h"
 
 #include "tools/rotas_dummy.h"
 #include "tools/phmatrix.h"
@@ -30,6 +31,8 @@ struct {
 	update_engine_t imuEngine;
 	update_engine_t baroEngine;
 	state_engine_t stateEngine;
+
+	kalman_calib_t calib;
 
 	phmatrix_t state;
 	phmatrix_t state_est;
@@ -47,6 +50,12 @@ struct {
 int ekf_init(void)
 {
 	ekf_common.run = 0;
+	sensc_init("/dev/sensors");
+
+	meas_imuCalib();
+	meas_baroCalib();
+
+	ekf_common.calib = meas_calibGet();
 
 	return 0;
 }

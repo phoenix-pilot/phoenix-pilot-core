@@ -13,10 +13,6 @@
  * %LICENSE%
  */
 
-#define EARTH_SEMI_MAJOR           6378137.0
-#define EARTH_SEMI_MINOR           6356752.3
-#define EARTH_ECCENTRICITY_SQUARED 0.006694384
-
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
@@ -34,6 +30,16 @@
 #include "tools/rotas_dummy.h"
 #include "tools/phmatrix.h"
 
+#define EARTH_SEMI_MAJOR           6378137.0
+#define EARTH_SEMI_MINOR           6356752.3
+#define EARTH_ECCENTRICITY_SQUARED 0.006694384
+
+#define IMU_CALIB_AVG  2000
+#define BARO_CALIB_AVG 100
+
+struct {
+	kalman_calib_t calib;
+} meas_common;
 
 /* accelerometer calibration data */
 float tax, tay, taz;
@@ -175,7 +181,7 @@ void gps_calibrate(void)
 #endif
 }
 
-static void ellipsoid_compensate(float *x, float *y, float *z, float *calib)
+static void meas_ellipCompensate(float *x, float *y, float *z, float *calib)
 {
 	tax = *x - calib[0];
 	tay = *y - calib[1];
@@ -186,99 +192,126 @@ static void ellipsoid_compensate(float *x, float *y, float *z, float *calib)
 }
 
 
-void imu_calibrate_acc_gyr_mag(void)
+static void meas_acc2si(sensor_event_t *evt, vec_t *vec)
 {
-	/* code to be refactored after libsensors implementation */
-#if 0
-	int i, avg = 2000, press_avg = 0;
-	float press_calib = 0, temp_calib = 0;
-	vec_t a_avg = vec(0, 0, 0), gvec = vec(0, 0, 1), w_avg = vec(0, 0, 0), m_avg = vec(0, 0, 0), x_versor = vec(1, 0, 0), n;
-	quat_t iden_q = IDEN_QUAT;
-
-	printf("Calibrating. It wil take 4 seconds...\n");
-
-	for (i = 0; i < avg; i++) {
-		sensImu(&imuSensor);
-		sensMag(&magSensor);
-		a_avg.x += imuSensor.accel_x;
-		a_avg.y += imuSensor.accel_y;
-		a_avg.z += imuSensor.accel_z;
-
-		w_avg.x += imuSensor.gyr_x;
-		w_avg.y += imuSensor.gyr_y;
-		w_avg.z += imuSensor.gyr_z;
-
-		m_avg.x += magSensor.mag_x;
-		m_avg.y += magSensor.mag_y;
-		m_avg.z += magSensor.mag_z;
-
-		if (sensBaro(&baroSensor) > 0) {
-			press_calib += baroSensor.press;
-			temp_calib += baroSensor.baro_temp;
-			press_avg++;
-		}
-
-		usleep(1000 * 5);
-	}
-	a_avg = vec_times(&a_avg, 0.0005);
-	w_avg = vec_times(&w_avg, 0.0005);
-	m_avg = vec_times(&m_avg, 0.0005);
-	press_calib /= press_avg;
-	temp_calib /= press_avg;
-
-	gyr_nivel = w_avg;           /* save gyro drift parameters */
-	init_m = m_avg;              /* save initial magnetometer reading */
-	base_pressure = press_calib; /* save initial pressure */
-	base_temp = temp_calib;      /* save initial temperature */
-
-	/* calculate initial rotation */
-	n = vec_cross(&a_avg, &init_m);
-	init_q = quat_framerot(&a_avg, &n, &gvec, &x_versor, &iden_q);
-
-#endif
+	vec->x = evt->accels.accelX / 1000.F;
+	vec->y = evt->accels.accelY / 1000.F;
+	vec->z = evt->accels.accelZ / 1000.F;
 }
 
-int acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
-{
-	sensor_event_t acc_evt, gyr_evt, mag_evt;
 
-	if (sensc_imuGet(&acc_evt, &gyr_evt, &mag_evt) < 0) {
+static void meas_gyr2si(sensor_event_t *evt, vec_t *vec)
+{
+	vec->x = evt->gyro.gyroX / 1000.F;
+	vec->y = evt->gyro.gyroY / 1000.F;
+	vec->z = evt->gyro.gyroZ / 1000.F;
+}
+
+
+static void meas_mag2si(sensor_event_t *evt, vec_t *vec)
+{
+	vec->x = evt->mag.magX / 10000000.F;
+	vec->y = evt->mag.magY / 10000000.F;
+	vec->z = evt->mag.magZ / 10000000.F;
+}
+
+
+void meas_imuCalib(void)
+{
+	int i, avg = IMU_CALIB_AVG;
+	vec_t gvec = vec(0, 0, 1), versorX = vec(1, 0, 0), n;
+	vec_t acc, gyr, mag, accAvg, gyrAvg, magAvg;
+	quat_t idenQuat = IDEN_QUAT;
+	sensor_event_t accEvt, gyrEvt, magEvt;
+
+	accAvg = gyrAvg = magAvg = vec(0, 0, 0);
+
+	printf("IMU calibration...\n");
+
+	i = 0;
+	while (i < avg) {
+		if (sensc_imuGet(&accEvt, &gyrEvt, &magEvt) >= 0) {
+			meas_acc2si(&accEvt, &acc);
+			meas_gyr2si(&gyrEvt, &gyr);
+			meas_mag2si(&magEvt, &mag);
+
+			accAvg = vec_add(&accAvg, &acc);
+			gyrAvg = vec_add(&gyrAvg, &gyr);
+			magAvg = vec_add(&magAvg, &mag);
+			usleep(1000 * 5);
+			i++;
+		}
+		else {
+			usleep(1000 * 1);
+		}
+	}
+	accAvg = vec_times(&accAvg, 1. / avg);
+	gyrAvg = vec_times(&gyrAvg, 1. / avg);
+	magAvg = vec_times(&magAvg, 1. / avg);
+
+	meas_common.calib.gyr_nivel = gyrAvg; /* save gyro drift parameters */
+	meas_common.calib.init_m = magAvg;    /* save initial magnetometer reading */
+
+	/* calculate initial rotation */
+	n = vec_cross(&accAvg, &magAvg);
+	meas_common.calib.init_q = quat_framerot(&accAvg, &n, &gvec, &versorX, &idenQuat);
+}
+
+void meas_baroCalib(void)
+{
+	int i, avg = BARO_CALIB_AVG;
+	uint64_t press = 0, temp = 0;
+	sensor_event_t baroEvt;
+
+	printf("Barometer calibration...\n");
+
+	i = 0;
+	while (i < avg) {
+		if (sensc_baroGet(&baroEvt) >= 0) {
+			press += baroEvt.baro.pressure;
+			temp += baroEvt.baro.temp;
+			i++;
+			usleep(1000 * 50);
+		}
+		else {
+			usleep(1000 * 10);
+		}
+	}
+
+	meas_common.calib.base_pressure = (float)press / avg;
+	meas_common.calib.base_temp = (float)temp / avg;
+}
+
+int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
+{
+	sensor_event_t accEvt, gyrEvt, magEvt;
+
+	if (sensc_imuGet(&accEvt, &gyrEvt, &magEvt) < 0) {
 		return -1;
 	}
 
 	/* these timestamps do not need to be very accurate */
-	*timestamp = (acc_evt.timestamp + gyr_evt.timestamp + mag_evt.timestamp) / 3;
+	*timestamp = (accEvt.timestamp + gyrEvt.timestamp + magEvt.timestamp) / 3;
 
-	/* accelerations from mm/s^2 -> m/s^2 */
-	accels->x = (float)acc_evt.accels.accelX / 1000;
-	accels->y = (float)acc_evt.accels.accelY / 1000;
-	accels->z = (float)acc_evt.accels.accelZ / 1000;
-
-	/* angulars from mrad/s -> rad/s */
-	gyros->x = (float)gyr_evt.gyro.gyroX / 1000;
-	gyros->y = (float)gyr_evt.gyro.gyroY / 1000;
-	gyros->z = (float)gyr_evt.gyro.gyroZ / 1000;
-
-	/* only magnitude matters from geomagnetism */
-	mags->x = (float)mag_evt.mag.magX;
-	mags->y = (float)mag_evt.mag.magY;
-	mags->z = (float)mag_evt.mag.magZ;
+	meas_acc2si(&accEvt, accels); /* accelerations from mm/s^2 -> m/s^2 */
+	meas_gyr2si(&gyrEvt, gyros);  /* angulars from mrad/s -> rad/s */
+	meas_mag2si(&magEvt, mags);   /* only magnitude matters from geomagnetism */
 
 	/* accelerometer calibration */
-	ellipsoid_compensate(&accels->x, &accels->y, &accels->z, acc_calib1);
-	ellipsoid_compensate(&accels->x, &accels->y, &accels->z, acc_calib2);
+	meas_ellipCompensate(&accels->x, &accels->y, &accels->z, acc_calib1);
+	meas_ellipCompensate(&accels->x, &accels->y, &accels->z, acc_calib2);
 
 	/* magnetometer calibration */
-	ellipsoid_compensate(&mags->x, &mags->y, &mags->z, mag_calib1);
+	meas_ellipCompensate(&mags->x, &mags->y, &mags->z, mag_calib1);
 
 	/* gyro niveling */
-	*gyros = vec_sub(gyros, &gyr_nivel);
+	*gyros = vec_sub(gyros, &meas_common.calib.gyr_nivel);
 
 	return 0;
 }
 
 
-int acquireBaroMeasurements(float *pressure, float *temperature, uint64_t *timestamp)
+int meas_baroGet(float *pressure, float *temperature, uint64_t *timestamp)
 {
 	sensor_event_t baro_evt;
 
@@ -294,7 +327,7 @@ int acquireBaroMeasurements(float *pressure, float *temperature, uint64_t *times
 }
 
 
-int acquireGpsMeasurement(vec_t *enu, vec_t *enu_speed, float *hdop)
+int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop)
 {
 	sensor_event_t gps_evt;
 
@@ -306,9 +339,9 @@ int acquireGpsMeasurement(vec_t *enu, vec_t *enu_speed, float *hdop)
 		(float)gps_evt.gps.lat / 1e7,
 		(float)gps_evt.gps.lon / 1e7,
 		0,
-		gpsRefGeodetic.lat,
-		gpsRefGeodetic.lon,
-		&gpsRefEcef);
+		meas_common.calib.gpsRefGeodetic.lat,
+		meas_common.calib.gpsRefGeodetic.lon,
+		&meas_common.calib.gpsRefEcef);
 
 	enu_speed->x = (float)gps_evt.gps.velEast / 1e3;
 	enu_speed->y = (float)gps_evt.gps.velNorth / 1e3;
@@ -317,4 +350,16 @@ int acquireGpsMeasurement(vec_t *enu, vec_t *enu_speed, float *hdop)
 	*hdop = (float)(gps_evt.gps.hdop) / 100;
 
 	return 0;
+}
+
+
+kalman_calib_t meas_calibGet(void)
+{
+	return meas_common.calib;
+}
+
+
+float meas_calibPressGet(void)
+{
+	return meas_common.calib.base_pressure;
 }

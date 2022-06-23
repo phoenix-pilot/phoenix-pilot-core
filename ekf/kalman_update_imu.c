@@ -75,7 +75,7 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 		Angular rates in rad/s
 		magnetic flux field in uT 
 	*/
-	acquireImuMeasurements(&ameas, &wmeas, &mmeas, &timestamp);
+	meas_imuGet(&ameas, &wmeas, &mmeas, &timestamp);
 	addMemEntry(&ameas);
 	ameas = getMemoryMean();
 

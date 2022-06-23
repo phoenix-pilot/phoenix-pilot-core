@@ -1,3 +1,18 @@
+/*
+ * Phoenix-Pilot
+ *
+ * extended kalman filter
+ * 
+ * sensorhub client functions implementations
+ *
+ * Copyright 2022 Phoenix Systems
+ * Author: Mateusz Niewiadomski
+ *
+ * This file is part of Phoenix-Pilot software
+ *
+ * %LICENSE%
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>

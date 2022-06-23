@@ -40,7 +40,7 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 	float hdop;
 
 	/* if there is no gps measurement available return NULL */
-	if (acquireGpsMeasurement(&enu_pos, &enu_speed, &hdop) < 0) {
+	if (meas_gpsGet(&enu_pos, &enu_speed, &hdop) < 0) {
 		return NULL;
 	}
 	//printf("GPS: x=%f, y=%f, hdop: %f\n", enu_pos.x, enu_pos.y, hdop);

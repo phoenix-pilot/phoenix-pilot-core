@@ -108,7 +108,7 @@ void read_config(void)
 
 
 /* state vectors values init */
-static void init_state_vector(phmatrix_t *state)
+static void init_state_vector(phmatrix_t *state, kalman_calib_t *calib)
 {
 	state->data[ixx] = state->data[ixy] = state->data[ixz] = 0; /* start position at [0,0,0] */
 	state->data[ivx] = state->data[ivy] = state->data[ivz] = 0; /* start velocity at [0,0,0] */
@@ -116,15 +116,15 @@ static void init_state_vector(phmatrix_t *state)
 	state->data[iwx] = state->data[iwy] = state->data[iwz] = 0; /* start angular speed at [0,0,0] */
 
 	/* start rotation at identity quaternion */
-	state->data[iqa] = init_q.a;
-	state->data[iqb] = init_q.i;
-	state->data[iqc] = init_q.j;
-	state->data[iqd] = init_q.k;
+	state->data[iqa] = calib->init_q.a;
+	state->data[iqb] = calib->init_q.i;
+	state->data[iqc] = calib->init_q.j;
+	state->data[iqd] = calib->init_q.k;
 
 	/* start magnetic field as calibrated */
-	state->data[imx] = init_m.x;
-	state->data[imx] = init_m.y;
-	state->data[imx] = init_m.z;
+	state->data[imx] = calib->init_m.x;
+	state->data[imx] = calib->init_m.y;
+	state->data[imx] = calib->init_m.z;
 
 	/* start pressure set to 1013 hPa */
 	state->data[ihz] = 0;
@@ -133,7 +133,7 @@ static void init_state_vector(phmatrix_t *state)
 
 
 /* covariance matrox values inits */
-static void init_cov_vector(phmatrix_t *cov)
+static void init_cov_vector(phmatrix_t *cov, kalman_calib_t *calib)
 {
 	phx_zeroes(cov);
 	cov->data[cov->cols * ixx + ixx] = init_values.P_xerr * init_values.P_xerr;
@@ -288,7 +288,7 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t time
 
 
 /* initialization of prediction step matrix values */
-state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, time_t timeStep)
+state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, time_t timeStep, kalman_calib_t *calib)
 {
 	/* matrix initialization */
 	phx_newmatrix(state, STATE_ROWS, STATE_COLS);
@@ -299,8 +299,8 @@ state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est
 	phx_newmatrix(F, STATE_ROWS, STATE_ROWS);
 	phx_newmatrix(Q, STATE_ROWS, STATE_ROWS);
 
-	init_state_vector(state);
-	init_cov_vector(cov);
+	init_state_vector(state, calib);
+	init_cov_vector(cov, calib);
 
 	phx_zeroes(Q);
 
