@@ -12,5 +12,5 @@ TOOLS_SRCS := tools/phmatrix.c tools/rotas_dummy.c
 
 # EKF library
 NAME := libekf
-LOCAL_SRCS := ekflib.c $(KALMAN_SRCS) $(TOOLS_SRCS) measurement.c sensors_client.c
+LOCAL_SRCS := ekflib.c $(KALMAN_SRCS) $(TOOLS_SRCS) measurement.c sensc_client.c
 include $(static-lib.mk)

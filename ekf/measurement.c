@@ -30,7 +30,7 @@
 #include "kalman_implem.h"
 
 #include <libsensors.h>
-#include "sensor_client.h"
+#include "sensc_client.h"
 #include "tools/rotas_dummy.h"
 #include "tools/phmatrix.h"
 
@@ -242,7 +242,7 @@ int acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *t
 {
 	sensor_event_t acc_evt, gyr_evt, mag_evt;
 
-	if (sensclient_sensImu(&acc_evt, &gyr_evt, &mag_evt) < 0) {
+	if (sensc_imuGet(&acc_evt, &gyr_evt, &mag_evt) < 0) {
 		return -1;
 	}
 
@@ -282,7 +282,7 @@ int acquireBaroMeasurements(float *pressure, float *temperature, uint64_t *times
 {
 	sensor_event_t baro_evt;
 
-	if (sensclient_sensBaro(&baro_evt) < 0) {
+	if (sensc_baroGet(&baro_evt) < 0) {
 		return -1;
 	}
 
@@ -298,7 +298,7 @@ int acquireGpsMeasurement(vec_t *enu, vec_t *enu_speed, float *hdop)
 {
 	sensor_event_t gps_evt;
 
-	if (sensclient_sensGps(&gps_evt) < 0) {
+	if (sensc_gpsGet(&gps_evt) < 0) {
 		return -1;
 	}
 
