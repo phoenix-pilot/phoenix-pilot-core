@@ -90,17 +90,13 @@ static void gpsUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
 }
 
 
-update_engine_t setupGpsUpdateEngine(phmatrix_t *H, phmatrix_t *R)
+void kmn_gpsEngInit(update_engine_t *engine)
 {
-	update_engine_t e;
-
 	gpsUpdateInitializations(&ekf_H, &ekf_R);
 
-	POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(e)
+	POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(engine)
 
-	e.getData = getMeasurement;
-	e.getJacobian = getMeasurementPredictionJacobian;
-	e.predictMeasurements = getMeasurementPrediction;
-
-	return e;
+	engine->getData = getMeasurement;
+	engine->getJacobian = getMeasurementPredictionJacobian;
+	engine->predictMeasurements = getMeasurementPrediction;
 }

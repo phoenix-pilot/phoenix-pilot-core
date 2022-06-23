@@ -37,7 +37,7 @@
 #define IMU_CALIB_AVG  2000
 #define BARO_CALIB_AVG 100
 
-struct {
+static struct {
 	kalman_calib_t calib;
 } meas_common;
 
@@ -353,9 +353,9 @@ int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop)
 }
 
 
-kalman_calib_t meas_calibGet(void)
+void meas_calibGet(kalman_calib_t *calib)
 {
-	return meas_common.calib;
+	*calib = meas_common.calib;
 }
 
 

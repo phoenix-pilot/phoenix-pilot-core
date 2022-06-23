@@ -28,7 +28,7 @@ typedef struct {
 
 
 /* dynamically allocate matrix */
-void phx_newmatrix(phmatrix_t * matrix, int m, int n);
+int phx_newmatrix(phmatrix_t * matrix, int m, int n);
 
 
 /*deallocate matrix */

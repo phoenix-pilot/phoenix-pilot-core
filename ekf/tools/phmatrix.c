@@ -22,19 +22,19 @@ float * buf = NULL;
 unsigned int buflen = 0;
 
 /* dynamically allocate matrix */
-void phx_newmatrix(phmatrix_t * matrix, int rows, int cols)
+int phx_newmatrix(phmatrix_t *matrix, int rows, int cols)
 {
 	float * data = calloc(rows * cols, sizeof(float));
-	phx_assign(matrix, rows, cols, data);
+	return phx_assign(matrix, rows, cols, data);
 }
 
 /*deallocate matrix */
-void phx_destroy(phmatrix_t * matrix)
+void phx_destroy(phmatrix_t *matrix)
 {
 	free(matrix->data);
 }
 
-int phx_assign(phmatrix_t * matrix, int m, int n, float * data)
+int phx_assign(phmatrix_t *matrix, int m, int n, float * data)
 {
 	if (data != NULL) {
 		matrix->rows = m;
@@ -43,6 +43,8 @@ int phx_assign(phmatrix_t * matrix, int m, int n, float * data)
 		matrix->transposed = 0;
 		return 0;
 	}
+
+	matrix->data = NULL;
 	return -1;
 }
 

@@ -41,26 +41,26 @@ static void predict_covar_estimate(phmatrix_t *F, phmatrix_t *P, phmatrix_t *P_e
 void kalmanPredictionStep(state_engine_t *engine, time_t timeStep, int verbose)
 {
 	/* calculate current state transition jacobian */
-	engine->getJacobian(engine->F, engine->state, timeStep);
+	engine->getJacobian(&engine->F, &engine->state, timeStep);
 
 	/* apriori estimation of state before measurement */
-	engine->estimateState(engine->state, engine->state_est, timeStep);
+	engine->estimateState(&engine->state, &engine->state_est, timeStep);
 
 	if (verbose) {
 		printf("stat_est:\n");
-		phx_print(engine->state_est);
+		phx_print(&engine->state_est);
 		printf("F:\n");
-		phx_print(engine->F);
+		phx_print(&engine->F);
 	}
 
 	/* apriori estimation of covariance matrix */
-	predict_covar_estimate(engine->F, engine->cov, engine->cov_est, engine->Q);
+	predict_covar_estimate(&engine->F, &engine->cov, &engine->cov_est, &engine->Q);
 
 	if (verbose) {
 		printf("cov:\n");
-		phx_print(engine->cov);
+		phx_print(&engine->cov);
 		printf("covest:\n");
-		phx_print(engine->cov_est);
+		phx_print(&engine->cov_est);
 	}
 }
 
@@ -68,20 +68,20 @@ void kalmanPredictionStep(state_engine_t *engine, time_t timeStep, int verbose)
 int kalmanUpdateStep(time_t timeStep, int verbose, update_engine_t *updateEngine, state_engine_t *stateEngine)
 {
 	/* no new measurement available = exit step */
-	if (updateEngine->getData(updateEngine->Z, stateEngine->state, updateEngine->R, timeStep) == NULL) {
+	if (updateEngine->getData(updateEngine->Z, &stateEngine->state, updateEngine->R, timeStep) == NULL) {
 		return -1;
 	}
 
-	updateEngine->getJacobian(updateEngine->H, stateEngine->state_est, timeStep);
+	updateEngine->getJacobian(updateEngine->H, &stateEngine->state_est, timeStep);
 
 	/* prepare diag */
 	phx_diag(updateEngine->I);
 
 	/* y_k = z_k - h(x_(k|k-1)) */
-	phx_sub(updateEngine->Z, updateEngine->predictMeasurements(stateEngine->state_est, updateEngine->hx), updateEngine->Y);
+	phx_sub(updateEngine->Z, updateEngine->predictMeasurements(&stateEngine->state_est, updateEngine->hx), updateEngine->Y);
 
 	/* S_k = H_k * P_(k|k-1) * transpose(H_k) + R*/
-	phx_sadwitch_product(updateEngine->H, stateEngine->cov_est, updateEngine->S, updateEngine->tmp3);
+	phx_sadwitch_product(updateEngine->H, &stateEngine->cov_est, updateEngine->S, updateEngine->tmp3);
 	phx_add(updateEngine->S, updateEngine->R, NULL);
 
 	/* only for debug purposes */
@@ -97,12 +97,12 @@ int kalmanUpdateStep(time_t timeStep, int verbose, update_engine_t *updateEngine
 		printf("H:\n");
 		phx_print(updateEngine->H);
 		printf("cov_est:\n");
-		phx_print(stateEngine->cov_est);
+		phx_print(&stateEngine->cov_est);
 	}
 
 	/* K_k = P_(k|k-1) * transpose(H_k) * inverse(S_k) */
 	phx_transpose(updateEngine->H);
-	phx_product(stateEngine->cov_est, updateEngine->H, updateEngine->tmp2);
+	phx_product(&stateEngine->cov_est, updateEngine->H, updateEngine->tmp2);
 	phx_transpose(updateEngine->H);
 	phx_inverse(updateEngine->S, updateEngine->tmp1, updateEngine->invBuf, updateEngine->invBufLen);
 	phx_product(updateEngine->tmp2, updateEngine->tmp1, updateEngine->K);
@@ -122,12 +122,12 @@ int kalmanUpdateStep(time_t timeStep, int verbose, update_engine_t *updateEngine
 
 	/* x_(k|k) = x_(k|k-1) + K_k * y_k */
 	phx_product(updateEngine->K, updateEngine->Y, updateEngine->tmp5);
-	phx_add(stateEngine->state_est, updateEngine->tmp5, stateEngine->state);
+	phx_add(&stateEngine->state_est, updateEngine->tmp5, &stateEngine->state);
 
 	/* P_(k|k) = (I - K_k * H_k) * P_(k|k-1) */
 	phx_product(updateEngine->K, updateEngine->H, updateEngine->tmp4);
 	phx_sub(updateEngine->I, updateEngine->tmp4, NULL);
-	phx_product(updateEngine->I, stateEngine->cov_est, stateEngine->cov);
+	phx_product(updateEngine->I, &stateEngine->cov_est, &stateEngine->cov);
 
 	return 0;
 }

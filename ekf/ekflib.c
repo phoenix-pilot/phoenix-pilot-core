@@ -57,7 +57,7 @@ int ekf_init(void)
 	meas_imuCalib();
 	meas_baroCalib();
 
-	ekf_common.calib = meas_calibGet();
+	meas_calibGet(&ekf_common.calib);
 
 	return 0;
 }

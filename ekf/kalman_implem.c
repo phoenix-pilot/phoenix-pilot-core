@@ -133,7 +133,7 @@ static void init_state_vector(phmatrix_t *state, kalman_calib_t *calib)
 
 
 /* covariance matrox values inits */
-static void init_cov_vector(phmatrix_t *cov, kalman_calib_t *calib)
+static void init_cov_vector(phmatrix_t *cov)
 {
 	phx_zeroes(cov);
 	cov->data[cov->cols * ixx + ixx] = init_values.P_xerr * init_values.P_xerr;
@@ -169,7 +169,7 @@ vec_t last_a = { 0 };
 vec_t last_v = { 0 };
 
 /* State estimation function definition */
-static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, time_t timeStep)
+static void calcStateEstimation(phmatrix_t *state, phmatrix_t *state_est, time_t timeStep)
 {
 	float dt, dt2;
 	quat_t quat_q, quat_w, res;
@@ -288,23 +288,48 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t time
 
 
 /* initialization of prediction step matrix values */
-state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, time_t timeStep, kalman_calib_t *calib)
+int kmn_predInit(state_engine_t *engine, kalman_calib_t *calib)
 {
+	int err = 0;
+	phmatrix_t *Q;
+
 	/* matrix initialization */
-	phx_newmatrix(state, STATE_ROWS, STATE_COLS);
-	phx_newmatrix(state_est, STATE_ROWS, STATE_COLS);
+	if (err == 0) {
+		err = phx_newmatrix(&engine->state, STATE_ROWS, STATE_COLS);
+	}
+	if (err == 0) {
+		err = phx_newmatrix(&engine->state_est, STATE_ROWS, STATE_COLS);
+	}
+	if (err == 0) {
+		err = phx_newmatrix(&engine->cov, STATE_ROWS, STATE_ROWS);
+	}
+	if (err == 0) {
+		err = phx_newmatrix(&engine->cov_est, STATE_ROWS, STATE_ROWS);
+	}
+	if (err == 0) {
+		err = phx_newmatrix(&engine->F, STATE_ROWS, STATE_ROWS);
+	}
+	if (err == 0) {
+		err = phx_newmatrix(&engine->Q, STATE_ROWS, STATE_ROWS);
+	}
 
-	phx_newmatrix(cov, STATE_ROWS, STATE_ROWS);
-	phx_newmatrix(cov_est, STATE_ROWS, STATE_ROWS);
-	phx_newmatrix(F, STATE_ROWS, STATE_ROWS);
-	phx_newmatrix(Q, STATE_ROWS, STATE_ROWS);
+	if (err != 0) {
+		free(engine->state.data);
+		free(engine->state_est.data);
+		free(engine->cov.data);
+		free(engine->cov_est.data);
+		free(engine->F.data);
+		free(engine->Q.data);
 
-	init_state_vector(state, calib);
-	init_cov_vector(cov, calib);
+		return -1;
+	}
 
-	phx_zeroes(Q);
+	init_state_vector(&engine->state, calib);
+	init_cov_vector(&engine->cov);
 
-	/* acceleration process noise different for vertical and horizontal because different measurements are performed and different smoothing is neccessary */
+	/* prepare noise matrix Q */
+	phx_zeroes(&engine->Q);
+	Q = &engine->Q;
 	Q->data[Q->cols * ixx + ixx] = Q->data[Q->cols * ixy + ixy] = init_values.Q_xcov;
 	Q->data[Q->cols * ivx + ivx] = Q->data[Q->cols * ivy + ivy] = init_values.Q_vcov;
 
@@ -321,14 +346,9 @@ state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est
 	Q->data[Q->cols * ixz + ixz] = init_values.Q_hcov;
 	Q->data[Q->cols * ihv + ihv] = init_values.Q_pvcov;
 
-	return (state_engine_t) {
-		.state = state,
-		.state_est = state_est,
-		.cov = cov,
-		.cov_est = cov_est,
-		.F = F,
-		.Q = Q,
-		.getJacobian = calcPredictionJacobian,
-		.estimateState = calculateStateEstimation
-	};
+	/* save function pointers */
+	engine->estimateState = calcStateEstimation;
+	engine->getJacobian = calcPredictionJacobian;
+
+	return 0;
 }
