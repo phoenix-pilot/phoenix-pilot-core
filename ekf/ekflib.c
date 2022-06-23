@@ -51,7 +51,7 @@ int ekf_init(void)
 }
 
 
-static time_t get_dt(void)
+static time_t ekf_dtGet(void)
 {
 	time_t diff;
 
@@ -72,7 +72,7 @@ static void ekf_thread(void *arg)
 	/* Kalman loop */
 	gettime(&ekf_common.lastTime, NULL);
 	while (ekf_common.run == 1) {
-		timeStep = get_dt();
+		timeStep = ekf_dtGet();
 
 		/* state prediction procedure */
 		kalmanPredictionStep(&ekf_common.stateEngine, timeStep, 0);
@@ -98,7 +98,7 @@ void ekf_done(void)
 }
 
 
-void ekf_getstate(ekf_state_t *ekf_state)
+void ekf_stateGet(ekf_state_t *ekf_state)
 {
 	return;
 }
