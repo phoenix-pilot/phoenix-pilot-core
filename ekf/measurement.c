@@ -247,7 +247,9 @@ int acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *t
 {
 	sensor_event_t acc_evt, gyr_evt, mag_evt;
 
-	sensclient_sensImu(&acc_evt, &gyr_evt, &mag_evt);
+	if (sensclient_sensImu(&acc_evt, &gyr_evt, &mag_evt) < 0) {
+		return -1;
+	}
 
 	/* these timestamps do not need to be very accurate */
 	*timestamp = (acc_evt.timestamp + gyr_evt.timestamp + mag_evt.timestamp) / 3;
@@ -285,7 +287,9 @@ int acquireBaroMeasurements(float *pressure, float *temperature, uint64_t *times
 {
 	sensor_event_t baro_evt;
 
-	sensclient_sensBaro(&baro_evt);
+	if (sensclient_sensBaro(&baro_evt) < 0) {
+		return -1;
+	}
 
 	*timestamp = baro_evt.timestamp;
 	*temperature = baro_evt.baro.temp;
@@ -299,7 +303,9 @@ int acquireGpsMeasurement(vec_t *enu, vec_t *enu_speed, float *hdop)
 {
 	sensor_event_t gps_evt;
 
-	sensclient_sensGps(&gps_evt);
+	if (sensclient_sensGps(&gps_evt) < 0) {
+		return -1;
+	}
 
 	*enu = geo2enu(
 		(float)gps_evt.gps.lat / 1e7,
