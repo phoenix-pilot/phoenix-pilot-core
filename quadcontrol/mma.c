@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <syslog.h>
 #include <board_config.h>
 
 
@@ -68,6 +69,8 @@ void mma_control(float palt, float proll, float ppitch, float pyaw)
 		}
 		fflush(mma_common.files[i]);
 	}
+
+	syslog(LOG_INFO, "MMA pwm1: %f, pwm2: %f, pwm3: %f, pwm4: %f\n", pwm[0], pwm[1], pwm[2], pwm[3]);
 }
 
 
