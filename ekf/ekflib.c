@@ -50,7 +50,9 @@ struct {
 int ekf_init(void)
 {
 	ekf_common.run = 0;
-	sensc_init("/dev/sensors");
+	if (sensc_init("/dev/sensors") < 0) {
+		return -1;
+	}
 
 	meas_imuCalib();
 	meas_baroCalib();
