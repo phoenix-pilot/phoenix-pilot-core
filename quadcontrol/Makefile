@@ -5,5 +5,6 @@
 #
 
 NAME := quad-control
-LOCAL_SRCS := control.c pid.c
+LOCAL_SRCS := control.c pid.c mma.c
+DEP_LIBS := libekf
 include $(binary.mk)
