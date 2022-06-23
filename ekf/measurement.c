@@ -30,7 +30,7 @@
 #include "kalman_implem.h"
 
 #include <libsensors.h>
-#include "sensc_client.h"
+#include "sensc.h"
 #include "tools/rotas_dummy.h"
 #include "tools/phmatrix.h"
 

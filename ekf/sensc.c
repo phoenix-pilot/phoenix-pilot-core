@@ -6,7 +6,7 @@
 
 #include <libsensors.h>
 
-#include "sensc_client.h"
+#include "sensc.h"
 #include "tools/rotas_dummy.h"
 
 #define SENSORHUB_PIPES 3 /* number of connections with sensorhub */ 
