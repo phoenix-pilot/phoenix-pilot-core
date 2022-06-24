@@ -49,8 +49,6 @@ struct {
 
 int ekf_init(void)
 {
-	const kalman_calib_t *calib;
-
 	ekf_common.run = 0;
 	if (sensc_init("/dev/sensors") < 0) {
 		return -1;

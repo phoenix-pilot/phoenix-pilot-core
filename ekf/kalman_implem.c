@@ -289,8 +289,6 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t time
 /* initialization of prediction step matrix values */
 int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
 {
-	int err = 0;
-	float *tmp;
 	phmatrix_t *Q;
 
 
@@ -299,27 +297,27 @@ int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
 	}
 
 	if (phx_newmatrix(&engine->state_est, STATE_ROWS, STATE_COLS) != 0) {
-		kmn_predDeinit(&engine);
+		kmn_predDeinit(engine);
 		return -1;
 	}
 
 	if (phx_newmatrix(&engine->cov, STATE_ROWS, STATE_ROWS) != 0) {
-		kmn_predDeinit(&engine);
+		kmn_predDeinit(engine);
 		return -1;
 	}
 
 	if (phx_newmatrix(&engine->cov_est, STATE_ROWS, STATE_ROWS) != 0) {
-		kmn_predDeinit(&engine);
+		kmn_predDeinit(engine);
 		return -1;
 	}
 
 	if (phx_newmatrix(&engine->F, STATE_ROWS, STATE_ROWS) != 0) {
-		kmn_predDeinit(&engine);
+		kmn_predDeinit(engine);
 		return -1;
 	}
 
 	if (phx_newmatrix(&engine->Q, STATE_ROWS, STATE_ROWS) != 0) {
-		kmn_predDeinit(&engine);
+		kmn_predDeinit(engine);
 		return -1;
 	}
 
