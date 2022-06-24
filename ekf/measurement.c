@@ -34,8 +34,8 @@
 #define EARTH_SEMI_MINOR           6356752.3F
 #define EARTH_ECCENTRICITY_SQUARED 0.006694384F
 
-#define IMU_CALIB_AVG  2000
-#define BARO_CALIB_AVG 100
+#define IMU_CALIB_AVG  200
+#define BARO_CALIB_AVG 10
 
 static struct {
 	kalman_calib_t calib;
@@ -208,9 +208,9 @@ static void meas_gyr2si(sensor_event_t *evt, vec_t *vec)
 
 static void meas_mag2si(sensor_event_t *evt, vec_t *vec)
 {
-	vec->x = evt->mag.magX / 10000000.F;
-	vec->y = evt->mag.magY / 10000000.F;
-	vec->z = evt->mag.magZ / 10000000.F;
+	vec->x = evt->mag.magX;
+	vec->y = evt->mag.magY;
+	vec->z = evt->mag.magZ;
 }
 
 
@@ -294,13 +294,6 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 	meas_acc2si(&accEvt, accels); /* accelerations from mm/s^2 -> m/s^2 */
 	meas_gyr2si(&gyrEvt, gyros);  /* angulars from mrad/s -> rad/s */
 	meas_mag2si(&magEvt, mags);   /* only magnitude matters from geomagnetism */
-
-	/* accelerometer calibration */
-	meas_ellipCompensate(&accels->x, &accels->y, &accels->z, acc_calib1);
-	meas_ellipCompensate(&accels->x, &accels->y, &accels->z, acc_calib2);
-
-	/* magnetometer calibration */
-	meas_ellipCompensate(&mags->x, &mags->y, &mags->z, mag_calib1);
 
 	/* gyro niveling */
 	*gyros = vec_sub(gyros, &meas_common.calib.gyr_nivel);
