@@ -30,8 +30,14 @@ typedef struct {
 void phx_zeroes(phmatrix_t *A);
 
 
+int phx_newmatrix(phmatrix_t *matrix, int rows, int cols);
+
+
+void phx_matrixDestroy(phmatrix_t *matrix);
+
+
 /* sets the matrix data to diagonal 1s, rest is 0 */
-void phx_diag(phmatrix_t * A);
+void phx_diag(phmatrix_t *A);
 
 
 /* multiplies matrix terms by scalar */
@@ -39,7 +45,7 @@ void phx_scalar_product(phmatrix_t *A, float scalar);
 
 
 /* prints matrix A to standard output */
-void phx_print(phmatrix_t * A);
+void phx_print(phmatrix_t *A);
 
 
 /* transposes matrix A */
@@ -55,27 +61,27 @@ int phx_product_sparse(phmatrix_t *A, phmatrix_t *B, phmatrix_t *C);
 
 
 /* overwrites C with A * B * transposed(A), optimized for sparse A */
-int phx_sadwitch_product(phmatrix_t * A, phmatrix_t * B, phmatrix_t * C, phmatrix_t * tempC);
+int phx_sadwitch_product(phmatrix_t *A, phmatrix_t *B, phmatrix_t *C, phmatrix_t *tempC);
 
 
 /* phx_sadwitch_product() optimized for sparse A matrix */
-int phx_sadwitch_product_sparse(phmatrix_t * A, phmatrix_t * B, phmatrix_t * C, phmatrix_t * tempC);
+int phx_sadwitch_product_sparse(phmatrix_t *A, phmatrix_t *B, phmatrix_t *C, phmatrix_t *tempC);
 
 
 /* if C is not null perform C = A + B, otherwise A += B */
-int phx_add(phmatrix_t * A, phmatrix_t * B, phmatrix_t * C);
+int phx_add(phmatrix_t *A, phmatrix_t *B, phmatrix_t *C);
 
 
 /* if C is not null perform C = A - B, otherwise A += B */
-int phx_sub(phmatrix_t * A, phmatrix_t * B, phmatrix_t * C);
+int phx_sub(phmatrix_t *A, phmatrix_t *B, phmatrix_t *C);
 
 
 /* compares contents of A and B */
-int pxh_compare(phmatrix_t * A, phmatrix_t * B);
+int pxh_compare(phmatrix_t *A, phmatrix_t *B);
 
 
 /* calculates inverse matrix */
-int phx_inverse(phmatrix_t * A, phmatrix_t * B, float * buf, int buflen);
+int phx_inverse(phmatrix_t *A, phmatrix_t *B, float *buf, int buflen);
 
 
 /* writes submatrix B into matrix A beginning from position A(row, col). Works only for non-transposed matrices */

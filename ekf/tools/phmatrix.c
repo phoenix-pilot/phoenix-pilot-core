@@ -22,6 +22,32 @@ float * buf = NULL;
 unsigned int buflen = 0;
 
 
+int phx_newmatrix(phmatrix_t *matrix, int rows, int cols)
+{
+	float *data;
+
+	data = calloc(rows * cols, sizeof(float));
+	if (data == NULL) {
+		return -1;
+	}
+
+	matrix->rows = rows;
+	matrix->cols = cols;
+	matrix->transposed = 0;
+	matrix->data = data;
+
+	return 0;
+}
+
+void phx_matrixDestroy(phmatrix_t *matrix)
+{
+	if (matrix->data != NULL) {
+		free(matrix->data);
+		matrix->data = NULL;
+	}
+}
+
+
 void phx_print(phmatrix_t * A)
 {
 	unsigned int row, col;

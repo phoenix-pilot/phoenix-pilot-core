@@ -293,70 +293,33 @@ int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
 	float *tmp;
 	phmatrix_t *Q;
 
-	/* matrix initialization */
-	if (err == 0) {
-		tmp = calloc(STATE_ROWS * STATE_COLS, sizeof(float));
-		if (tmp != NULL) {
-			engine->state = (phmatrix_t) { .rows = STATE_ROWS, .cols = STATE_COLS, .transposed = 0, .data = tmp };
-		}
-		else {
-			err = 1;
-		}
-	}
-	if (err == 0) {
-		tmp = calloc(STATE_ROWS * STATE_COLS, sizeof(float));
-		if (tmp != NULL) {
-			engine->state_est = (phmatrix_t) { .rows = STATE_ROWS, .cols = STATE_COLS, .transposed = 0, .data = tmp };
-		}
-		else {
-			err = 1;
-		}
-	}
-	if (err == 0) {
-		tmp = calloc(STATE_ROWS * STATE_ROWS, sizeof(float));
-		if (tmp != NULL) {
-			engine->cov = (phmatrix_t) { .rows = STATE_ROWS, .cols = STATE_ROWS, .transposed = 0, .data = tmp };
-		}
-		else {
-			err = 1;
-		}
-	}
-	if (err == 0) {
-		tmp = calloc(STATE_ROWS * STATE_ROWS, sizeof(float));
-		if (tmp != NULL) {
-			engine->cov_est = (phmatrix_t) { .rows = STATE_ROWS, .cols = STATE_ROWS, .transposed = 0, .data = tmp };
-		}
-		else {
-			err = 1;
-		}
-	}
-	if (err == 0) {
-		tmp = calloc(STATE_ROWS * STATE_ROWS, sizeof(float));
-		if (tmp != NULL) {
-			engine->F = (phmatrix_t) { .rows = STATE_ROWS, .cols = STATE_ROWS, .transposed = 0, .data = tmp };
-		}
-		else {
-			err = 1;
-		}
-	}
-	if (err == 0) {
-		tmp = calloc(STATE_ROWS * STATE_ROWS, sizeof(float));
-		if (tmp != NULL) {
-			engine->Q = (phmatrix_t) { .rows = STATE_ROWS, .cols = STATE_ROWS, .transposed = 0, .data = tmp };
-		}
-		else {
-			err = 1;
-		}
+
+	if (phx_newmatrix(&engine->state, STATE_ROWS, STATE_COLS) != 0) {
+		return -1;
 	}
 
-	if (err != 0) {
-		free(engine->state.data);
-		free(engine->state_est.data);
-		free(engine->cov.data);
-		free(engine->cov_est.data);
-		free(engine->F.data);
-		free(engine->Q.data);
+	if (phx_newmatrix(&engine->state_est, STATE_ROWS, STATE_COLS) != 0) {
+		kmn_predDeinit(&engine);
+		return -1;
+	}
 
+	if (phx_newmatrix(&engine->cov, STATE_ROWS, STATE_ROWS) != 0) {
+		kmn_predDeinit(&engine);
+		return -1;
+	}
+
+	if (phx_newmatrix(&engine->cov_est, STATE_ROWS, STATE_ROWS) != 0) {
+		kmn_predDeinit(&engine);
+		return -1;
+	}
+
+	if (phx_newmatrix(&engine->F, STATE_ROWS, STATE_ROWS) != 0) {
+		kmn_predDeinit(&engine);
+		return -1;
+	}
+
+	if (phx_newmatrix(&engine->Q, STATE_ROWS, STATE_ROWS) != 0) {
+		kmn_predDeinit(&engine);
 		return -1;
 	}
 
@@ -392,10 +355,10 @@ int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
 
 void kmn_predDeinit(state_engine_t *engine)
 {
-	free(engine->state.data);
-	free(engine->state_est.data);
-	free(engine->cov.data);
-	free(engine->cov_est.data);
-	free(engine->F.data);
-	free(engine->Q.data);
+	phx_matrixDestroy(&engine->state);
+	phx_matrixDestroy(&engine->state_est);
+	phx_matrixDestroy(&engine->cov);
+	phx_matrixDestroy(&engine->cov_est);
+	phx_matrixDestroy(&engine->F);
+	phx_matrixDestroy(&engine->Q);
 }

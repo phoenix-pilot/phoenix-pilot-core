@@ -22,7 +22,7 @@
 
 static void printUavVersors(quat_t *q, vec_t *start)
 {
-	vec_t x = {.x = 1, .y = 0, .z = 0 }, y = { .x = 0, .y = 1, .z = 0 }, z =  {.x = 0, .y = 0, .z = 1 };
+	vec_t x = { .x = 1, .y = 0, .z = 0 }, y = { .x = 0, .y = 1, .z = 0 }, z = { .x = 0, .y = 0, .z = 1 };
 
 	quat_vecrot(&x, q);
 	quat_vecrot(&y, q);
@@ -35,10 +35,8 @@ int main(int argc, char **argv)
 {
 	ekf_state_t uavState;
 	quat_t q;
-	vec_t start;
+	vec_t start = { 0 };
 	int i = 0;
-
-	start = (vec_t) { .x = 0, .y = 0, .z = 0 };
 
 	if (ekf_init() == 0) {
 		ekf_run();
