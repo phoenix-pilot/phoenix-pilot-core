@@ -43,7 +43,7 @@ kalman_init_t init_values = {
 	.R_acov = 0.001,
 	.R_wcov = 0.01,
 	.R_mcov = 10,
-	.R_qcov = 1. / DEG2RAD,
+	.R_qcov = 0.1,
 
 	.R_pcov = 0.1,
 	.R_hcov = 1,

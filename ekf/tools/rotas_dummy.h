@@ -123,7 +123,7 @@ vec_t * quat_vecrot(vec_t * vec, quat_t * rotquat);
 quat_t quat_framerot(vec_t *v1, vec_t *v2, vec_t *w1, vec_t *w2, quat_t * help_q);
 
 
-/* returns rotation euler angles vector (heading, pitch, bank) from rotation quaternion */
+/* returns rotation euler angles vector (roll/bank, pitch, heading/yaw) from rotation quaternion */
 vec_t quat_quat2euler(quat_t q);
 
 #endif
