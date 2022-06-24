@@ -40,7 +40,7 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 	float hdop;
 
 	/* if there is no gps measurement available return NULL */
-	if (acquireGpsMeasurement(&enu_pos, &enu_speed, &hdop) < 0) {
+	if (meas_gpsGet(&enu_pos, &enu_speed, &hdop) < 0) {
 		return NULL;
 	}
 	//printf("GPS: x=%f, y=%f, hdop: %f\n", enu_pos.x, enu_pos.y, hdop);
@@ -90,17 +90,13 @@ static void gpsUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
 }
 
 
-update_engine_t setupGpsUpdateEngine(phmatrix_t *H, phmatrix_t *R)
+void kmn_gpsEngInit(update_engine_t *engine)
 {
-	update_engine_t e;
-
 	gpsUpdateInitializations(&ekf_H, &ekf_R);
 
-	POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(e)
+	POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(engine)
 
-	e.getData = getMeasurement;
-	e.getJacobian = getMeasurementPredictionJacobian;
-	e.predictMeasurements = getMeasurementPrediction;
-
-	return e;
+	engine->getData = getMeasurement;
+	engine->getJacobian = getMeasurementPredictionJacobian;
+	engine->predictMeasurements = getMeasurementPrediction;
 }

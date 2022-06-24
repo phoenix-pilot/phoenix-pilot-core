@@ -24,6 +24,12 @@ typedef struct {
 	float pitch; /* (-PI/2, PI/2) */
 	float yaw;   /* (-PI, PI) */
 	float roll;  /* (-PI, PI) */
+
+	/* vehicle attitude as quaternion */
+	float q0;
+	float q1;
+	float q2;
+	float q3;
 } ekf_state_t;
 
 extern int ekf_init(void);

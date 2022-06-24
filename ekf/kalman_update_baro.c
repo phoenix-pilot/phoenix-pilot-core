@@ -91,23 +91,23 @@ static float filterBaroSpeed(void)
 static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, time_t timeStep)
 {
 	float pressure, temp;
-	uint64_t curr_tstamp;
-	static uint64_t last_tstamp;
+	uint64_t currTstamp;
+	static uint64_t lastTstamp;
 
 	/* if there is no pressure measurement available return NULL */
-	if (acquireBaroMeasurements(&pressure, &temp, &curr_tstamp) < 0) {
+	if (meas_baroGet(&pressure, &temp, &currTstamp) < 0) {
 		return NULL;
 	}
 
-	if (curr_tstamp <= last_tstamp) {
+	if (currTstamp <= lastTstamp) {
 		return NULL;
 	}
 
-	insertToBaroMemory(hz, (float)(curr_tstamp - last_tstamp));
-	last_tstamp = curr_tstamp;
+	insertToBaroMemory(hz, (float)(currTstamp - lastTstamp));
+	lastTstamp = currTstamp;
 
 	phx_zeroes(Z);
-	Z->data[imhz] = 8453.669 * log(base_pressure / pressure);
+	Z->data[imhz] = 8453.669 * log(meas_calibPressGet() / pressure);
 	Z->data[imxz] = 0.8 * hz + 0.2 * xz;
 	Z->data[imhv] = filterBaroSpeed();
 	Z->data[imvz] = hv;
@@ -150,17 +150,13 @@ static void baroUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
 }
 
 
-update_engine_t setupBaroUpdateEngine(phmatrix_t *H, phmatrix_t *R)
+void kmn_baroEngInit(update_engine_t *engine)
 {
-	update_engine_t e;
-
 	baroUpdateInitializations(&ekf_H, &ekf_R);
 
-	POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(e)
+	POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(engine)
 
-	e.getData = getMeasurement;
-	e.getJacobian = getMeasurementPredictionJacobian;
-	e.predictMeasurements = getMeasurementPrediction;
-
-	return e;
+	engine->getData = getMeasurement;
+	engine->getJacobian = getMeasurementPredictionJacobian;
+	engine->predictMeasurements = getMeasurementPrediction;
 }

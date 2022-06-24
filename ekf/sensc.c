@@ -1,3 +1,18 @@
+/*
+ * Phoenix-Pilot
+ *
+ * extended kalman filter
+ * 
+ * sensorhub client functions implementations
+ *
+ * Copyright 2022 Phoenix Systems
+ * Author: Mateusz Niewiadomski
+ *
+ * This file is part of Phoenix-Pilot software
+ *
+ * %LICENSE%
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -9,9 +24,11 @@
 #include "sensc.h"
 #include "tools/rotas_dummy.h"
 
-#define SENSORHUB_PIPES 3 /* number of connections with sensorhub */ 
+#define SENSORHUB_PIPES 3 /* number of connections with sensorhub */
 
-typedef enum { fd_imuId = 0, fd_baroId, fd_gpsId} fd_id_t;
+typedef enum { fd_imuId = 0,
+	fd_baroId,
+	fd_gpsId } fd_id_t;
 
 struct {
 	sensors_data_t *data;
@@ -91,10 +108,10 @@ int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 	/* read from sensorhub */
 	if (read(sensc_common.fd[fd_imuId], sensc_common.buff, sizeof(sensc_common.buff)) < 0) {
 		return -1;
-	} 
+	}
 
 	/* decompose sensorhub output */
-	for (j = 0; (j < data->size) && (flag != 0) ; ++j) {
+	for (j = 0; (j < data->size) && (flag != 0); ++j) {
 		switch (data->events[j].type) {
 			case SENSOR_TYPE_ACCEL:
 				*accelEvt = data->events[j];
@@ -102,12 +119,12 @@ int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 				break;
 
 			case SENSOR_TYPE_MAG:
-				*gyroEvt = data->events[j];
+				*magEvt = data->events[j];
 				flag &= ~SENSOR_TYPE_MAG;
 				break;
 
 			case SENSOR_TYPE_GYRO:
-				*magEvt = data->events[j];
+				*gyroEvt = data->events[j];
 				flag &= ~SENSOR_TYPE_GYRO;
 				break;
 
@@ -128,7 +145,7 @@ int sensc_baroGet(sensor_event_t *baroEvt)
 	/* read from sensorhub */
 	if (read(sensc_common.fd[fd_baroId], sensc_common.buff, sizeof(sensc_common.buff)) < 0) {
 		return -1;
-	} 
+	}
 
 	if ((data->size > 0) && (data->events[0].type == SENSOR_TYPE_BARO)) {
 		*baroEvt = data->events[0];
@@ -147,7 +164,7 @@ int sensc_gpsGet(sensor_event_t *gpsEvt)
 	/* read from sensorhub */
 	if (read(sensc_common.fd[fd_baroId], sensc_common.buff, sizeof(sensc_common.buff)) < 0) {
 		return -1;
-	} 
+	}
 
 	if ((data->size > 0) && (data->events[0].type == SENSOR_TYPE_GPS)) {
 		*gpsEvt = data->events[0];

@@ -20,6 +20,7 @@
 
 #include "kalman_core.h"
 #include "kalman_implem.h"
+#include "sensc.h"
 
 #include "tools/rotas_dummy.h"
 #include "tools/phmatrix.h"
@@ -38,15 +39,32 @@ struct {
 	phmatrix_t F;
 	phmatrix_t Q;
 
-	unsigned int run;             /* proceed with ekf loop */
-	time_t lastTime;    /* last kalman loop time */
-	time_t currTime;    /* current kalman loop time */
+	volatile unsigned int run; /* proceed with ekf loop */
+	time_t lastTime;           /* last kalman loop time */
+	time_t currTime;           /* current kalman loop time */
+
+	char stack[8192];
 } ekf_common;
 
 
 int ekf_init(void)
 {
+	const kalman_calib_t *calib;
+
 	ekf_common.run = 0;
+	if (sensc_init("/dev/sensors") < 0) {
+		return -1;
+	}
+
+	meas_imuCalib();
+	meas_baroCalib();
+
+	if (kmn_predInit(&ekf_common.stateEngine, meas_calibGet()) < 0) {
+		printf("failed to initialize prediction matrices\n");
+		return -1;
+	}
+	kmn_imuEngInit(&ekf_common.imuEngine);
+	kmn_baroEngInit(&ekf_common.baroEngine);
 
 	return 0;
 }
@@ -68,7 +86,9 @@ static void ekf_thread(void *arg)
 {
 	time_t timeStep;
 
-	__atomic_store_n(&(ekf_common.run), 1, __ATOMIC_RELAXED);
+	printf("ekf: starting ekf thread\n");
+
+	ekf_common.run = 1;
 
 	/* Kalman loop */
 	gettime(&ekf_common.lastTime, NULL);
@@ -83,23 +103,49 @@ static void ekf_thread(void *arg)
 		}
 	}
 
-	ekf_common.run = 0;
+	printf("ekf: ekf thread stopped!\n");
+	ekf_common.run = -1;
 }
 
 
 int ekf_run(void)
 {
-	return 0;
+	return beginthread(ekf_thread, 4, ekf_common.stack, sizeof(ekf_common.stack), NULL);
 }
 
 
 void ekf_done(void)
 {
-	__atomic_store_n(&(ekf_common.run), 0, __ATOMIC_RELAXED);
+	if (ekf_common.run == 1) {
+		ekf_common.run = 0;
+		while (ekf_common.run == 0) {
+			usleep(1000);
+		}
+		usleep(1000);
+		kmn_predDeinit(&ekf_common.stateEngine);
+	}
 }
 
 
 void ekf_stateGet(ekf_state_t *ekf_state)
 {
-	/* empty */
+	quat_t q;
+	vec_t e;
+
+	/* save quaternion attitude */
+	q.a = ekf_state->q0 = ekf_common.stateEngine.state.data[iqa];
+	q.i = ekf_state->q1 = ekf_common.stateEngine.state.data[iqb];
+	q.j = ekf_state->q2 = ekf_common.stateEngine.state.data[iqc];
+	q.k = ekf_state->q3 = ekf_common.stateEngine.state.data[iqd];
+
+	/* calculate and save euler attitude */
+	e = quat_quat2euler(q);
+	ekf_state->yaw = e.x;
+	ekf_state->pitch = e.y;
+	ekf_state->roll = e.z;
+
+	/* save position */
+	ekf_state->enuX = ekf_common.stateEngine.state.data[ixx];
+	ekf_state->enuX = ekf_common.stateEngine.state.data[ixy];
+	ekf_state->enuX = ekf_common.stateEngine.state.data[ixz];
 }

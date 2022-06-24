@@ -160,44 +160,57 @@ typedef struct {
 } geodetic_t;
 
 /* initial values calculated during calibration */
-quat_t init_q;
-vec_t init_m, gyr_nivel, gpsRefEcef;
-float base_pressure, base_temp;
-int verbose;
-geodetic_t gpsRefGeodetic;
+typedef struct {
+	quat_t init_q;
+	vec_t init_m;
+	vec_t gyr_nivel;
+	vec_t gpsRefEcef;
+	float base_pressure;
+	float base_temp;
+	geodetic_t gpsRefGeodetic;
+} kalman_calib_t;
 
+int verbose;
 
 /* CALIBRATIONS */
+/* TODO: move to separate, calibration-related header */
 
 void read_config(void);
 
-void imu_calibrate_acc_gyr_mag(void);
+void meas_imuCalib(void);
 
-void gps_calibrate(void);
+void meas_baroCalib(void);
+
+const kalman_calib_t *meas_calibGet(void);
+
+float meas_calibPressGet(void);
 
 
 /* MEASUREMENT ACQUISITION */
 
-int acquireImuMeasurements(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp);
+int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp);
 
-int acquireBaroMeasurements(float *pressure, float *temperature, uint64_t *dtBaroUs);
+int meas_baroGet(float *pressure, float *temperature, uint64_t *dtBaroUs);
 
-int acquireGpsMeasurement(vec_t *enu, vec_t *enu_speed, float *hdop);
+int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop);
 
 
 /* PHMATRIX MATRICES INITIALIZATIONS */
 
 /* initializes matices related to state prediction step of kalman filter */
-state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, time_t timeStep);
+int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib);
+
+/* deinitializes prediction matrices */
+void kmn_predDeinit(state_engine_t *engine);
 
 /* imu update engine composer */
-update_engine_t setupImuUpdateEngine(phmatrix_t *H, phmatrix_t *R);
+void kmn_imuEngInit(update_engine_t *engine);
 
 /* barometer update engine composer */
-update_engine_t setupBaroUpdateEngine(phmatrix_t *H, phmatrix_t *R);
+void kmn_baroEngInit(update_engine_t *engine);
 
 /* GPS update engine composer */
-update_engine_t setupGpsUpdateEngine(phmatrix_t *H, phmatrix_t *R);
+void kmn_gpsEngInit(update_engine_t *engine);
 
 
 #endif

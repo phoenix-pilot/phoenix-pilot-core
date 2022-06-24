@@ -54,21 +54,21 @@
 	static unsigned int ekf_S_inv_buff_len = (MEASUREMENT_SIZE) * (MEASUREMENT_SIZE)*2;                                              /* S inversion buffer size */
 
 #define POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(measurementEngine) \
-	(measurementEngine.Z) = &ekf_Z; \
-	(measurementEngine.Y) = &ekf_Y; \
-	(measurementEngine.S) = &ekf_S; \
-	(measurementEngine.K) = &ekf_K; \
-	(measurementEngine.I) = &ekf_I; \
-	(measurementEngine.H) = &ekf_H; \
-	(measurementEngine.R) = &ekf_R; \
-	(measurementEngine.hx) = &ekf_hx; \
-	(measurementEngine.invBuf) = ekf_S_inv_buff; \
-	(measurementEngine.invBufLen) = ekf_S_inv_buff_len; \
-	(measurementEngine.tmp1) = &ekf_tmp1; \
-	(measurementEngine.tmp2) = &ekf_tmp2; \
-	(measurementEngine.tmp3) = &ekf_tmp3; \
-	(measurementEngine.tmp4) = &ekf_tmp4; \
-	(measurementEngine.tmp5) = &ekf_tmp5;
+	(measurementEngine->Z) = &ekf_Z; \
+	(measurementEngine->Y) = &ekf_Y; \
+	(measurementEngine->S) = &ekf_S; \
+	(measurementEngine->K) = &ekf_K; \
+	(measurementEngine->I) = &ekf_I; \
+	(measurementEngine->H) = &ekf_H; \
+	(measurementEngine->R) = &ekf_R; \
+	(measurementEngine->hx) = &ekf_hx; \
+	(measurementEngine->invBuf) = ekf_S_inv_buff; \
+	(measurementEngine->invBufLen) = ekf_S_inv_buff_len; \
+	(measurementEngine->tmp1) = &ekf_tmp1; \
+	(measurementEngine->tmp2) = &ekf_tmp2; \
+	(measurementEngine->tmp3) = &ekf_tmp3; \
+	(measurementEngine->tmp4) = &ekf_tmp4; \
+	(measurementEngine->tmp5) = &ekf_tmp5;
 
 
 /* Function that acquires measuremnets and puts it into Z matrix */
@@ -122,13 +122,13 @@ typedef struct {
 
 
 typedef struct {
-	phmatrix_t *state;
-	phmatrix_t *state_est;
-	phmatrix_t *cov;
-	phmatrix_t *cov_est;
+	phmatrix_t state;
+	phmatrix_t state_est;
+	phmatrix_t cov;
+	phmatrix_t cov_est;
 
-	phmatrix_t *F;
-	phmatrix_t *Q;
+	phmatrix_t F;
+	phmatrix_t Q;
 
 	stateEstimation estimateState;
 	updateJacobian getJacobian;

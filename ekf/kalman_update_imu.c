@@ -75,7 +75,7 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 		Angular rates in rad/s
 		magnetic flux field in uT 
 	*/
-	acquireImuMeasurements(&ameas, &wmeas, &mmeas, &timestamp);
+	meas_imuGet(&ameas, &wmeas, &mmeas, &timestamp);
 	addMemEntry(&ameas);
 	ameas = getMemoryMean();
 
@@ -195,17 +195,13 @@ void imuUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
 }
 
 
-update_engine_t setupImuUpdateEngine(phmatrix_t *H, phmatrix_t *R)
+void kmn_imuEngInit(update_engine_t *engine)
 {
-	update_engine_t e;
-
 	imuUpdateInitializations(&ekf_H, &ekf_R);
 
-	POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(e)
+	POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(engine)
 
-	e.getData = getMeasurement;
-	e.getJacobian = getMeasurementPredictionJacobian;
-	e.predictMeasurements = getMeasurementPrediction;
-
-	return e;
+	engine->getData = getMeasurement;
+	engine->getJacobian = getMeasurementPredictionJacobian;
+	engine->predictMeasurements = getMeasurementPrediction;
 }

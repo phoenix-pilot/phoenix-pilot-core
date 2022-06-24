@@ -21,29 +21,30 @@
 float * buf = NULL;
 unsigned int buflen = 0;
 
-/* dynamically allocate matrix */
-void phx_newmatrix(phmatrix_t * matrix, int rows, int cols)
-{
-	float * data = calloc(rows * cols, sizeof(float));
-	phx_assign(matrix, rows, cols, data);
-}
 
-/*deallocate matrix */
-void phx_destroy(phmatrix_t * matrix)
+int phx_newmatrix(phmatrix_t *matrix, int rows, int cols)
 {
-	free(matrix->data);
-}
+	float *data;
 
-int phx_assign(phmatrix_t * matrix, int m, int n, float * data)
-{
-	if (data != NULL) {
-		matrix->rows = m;
-		matrix->cols = n;
-		matrix->data = data;
-		matrix->transposed = 0;
-		return 0;
+	data = calloc(rows * cols, sizeof(float));
+	if (data == NULL) {
+		return -1;
 	}
-	return -1;
+
+	matrix->rows = rows;
+	matrix->cols = cols;
+	matrix->transposed = 0;
+	matrix->data = data;
+
+	return 0;
+}
+
+void phx_matrixDestroy(phmatrix_t *matrix)
+{
+	if (matrix->data != NULL) {
+		free(matrix->data);
+		matrix->data = NULL;
+	}
 }
 
 
@@ -399,12 +400,12 @@ int phx_inverse(phmatrix_t * A, phmatrix_t * B, float * buf, int buflen)
 	if (A->transposed) {
 		rows = A->cols;
 		cols = A->rows;
-		phx_assign(&C, cols, rows * 2, buf);
+		C = (phmatrix_t) { .rows = cols, .cols = rows * 2, .data = buf };
 	}
 	else {
 		rows = A->rows;
 		cols = A->cols;
-		phx_assign(&C, rows, cols * 2, buf);
+		C = (phmatrix_t) { .rows = rows, .cols = cols * 2, .data = buf };
 	}
 	memset(C.data, 0, sizeof(float) * buflen);
 

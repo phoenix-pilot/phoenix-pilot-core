@@ -31,9 +31,9 @@
 kalman_init_t init_values = {
 	.verbose = 0,
 
-	.P_xerr = 0.1,            /* 0.1 m */
-	.P_verr = 0.1,            /* 0.1 m/s */
-	.P_aerr = 0.01,           /* 0.001 m/s^2 */
+	.P_xerr = 0.1,             /* 0.1 m */
+	.P_verr = 0.1,             /* 0.1 m/s */
+	.P_aerr = 0.01,            /* 0.001 m/s^2 */
 	.P_werr = DEG2RAD,         /* 1 degree */
 	.P_merr = 300,             /* 300 uT */
 	.P_qaerr = 10 * DEG2RAD,   /* 10 degrees */
@@ -108,7 +108,7 @@ void read_config(void)
 
 
 /* state vectors values init */
-static void init_state_vector(phmatrix_t *state)
+static void init_state_vector(phmatrix_t *state, const kalman_calib_t *calib)
 {
 	state->data[ixx] = state->data[ixy] = state->data[ixz] = 0; /* start position at [0,0,0] */
 	state->data[ivx] = state->data[ivy] = state->data[ivz] = 0; /* start velocity at [0,0,0] */
@@ -116,15 +116,15 @@ static void init_state_vector(phmatrix_t *state)
 	state->data[iwx] = state->data[iwy] = state->data[iwz] = 0; /* start angular speed at [0,0,0] */
 
 	/* start rotation at identity quaternion */
-	state->data[iqa] = init_q.a;
-	state->data[iqb] = init_q.i;
-	state->data[iqc] = init_q.j;
-	state->data[iqd] = init_q.k;
+	state->data[iqa] = calib->init_q.a;
+	state->data[iqb] = calib->init_q.i;
+	state->data[iqc] = calib->init_q.j;
+	state->data[iqd] = calib->init_q.k;
 
 	/* start magnetic field as calibrated */
-	state->data[imx] = init_m.x;
-	state->data[imx] = init_m.y;
-	state->data[imx] = init_m.z;
+	state->data[imx] = calib->init_m.x;
+	state->data[imx] = calib->init_m.y;
+	state->data[imx] = calib->init_m.z;
 
 	/* start pressure set to 1013 hPa */
 	state->data[ihz] = 0;
@@ -169,7 +169,7 @@ vec_t last_a = { 0 };
 vec_t last_v = { 0 };
 
 /* State estimation function definition */
-static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, time_t timeStep)
+static void calcStateEstimation(phmatrix_t *state, phmatrix_t *state_est, time_t timeStep)
 {
 	float dt, dt2;
 	quat_t quat_q, quat_w, res;
@@ -231,13 +231,14 @@ static void calculateStateEstimation(phmatrix_t *state, phmatrix_t *state_est, t
 static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t timeStep)
 {
 	float dt, dt2;
-
-	dt = timeStep / 1000000.;
-	dt2 = dt / 2; /* helper value */
-
+	/* differentials matrices */
+	phmatrix_t dfqdq, dfqdw;
 	/* diagonal matrix */
 	float I33_data[9] = { 0 };
 	phmatrix_t I33 = { .rows = 3, .cols = 3, .transposed = 0, .data = I33_data };
+
+	dt = timeStep / 1000000.;
+	dt2 = dt / 2; /* helper value */
 
 	/* derrivative submatrix of (dfq / dq) of size 4x4 */
 	float wxdt2 = wx * dt2, wydt2 = wy * dt2, wzdt2 = wz * dt2;
@@ -255,11 +256,9 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t time
 		-qddt2, qadt2, qbdt2,
 		qcdt2, -qbdt2, qadt2
 	};
-	/* differentials matrices */
-	phmatrix_t dfqdq, dfqdw;
 
-	phx_assign(&dfqdq, 4, 4, data_dfqdq);
-	phx_assign(&dfqdw, 4, 3, data_dfqdw);
+	dfqdq = (phmatrix_t) { .rows = 4, .cols = 4, .transposed = 0, .data = data_dfqdq };
+	dfqdw = (phmatrix_t) { .rows = 4, .cols = 3, .transposed = 0, .data = data_dfqdw };
 
 	phx_diag(&I33);
 
@@ -288,23 +287,48 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t time
 
 
 /* initialization of prediction step matrix values */
-state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est, phmatrix_t *cov, phmatrix_t *cov_est, phmatrix_t *F, phmatrix_t *Q, time_t timeStep)
+int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
 {
-	/* matrix initialization */
-	phx_newmatrix(state, STATE_ROWS, STATE_COLS);
-	phx_newmatrix(state_est, STATE_ROWS, STATE_COLS);
+	int err = 0;
+	float *tmp;
+	phmatrix_t *Q;
 
-	phx_newmatrix(cov, STATE_ROWS, STATE_ROWS);
-	phx_newmatrix(cov_est, STATE_ROWS, STATE_ROWS);
-	phx_newmatrix(F, STATE_ROWS, STATE_ROWS);
-	phx_newmatrix(Q, STATE_ROWS, STATE_ROWS);
 
-	init_state_vector(state);
-	init_cov_vector(cov);
+	if (phx_newmatrix(&engine->state, STATE_ROWS, STATE_COLS) != 0) {
+		return -1;
+	}
 
-	phx_zeroes(Q);
+	if (phx_newmatrix(&engine->state_est, STATE_ROWS, STATE_COLS) != 0) {
+		kmn_predDeinit(&engine);
+		return -1;
+	}
 
-	/* acceleration process noise different for vertical and horizontal because different measurements are performed and different smoothing is neccessary */
+	if (phx_newmatrix(&engine->cov, STATE_ROWS, STATE_ROWS) != 0) {
+		kmn_predDeinit(&engine);
+		return -1;
+	}
+
+	if (phx_newmatrix(&engine->cov_est, STATE_ROWS, STATE_ROWS) != 0) {
+		kmn_predDeinit(&engine);
+		return -1;
+	}
+
+	if (phx_newmatrix(&engine->F, STATE_ROWS, STATE_ROWS) != 0) {
+		kmn_predDeinit(&engine);
+		return -1;
+	}
+
+	if (phx_newmatrix(&engine->Q, STATE_ROWS, STATE_ROWS) != 0) {
+		kmn_predDeinit(&engine);
+		return -1;
+	}
+
+	init_state_vector(&engine->state, calib);
+	init_cov_vector(&engine->cov);
+
+	/* prepare noise matrix Q */
+	phx_zeroes(&engine->Q);
+	Q = &engine->Q;
 	Q->data[Q->cols * ixx + ixx] = Q->data[Q->cols * ixy + ixy] = init_values.Q_xcov;
 	Q->data[Q->cols * ivx + ivx] = Q->data[Q->cols * ivy + ivy] = init_values.Q_vcov;
 
@@ -321,14 +345,20 @@ state_engine_t init_prediction_matrices(phmatrix_t *state, phmatrix_t *state_est
 	Q->data[Q->cols * ixz + ixz] = init_values.Q_hcov;
 	Q->data[Q->cols * ihv + ihv] = init_values.Q_pvcov;
 
-	return (state_engine_t) {
-		.state = state,
-		.state_est = state_est,
-		.cov = cov,
-		.cov_est = cov_est,
-		.F = F,
-		.Q = Q,
-		.getJacobian = calcPredictionJacobian,
-		.estimateState = calculateStateEstimation
-	};
+	/* save function pointers */
+	engine->estimateState = calcStateEstimation;
+	engine->getJacobian = calcPredictionJacobian;
+
+	return 0;
+}
+
+
+void kmn_predDeinit(state_engine_t *engine)
+{
+	phx_matrixDestroy(&engine->state);
+	phx_matrixDestroy(&engine->state_est);
+	phx_matrixDestroy(&engine->cov);
+	phx_matrixDestroy(&engine->cov_est);
+	phx_matrixDestroy(&engine->F);
+	phx_matrixDestroy(&engine->Q);
 }
