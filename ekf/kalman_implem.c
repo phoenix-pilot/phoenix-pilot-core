@@ -31,9 +31,9 @@
 kalman_init_t init_values = {
 	.verbose = 0,
 
-	.P_xerr = 0.1,            /* 0.1 m */
-	.P_verr = 0.1,            /* 0.1 m/s */
-	.P_aerr = 0.01,           /* 0.001 m/s^2 */
+	.P_xerr = 0.1,             /* 0.1 m */
+	.P_verr = 0.1,             /* 0.1 m/s */
+	.P_aerr = 0.01,            /* 0.001 m/s^2 */
 	.P_werr = DEG2RAD,         /* 1 degree */
 	.P_merr = 300,             /* 300 uT */
 	.P_qaerr = 10 * DEG2RAD,   /* 10 degrees */
@@ -231,13 +231,14 @@ static void calcStateEstimation(phmatrix_t *state, phmatrix_t *state_est, time_t
 static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t timeStep)
 {
 	float dt, dt2;
-
-	dt = timeStep / 1000000.;
-	dt2 = dt / 2; /* helper value */
-
+	/* differentials matrices */
+	phmatrix_t dfqdq, dfqdw;
 	/* diagonal matrix */
 	float I33_data[9] = { 0 };
 	phmatrix_t I33 = { .rows = 3, .cols = 3, .transposed = 0, .data = I33_data };
+
+	dt = timeStep / 1000000.;
+	dt2 = dt / 2; /* helper value */
 
 	/* derrivative submatrix of (dfq / dq) of size 4x4 */
 	float wxdt2 = wx * dt2, wydt2 = wy * dt2, wzdt2 = wz * dt2;
@@ -255,11 +256,9 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t time
 		-qddt2, qadt2, qbdt2,
 		qcdt2, -qbdt2, qadt2
 	};
-	/* differentials matrices */
-	phmatrix_t dfqdq, dfqdw;
 
-	phx_assign(&dfqdq, 4, 4, data_dfqdq);
-	phx_assign(&dfqdw, 4, 3, data_dfqdw);
+	dfqdq = (phmatrix_t) { .rows = 4, .cols = 4, .transposed = 0, .data = data_dfqdq };
+	dfqdw = (phmatrix_t) { .rows = 4, .cols = 3, .transposed = 0, .data = data_dfqdw };
 
 	phx_diag(&I33);
 
@@ -291,26 +290,63 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t time
 int kmn_predInit(state_engine_t *engine, kalman_calib_t *calib)
 {
 	int err = 0;
+	float *tmp;
 	phmatrix_t *Q;
 
 	/* matrix initialization */
 	if (err == 0) {
-		err = phx_newmatrix(&engine->state, STATE_ROWS, STATE_COLS);
+		tmp = calloc(STATE_ROWS * STATE_COLS, sizeof(float));
+		if (tmp != NULL) {
+			engine->state = (phmatrix_t) { .rows = STATE_ROWS, .cols = STATE_COLS, .transposed = 0, .data = tmp };
+		}
+		else {
+			err = 1;
+		}
 	}
 	if (err == 0) {
-		err = phx_newmatrix(&engine->state_est, STATE_ROWS, STATE_COLS);
+		tmp = calloc(STATE_ROWS * STATE_COLS, sizeof(float));
+		if (tmp != NULL) {
+			engine->state_est = (phmatrix_t) { .rows = STATE_ROWS, .cols = STATE_COLS, .transposed = 0, .data = tmp };
+		}
+		else {
+			err = 1;
+		}
 	}
 	if (err == 0) {
-		err = phx_newmatrix(&engine->cov, STATE_ROWS, STATE_ROWS);
+		tmp = calloc(STATE_ROWS * STATE_ROWS, sizeof(float));
+		if (tmp != NULL) {
+			engine->cov = (phmatrix_t) { .rows = STATE_ROWS, .cols = STATE_ROWS, .transposed = 0, .data = tmp };
+		}
+		else {
+			err = 1;
+		}
 	}
 	if (err == 0) {
-		err = phx_newmatrix(&engine->cov_est, STATE_ROWS, STATE_ROWS);
+		tmp = calloc(STATE_ROWS * STATE_ROWS, sizeof(float));
+		if (tmp != NULL) {
+			engine->cov_est = (phmatrix_t) { .rows = STATE_ROWS, .cols = STATE_ROWS, .transposed = 0, .data = tmp };
+		}
+		else {
+			err = 1;
+		}
 	}
 	if (err == 0) {
-		err = phx_newmatrix(&engine->F, STATE_ROWS, STATE_ROWS);
+		tmp = calloc(STATE_ROWS * STATE_ROWS, sizeof(float));
+		if (tmp != NULL) {
+			engine->F = (phmatrix_t) { .rows = STATE_ROWS, .cols = STATE_ROWS, .transposed = 0, .data = tmp };
+		}
+		else {
+			err = 1;
+		}
 	}
 	if (err == 0) {
-		err = phx_newmatrix(&engine->Q, STATE_ROWS, STATE_ROWS);
+		tmp = calloc(STATE_ROWS * STATE_ROWS, sizeof(float));
+		if (tmp != NULL) {
+			engine->Q = (phmatrix_t) { .rows = STATE_ROWS, .cols = STATE_ROWS, .transposed = 0, .data = tmp };
+		}
+		else {
+			err = 1;
+		}
 	}
 
 	if (err != 0) {
@@ -351,4 +387,15 @@ int kmn_predInit(state_engine_t *engine, kalman_calib_t *calib)
 	engine->getJacobian = calcPredictionJacobian;
 
 	return 0;
+}
+
+
+void kmn_predDeinit(state_engine_t *engine)
+{
+	free(engine->state.data);
+	free(engine->state_est.data);
+	free(engine->cov.data);
+	free(engine->cov_est.data);
+	free(engine->F.data);
+	free(engine->Q.data);
 }

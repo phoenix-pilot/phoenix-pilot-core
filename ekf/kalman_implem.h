@@ -200,6 +200,9 @@ int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop);
 /* initializes matices related to state prediction step of kalman filter */
 int kmn_predInit(state_engine_t *engine, kalman_calib_t *calib);
 
+/* deinitializes prediction matrices */
+void kmn_predDeinit(state_engine_t *engine);
+
 /* imu update engine composer */
 void kmn_imuEngInit(update_engine_t *engine);
 

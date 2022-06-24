@@ -30,9 +30,9 @@
 #include "tools/rotas_dummy.h"
 #include "tools/phmatrix.h"
 
-#define EARTH_SEMI_MAJOR           6378137.0
-#define EARTH_SEMI_MINOR           6356752.3
-#define EARTH_ECCENTRICITY_SQUARED 0.006694384
+#define EARTH_SEMI_MAJOR           6378137.0F
+#define EARTH_SEMI_MINOR           6356752.3F
+#define EARTH_ECCENTRICITY_SQUARED 0.006694384F
 
 #define IMU_CALIB_AVG  2000
 #define BARO_CALIB_AVG 100
@@ -45,30 +45,30 @@ static struct {
 float tax, tay, taz;
 float acc_calib1[12] = {
 	/* sphere offset */
-	0.01737944, -0.01926739, 0.00982283,
+	10.81596, -22.59016, 2.40547,
 	/* sphere deformation */
-	1.00138962, 0.00186323, -0.00175369,
-	0.00186323, 0.99879068, 0.00357516,
-	-0.00175369, 0.00357516, 0.99984077
+	1.00376329, 0.00990085, -0.00315447,
+	0.00990085, 0.99977667, 0.00175213,
+	-0.00315447, 0.00175213, 0.9965838
 };
 float acc_calib2[12] = {
 	/* sphere offset */
-	0.00116779, -0.00139108, -0.00371815,
+	0, 0, 0,
 	/* sphere deformation */
-	1.00284, -0.00287202, -0.00229445,
-	-0.00287202, 0.99934558, 0.00263417,
-	-0.00229445, 0.00263417, 0.9978414
+	1, 0, 0,
+	0, 1, 0,
+	0, 0, 1
 };
 
 /* accelerometer calibration data */
 float tmx, tmy, tmz;
 float mag_calib1[12] = {
 	/* sphere offset */
-	3.2512638, 18.06055698, -4.67724163,
+	8.47037417e-05, 1.34004019e-03, -1.57624899e-04,
 	/* sphere deformation */
-	0.99149195, -0.02531768, 0.0042657,
-	-0.02531768, 1.00750385, -0.00278795,
-	0.0042657, -0.00278795, 1.00173743
+	0.90788036, 0.08384956, 0.01194076,
+	0.08384956, 1.04458021, -0.01853362,
+	0.01194076, -0.01853362, 1.06286343
 };
 
 vec_t geo2ecef(float lat, float lon, float h)
@@ -94,12 +94,10 @@ vec_t geo2enu(float lat, float lon, float h, float latRef, float lonRef, vec_t *
 {
 	float sinLatRef, sinLonRef, cosLatRef, cosLonRef;
 	float rot_data[9], dif_data[3], enu_data[3];
-	phmatrix_t rot, dif, enu;
+	phmatrix_t rot = { .rows = 3, .cols = 3, .transposed = 0, .data = rot_data };
+	phmatrix_t dif = { .rows = 3, .cols = 1, .transposed = 0, .data = dif_data };
+	phmatrix_t enu = { .rows = 3, .cols = 1, .transposed = 0, .data = enu_data };
 	vec_t pointEcef;
-
-	phx_assign(&rot, 3, 3, rot_data);
-	phx_assign(&dif, 3, 1, dif_data);
-	phx_assign(&enu, 3, 1, enu_data);
 
 	/* reference point coordinates trigonometric values */
 	sinLatRef = sin(latRef * DEG2RAD);
@@ -219,12 +217,12 @@ static void meas_mag2si(sensor_event_t *evt, vec_t *vec)
 void meas_imuCalib(void)
 {
 	int i, avg = IMU_CALIB_AVG;
-	vec_t gvec = vec(0, 0, 1), versorX = vec(1, 0, 0), n;
+	vec_t gvec = { .x = 0, .y = 0, .z = 1 }, versorX = { .x = 1, .y = 0, .z = 0 }, n;
 	vec_t acc, gyr, mag, accAvg, gyrAvg, magAvg;
 	quat_t idenQuat = IDEN_QUAT;
 	sensor_event_t accEvt, gyrEvt, magEvt;
 
-	accAvg = gyrAvg = magAvg = vec(0, 0, 0);
+	accAvg = gyrAvg = magAvg = (vec_t) { .x = 0, .y = 0, .z = 0 };
 
 	printf("IMU calibration...\n");
 
@@ -245,9 +243,9 @@ void meas_imuCalib(void)
 			usleep(1000 * 1);
 		}
 	}
-	accAvg = vec_times(&accAvg, 1. / avg);
-	gyrAvg = vec_times(&gyrAvg, 1. / avg);
-	magAvg = vec_times(&magAvg, 1. / avg);
+	accAvg = vec_times(&accAvg, 1. / (float)avg);
+	gyrAvg = vec_times(&gyrAvg, 1. / (float)avg);
+	magAvg = vec_times(&magAvg, 1. / (float)avg);
 
 	meas_common.calib.gyr_nivel = gyrAvg; /* save gyro drift parameters */
 	meas_common.calib.init_m = magAvg;    /* save initial magnetometer reading */

@@ -26,19 +26,6 @@ typedef struct {
 	float *data;
 } phmatrix_t;
 
-
-/* dynamically allocate matrix */
-int phx_newmatrix(phmatrix_t * matrix, int m, int n);
-
-
-/*deallocate matrix */
-void phx_destroy(phmatrix_t * matrix);
-
-
-/* addigns given data with matrix */
-int phx_assign(phmatrix_t * matrix, int m, int n, float * data);
-
-
 /* sets all matrix to zeroes */
 void phx_zeroes(phmatrix_t *A);
 

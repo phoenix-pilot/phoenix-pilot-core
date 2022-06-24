@@ -19,4 +19,5 @@ include $(static-lib.mk)
 NAME := devekf
 LOCAL_SRCS := tests/devekf.c
 DEP_LIBS := libekf
+LOCAL_LDFLAGS := -z stack-size=16096 -z noexecstack
 include $(binary.mk)
