@@ -302,8 +302,15 @@ static int quad_init(void)
 	}
 
 	/* EKF initialization */
-	ekf_init();
-	ekf_run();
+	if (ekf_init() < 0) {
+		fprintf(stderr, "quadcontrol: cannot initialize ekf\n");
+		return -1;
+	}
+
+	if (ekf_run() < 0) {
+		fprintf(stderr, "quadcontrol: cannot run ekf\n");
+		return -1;
+	}
 
 	return 0;
 }
