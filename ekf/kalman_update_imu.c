@@ -76,8 +76,6 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 		magnetic flux field in uT 
 	*/
 	meas_imuGet(&ameas, &wmeas, &mmeas, &timestamp);
-	addMemEntry(&ameas);
-	ameas = getMemoryMean();
 
 	/* estimate rotation quaternion with assumption that imu is stationary */
 	mmeas_unit = mmeas;
@@ -94,10 +92,10 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 
 	/* calculate quaternion estimation error based on its nonstationarity. Empirically fitted parameters! */
 	diff = vec_sub(&true_g, &ameas);
+	diff.x = -ameas.x;
+	diff.y = -ameas.y;
+	diff.z = EARTH_G - ameas.z;
 	err_q_est = 0.1 + 100 * vec_len(&diff) * vec_len(&diff) + 10 * vec_len(&wmeas);
-
-	/* trimming data from imu */
-	ameas = vec_times(&ameas, EARTH_G);
 
 	/* remove earth acceleration from measurements */
 	ameas.z -= EARTH_G;

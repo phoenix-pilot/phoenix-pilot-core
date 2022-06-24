@@ -136,9 +136,9 @@ void ekf_stateGet(ekf_state_t *ekf_state)
 
 	/* calculate and save euler attitude */
 	e = quat_quat2euler(q);
-	ekf_state->yaw = e.x;
+	ekf_state->roll = e.x;
 	ekf_state->pitch = e.y;
-	ekf_state->roll = e.z;
+	ekf_state->yaw = e.z;
 
 	/* save position */
 	ekf_state->enuX = ekf_common.stateEngine.state.data[ixx];
