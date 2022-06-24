@@ -103,6 +103,7 @@ static void ekf_thread(void *arg)
 
 	printf("ekf: ekf thread stopped!\n");
 	ekf_common.run = -1;
+	endthread();
 }
 
 
@@ -116,12 +117,9 @@ void ekf_done(void)
 {
 	if (ekf_common.run == 1) {
 		ekf_common.run = 0;
-		while (ekf_common.run == 0) {
-			usleep(1000);
-		}
-		usleep(1000);
-		kmn_predDeinit(&ekf_common.stateEngine);
 	}
+	threadJoin(0);
+	kmn_predDeinit(&ekf_common.stateEngine);
 }
 
 
