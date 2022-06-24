@@ -45,12 +45,14 @@ struct {
 	time_t lastTime;           /* last kalman loop time */
 	time_t currTime;           /* current kalman loop time */
 
-	char *stack[8192];
+	char stack[8192];
 } ekf_common;
 
 
 int ekf_init(void)
 {
+	const kalman_calib_t * calib;
+
 	ekf_common.run = 0;
 	if (sensc_init("/dev/sensors") < 0) {
 		return -1;
@@ -59,18 +61,16 @@ int ekf_init(void)
 	meas_imuCalib();
 	meas_baroCalib();
 
-	meas_calibGet(&ekf_common.calib);
-
-	if (kmn_predInit(&ekf_common.stateEngine, &ekf_common.calib) < 0) {
+	if (kmn_predInit(&ekf_common.stateEngine, meas_calibGet()) < 0) {
 		printf("failed to initialize prediction matrices\n");
 		return -1;
 	}
 	kmn_imuEngInit(&ekf_common.imuEngine);
 	kmn_baroEngInit(&ekf_common.baroEngine);
 
-	printf("%f\n", ekf_common.calib.base_pressure);
-	printf("%f %f %f\n", ekf_common.calib.init_m.x, ekf_common.calib.init_m.y, ekf_common.calib.init_m.z);
-	printf("%f %f %f\n", ekf_common.calib.gyr_nivel.x, ekf_common.calib.gyr_nivel.y, ekf_common.calib.gyr_nivel.z);
+	// printf("%f\n", ekf_common.calib.base_pressure);
+	// printf("%f %f %f\n", ekf_common.calib.init_m.x, ekf_common.calib.init_m.y, ekf_common.calib.init_m.z);
+	// printf("%f %f %f\n", ekf_common.calib.gyr_nivel.x, ekf_common.calib.gyr_nivel.y, ekf_common.calib.gyr_nivel.z);
 
 	return 0;
 }

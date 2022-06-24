@@ -181,7 +181,7 @@ void meas_imuCalib(void);
 
 void meas_baroCalib(void);
 
-void meas_calibGet(kalman_calib_t *calib);
+const kalman_calib_t * meas_calibGet(void);
 
 float meas_calibPressGet(void);
 
@@ -198,7 +198,7 @@ int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop);
 /* PHMATRIX MATRICES INITIALIZATIONS */
 
 /* initializes matices related to state prediction step of kalman filter */
-int kmn_predInit(state_engine_t *engine, kalman_calib_t *calib);
+int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib);
 
 /* deinitializes prediction matrices */
 void kmn_predDeinit(state_engine_t *engine);

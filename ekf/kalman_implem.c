@@ -108,7 +108,7 @@ void read_config(void)
 
 
 /* state vectors values init */
-static void init_state_vector(phmatrix_t *state, kalman_calib_t *calib)
+static void init_state_vector(phmatrix_t *state, const kalman_calib_t *calib)
 {
 	state->data[ixx] = state->data[ixy] = state->data[ixz] = 0; /* start position at [0,0,0] */
 	state->data[ivx] = state->data[ivy] = state->data[ivz] = 0; /* start velocity at [0,0,0] */
@@ -287,7 +287,7 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t time
 
 
 /* initialization of prediction step matrix values */
-int kmn_predInit(state_engine_t *engine, kalman_calib_t *calib)
+int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
 {
 	int err = 0;
 	float *tmp;

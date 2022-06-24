@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 		ekf_run();
 	}
 
-	while (i < 100) {
+	while (i < 1000) {
 		usleep(1000 * 100);
 		ekf_stateGet(&uavState);
 		q = quat(uavState.q0, uavState.q1, uavState.q2, uavState.q3);

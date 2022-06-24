@@ -351,9 +351,9 @@ int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop)
 }
 
 
-void meas_calibGet(kalman_calib_t *calib)
+const kalman_calib_t * meas_calibGet(void)
 {
-	*calib = meas_common.calib;
+	return &meas_common.calib;
 }
 
 
