@@ -16,31 +16,31 @@
 #include "pid.h"
 
 #include <ekflib.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <syslog.h>
-#include <unistd.h>
+#include <string.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #define DELTA(measurement, setVal) (fabs((setVal) - (measurement)))
 #define ALTITUDE_TOLERANCE         500 /* 1E-3 [m] (millimetres) */
 
 #define PATH_PIDS_CONFIG "/etc/quad.conf"
+#define PID_NUMBERS      4
 
 /* Flag enable hackish code for initial tests which ignore altitude and yaw */
 #define TEST_ATTITUDE 1
 
-
 struct {
-	struct {
-		pid_ctx_t alt;
-		pid_ctx_t roll;
-		pid_ctx_t pitch;
-		pid_ctx_t yaw;
-	} pids;
+	pid_ctx_t pids[PID_NUMBERS];
 
 	time_t lastTime;
 } quad_common;
+
+
+enum { pwm_alt = 0, pwm_roll, pwm_pitch, pwm_yaw, pwm_max };
 
 
 /* Example of flight scenario.
@@ -101,10 +101,10 @@ static void quad_controlMotors(int32_t alt, int32_t roll, int32_t pitch, int32_t
 	yaw = measure.yaw;
 #endif
 
-	palt = pid_calc(&quad_common.pids.alt, measure.enuZ * 1000, alt, dt);
-	proll = pid_calc(&quad_common.pids.roll, measure.roll, roll, dt);
-	ppitch = pid_calc(&quad_common.pids.pitch, measure.pitch, pitch, dt);
-	pyaw = pid_calc(&quad_common.pids.yaw, measure.yaw, yaw, dt);
+	palt = pid_calc(&quad_common.pids[pwm_alt], measure.enuZ * 1000, alt, dt);
+	proll = pid_calc(&quad_common.pids[pwm_roll], measure.roll, roll, dt);
+	ppitch = pid_calc(&quad_common.pids[pwm_pitch], measure.pitch, pitch, dt);
+	pyaw = pid_calc(&quad_common.pids[pwm_yaw], measure.yaw, yaw, dt);
 
 	mma_control(palt, proll, ppitch, pyaw);
 
@@ -190,6 +190,93 @@ static int quad_run(void)
 }
 
 
+static int quad_parsePid(unsigned int i, const char *conf, float val)
+{
+	int err = EOK;
+	pid_ctx_t *pid;
+
+	if (i >= PID_NUMBERS) {
+		return -EINVAL;
+	}
+
+	pid = &quad_common.pids[i];
+
+	if (strcmp(conf, "P") == 0) {
+		pid->kp = val;
+	}
+	else if (strcmp(conf, "I") == 0) {
+		pid->ki = val;
+	}
+	else if (strcmp(conf, "D") == 0) {
+		pid->kd = val;
+	}
+	else if (strcmp(conf, "MIN") == 0) {
+		pid->min = val;
+	}
+	else if (strcmp(conf, "MAX") == 0) {
+		pid->max = val;
+	}
+	else if (strcmp(conf, "IMAX") == 0) {
+		pid->maxInteg = val;
+	}
+	else {
+		err = -EINVAL;
+	}
+
+	return err;
+}
+
+
+static int quad_readConfig(void)
+{
+	float val;
+	FILE *file;
+	int err = EOK;
+	unsigned int i = 0;
+	size_t len = 0;
+	char *line = NULL, *var, *strVal;
+
+	file = fopen(PATH_PIDS_CONFIG, "r");
+	if (file == NULL) {
+		return -EBADFD;
+	}
+
+	while (getline(&line, &len, file) != -1) {
+		/* @ - define new PID */
+		if ((line[0] == '@') && (strcmp(&line[1], "PID\n") == 0)) {
+			i++;
+			continue;
+		}
+
+		if ((line[0] == '\n') || (line[0] == '#')) {
+			continue;
+		}
+
+		var = line;
+		strVal = strchr(line, '=');
+		if (strVal == NULL) {
+			fprintf(stderr, "quad-control: wrong line %s in file %s\n", line, PATH_PIDS_CONFIG);
+			err = -EINVAL;
+			break;
+		}
+
+		*strVal++ = '\0';
+		val = strtof(strVal, NULL);
+
+		if (quad_parsePid(i - 1, var, val) < 0) {
+			fprintf(stderr, "quad-control: cannot parse %s in file %s\n", var, PATH_PIDS_CONFIG);
+			err = -EINVAL;
+			break;
+		}
+	}
+
+	free(line);
+	fclose(file);
+
+	return err;
+}
+
+
 static void quad_done(void)
 {
 	mma_stop();
@@ -203,7 +290,10 @@ static void quad_done(void)
 static int quad_init(void)
 {
 	/* PID initialization alt, roll, pitch, yaw */
-	/* TODO: get data from config file: PATH_PIDS_CONFIG */
+	if (quad_readConfig() < 0) {
+		fprintf(stderr, "quadcontrol: cannot parse %s\n", PATH_PIDS_CONFIG);
+		return -1;
+	}
 
 	/* MMA initialization */
 	if (mma_init(&quadCoeffs) < 0) {
