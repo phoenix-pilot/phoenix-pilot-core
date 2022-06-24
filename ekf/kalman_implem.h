@@ -181,7 +181,7 @@ void meas_imuCalib(void);
 
 void meas_baroCalib(void);
 
-const kalman_calib_t * meas_calibGet(void);
+const kalman_calib_t *meas_calibGet(void);
 
 float meas_calibPressGet(void);
 
