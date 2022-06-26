@@ -126,7 +126,6 @@ void ekf_done(void)
 void ekf_stateGet(ekf_state_t *ekf_state)
 {
 	quat_t q;
-	vec_t e;
 
 	/* save quaternion attitude */
 	q.a = ekf_state->q0 = ekf_common.stateEngine.state.data[iqa];
@@ -135,10 +134,7 @@ void ekf_stateGet(ekf_state_t *ekf_state)
 	q.k = ekf_state->q3 = ekf_common.stateEngine.state.data[iqd];
 
 	/* calculate and save euler attitude */
-	e = quat_quat2euler(q);
-	ekf_state->roll = e.x;
-	ekf_state->pitch = e.y;
-	ekf_state->yaw = e.z;
+	quat_quat2euler(&q, &ekf_state->roll, &ekf_state->pitch, &ekf_state->yaw);
 
 	/* save position */
 	ekf_state->enuX = ekf_common.stateEngine.state.data[ixx];

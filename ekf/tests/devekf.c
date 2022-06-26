@@ -24,9 +24,9 @@ static void printUavVersors(quat_t *q, vec_t *start)
 {
 	vec_t x = { .x = 1, .y = 0, .z = 0 }, y = { .x = 0, .y = 1, .z = 0 }, z = { .x = 0, .y = 0, .z = 1 };
 
-	quat_vecrot(&x, q);
-	quat_vecrot(&y, q);
-	quat_vecrot(&z, q);
+	quat_vecRot(&x, q);
+	quat_vecRot(&y, q);
+	quat_vecRot(&z, q);
 
 	printf("%.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f\n", x.x, x.y, x.z, y.x, y.y, y.z, z.x, z.y, z.z, start->x, start->y, start->z);
 }
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 	while (i < 1000) {
 		usleep(1000 * 100);
 		ekf_stateGet(&uavState);
-		q = quat(uavState.q0, uavState.q1, uavState.q2, uavState.q3);
+		q = (quat_t) { .a = uavState.q0, .i = uavState.q1, .j = uavState.q2, .k = uavState.q3 };
 		printUavVersors(&q, &start);
 		i++;
 	}

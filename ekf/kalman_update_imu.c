@@ -39,24 +39,6 @@ static vec_t x_versor = { .x = 1, .y = 0, .z = 0 };
 vec_t imu_memory[5];
 int imu_mem_entry = 0;
 
-static void addMemEntry(vec_t *a)
-{
-	imu_memory[imu_mem_entry] = *a;
-
-	imu_mem_entry = (imu_mem_entry >= (sizeof(imu_memory) / sizeof(imu_memory[0]) - 1)) ? 0 : imu_mem_entry + 1;
-}
-
-static vec_t getMemoryMean(void)
-{
-	int i;
-	vec_t amean = { 0 };
-
-	for (i = 0; i < (sizeof(imu_memory) / sizeof(imu_memory[0])); i++) {
-		amean = vec_add(&amean, &(imu_memory[i]));
-	}
-
-	return vec_times(&amean, 1. / (sizeof(imu_memory) / sizeof(imu_memory[0])));
-}
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, time_t timeStep)
@@ -82,16 +64,15 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 	ameas_unit = ameas;
 	vec_normalize(&mmeas_unit);
 	vec_normalize(&ameas_unit);
-	xp = vec_cross(&mmeas_unit, &ameas_unit);
+	vec_cross(&mmeas_unit, &ameas_unit, &xp);
 	vec_normalize(&xp);
-	q_est = quat_framerot(&ameas_unit, &xp, &true_g, &x_versor, &rot);
+	quat_frameRot(&ameas_unit, &xp, &true_g, &x_versor, &q_est, &rot);
 
 	/* rotate measurements of a and w */
-	quat_vecrot(&ameas, &rot);
-	quat_vecrot(&wmeas, &rot);
+	quat_vecRot(&ameas, &rot);
+	quat_vecRot(&wmeas, &rot);
 
 	/* calculate quaternion estimation error based on its nonstationarity. Empirically fitted parameters! */
-	diff = vec_sub(&true_g, &ameas);
 	diff.x = -ameas.x;
 	diff.y = -ameas.y;
 	diff.z = EARTH_G - ameas.z;

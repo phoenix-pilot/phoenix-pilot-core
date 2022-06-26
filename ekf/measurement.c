@@ -56,9 +56,9 @@ float mag_calib1[12] = {
 	/* sphere offset in 10^-7 T (milligauss)*/
 	42.47503636, 1084.20661751, -111.58247011,
 	/* sphere deformation */
-	 0.9409439,  0.09766692, -0.01307758,
-	 0.09766692,  1.01364504, -0.01144832,
-	-0.01307758, -0.01144832,  1.0593312
+	0.9409439, 0.09766692, -0.01307758,
+	0.09766692, 1.01364504, -0.01144832,
+	-0.01307758, -0.01144832, 1.0593312
 };
 
 vec_t geo2ecef(float lat, float lon, float h)
@@ -169,7 +169,7 @@ void gps_calibrate(void)
 #endif
 }
 
-static void meas_ellipCompensate(vec_t * v, float *calib)
+static void meas_ellipCompensate(vec_t *v, float *calib)
 {
 	float tx, ty, tz;
 
@@ -225,9 +225,9 @@ void meas_imuCalib(void)
 			meas_gyr2si(&gyrEvt, &gyr);
 			meas_mag2si(&magEvt, &mag);
 
-			accAvg = vec_add(&accAvg, &acc);
-			gyrAvg = vec_add(&gyrAvg, &gyr);
-			magAvg = vec_add(&magAvg, &mag);
+			vec_add(&accAvg, &acc);
+			vec_add(&gyrAvg, &gyr);
+			vec_add(&magAvg, &mag);
 			usleep(1000 * 5);
 			i++;
 		}
@@ -235,16 +235,16 @@ void meas_imuCalib(void)
 			usleep(1000 * 1);
 		}
 	}
-	accAvg = vec_times(&accAvg, 1. / (float)avg);
-	gyrAvg = vec_times(&gyrAvg, 1. / (float)avg);
-	magAvg = vec_times(&magAvg, 1. / (float)avg);
+	vec_times(&accAvg, 1. / (float)avg);
+	vec_times(&gyrAvg, 1. / (float)avg);
+	vec_times(&magAvg, 1. / (float)avg);
 
 	meas_common.calib.gyr_nivel = gyrAvg; /* save gyro drift parameters */
 	meas_common.calib.init_m = magAvg;    /* save initial magnetometer reading */
 
 	/* calculate initial rotation */
-	n = vec_cross(&accAvg, &magAvg);
-	meas_common.calib.init_q = quat_framerot(&accAvg, &n, &gvec, &versorX, &idenQuat);
+	vec_cross(&accAvg, &magAvg, &n);
+	quat_frameRot(&accAvg, &n, &gvec, &versorX, &meas_common.calib.init_q, &idenQuat);
 }
 
 void meas_baroCalib(void)
@@ -291,7 +291,7 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 	meas_ellipCompensate(mags, mag_calib1);
 
 	/* gyro niveling */
-	*gyros = vec_sub(gyros, &meas_common.calib.gyr_nivel);
+	vec_sub(gyros, &meas_common.calib.gyr_nivel);
 
 	return 0;
 }
