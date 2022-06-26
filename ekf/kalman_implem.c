@@ -177,8 +177,8 @@ static void calcStateEstimation(phmatrix_t *state, phmatrix_t *state_est, time_t
 	dt = timeStep / 1000000.;
 	dt2 = dt * dt / 2;
 
-	quat_q = quat(qa, qb, qc, qd);
-	quat_w = quat(0, wx, wy, wz);
+	quat_q = (quat_t) { .a = qa, .i = qb, .j = qc, .k = qd };
+	quat_w = (quat_t) { .a = 0, .i = wx, .j = wy, .k = wz };
 
 	/* trapezoidal integration */
 	state_est->data[ixx] = xx + (vx + last_v.x) * 0.5 * dt + ax * dt2;
@@ -200,9 +200,9 @@ static void calcStateEstimation(phmatrix_t *state, phmatrix_t *state_est, time_t
 	last_v.z = vz;
 
 	/* predition from w */
-	res = quat_mlt(&quat_w, &quat_q);
+	quat_mlt(&quat_w, &quat_q, &res);
 	quat_times(&res, dt / 2);
-	quat_q = quat_add(&quat_q, &res);
+	quat_add(&quat_q, &res);
 	quat_normalize(&quat_q);
 
 	state_est->data[iqa] = quat_q.a;
