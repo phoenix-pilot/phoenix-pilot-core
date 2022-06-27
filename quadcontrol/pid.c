@@ -33,7 +33,7 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, time_t dt)
 	err = setVal - currVal;
 
 	/* Derivative */
-	d =(pid->kd * (err - pid->prevErr)) / dt;
+	d = (pid->kd * (err - pid->prevErr)) / dt;
 
 	/* Proportional */
 	p = pid->kp * err;
@@ -42,6 +42,10 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, time_t dt)
 	i = pid->integral + pid->ki * (err * dt);
 	if (i > pid->maxInteg) {
 		i = pid->maxInteg;
+	}
+
+	if (i < pid->minInteg) {
+		i = pid->minInteg;
 	}
 
 	/* PID */

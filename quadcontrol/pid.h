@@ -26,6 +26,7 @@ typedef struct {
 	float max;      /* Maximum allowed PID value */
 	float min;      /* Minimum allowed PID value */
 	float maxInteg; /* Maximum integral value */
+	float minInteg; /* Minimum integral value */
 
 	float integral; /* Accumulate for integral term */
 	float prevErr;  /* Previous error */
