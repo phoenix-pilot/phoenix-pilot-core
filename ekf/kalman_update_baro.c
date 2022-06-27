@@ -109,8 +109,10 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 	phx_zeroes(Z);
 	Z->data[imhz] = 8453.669 * log(meas_calibPressGet() / pressure);
 	Z->data[imxz] = 0.8 * hz + 0.2 * xz;
-	Z->data[imhv] = filterBaroSpeed();
-	Z->data[imvz] = hv;
+
+	/* vertical speed fusion turned off. Intentionally left as zeroes */
+	Z->data[imhv] = 0;
+	Z->data[imvz] = 0;
 
 	return Z;
 }

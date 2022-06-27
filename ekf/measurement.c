@@ -35,7 +35,7 @@
 #define EARTH_ECCENTRICITY_SQUARED 0.006694384F
 
 #define IMU_CALIB_AVG  200
-#define BARO_CALIB_AVG 10
+#define BARO_CALIB_AVG 100
 
 static struct {
 	kalman_calib_t calib;
@@ -261,7 +261,7 @@ void meas_baroCalib(void)
 			press += baroEvt.baro.pressure;
 			temp += baroEvt.baro.temp;
 			i++;
-			usleep(1000 * 50);
+			usleep(1000 * 20);
 		}
 		else {
 			usleep(1000 * 10);
