@@ -38,7 +38,7 @@ kalman_init_t init_values = {
 	.P_merr = 300,             /* 300 uT */
 	.P_qaerr = 10 * DEG2RAD,   /* 10 degrees */
 	.P_qijkerr = 10 * DEG2RAD, /* 10 degrees */
-	.P_pxerr = 10,             /* 10 hPa */
+	.P_pxerr = 0.01,           /* 10 hPa */
 
 	.R_acov = 0.001,
 	.R_wcov = 0.01,
@@ -48,13 +48,13 @@ kalman_init_t init_values = {
 	.R_pcov = 0.1,
 	.R_hcov = 1,
 	.R_xzcov = 1,
-	.R_hvcov = 1,
+	.R_hvcov = 0.1,
 	.R_vzcov = 2,
 
 	/* better to keep Q low */
 	.Q_xcov = 0.001,
 	.Q_vcov = 0.001,
-	.Q_hcov = 0.01,
+	.Q_hcov = 0.001,
 	.Q_avertcov = 0.0001,
 	.Q_ahoricov = 0.0001,
 	.Q_wcov = 0.0001,
@@ -237,7 +237,7 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t time
 	float I33_data[9] = { 0 };
 	phmatrix_t I33 = { .rows = 3, .cols = 3, .transposed = 0, .data = I33_data };
 
-	dt = timeStep / 1000000.;
+	dt = timeStep / 1000000.F;
 	dt2 = dt / 2; /* helper value */
 
 	/* derrivative submatrix of (dfq / dq) of size 4x4 */

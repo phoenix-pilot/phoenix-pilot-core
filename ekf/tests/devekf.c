@@ -46,6 +46,7 @@ int main(int argc, char **argv)
 		usleep(1000 * 100);
 		ekf_stateGet(&uavState);
 		q = (quat_t) { .a = uavState.q0, .i = uavState.q1, .j = uavState.q2, .k = uavState.q3 };
+		start = (vec_t) { .x = uavState.enuX, .y = uavState.enuY, .z = uavState.enuZ };
 		printUavVersors(&q, &start);
 		i++;
 	}
