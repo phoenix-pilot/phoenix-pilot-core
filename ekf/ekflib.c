@@ -101,7 +101,6 @@ static void ekf_thread(void *arg)
 		}
 	}
 
-	printf("ekf: ekf thread stopped!\n");
 	ekf_common.run = -1;
 	endthread();
 }
@@ -138,6 +137,6 @@ void ekf_stateGet(ekf_state_t *ekf_state)
 
 	/* save position */
 	ekf_state->enuX = ekf_common.stateEngine.state.data[ixx];
-	ekf_state->enuX = ekf_common.stateEngine.state.data[ixy];
-	ekf_state->enuX = ekf_common.stateEngine.state.data[ixz];
+	ekf_state->enuY = ekf_common.stateEngine.state.data[ixy];
+	ekf_state->enuZ = ekf_common.stateEngine.state.data[ixz];
 }
