@@ -34,10 +34,10 @@ struct {
 
 
 static const char *motorsPwm[] = {
+	PWM_MOTOR4,
 	PWM_MOTOR1,
-	PWM_MOTOR2,
 	PWM_MOTOR3,
-	PWM_MOTOR4
+	PWM_MOTOR2
 };
 
 
@@ -48,10 +48,11 @@ void mma_control(float palt, float proll, float ppitch, float pyaw)
 	uint32_t tmp;
 	float pwm[NUMBER_MOTORS];
 
-	pwm[0] = palt + pyaw + ppitch + proll;
-	pwm[1] = palt - pyaw + ppitch - proll;
-	pwm[2] = palt - pyaw - ppitch + proll;
-	pwm[3] = palt + pyaw - ppitch - proll;
+	pwm[0] = palt - proll + ppitch - pyaw;
+	pwm[1] = palt + proll + ppitch + pyaw;
+	pwm[2] = palt + proll - ppitch - pyaw;
+	pwm[3] = palt - proll - ppitch + pyaw;
+
 
 	for (i = 0; i < NUMBER_MOTORS; ++i) {
 		if (pwm[i] > 1.0f) {
@@ -70,7 +71,7 @@ void mma_control(float palt, float proll, float ppitch, float pyaw)
 		fflush(mma_common.files[i]);
 	}
 
-	syslog(LOG_INFO, "MMA pwm1: %f, pwm2: %f, pwm3: %f, pwm4: %f\n", pwm[0], pwm[1], pwm[2], pwm[3]);
+	syslog(LOG_INFO, "MMA m4: %f, m1: %f, m3: %f, m2: %f\n", pwm[0], pwm[1], pwm[2], pwm[3]);
 }
 
 
