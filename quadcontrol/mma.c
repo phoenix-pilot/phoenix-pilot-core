@@ -71,7 +71,7 @@ void mma_control(float palt, float proll, float ppitch, float pyaw)
 		fflush(mma_common.files[i]);
 	}
 
-	syslog(LOG_INFO, "MMA m4: %f, m1: %f, m3: %f, m2: %f\n", pwm[0], pwm[1], pwm[2], pwm[3]);
+	DEBUG_LOG("PWM: %f, %f, %f, %f\n", pwm[0], pwm[1], pwm[2], pwm[3]);
 }
 
 

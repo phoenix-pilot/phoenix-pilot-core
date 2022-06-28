@@ -12,9 +12,11 @@
  */
 
 #include "pid.h"
+#include "control.h"
 
 #include <errno.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 
 float pid_calc(pid_ctx_t *pid, float setVal, float currVal, time_t dt)
@@ -61,6 +63,8 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, time_t dt)
 	pid->integral = i;
 	pid->prevErr = err;
 	pid->lastPid = out;
+
+	DEBUG_LOG("%f, %f, %f, ", p, i, d);
 
 	return out;
 }
