@@ -287,7 +287,7 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 	meas_gyr2si(&gyrEvt, gyros);  /* angulars from mrad/s -> rad/s */
 	meas_mag2si(&magEvt, mags);   /* only magnitude matters from geomagnetism */
 
-	meas_ellipCompensate(accels, mag_calib1);
+	meas_ellipCompensate(accels, acc_calib1);
 	meas_ellipCompensate(mags, mag_calib1);
 
 	/* gyro niveling */
