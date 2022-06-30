@@ -125,6 +125,7 @@ void ekf_done(void)
 void ekf_stateGet(ekf_state_t *ekf_state)
 {
 	quat_t q;
+	vec_t angRates = { 0 }; /* (roll_dot, pitch_dot, yaw_dot) */
 
 	/* save quaternion attitude */
 	q.a = ekf_state->q0 = ekf_common.stateEngine.state.data[iqa];
@@ -140,4 +141,15 @@ void ekf_stateGet(ekf_state_t *ekf_state)
 	ekf_state->enuY = ekf_common.stateEngine.state.data[ixy];
 	/* as long as inertial reckoning is not trustable enough, return barometer height as enuZ */
 	ekf_state->enuZ = ekf_common.stateEngine.state.data[ihz];
+
+	/* rotate angular rated back to UAV frame of reference */
+	angRates.x = ekf_common.stateEngine.state.data[iwx];
+	angRates.y = ekf_common.stateEngine.state.data[iwy];
+	angRates.z = ekf_common.stateEngine.state.data[iwz];
+	quat_cjg(&q);
+	quat_vecRot(&angRates, &q);
+	ekf_state->roll_dot = angRates.x;
+	ekf_state->pitch_dot = angRates.y;
+	ekf_state->yaw_dot = angRates.z;
+
 }

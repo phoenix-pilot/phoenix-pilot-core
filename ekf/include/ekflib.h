@@ -30,6 +30,11 @@ typedef struct {
 	float q1;
 	float q2;
 	float q3;
+
+	/* angular rates in uav frame of reference */
+	float pitch_dot;
+	float yaw_dot;
+	float roll_dot;
 } ekf_state_t;
 
 extern int ekf_init(void);
