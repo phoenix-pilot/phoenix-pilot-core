@@ -44,9 +44,9 @@ int imu_mem_entry = 0;
 static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, time_t timeStep)
 {
 	vec_t ameas, wmeas, mmeas;
-	vec_t mmeas_unit, ameas_unit;
+	vec_t magFltrd, accelFltrd;
 	vec_t xp, diff;
-	quat_t q_est, rot = { .a = qa, .i = qb, .j = qc, .k = qd };
+	quat_t q_est, rot = { .a = qa, .i = -qb, .j = -qc, .k = -qd };
 	float err_q_est;
 	uint64_t timestamp;
 
@@ -60,23 +60,30 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 	meas_imuGet(&ameas, &wmeas, &mmeas, &timestamp);
 
 	/* estimate rotation quaternion with assumption that imu is stationary */
-	mmeas_unit = mmeas;
-	ameas_unit = ameas;
-	vec_normalize(&mmeas_unit);
-	vec_normalize(&ameas_unit);
-	vec_cross(&mmeas_unit, &ameas_unit, &xp);
+	magFltrd = mmeas;
+
+	/* prepare unrotated accelerometer measurement with earth_g added for prefiltered quaternion estimation */
+	/* TODO: we can consider storing direct accel measurements in state vector and rotate it on demand (change in jacobians required!) */
+	accelFltrd = (vec_t) { .x = ax, .y = ay, .z = az };
+	accelFltrd.z += EARTH_G;
+	quat_vecRot(&accelFltrd, &rot);
+	diff.x = -accelFltrd.x;
+	diff.y = -accelFltrd.y;
+	diff.z = EARTH_G - accelFltrd.z;
+	quat_cjg(&rot);
+	/* calculate quaternion estimation error based on its nonstationarity. Empirically fitted parameters! */
+	err_q_est = 0.1 + 100 * vec_len(&diff) * vec_len(&diff) + 10 * vec_len(&wmeas);
+
+	/* calculate rotation quaternion based on current magnetometer reading and ekf filtered acceleration */
+	vec_normalize(&magFltrd);
+	vec_normalize(&accelFltrd);
+	vec_cross(&magFltrd, &accelFltrd, &xp);
 	vec_normalize(&xp);
-	quat_frameRot(&ameas_unit, &xp, &true_g, &x_versor, &q_est, &rot);
+	quat_frameRot(&accelFltrd, &xp, &true_g, &x_versor, &q_est, &rot);
 
 	/* rotate measurements of a and w */
 	quat_vecRot(&ameas, &rot);
 	quat_vecRot(&wmeas, &rot);
-
-	/* calculate quaternion estimation error based on its nonstationarity. Empirically fitted parameters! */
-	diff.x = -ameas.x;
-	diff.y = -ameas.y;
-	diff.z = EARTH_G - ameas.z;
-	err_q_est = 0.1 + 100 * vec_len(&diff) * vec_len(&diff) + 10 * vec_len(&wmeas);
 
 	/* remove earth acceleration from measurements */
 	ameas.z -= EARTH_G;
