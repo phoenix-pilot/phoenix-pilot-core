@@ -19,7 +19,7 @@
 #include <stdio.h>
 
 
-float pid_calc(pid_ctx_t *pid, float setVal, float currVal, time_t dt)
+float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, time_t dt)
 {
 	float err, out;
 	float p, i, d; /* Results for proportional, integral and derivative parts of PID */
@@ -35,7 +35,7 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, time_t dt)
 	err = setVal - currVal;
 
 	/* Derivative */
-	d = (pid->kd * (err - pid->prevErr)) / dt;
+	d = pid->kd * currValDot;
 
 	/* Proportional */
 	p = pid->kp * err;
@@ -64,7 +64,7 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, time_t dt)
 	pid->prevErr = err;
 	pid->lastPid = out;
 
-	DEBUG_LOG("%f, %f, %f, ", p, i, d);
+	DEBUG_LOG("%f, %f, %f, %f, ", p, i, d, out);
 
 	return out;
 }

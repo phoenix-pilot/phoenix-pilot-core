@@ -125,7 +125,7 @@ void ekf_done(void)
 void ekf_stateGet(ekf_state_t *ekf_state)
 {
 	quat_t q;
-	vec_t angRates = { 0 }; /* (roll_dot, pitch_dot, yaw_dot) */
+	vec_t angRates = { 0 }; /* (rollDot, pitchDot, yawDot) */
 
 	/* save quaternion attitude */
 	q.a = ekf_state->q0 = ekf_common.stateEngine.state.data[iqa];
@@ -152,7 +152,7 @@ void ekf_stateGet(ekf_state_t *ekf_state)
 	angRates.z = ekf_common.stateEngine.state.data[iwz];
 	quat_cjg(&q);
 	quat_vecRot(&angRates, &q);
-	ekf_state->roll_dot = angRates.x;
-	ekf_state->pitch_dot = angRates.y;
-	ekf_state->yaw_dot = angRates.z;
+	ekf_state->rollDot = angRates.x;
+	ekf_state->pitchDot = angRates.y;
+	ekf_state->yawDot = angRates.z;
 }

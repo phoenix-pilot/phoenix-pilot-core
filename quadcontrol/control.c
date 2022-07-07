@@ -113,7 +113,8 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 	}
 
 	now = quad_timeMsGet();
-	DEBUG_LOG("EKF: %lld, %f, %f, %f, %f\n", now, measure.yaw * RAD2DEG, measure.roll * RAD2DEG, measure.pitch * RAD2DEG, measure.enuZ);
+	DEBUG_LOG("EKFQ: %lld, %f, %f, %f, %f\n", now, measure.q0, measure.q1, measure.q2, measure.q3);
+	DEBUG_LOG("EKFE: %lld, %f, %f, %f\n", now, measure.yaw * RAD2DEG, measure.pitch * RAD2DEG, measure.roll * RAD2DEG);
 
 	dt = now - quad_common.lastTime;
 	quad_common.lastTime = now;
@@ -124,10 +125,10 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 #endif
 
 	DEBUG_LOG("PID: %lld, ", now);
-	palt = pid_calc(&quad_common.pids[pwm_alt], alt, measure.enuZ * 1000, dt);
-	proll = pid_calc(&quad_common.pids[pwm_roll], roll, measure.roll, dt);
-	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch, measure.pitch, dt);
-	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw, measure.yaw, dt);
+	palt = pid_calc(&quad_common.pids[pwm_alt], alt, measure.enuZ * 1000, 0, dt);
+	proll = pid_calc(&quad_common.pids[pwm_roll], roll, measure.roll, measure.rollDot, dt);
+	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch, measure.pitch, measure.pitchDot, dt);
+	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw, measure.yaw, measure.yawDot, dt);
 	DEBUG_LOG("\n");
 
 	mma_control(throttle + palt, proll, ppitch, pyaw);

@@ -41,7 +41,7 @@ static void printUavVersors(ekf_state_t *uavState)
 
 static void printUavAtt(ekf_state_t *uavState)
 {
-	printf("YPR: %f %f %f YPR_DOT %f %f %f\n", uavState->yaw * 180 / 3.1415, uavState->pitch * 180 / 3.1415, uavState->roll * 180 / 3.1415, uavState->yaw_dot, uavState->pitch_dot, uavState->roll_dot);
+	printf("YPR: %f %f %f YPR_DOT %f %f %f\n", uavState->yaw * 180 / 3.1415, uavState->pitch * 180 / 3.1415, uavState->roll * 180 / 3.1415, uavState->yawDot, uavState->pitchDot, uavState->rollDot);
 }
 
 
