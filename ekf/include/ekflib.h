@@ -35,6 +35,11 @@ typedef struct {
 	float pitch_dot;
 	float yaw_dot;
 	float roll_dot;
+
+	/* accelerations in earth frame of reference */
+	float accelX;
+	float accelY;
+	float accelZ;
 } ekf_state_t;
 
 extern int ekf_init(void);
