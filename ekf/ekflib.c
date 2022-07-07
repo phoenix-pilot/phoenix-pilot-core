@@ -142,6 +142,10 @@ void ekf_stateGet(ekf_state_t *ekf_state)
 	/* as long as inertial reckoning is not trustable enough, return barometer height as enuZ */
 	ekf_state->enuZ = ekf_common.stateEngine.state.data[ihz];
 
+	ekf_state->accelX = ekf_common.stateEngine.state.data[iax];
+	ekf_state->accelY = ekf_common.stateEngine.state.data[iay];
+	ekf_state->accelZ = ekf_common.stateEngine.state.data[iaz];
+
 	/* rotate angular rated back to UAV frame of reference */
 	angRates.x = ekf_common.stateEngine.state.data[iwx];
 	angRates.y = ekf_common.stateEngine.state.data[iwy];
@@ -151,5 +155,4 @@ void ekf_stateGet(ekf_state_t *ekf_state)
 	ekf_state->roll_dot = angRates.x;
 	ekf_state->pitch_dot = angRates.y;
 	ekf_state->yaw_dot = angRates.z;
-
 }
