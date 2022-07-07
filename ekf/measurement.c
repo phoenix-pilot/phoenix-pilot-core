@@ -34,7 +34,7 @@
 #define EARTH_SEMI_MINOR           6356752.3F
 #define EARTH_ECCENTRICITY_SQUARED 0.006694384F
 
-#define IMU_CALIB_AVG  200
+#define IMU_CALIB_AVG  1000
 #define BARO_CALIB_AVG 100
 
 static struct {
@@ -225,6 +225,9 @@ void meas_imuCalib(void)
 			meas_gyr2si(&gyrEvt, &gyr);
 			meas_mag2si(&magEvt, &mag);
 
+			meas_ellipCompensate(&acc, acc_calib1);
+			meas_ellipCompensate(&mag, mag_calib1);
+
 			vec_add(&accAvg, &acc);
 			vec_add(&gyrAvg, &gyr);
 			vec_add(&magAvg, &mag);
@@ -243,6 +246,8 @@ void meas_imuCalib(void)
 	meas_common.calib.init_m = magAvg;    /* save initial magnetometer reading */
 
 	/* calculate initial rotation */
+	vec_normalize(&accAvg);
+	vec_normalize(&magAvg);
 	vec_cross(&accAvg, &magAvg, &n);
 	quat_frameRot(&accAvg, &n, &gvec, &versorX, &meas_common.calib.init_q, &idenQuat);
 }
