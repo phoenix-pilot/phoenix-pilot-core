@@ -38,8 +38,8 @@ typedef struct {
 extern int pid_init(pid_ctx_t *pid);
 
 
-/* Calculate the PID value based on gain values */
-extern float pid_calc(pid_ctx_t *pid, float setVal, float currVal, time_t dt);
+/* Calculate the PID value based on gain values and precalculated change rate */
+extern float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, time_t dt);
 
 
 /* TODO: Tuning gain coefficients */

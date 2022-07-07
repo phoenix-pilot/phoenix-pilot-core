@@ -32,9 +32,9 @@ typedef struct {
 	float q3;
 
 	/* angular rates in uav frame of reference */
-	float pitch_dot;
-	float yaw_dot;
-	float roll_dot;
+	float pitchDot;
+	float yawDot;
+	float rollDot;
 
 	/* accelerations in earth frame of reference */
 	float accelX;
