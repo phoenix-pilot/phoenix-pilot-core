@@ -44,6 +44,11 @@ struct {
 
 	time_t lastTime;
 	time_t duration;
+
+	struct {
+		float min;
+		float max;
+	} thrust;
 } quad_common;
 
 
@@ -262,54 +267,132 @@ static int quad_run(void)
 }
 
 
-static int quad_parsePid(unsigned int i, const char *conf, float val)
+static inline int quad_divLine(char **line, char **var, float *val)
+{
+	char *strVal;
+
+	*var = *line;
+	strVal = strchr(*line, '=');
+	if (strVal == NULL) {
+		return -EINVAL;
+	}
+
+	*strVal++ = '\0';
+	*val = strtof(strVal, NULL);
+
+	return EOK;
+}
+
+
+static int quad_pidParse(FILE *file, unsigned int i)
 {
 	int err = EOK;
+	float val;
+	size_t len = 0;
 	pid_ctx_t *pid;
+	unsigned int cnt = 0;
+	const unsigned int fieldsNb = 7;
+	char *line = NULL, *var;
 
 	if (i >= PID_NUMBERS) {
 		return -EINVAL;
 	}
 
-	pid = &quad_common.pids[i];
+	while (getline(&line, &len, file) != -1 && cnt < fieldsNb) {
+		err = quad_divLine(&line, &var, &val);
+		if (err < 0) {
+			fprintf(stderr, "quad-control: pid wrong line %s in file %s\n", line, PATH_PIDS_CONFIG);
+			break;
+		}
 
-	if (strcmp(conf, "P") == 0) {
-		pid->kp = val;
+		pid = &quad_common.pids[i];
+
+		if (strcmp(var, "P") == 0) {
+			pid->kp = val;
+		}
+		else if (strcmp(var, "I") == 0) {
+			pid->ki = val;
+		}
+		else if (strcmp(var, "D") == 0) {
+			pid->kd = val;
+		}
+		else if (strcmp(var, "MIN") == 0) {
+			pid->min = val;
+		}
+		else if (strcmp(var, "MAX") == 0) {
+			pid->max = val;
+		}
+		else if (strcmp(var, "IMAX") == 0) {
+			pid->maxInteg = val;
+		}
+		else if (strcmp(var, "IMIN") == 0) {
+			pid->minInteg = val;
+		}
+		else {
+			err = -EINVAL;
+			break;
+		}
+
+		++cnt;
 	}
-	else if (strcmp(conf, "I") == 0) {
-		pid->ki = val;
-	}
-	else if (strcmp(conf, "D") == 0) {
-		pid->kd = val;
-	}
-	else if (strcmp(conf, "MIN") == 0) {
-		pid->min = val;
-	}
-	else if (strcmp(conf, "MAX") == 0) {
-		pid->max = val;
-	}
-	else if (strcmp(conf, "IMAX") == 0) {
-		pid->maxInteg = val;
-	}
-	else if (strcmp(conf, "IMIN") == 0) {
-		pid->minInteg = val;
-	}
-	else {
+
+	if (cnt != fieldsNb) {
 		err = -EINVAL;
 	}
+
+	free(line);
 
 	return err;
 }
 
 
-static int quad_readConfig(void)
+static int quad_thrustParse(FILE *file)
 {
+	int err = EOK;
 	float val;
+	size_t len = 0;
+	unsigned int cnt = 0;
+	const unsigned int fieldsNb = 2;
+	char *line = NULL, *var;
+
+	while (getline(&line, &len, file) != -1 && cnt < fieldsNb) {
+		err = quad_divLine(&line, &var, &val);
+		if (err < 0) {
+			fprintf(stderr, "quad-control: thrust wrong line %s in file %s\n", line, PATH_PIDS_CONFIG);
+			break;
+		}
+
+		if (strcmp(var, "MIN") == 0) {
+			quad_common.thrust.min = val;
+		}
+		else if (strcmp(var, "MAX") == 0) {
+			quad_common.thrust.max = val;
+		}
+		else {
+			err = -EINVAL;
+			break;
+		}
+
+		++cnt;
+	}
+
+	if (cnt != fieldsNb) {
+		err = -EINVAL;
+	}
+
+	free(line);
+
+	return err;
+}
+
+
+static int quad_configRead(void)
+{
 	FILE *file;
 	int err = EOK;
-	unsigned int i = 0;
 	size_t len = 0;
-	char *line = NULL, *var, *strVal;
+	char *line = NULL;
+	unsigned int pidCnt = 0;
 
 	file = fopen(PATH_PIDS_CONFIG, "r");
 	if (file == NULL) {
@@ -317,31 +400,24 @@ static int quad_readConfig(void)
 	}
 
 	while (getline(&line, &len, file) != -1) {
-		/* @ - define new PID */
-		if ((line[0] == '@') && (strcmp(&line[1], "PID\n") == 0)) {
-			i++;
-			continue;
-		}
-
 		if ((line[0] == '\n') || (line[0] == '#')) {
 			continue;
 		}
 
-		var = line;
-		strVal = strchr(line, '=');
-		if (strVal == NULL) {
-			fprintf(stderr, "quad-control: wrong line %s in file %s\n", line, PATH_PIDS_CONFIG);
-			err = -EINVAL;
-			break;
+		/* @PID - define new PID */
+		if ((line[0] == '@') && (strcmp(&line[1], "PID\n") == 0)) {
+			err = quad_pidParse(file, ++pidCnt);
+			if (err < 0) {
+				break;
+			}
 		}
 
-		*strVal++ = '\0';
-		val = strtof(strVal, NULL);
-
-		if (quad_parsePid(i - 1, var, val) < 0) {
-			fprintf(stderr, "quad-control: cannot parse %s in file %s\n", var, PATH_PIDS_CONFIG);
-			err = -EINVAL;
-			break;
+		/* @THRUST - define thrust min & max values */
+		if ((line[0] == '@') && (strcmp(&line[1], "THRUST\n") == 0)) {
+			err = quad_thrustParse(file);
+			if (err < 0) {
+				break;
+			}
 		}
 	}
 
@@ -357,7 +433,7 @@ static int quad_init(void)
 	unsigned int i = 0;
 
 	/* PID initialization alt, roll, pitch, yaw */
-	if (quad_readConfig() < 0) {
+	if (quad_configRead() < 0) {
 		fprintf(stderr, "quadcontrol: cannot parse %s\n", PATH_PIDS_CONFIG);
 		return -1;
 	}
