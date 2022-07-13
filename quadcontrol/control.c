@@ -27,14 +27,15 @@
 #include <sys/threads.h>
 
 
+/* Flag enable hackish code for initial tests which ignore altitude and yaw */
+#define TEST_ATTITUDE 1
+
 #define DELTA(measurement, setVal) (fabs((setVal) - (measurement)))
 #define ALTITUDE_TOLERANCE         500 /* 1E-3 [m] (millimetres) */
 
 #define PATH_PIDS_CONFIG "/etc/quad.conf"
 #define PID_NUMBERS      4
 
-/* Flag enable hackish code for initial tests which ignore altitude and yaw */
-#define TEST_ATTITUDE   1
 #define ANGLE_THRESHOLD (M_PI / 6)
 #define RAD2DEG         ((float)180.0 / M_PI)
 
@@ -43,7 +44,9 @@ struct {
 	pid_ctx_t pids[PID_NUMBERS];
 
 	time_t lastTime;
+#if TEST_ATTITUDE
 	time_t duration;
+#endif
 
 	struct {
 		float min;
@@ -61,6 +64,7 @@ enum { pwm_alt = 0, pwm_roll, pwm_pitch, pwm_yaw, pwm_max };
 static const flight_mode_t scenario[] = {
 	{ .type = flight_takeoff, .takeoff = { .alt = 2000 } },
 	{ .type = flight_hover, .hover = { .alt = 2000, .time = 10000 } },
+	{ .type = flight_landing },
 	{ .type = flight_end },
 };
 #else
@@ -84,16 +88,6 @@ static const quad_coeffs_t quadCoeffs = {
 };
 
 
-static void quad_done(void)
-{
-	mma_stop();
-	mma_done();
-
-	ekf_done();
-	closelog();
-}
-
-
 static inline time_t quad_timeMsGet(void)
 {
 	time_t now;
@@ -104,7 +98,7 @@ static inline time_t quad_timeMsGet(void)
 }
 
 
-static int quad_controlMotors(int32_t alt, int32_t roll, int32_t pitch, int32_t yaw)
+static int quad_motorsCtrl(float thrust, int32_t alt, int32_t roll, int32_t pitch, int32_t yaw)
 {
 	time_t dt, now;
 	ekf_state_t measure;
@@ -127,18 +121,16 @@ static int quad_controlMotors(int32_t alt, int32_t roll, int32_t pitch, int32_t 
 #if TEST_ATTITUDE
 	alt = measure.enuZ * 1000;
 	yaw = measure.yaw;
-	palt = quad_common.pids[pwm_alt].kp;
-#else
-	palt = pid_calc(&quad_common.pids[pwm_alt], measure.enuZ * 1000, alt, dt);
 #endif
 
 	DEBUG_LOG("PID: %lld, ", now);
+	palt = pid_calc(&quad_common.pids[pwm_alt], alt, measure.enuZ * 1000, dt);
 	proll = pid_calc(&quad_common.pids[pwm_roll], roll, measure.roll, dt);
 	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch, measure.pitch, dt);
 	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw, measure.yaw, dt);
 	DEBUG_LOG("\n");
 
-	mma_control(palt, proll, ppitch, pyaw);
+	mma_control(thrust + palt, proll, ppitch, pyaw);
 
 	usleep(1000 * 2);
 
@@ -148,39 +140,16 @@ static int quad_controlMotors(int32_t alt, int32_t roll, int32_t pitch, int32_t 
 
 static int quad_takeoff(const flight_mode_t *mode)
 {
-	time_t dt, now;
-	float thrust, coeff;
-	ekf_state_t measure;
-	float palt, proll, ppitch, pyaw;
+	float thrust;
 
 	DEBUG_LOG("TAKEOFF - alt: %d\n", mode->hover.alt);
 
 	/* Soft motors start */
-	for (coeff = 0, thrust = 0; thrust < quad_common.pids[pwm_alt].kp; coeff += 0.01f) {
-		now = quad_timeMsGet();
-		ekf_stateGet(&measure);
-
-		if (fabs(measure.pitch) > ANGLE_THRESHOLD || fabs(measure.roll) > ANGLE_THRESHOLD) {
-			fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors OFF\n", measure.roll, measure.pitch);
-			mma_control(0, 0, 0, 0);
+	for (thrust = 0.0; thrust < quad_common.thrust.max; thrust += 0.02f) {
+		if (quad_motorsCtrl(thrust, mode->hover.alt, 0, 0, 0) < 0) {
 			return -1;
 		}
-
-		dt = now - quad_common.lastTime;
-		quad_common.lastTime = now;
-
-		DEBUG_LOG("EKF: %lld, %f, %f, %f, %f\n", now, measure.yaw * RAD2DEG, measure.roll * RAD2DEG, measure.pitch * RAD2DEG, measure.enuZ);
-
-		DEBUG_LOG("PID: %lld, ", now);
-		proll = pid_calc(&quad_common.pids[pwm_roll], 0, measure.roll, dt);
-		ppitch = pid_calc(&quad_common.pids[pwm_pitch], 0, measure.pitch, dt);
-		pyaw = pid_calc(&quad_common.pids[pwm_yaw], 0, measure.yaw, dt);
-		DEBUG_LOG("\n");
-
-		thrust = coeff * quad_common.pids[pwm_alt].kp;
-		mma_control(thrust, coeff * proll, coeff * ppitch, coeff * pyaw);
-
-		usleep(1000 * 200);
+		usleep(1000 * 100);
 	}
 
 	/* TBD */
@@ -200,14 +169,14 @@ static int quad_hover(const flight_mode_t *mode)
 
 #if TEST_ATTITUDE
 	while (quad_timeMsGet() < now + quad_common.duration) {
-		if (quad_controlMotors(mode->hover.alt, 0, 0, 0) < 0) {
+		if (quad_motorsCtrl(quad_common.thrust.max, mode->hover.alt, 0, 0, 0) < 0) {
 			return -1;
 		}
 	}
 #else
 	ekf_stateGet(&state);
 	while ((quad_timeMsGet() < now + mode->hover.time) || DELTA(state.enuZ, mode->hover.alt) > ALTITUDE_TOLERANCE) {
-		if (quad_controlMotors(mode->hover.alt, 0, 0, 0) < 0) {
+		if (quad_motorsCtrl(quad_common.thrust.max, mode->hover.alt, 0, 0, 0) < 0) {
 			return -1;
 		}
 		ekf_stateGet(&state);
@@ -220,9 +189,19 @@ static int quad_hover(const flight_mode_t *mode)
 
 static int quad_landing(const flight_mode_t *mode)
 {
+	float coeff;
 	DEBUG_LOG("LANDING\n");
 
-	/* TBD */
+	/* Soft landing */
+	for (coeff = 1.0; coeff > 0.00001; coeff -= 0.02f) {
+#if TEST_ATTITUDE
+		if (quad_motorsCtrl(coeff * quad_common.thrust.max, 0, 0, 0, 0) < 0) {
+			return -1;
+		}
+#endif
+		/* TODO: do not change thrust value, decrease gradually altitude to change thrust */
+		usleep(1000 * 100);
+	}
 
 	return 0;
 }
@@ -266,6 +245,8 @@ static int quad_run(void)
 	return err;
 }
 
+
+/* Initialization functions */
 
 static inline int quad_divLine(char **line, char **var, float *val)
 {
@@ -428,6 +409,16 @@ static int quad_configRead(void)
 }
 
 
+static void quad_done(void)
+{
+	mma_stop();
+	mma_done();
+
+	ekf_done();
+	closelog();
+}
+
+
 static int quad_init(void)
 {
 	unsigned int i = 0;
@@ -440,7 +431,10 @@ static int quad_init(void)
 
 	/* Set initial values */
 	for (i = 0; i < PID_NUMBERS; ++i) {
-		pid_init(&quad_common.pids[i]);
+		if (pid_init(&quad_common.pids[i]) < 0) {
+			fprintf(stderr, "quadcontrol: cannot initialize PID %d\n", i);
+			return -1;
+		}
 	}
 
 	/* MMA initialization */
@@ -470,15 +464,17 @@ static int quad_init(void)
 int main(int argc, char **argv)
 {
 	int err;
-	quad_common.duration = 10000;
 
 	priority(1);
 
 	/* Flight duration is get only for tests */
+#if TEST_ATTITUDE
 	if (argc != 2) {
-		return 1;
+		fprintf(stderr, "quadcontrol: app is in TEST MODE, provide test duration in ms\n");
+		return EXIT_FAILURE;
 	}
 	quad_common.duration = strtoul(argv[1], NULL, 0);
+#endif
 
 	err = quad_init();
 	if (err < 0) {
