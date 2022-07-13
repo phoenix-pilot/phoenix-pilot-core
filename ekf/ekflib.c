@@ -122,29 +122,29 @@ void ekf_done(void)
 }
 
 
-void ekf_stateGet(ekf_state_t *ekf_state)
+void ekf_stateGet(ekf_state_t *ekfState)
 {
 	quat_t q;
 	vec_t angRates = { 0 }; /* (rollDot, pitchDot, yawDot) */
 
 	/* save quaternion attitude */
-	q.a = ekf_state->q0 = ekf_common.stateEngine.state.data[iqa];
-	q.i = ekf_state->q1 = ekf_common.stateEngine.state.data[iqb];
-	q.j = ekf_state->q2 = ekf_common.stateEngine.state.data[iqc];
-	q.k = ekf_state->q3 = ekf_common.stateEngine.state.data[iqd];
+	q.a = ekfState->q0 = ekf_common.stateEngine.state.data[iqa];
+	q.i = ekfState->q1 = ekf_common.stateEngine.state.data[iqb];
+	q.j = ekfState->q2 = ekf_common.stateEngine.state.data[iqc];
+	q.k = ekfState->q3 = ekf_common.stateEngine.state.data[iqd];
 
 	/* calculate and save euler attitude */
-	quat_quat2euler(&q, &ekf_state->roll, &ekf_state->pitch, &ekf_state->yaw);
+	quat_quat2euler(&q, &ekfState->roll, &ekfState->pitch, &ekfState->yaw);
 
 	/* save position */
-	ekf_state->enuX = ekf_common.stateEngine.state.data[ixx];
-	ekf_state->enuY = ekf_common.stateEngine.state.data[ixy];
+	ekfState->enuX = ekf_common.stateEngine.state.data[ixx];
+	ekfState->enuY = ekf_common.stateEngine.state.data[ixy];
 	/* as long as inertial reckoning is not trustable enough, return barometer height as enuZ */
-	ekf_state->enuZ = ekf_common.stateEngine.state.data[ihz];
+	ekfState->enuZ = ekf_common.stateEngine.state.data[ihz];
 
-	ekf_state->accelX = ekf_common.stateEngine.state.data[iax];
-	ekf_state->accelY = ekf_common.stateEngine.state.data[iay];
-	ekf_state->accelZ = ekf_common.stateEngine.state.data[iaz];
+	ekfState->accelX = ekf_common.stateEngine.state.data[iax];
+	ekfState->accelY = ekf_common.stateEngine.state.data[iay];
+	ekfState->accelZ = ekf_common.stateEngine.state.data[iaz];
 
 	/* rotate angular rated back to UAV frame of reference */
 	angRates.x = ekf_common.stateEngine.state.data[iwx];
@@ -152,7 +152,7 @@ void ekf_stateGet(ekf_state_t *ekf_state)
 	angRates.z = ekf_common.stateEngine.state.data[iwz];
 	quat_cjg(&q);
 	quat_vecRot(&angRates, &q);
-	ekf_state->rollDot = angRates.x;
-	ekf_state->pitchDot = angRates.y;
-	ekf_state->yawDot = angRates.z;
+	ekfState->rollDot = angRates.x;
+	ekfState->pitchDot = angRates.y;
+	ekfState->yawDot = angRates.z;
 }

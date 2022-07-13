@@ -26,9 +26,7 @@
 
 #define SENSORHUB_PIPES 3 /* number of connections with sensorhub */
 
-typedef enum { fd_imuId = 0,
-	fd_baroId,
-	fd_gpsId } fd_id_t;
+typedef enum { fd_imuId = 0, fd_baroId, fd_gpsId } fd_id_t;
 
 struct {
 	sensors_data_t *data;

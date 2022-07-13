@@ -37,8 +37,7 @@ extern kalman_init_t init_values;
 /* barometric height memory */
 static float baroMemory[2][6] = { 0 };
 
-enum baroDimension { value = 0,
-	dtime = 1 };
+enum baroDimension { value = 0, dtime = 1 };
 
 static int memoryPoint = 0;
 
