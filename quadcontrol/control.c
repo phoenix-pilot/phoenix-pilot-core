@@ -51,7 +51,7 @@ struct {
 	struct {
 		float min;
 		float max;
-	} thrust;
+	} throttle;
 } quad_common;
 
 
@@ -98,7 +98,7 @@ static inline time_t quad_timeMsGet(void)
 }
 
 
-static int quad_motorsCtrl(float thrust, int32_t alt, int32_t roll, int32_t pitch, int32_t yaw)
+static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pitch, int32_t yaw)
 {
 	time_t dt, now;
 	ekf_state_t measure;
@@ -130,7 +130,7 @@ static int quad_motorsCtrl(float thrust, int32_t alt, int32_t roll, int32_t pitc
 	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw, measure.yaw, dt);
 	DEBUG_LOG("\n");
 
-	mma_control(thrust + palt, proll, ppitch, pyaw);
+	mma_control(throttle + palt, proll, ppitch, pyaw);
 
 	usleep(1000 * 2);
 
@@ -140,13 +140,13 @@ static int quad_motorsCtrl(float thrust, int32_t alt, int32_t roll, int32_t pitc
 
 static int quad_takeoff(const flight_mode_t *mode)
 {
-	float thrust;
+	float throttle;
 
 	DEBUG_LOG("TAKEOFF - alt: %d\n", mode->hover.alt);
 
 	/* Soft motors start */
-	for (thrust = 0.0; thrust < quad_common.thrust.max; thrust += 0.02f) {
-		if (quad_motorsCtrl(thrust, mode->hover.alt, 0, 0, 0) < 0) {
+	for (throttle = 0.0; throttle < quad_common.throttle.max; throttle += 0.02f) {
+		if (quad_motorsCtrl(throttle, mode->hover.alt, 0, 0, 0) < 0) {
 			return -1;
 		}
 		usleep(1000 * 100);
@@ -169,14 +169,14 @@ static int quad_hover(const flight_mode_t *mode)
 
 #if TEST_ATTITUDE
 	while (quad_timeMsGet() < now + quad_common.duration) {
-		if (quad_motorsCtrl(quad_common.thrust.max, mode->hover.alt, 0, 0, 0) < 0) {
+		if (quad_motorsCtrl(quad_common.throttle.max, mode->hover.alt, 0, 0, 0) < 0) {
 			return -1;
 		}
 	}
 #else
 	ekf_stateGet(&state);
 	while ((quad_timeMsGet() < now + mode->hover.time) || DELTA(state.enuZ, mode->hover.alt) > ALTITUDE_TOLERANCE) {
-		if (quad_motorsCtrl(quad_common.thrust.max, mode->hover.alt, 0, 0, 0) < 0) {
+		if (quad_motorsCtrl(quad_common.throttle.max, mode->hover.alt, 0, 0, 0) < 0) {
 			return -1;
 		}
 		ekf_stateGet(&state);
@@ -195,11 +195,11 @@ static int quad_landing(const flight_mode_t *mode)
 	/* Soft landing */
 	for (coeff = 1.0; coeff > 0.00001; coeff -= 0.02f) {
 #if TEST_ATTITUDE
-		if (quad_motorsCtrl(coeff * quad_common.thrust.max, 0, 0, 0, 0) < 0) {
+		if (quad_motorsCtrl(coeff * quad_common.throttle.max, 0, 0, 0, 0) < 0) {
 			return -1;
 		}
 #endif
-		/* TODO: do not change thrust value, decrease gradually altitude to change thrust */
+		/* TODO: do not change throttle value, decrease gradually altitude to change throttle */
 		usleep(1000 * 100);
 	}
 
@@ -310,6 +310,7 @@ static int quad_pidParse(FILE *file, unsigned int i)
 			pid->minInteg = val;
 		}
 		else {
+			fprintf(stderr, "quad-control: pid wrong variable %s\n", var);
 			err = -EINVAL;
 			break;
 		}
@@ -327,7 +328,7 @@ static int quad_pidParse(FILE *file, unsigned int i)
 }
 
 
-static int quad_thrustParse(FILE *file)
+static int quad_throttleParse(FILE *file)
 {
 	int err = EOK;
 	float val;
@@ -339,17 +340,18 @@ static int quad_thrustParse(FILE *file)
 	while (getline(&line, &len, file) != -1 && cnt < fieldsNb) {
 		err = quad_divLine(&line, &var, &val);
 		if (err < 0) {
-			fprintf(stderr, "quad-control: thrust wrong line %s in file %s\n", line, PATH_PIDS_CONFIG);
+			fprintf(stderr, "quad-control: throttle wrong line %s in file %s\n", line, PATH_PIDS_CONFIG);
 			break;
 		}
 
 		if (strcmp(var, "MIN") == 0) {
-			quad_common.thrust.min = val;
+			quad_common.throttle.min = val;
 		}
 		else if (strcmp(var, "MAX") == 0) {
-			quad_common.thrust.max = val;
+			quad_common.throttle.max = val;
 		}
 		else {
+			fprintf(stderr, "quad-control: throttle wrong variable %s\n", var);
 			err = -EINVAL;
 			break;
 		}
@@ -387,15 +389,15 @@ static int quad_configRead(void)
 
 		/* @PID - define new PID */
 		if ((line[0] == '@') && (strcmp(&line[1], "PID\n") == 0)) {
-			err = quad_pidParse(file, ++pidCnt);
+			err = quad_pidParse(file, pidCnt++);
 			if (err < 0) {
 				break;
 			}
 		}
 
-		/* @THRUST - define thrust min & max values */
-		if ((line[0] == '@') && (strcmp(&line[1], "THRUST\n") == 0)) {
-			err = quad_thrustParse(file);
+		/* @THROTTLE - define throttle min & max values */
+		if ((line[0] == '@') && (strcmp(&line[1], "THROTTLE\n") == 0)) {
+			err = quad_throttleParse(file);
 			if (err < 0) {
 				break;
 			}
