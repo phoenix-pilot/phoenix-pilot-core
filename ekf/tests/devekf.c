@@ -39,13 +39,13 @@ static void printUavVersors(ekf_state_t *uavState)
 }
 
 
-static void printUavAtt(ekf_state_t *uavState)
+static inline void printUavAtt(ekf_state_t *uavState)
 {
 	printf("YPR: %f %f %f YPR_DOT %f %f %f\n", uavState->yaw * 180 / 3.1415, uavState->pitch * 180 / 3.1415, uavState->roll * 180 / 3.1415, uavState->yawDot, uavState->pitchDot, uavState->rollDot);
 }
 
 
-static void printUavAcc(ekf_state_t *uavState)
+static inline void printUavAcc(ekf_state_t *uavState)
 {
 	printf("XYZ %f %f %f\n", uavState->accelX, uavState->accelY, uavState->accelZ);
 }
@@ -56,13 +56,16 @@ int main(int argc, char **argv)
 	ekf_state_t uavState;
 	enum printMode mode = prntVersor;
 
-	if (argc > 1) {
-		if (atoi(argv[1]) == 1) {
-			mode = prntAtt;
-		}
-		if (atoi(argv[1]) == 2) {
-			mode = printAcc;
-		}
+	if (argc != 2) {
+		printf("Wrong arguments count!\n");
+		return EXIT_FAILURE;
+	}
+
+	if (atoi(argv[1]) == 1) {
+		mode = prntAtt;
+	}
+	if (atoi(argv[1]) == 2) {
+		mode = printAcc;
 	}
 
 	if (ekf_init() == 0) {
@@ -86,5 +89,5 @@ int main(int argc, char **argv)
 
 	ekf_done();
 
-	return 0;
+	return EXIT_SUCCESS;
 }

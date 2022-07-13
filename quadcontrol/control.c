@@ -64,7 +64,7 @@ enum { pwm_alt = 0, pwm_roll, pwm_pitch, pwm_yaw, pwm_max };
 static const flight_mode_t scenario[] = {
 	{ .type = flight_takeoff, .takeoff = { .alt = 2000 } },
 	{ .type = flight_hover, .hover = { .alt = 2000, .time = 10000 } },
-	{ .type = flight_landing },
+	/*{ .type = flight_landing }, TODO: activate when yaw measurement is enabled */
 	{ .type = flight_end },
 };
 #else
@@ -146,7 +146,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 	DEBUG_LOG("TAKEOFF - alt: %d\n", mode->hover.alt);
 
 	/* Soft motors start */
-	for (throttle = 0.0; throttle < quad_common.throttle.max; throttle += 0.02f) {
+	for (throttle = 0.0; throttle < quad_common.throttle.max; throttle += 0.01f) {
 		if (quad_motorsCtrl(throttle, mode->hover.alt, 0, 0, 0) < 0) {
 			return -1;
 		}

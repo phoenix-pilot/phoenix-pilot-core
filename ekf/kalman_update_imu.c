@@ -43,74 +43,74 @@ int imu_mem_entry = 0;
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, time_t timeStep)
 {
-	vec_t ameas, wmeas, mmeas;
+	vec_t accel, gyro, mag;
 	vec_t magFltrd, accelFltrd;
-	vec_t xp, diff;
-	quat_t q_est, rot = { .a = qa, .i = -qb, .j = -qc, .k = -qd };
-	float err_q_est;
+	vec_t xp, gDiff;
+	quat_t qEst, rot = { .a = qa, .i = -qb, .j = -qc, .k = -qd };
+	float qEstErr;
 	uint64_t timestamp;
 
 	/* 
 		Sensors API wrapper call 
 
-		Accelerations in g
+		Accelerations in m/s^2
 		Angular rates in rad/s
-		magnetic flux field in uT 
+		magnetic flux field in 10^-7 T
 	*/
-	meas_imuGet(&ameas, &wmeas, &mmeas, &timestamp);
+	meas_imuGet(&accel, &gyro, &mag, &timestamp);
 
 	/* estimate rotation quaternion with assumption that imu is stationary */
-	magFltrd = mmeas;
+	magFltrd = mag;
 
 	/* prepare unrotated accelerometer measurement with earth_g added for prefiltered quaternion estimation */
 	/* TODO: we can consider storing direct accel measurements in state vector and rotate it on demand (change in jacobians required!) */
 	accelFltrd = (vec_t) { .x = ax, .y = ay, .z = az };
 	accelFltrd.z += EARTH_G;
 	quat_vecRot(&accelFltrd, &rot);
-	diff.x = -accelFltrd.x;
-	diff.y = -accelFltrd.y;
-	diff.z = EARTH_G - accelFltrd.z;
+	gDiff.x = -accelFltrd.x;
+	gDiff.y = -accelFltrd.y;
+	gDiff.z = EARTH_G - accelFltrd.z;
 	quat_cjg(&rot);
 	/* calculate quaternion estimation error based on its nonstationarity. Empirically fitted parameters! */
-	err_q_est = 0.1 + 100 * vec_len(&diff) * vec_len(&diff) + 10 * vec_len(&wmeas);
+	qEstErr = 0.1 + 100 * vec_len(&gDiff) * vec_len(&gDiff) + 10 * vec_len(&gyro);
 
 	/* calculate rotation quaternion based on current magnetometer reading and ekf filtered acceleration */
 	vec_normalize(&magFltrd);
 	vec_normalize(&accelFltrd);
 	vec_cross(&magFltrd, &accelFltrd, &xp);
 	vec_normalize(&xp);
-	quat_frameRot(&accelFltrd, &xp, &true_g, &x_versor, &q_est, &rot);
+	quat_frameRot(&accelFltrd, &xp, &true_g, &x_versor, &qEst, &rot);
 
 	/* rotate measurements of a and w */
-	quat_vecRot(&ameas, &rot);
-	quat_vecRot(&wmeas, &rot);
+	quat_vecRot(&accel, &rot);
+	quat_vecRot(&gyro, &rot);
 
 	/* remove earth acceleration from measurements */
-	ameas.z -= EARTH_G;
+	accel.z -= EARTH_G;
 
 	phx_zeroes(Z);
-	Z->data[imax] = ameas.x;
-	Z->data[imay] = ameas.y;
-	Z->data[imaz] = ameas.z;
+	Z->data[imax] = accel.x;
+	Z->data[imay] = accel.y;
+	Z->data[imaz] = accel.z;
 
-	Z->data[imwx] = wmeas.x;
-	Z->data[imwy] = wmeas.y;
-	Z->data[imwz] = wmeas.z;
+	Z->data[imwx] = gyro.x;
+	Z->data[imwy] = gyro.y;
+	Z->data[imwz] = gyro.z;
 
-	Z->data[immx] = mmeas.x;
-	Z->data[immy] = mmeas.y;
-	Z->data[immz] = mmeas.z;
+	Z->data[immx] = mag.x;
+	Z->data[immy] = mag.y;
+	Z->data[immz] = mag.z;
 
-	Z->data[imqa] = q_est.a;
-	Z->data[imqb] = q_est.i;
-	Z->data[imqc] = q_est.j;
-	Z->data[imqd] = q_est.k;
+	Z->data[imqa] = qEst.a;
+	Z->data[imqb] = qEst.i;
+	Z->data[imqc] = qEst.j;
+	Z->data[imqd] = qEst.k;
 
 	/* update measurement error */
-	R->data[R->cols * imqa + imqa] = err_q_est;
-	R->data[R->cols * imqb + imqb] = err_q_est;
-	R->data[R->cols * imqc + imqc] = err_q_est;
-	R->data[R->cols * imqd + imqd] = err_q_est;
+	R->data[R->cols * imqa + imqa] = qEstErr;
+	R->data[R->cols * imqb + imqb] = qEstErr;
+	R->data[R->cols * imqc + imqc] = qEstErr;
+	R->data[R->cols * imqd + imqd] = qEstErr;
 
 	return Z;
 }
