@@ -18,18 +18,23 @@
 
 
 /* Based on PID values, the PWM are set to the each motor */
-extern void mma_control(float palt, float proll, float ppitch, float pyaw);
+extern int mma_control(float palt, float proll, float ppitch, float pyaw);
 
 
-/* Reduce motors velocity to minium */
+/* Set motors in idle state and arm motors */
+extern void mma_start(void);
+
+
+/* Set motors in idle state and disarm motors */
 extern void mma_stop(void);
 
 
-/* Disable module */
+/* Disarmed motors and disable module */
 extern void mma_done(void);
 
 
 /* MMA module initialization */
 extern int mma_init(const quad_coeffs_t *coeffs);
+
 
 #endif
