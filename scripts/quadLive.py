@@ -1,6 +1,6 @@
 # Phoenix-Pilot
 #
-# quad-control live log plottng utility. 
+# quad-control live logging utility. 
 # 
 # Reads and plots live logs from serial connection specified as parameter (or /dev/ttyUSB0 by default)
 # All other serial connections should be closed. 
@@ -11,8 +11,9 @@
 # Copyright 2022 Phoenix Systems
 # Author: Mateusz Niewiadomski
 #
-# This file is part of Phoenix-Pilot
+# This file is part of Phoenix-Pilot.
 #
+# 
 
 from pdb import line_prefix
 import numpy as np
@@ -25,10 +26,11 @@ import time
 import sys
 
 
+
 #### CONFIGS ####
 
 PORTPATH = "/dev/ttyUSB0" # default serial port to access logs
-PLOTCUT = 80              # amount of samples to be shown at once on screen
+PLOTCUT = 200              # amount of samples to be shown at once on screen
 PWM_LOW = 0.15
 
 #################
@@ -54,11 +56,15 @@ pg.setConfigOptions(antialias=True)
 
 win.nextRow()
 
-# Prepare euler angles plot
+y = [[], [], []]
+py = win.addPlot(title="Yaw", colspan=1)
+py.addLegend()
+
+# Prepare roll/pitch plot
 e = [[], [], []]
-p2 = win.addPlot(title="Euler", colspan=3)
+p2 = win.addPlot(title="Roll & Pitch", colspan=2)
 p2.addLegend()
-elines = [p2.plot(pen="red", name="yaw"), p2.plot(pen="green", name="pitch"), p2.plot(pen="blue", name="roll")]
+elines = [py.plot(pen="red", name="yaw"), p2.plot(pen="green", name="pitch"), p2.plot(pen="blue", name="roll")]
 
 win.nextRow()
 
@@ -92,7 +98,7 @@ def digestIntoData(ls):
             # EKFE - ekf log of Euler angles
             if ls[0] == "b'EKFE":
                 try:
-                    for i in range(1,3): # ommit yaw
+                    for i in range(0,3):
                         if len(e[i]) > PLOTCUT:
                             e[i].pop(0)
                         e[i].append(float(ls[i+2]))
@@ -108,7 +114,7 @@ def digestIntoData(ls):
                         for l in range(0, 4):
                             if len(pids[p][l]) > PLOTCUT:
                                 pids[p][l].pop(0)
-                            v = float(ls[2 + p * 4 + l])
+                            v = float(ls[2 + (p + 1) * 4 + l])
                             # There happens to be some huge values at the start so crop them
                             if v < 100 and v > -100:
                                 pids[p][l].append(v)
