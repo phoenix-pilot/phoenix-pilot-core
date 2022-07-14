@@ -31,9 +31,9 @@ typedef struct {
 
 
 typedef struct {
-	int32_t yaw;   /* yaw angle in milliradians in range (-PI, PI] */
-	int32_t pitch; /* pitch angle in milliradians in range (-PI/2, PI/2] */
-	int32_t roll;  /* roll angle in milliradians in range (-PI/2, PI/2] */
+	float yaw;   /* yaw angle in milliradians in range (-PI, PI] */
+	float pitch; /* pitch angle in milliradians in range (-PI/2, PI/2] */
+	float roll;  /* roll angle in milliradians in range (-PI/2, PI/2] */
 } target_attitude_t;
 
 

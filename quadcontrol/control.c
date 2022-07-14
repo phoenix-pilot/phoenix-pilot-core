@@ -39,8 +39,6 @@
 #define PATH_PIDS_CONFIG "/etc/quad.conf"
 #define PID_NUMBERS      4
 
-#define ATTITUDE_TARGETS 3
-
 #define ANGLE_THRESHOLD (M_PI / 6)
 #define RAD2DEG         ((float)180.0 / M_PI)
 #define DEG2RAD         0.0174532925f
@@ -133,9 +131,9 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 
 	DEBUG_LOG("PID: %lld, ", now);
 	palt = pid_calc(&quad_common.pids[pwm_alt], alt, measure.enuZ * 1000, 0, dt);
-	proll = pid_calc(&quad_common.pids[pwm_roll], roll, measure.roll, measure.rollDot, dt);
-	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch, measure.pitch, measure.pitchDot, dt);
-	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw, measure.yaw, measure.yawDot, dt);
+	proll = pid_calc(&quad_common.pids[pwm_roll], quad_common.targetAtt.roll, measure.roll, measure.rollDot, dt);
+	ppitch = pid_calc(&quad_common.pids[pwm_pitch], quad_common.targetAtt.pitch, measure.pitch, measure.pitchDot, dt);
+	pyaw = pid_calc(&quad_common.pids[pwm_yaw], quad_common.targetAtt.yaw, measure.yaw, measure.yawDot, dt);
 	DEBUG_LOG("\n");
 
 	if (mma_control(throttle + palt, proll, ppitch, pyaw) < 0) {
@@ -295,13 +293,13 @@ static int quad_attParse(FILE *file)
 		}
 
 		if (strcmp(var, "YAW") == 0) {
-			quad_common.targetAtt.yaw = val * 1000 * DEG2RAD;
+			quad_common.targetAtt.yaw = val * DEG2RAD;
 		}
 		else if (strcmp(var, "PITCH") == 0) {
-			quad_common.targetAtt.pitch = val * 1000 * DEG2RAD;
+			quad_common.targetAtt.pitch = val * DEG2RAD;
 		}
 		else if (strcmp(var, "ROLL") == 0) {
-			quad_common.targetAtt.roll = val * 1000 * DEG2RAD;
+			quad_common.targetAtt.roll = val * DEG2RAD;
 		}
 		else {
 			fprintf(stderr, "quad-control: attitude wrong variable %s\n", var);
@@ -317,8 +315,6 @@ static int quad_attParse(FILE *file)
 	}
 
 	free(line);
-
-	printf("y%d p%d r%d\n",quad_common.targetAtt.yaw, quad_common.targetAtt.pitch, quad_common.targetAtt.roll);
 
 	return err;
 }
