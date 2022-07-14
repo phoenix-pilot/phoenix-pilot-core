@@ -39,12 +39,16 @@
 #define PATH_PIDS_CONFIG "/etc/quad.conf"
 #define PID_NUMBERS      4
 
+#define ATTITUDE_TARGETS 3
+
 #define ANGLE_THRESHOLD (M_PI / 6)
 #define RAD2DEG         ((float)180.0 / M_PI)
+#define DEG2RAD         0.0174532925f
 
 
 struct {
 	pid_ctx_t pids[PID_NUMBERS];
+	target_attitude_t targetAtt;
 
 	time_t lastTime;
 #if TEST_ATTITUDE
@@ -274,6 +278,52 @@ static inline int quad_divLine(char **line, char **var, float *val)
 }
 
 
+static int quad_attParse(FILE *file)
+{
+	int err = EOK;
+	float val;
+	size_t len = 0;
+	unsigned int cnt = 0;
+	const unsigned int fieldsNb = 3;
+	char *line = NULL, *var;
+
+	while (getline(&line, &len, file) != -1 && cnt < fieldsNb) {
+		err = quad_divLine(&line, &var, &val);
+		if (err < 0) {
+			fprintf(stderr, "quad-control: attitude wrong line %s in file %s\n", line, PATH_PIDS_CONFIG);
+			break;
+		}
+
+		if (strcmp(var, "YAW") == 0) {
+			quad_common.targetAtt.yaw = val * 1000 * DEG2RAD;
+		}
+		else if (strcmp(var, "PITCH") == 0) {
+			quad_common.targetAtt.pitch = val * 1000 * DEG2RAD;
+		}
+		else if (strcmp(var, "ROLL") == 0) {
+			quad_common.targetAtt.roll = val * 1000 * DEG2RAD;
+		}
+		else {
+			fprintf(stderr, "quad-control: attitude wrong variable %s\n", var);
+			err = -EINVAL;
+			break;
+		}
+
+		++cnt;
+	}
+
+	if (cnt != fieldsNb) {
+		err = -EINVAL;
+	}
+
+	free(line);
+
+	printf("y%d p%d r%d\n",quad_common.targetAtt.yaw, quad_common.targetAtt.pitch, quad_common.targetAtt.roll);
+
+	return err;
+}
+
+
 static int quad_pidParse(FILE *file, unsigned int i)
 {
 	int err = EOK;
@@ -400,6 +450,7 @@ static int quad_configRead(void)
 		if ((line[0] == '@') && (strcmp(&line[1], "PID\n") == 0)) {
 			err = quad_pidParse(file, pidCnt++);
 			if (err < 0) {
+				printf("pids\n");
 				break;
 			}
 		}
@@ -407,6 +458,15 @@ static int quad_configRead(void)
 		/* @THROTTLE - define throttle min & max values */
 		if ((line[0] == '@') && (strcmp(&line[1], "THROTTLE\n") == 0)) {
 			err = quad_throttleParse(file);
+			if (err < 0) {
+				printf("throttle\n");
+				break;
+			}
+		}
+
+		/* @ATTITUDE - define target attitude */
+		if ((line[0] == '@') && (strcmp(&line[1], "ATTITUDE\n") == 0)) {
+			err = quad_attParse(file);
 			if (err < 0) {
 				break;
 			}
