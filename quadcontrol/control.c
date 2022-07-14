@@ -15,15 +15,18 @@
 #include "mma.h"
 #include "pid.h"
 
-#include <math.h>
 #include <ekflib.h>
+
+#include <math.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <stdio.h>
 #include <syslog.h>
 #include <string.h>
-#include <sys/time.h>
+#include <termios.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <sys/threads.h>
 
 
@@ -107,8 +110,8 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 	ekf_stateGet(&measure);
 
 	if (fabs(measure.pitch) > ANGLE_THRESHOLD || fabs(measure.roll) > ANGLE_THRESHOLD) {
-		fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors OFF\n", measure.roll, measure.pitch);
-		mma_control(0, 0, 0, 0);
+		fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors stop.\n", measure.roll, measure.pitch);
+		mma_stop();
 		return -1;
 	}
 
@@ -131,7 +134,9 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw, measure.yaw, measure.yawDot, dt);
 	DEBUG_LOG("\n");
 
-	mma_control(throttle + palt, proll, ppitch, pyaw);
+	if (mma_control(throttle + palt, proll, ppitch, pyaw) < 0) {
+		return -1;
+	}
 
 	usleep(1000 * 2);
 
@@ -218,6 +223,8 @@ static int quad_run(void)
 	for (i = 0; i < sizeof(scenario) / sizeof(scenario[0]); ++i) {
 		switch (scenario[i].type) {
 			case flight_takeoff:
+				/* Arm motors */
+				mma_start();
 				err = quad_takeoff(&scenario[i]);
 				break;
 
@@ -231,7 +238,8 @@ static int quad_run(void)
 
 			case flight_end:
 				DEBUG_LOG("end of the scenario\n");
-				mma_control(0, 0, 0, 0);
+				/* Disarm motors */
+				mma_stop();
 				break;
 
 			default:
@@ -414,11 +422,8 @@ static int quad_configRead(void)
 
 static void quad_done(void)
 {
-	mma_stop();
 	mma_done();
-
 	ekf_done();
-	closelog();
 }
 
 
@@ -467,8 +472,15 @@ static int quad_init(void)
 int main(int argc, char **argv)
 {
 	int err;
+	pid_t pid, ret;
+	int status = 0;
 
 	priority(1);
+
+	err = quad_init();
+	if (err < 0) {
+		return EXIT_FAILURE;
+	}
 
 	/* Flight duration is get only for tests */
 #if TEST_ATTITUDE
@@ -479,13 +491,33 @@ int main(int argc, char **argv)
 	quad_common.duration = strtoul(argv[1], NULL, 0);
 #endif
 
-	err = quad_init();
-	if (err < 0) {
-		return EXIT_FAILURE;
+	pid = fork();
+	/* Parent process waits on child and makes clean up  */
+	if (pid > 0) {
+		signal(SIGINT, SIG_IGN);
+		signal(SIGQUIT, SIG_IGN);
+		signal(SIGTERM, SIG_IGN);
+
+		do {
+			ret = waitpid(pid, &status, 0);
+		} while (ret < 0 && errno == EINTR);
+
+		quad_done();
+	}
+	/* Child process runs flight scenario and can be terminated */
+	else if (pid == 0) {
+		/* Take terminal control */
+		tcsetpgrp(STDIN_FILENO, getpid());
+
+		quad_run();
+		exit(EXIT_SUCCESS);
+	}
+	else {
+		fprintf(stderr, "quadcontrol: vfork failed with code %d\n", pid);
 	}
 
-	quad_run();
-	quad_done();
+	/* Take back terminal control */
+	tcsetpgrp(STDIN_FILENO, getpid());
 
 	return EXIT_SUCCESS;
 }
