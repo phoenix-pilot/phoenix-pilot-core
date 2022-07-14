@@ -43,12 +43,19 @@ struct {
 	time_t lastTime;           /* last kalman loop time */
 	time_t currTime;           /* current kalman loop time */
 
+	handle_t lock;
+
 	char stack[8192];
 } ekf_common;
 
 
 int ekf_init(void)
 {
+	if (mutexCreate(&(ekf_common.lock)) < 0) {
+		printf("Cannot create mutex for ekf\n");
+		return -1;
+	}
+
 	ekf_common.run = 0;
 	if (sensc_init("/dev/sensors") < 0) {
 		return -1;
@@ -96,9 +103,12 @@ static void ekf_thread(void *arg)
 
 		/* state prediction procedure */
 		kalmanPredictionStep(&ekf_common.stateEngine, timeStep, 0);
+		/* TODO: make critical section smaller and only on accesses to state and cov matrices */
+		mutexLock(ekf_common.lock);
 		if (kalmanUpdateStep(timeStep, 0, &ekf_common.baroEngine, &ekf_common.stateEngine) < 0) { /* barometer measurements update procedure */
 			kalmanUpdateStep(timeStep, 0, &ekf_common.imuEngine, &ekf_common.stateEngine);        /* imu measurements update procedure */
 		}
+		mutexUnlock(ekf_common.lock);
 	}
 
 	ekf_common.run = -1;
@@ -119,6 +129,7 @@ void ekf_done(void)
 	}
 	threadJoin(0);
 	kmn_predDeinit(&ekf_common.stateEngine);
+	resourceDestroy(ekf_common.lock);
 }
 
 
@@ -127,14 +138,13 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	quat_t q;
 	vec_t angRates = { 0 }; /* (rollDot, pitchDot, yawDot) */
 
+	mutexLock(ekf_common.lock);
+
 	/* save quaternion attitude */
 	q.a = ekfState->q0 = ekf_common.stateEngine.state.data[iqa];
 	q.i = ekfState->q1 = ekf_common.stateEngine.state.data[iqb];
 	q.j = ekfState->q2 = ekf_common.stateEngine.state.data[iqc];
 	q.k = ekfState->q3 = ekf_common.stateEngine.state.data[iqd];
-
-	/* calculate and save euler attitude */
-	quat_quat2euler(&q, &ekfState->roll, &ekfState->pitch, &ekfState->yaw);
 
 	/* save position */
 	ekfState->enuX = ekf_common.stateEngine.state.data[ixx];
@@ -142,14 +152,21 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	/* as long as inertial reckoning is not trustable enough, return barometer height as enuZ */
 	ekfState->enuZ = ekf_common.stateEngine.state.data[ihz];
 
+	/* save accelerations */
 	ekfState->accelX = ekf_common.stateEngine.state.data[iax];
 	ekfState->accelY = ekf_common.stateEngine.state.data[iay];
 	ekfState->accelZ = ekf_common.stateEngine.state.data[iaz];
 
-	/* rotate angular rated back to UAV frame of reference */
 	angRates.x = ekf_common.stateEngine.state.data[iwx];
 	angRates.y = ekf_common.stateEngine.state.data[iwy];
 	angRates.z = ekf_common.stateEngine.state.data[iwz];
+
+	mutexUnlock(ekf_common.lock);
+
+	/* calculate and save euler attitude */
+	quat_quat2euler(&q, &ekfState->roll, &ekfState->pitch, &ekfState->yaw);
+
+	/* rotate angular rates back to UAV frame of reference */
 	quat_cjg(&q);
 	quat_vecRot(&angRates, &q);
 	ekfState->rollDot = angRates.x;
