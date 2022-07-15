@@ -14,150 +14,165 @@
 # This file is part of Phoenix-Pilot.
 #
 # 
-
-from pdb import line_prefix
-import numpy as np
-
-import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore
-from sqlalchemy import except_all
-import serial
-import time
+import argparse
+import signal
 import sys
 
-
-
-#### CONFIGS ####
-
-PORTPATH = "/dev/ttyUSB0" # default serial port to access logs
-PLOTCUT = 200              # amount of samples to be shown at once on screen
-PWM_LOW = 0.15
-
-#################
-
-# catch port name
-if (len(sys.argv) > 1 and sys.argv[1] is not None):
-    PORTPATH = str(sys.argv[1])
-    print(f"reading from {PORTPATH}")
+import serial
+import pyqtgraph as pg
+from pyqtgraph.Qt import QtCore
 
 
 def processLine(l):
     l = l.replace(":","")
     l = l.replace(",","")
-    l = l.replace("\\r\\n'", "")
+    l = l.replace("\\r\\n", "")
     return l.split()
 
-app = pg.mkQApp("My multiple plot")
+class lpgui:
+    """Holistic wrapper class for quadLive gui creation/running and data acquisition/processing"""
 
-win = pg.GraphicsLayoutWidget(show=True, title="Phoenix-pilot logging tool")
-win.resize(1500,800)
-win.setWindowTitle('Phoenix-pilot logging tool')
-pg.setConfigOptions(antialias=True)
+    def __init__(self, ser: serial, args):
+        """Gui init, and refresh timer handler"""
 
-win.nextRow()
+        self.plotcut = args.cut
+        self.pwmLow = args.pwm
+        self.ser = ser
 
-y = [[], [], []]
-py = win.addPlot(title="Yaw", colspan=1)
-py.addLegend()
+        #app = pg.mkQApp("My multiple plot")
+        self.win = pg.GraphicsLayoutWidget(show=True, title="Phoenix-pilot logging tool")
+        self.win.resize(1500, 800)
+        self.win.setWindowTitle("Phoenix-pilot logging tool")
+        pg.setConfigOptions(antialias=True)
 
-# Prepare roll/pitch plot
-e = [[], [], []]
-p2 = win.addPlot(title="Roll & Pitch", colspan=2)
-p2.addLegend()
-elines = [py.plot(pen="red", name="yaw"), p2.plot(pen="green", name="pitch"), p2.plot(pen="blue", name="roll")]
+        self.win.nextRow()
 
-win.nextRow()
+        self.y = [[] for _ in range(3)]
+        self.py = self.win.addPlot(title="Yaw", colspan=1)
+        self.py.addLegend()
 
-# Prepare PID plots
-pids = [[[],[],[],[]], [[],[],[],[]], [[],[],[],[]]]
-winpids = [win.addPlot(title="Roll pid"), win.addPlot(title="Pitch pid"), win.addPlot(title="Yaw pid")]
-linepids = [[],[],[]]
-for w in range(0, 3):
-    winpids[w].showGrid(x = False, y = True, alpha = 0.5)
-    winpids[w].addLegend()
-    linepids[w].append(winpids[w].plot(pen="red", name="P"))
-    linepids[w].append(winpids[w].plot(pen="green", name="I"))
-    linepids[w].append(winpids[w].plot(pen="blue", name="D"))
-    linepids[w].append(winpids[w].plot(pen="orange", name="Σ"))
+        # Prepare roll/pitch plot
+        self.e = [[] for _ in range(3)]
+        self.p2 = self.win.addPlot(title="Roll & Pitch", colspan=2)
+        self.p2.addLegend()
+        self.elines = [
+            self.py.plot(pen="red", name="yaw"), 
+            self.p2.plot(pen="green", name="pitch"), 
+            self.p2.plot(pen="blue", name="roll")]
 
-win.nextRow()
+        self.win.nextRow()
 
-# Prepare PWM plots
-pwms = [[], [], [], []]
-winpwm = win.addPlot(title="Engine PWMs", colspan=3)
-winpwm.addLegend()
-pwmlines = [winpwm.plot(pen="white", name="M4"), winpwm.plot(pen="red", name="M1"), winpwm.plot(pen="green", name="M3"), winpwm.plot(pen="blue", name="M2")]
+        # Prepare PID plots
+        self.pids = [[[] for _ in range(4)] for _ in range(3)]
+        self.winpids = [self.win.addPlot(title="Roll pid"), self.win.addPlot(title="Pitch pid"), self.win.addPlot(title="Yaw pid")]
+        self.linepids = [[] for _ in range(3)]
+        for w in range(len(self.winpids)):
+            self.winpids[w].showGrid(x=False, y=True, alpha=0.5)
+            self.winpids[w].addLegend()
+            self.linepids[w].append(self.winpids[w].plot(pen="red", name="P"))
+            self.linepids[w].append(self.winpids[w].plot(pen="green", name="I"))
+            self.linepids[w].append(self.winpids[w].plot(pen="blue", name="D"))
+            self.linepids[w].append(self.winpids[w].plot(pen="orange", name="Σ"))
 
-def digestIntoData(ls):
-    """Interpret chopped line of data from quadrocontrol, and decompose it into plot arrays"""
+        self.win.nextRow()
 
-    global q, p1, qlines
-    global e, p2, elines
-    global PLOTCUT, PWM_LOW
-    if len(ls) > 1:
-            # EKFE - ekf log of Euler angles
-            if ls[0] == "b'EKFE":
-                try:
-                    for i in range(0,3):
-                        if len(e[i]) > PLOTCUT:
-                            e[i].pop(0)
-                        e[i].append(float(ls[i+2]))
-                        elines[i].setData(e[i])
-                except:
-                    None
-            # PID - logs of pid values from pid controllers
-            if ls[0] == "b'PID":
-                try:
-                    # iterate over roll/pitch/yaw plots
-                    for p in range(0, 3):
-                        # iterate over pid values in one plot
-                        for l in range(0, 4):
-                            if len(pids[p][l]) > PLOTCUT:
-                                pids[p][l].pop(0)
-                            v = float(ls[2 + (p + 1) * 4 + l])
-                            # There happens to be some huge values at the start so crop them
-                            if v < 100 and v > -100:
-                                pids[p][l].append(v)
-                            linepids[p][l].setData(pids[p][l])
-                except:
-                    None
-            # PWM - percent of throttle on each engine
-            if ls[0] == "b'PWM":
-                try:
-                    for i in range(0, 4):
-                        if len(pwms[i]) > PLOTCUT:
-                            pwms[i].pop(0)
-                        v = float(ls[i+1])
-                        # autoscaling causes problems at start end the very end
-                        if v > PWM_LOW:
-                            pwms[i].append(v)
-                        pwmlines[i].setData(pwms[i])
-                except:
-                    None
+        # Prepare PWM plots
+        self.pwms = [[] for _ in range(4)]
+        self.winpwm = self.win.addPlot(title="Engine PWMs", colspan=3)
+        self.winpwm.addLegend()
+        self.pwmlines = [
+            self.winpwm.plot(pen="white", name="M4"),
+            self.winpwm.plot(pen="red", name="M1"),
+            self.winpwm.plot(pen="green", name="M3"),
+            self.winpwm.plot(pen="blue", name="M2")]
 
-ser = serial.Serial(PORTPATH, baudrate=115200, timeout=1)
-def update():
-    """Data acquisition routine"""
-
-    global ser
-    global q, p1, qlines
-    global e, p2, elines
-    ser.flushInput()
-    ls1 = processLine(str(ser.readline()))
-    ls1 = processLine(str(ser.readline()))
-    ls2 = processLine(str(ser.readline()))
-    ls3 = processLine(str(ser.readline()))
-    ls4 = processLine(str(ser.readline()))
-    digestIntoData(ls1)
-    digestIntoData(ls2)
-    digestIntoData(ls3)
-    digestIntoData(ls4)
-
-# Quadrocontrol has maximum frequency of 100Hz (with calculation time excluded) so with 10ms wait we should catch all data
-timer = QtCore.QTimer()
-timer.timeout.connect(update)
-timer.start(10)
+        # Quadrocontrol has maximum frequency of 100Hz (with calculation time excluded) so with 10ms wait we should catch all data
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update)
+        self.timer.start(10)
 
 
-if __name__ == '__main__':
+    def digestIntoData(self, ls):
+        """Interpret chopped line of data from quadrocontrol, and decompose it into plot arrays"""
+
+        if len(ls) <= 1:
+            return
+
+        # EKFE - ekf log of Euler angles
+        if ls[0] == "EKFE":
+            for i in range(len(self.e)):
+                if len(self.e[i]) > self.plotcut:
+                    self.e[i].pop(0)
+                self.e[i].append(float(ls[i+2]))
+                self.elines[i].setData(self.e[i])
+        # PID - logs of pid values from pid controllers
+        if ls[0] == "PID":
+            # iterate over roll/pitch/yaw plots
+            for p in range(len(self.pids)):
+                # iterate over pid values in one plot
+                for l in range(len(self.pids[p])):
+                    if len(self.pids[p][l]) > self.plotcut:
+                        self.pids[p][l].pop(0)
+                    v = float(ls[2 + (p + 1) * 4 + l])
+                    # There happens to be some huge values at the start so crop them
+                    if -100 < v < 100:
+                        self.pids[p][l].append(v)
+                    self.linepids[p][l].setData(self.pids[p][l])
+        # PWM - percent of throttle on each engine
+        if ls[0] == "PWM":
+            for i in range(0, 4):
+                if len(self.pwms[i]) > self.plotcut:
+                    self.pwms[i].pop(0)
+                v = float(ls[i+1])
+                # autoscaling causes problems at start end the very end
+                if v > self.pwmLow:
+                    self.pwms[i].append(v)
+                self.pwmlines[i].setData(self.pwms[i])
+
+
+    def update(self):
+        """Data acquisition routine"""
+
+        # flush and dummy read
+        self.ser.flushInput()
+        processLine(self.ser.readline().decode("utf-8"))
+        for i in range(4):
+            l = processLine(self.ser.readline().decode("utf-8"))
+            try:
+                self.digestIntoData(l)
+            except:
+                pass
+
+
+    def guiStop(self, signalNumber, frame):
+        """Plot stop routine"""
+
+        self.timer.stop()
+        print("Closing quadLive.py...")
+        sys.exit(0)
+
+
+def main():
+    cmdParse = argparse.ArgumentParser()
+    cmdParse.add_argument("port", default="/dev/ttyUSB0")
+    cmdParse.add_argument("-c", "--cut", required=False, default=200)
+    cmdParse.add_argument("-p", "--pwm", required=False, default=0.15)
+    args = cmdParse.parse_args()
+
+    try:
+        ser = serial.Serial(args.port, baudrate=115200, timeout=1)
+    except serial.SerialException:
+        print(f"Error while opening f{args.port}")
+        sys.exit(1)
+
+    gui = lpgui(ser, args)
+
+    signal.signal(signal.SIGINT, gui.guiStop)
+
+
+# Run quadLive
+main()
+
+
+if __name__ == "__main__":
     pg.exec()

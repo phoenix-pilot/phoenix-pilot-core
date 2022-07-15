@@ -1,0 +1,2 @@
+pyqtgraph==0.12.4
+pyserial==3.5
