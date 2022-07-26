@@ -137,6 +137,7 @@ void mma_done(void)
 	/* make sure that motors are stopped before closing dev files */
 	mma_common.armed = 0;
 	_mma_motorsIdle();
+	usleep(100 * 1000);
 
 	for (i = 0; i < NUMBER_MOTORS; ++i) {
 		if (mma_common.files[i] != NULL) {

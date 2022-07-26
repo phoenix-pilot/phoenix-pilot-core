@@ -491,21 +491,23 @@ int main(int argc, char **argv)
 	quad_common.duration = strtoul(argv[1], NULL, 0);
 #endif
 
-	pid = fork();
+	signal(SIGINT, SIG_IGN);
+	signal(SIGQUIT, SIG_IGN);
+	signal(SIGTERM, SIG_IGN);
+
+	pid = vfork();
 	/* Parent process waits on child and makes clean up  */
 	if (pid > 0) {
-		signal(SIGINT, SIG_IGN);
-		signal(SIGQUIT, SIG_IGN);
-		signal(SIGTERM, SIG_IGN);
-
 		do {
 			ret = waitpid(pid, &status, 0);
 		} while (ret < 0 && errno == EINTR);
-
-		quad_done();
 	}
 	/* Child process runs flight scenario and can be terminated */
 	else if (pid == 0) {
+		signal(SIGINT, SIG_DFL);
+		signal(SIGQUIT, SIG_DFL);
+		signal(SIGTERM, SIG_DFL);
+
 		/* Take terminal control */
 		tcsetpgrp(STDIN_FILENO, getpid());
 
@@ -515,6 +517,8 @@ int main(int argc, char **argv)
 	else {
 		fprintf(stderr, "quadcontrol: vfork failed with code %d\n", pid);
 	}
+
+	quad_done();
 
 	/* Take back terminal control */
 	tcsetpgrp(STDIN_FILENO, getpid());
