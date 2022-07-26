@@ -46,10 +46,10 @@
 
 struct {
 	pid_ctx_t pids[PID_NUMBERS];
-	quad_att_t targetAtt;
 
 	time_t lastTime;
 #if TEST_ATTITUDE
+	quad_att_t targetAtt;
 	time_t duration;
 #endif
 
@@ -126,14 +126,16 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 
 #if TEST_ATTITUDE
 	alt = measure.enuZ * 1000;
-	yaw = measure.yaw;
+	yaw = quad_common.targetAtt.roll * 1000;
+	pitch = quad_common.targetAtt.pitch * 1000;
+	roll = quad_common.targetAtt.roll * 1000;
 #endif
 
 	DEBUG_LOG("PID: %lld, ", now);
 	palt = pid_calc(&quad_common.pids[pwm_alt], alt, measure.enuZ * 1000, 0, dt);
-	proll = pid_calc(&quad_common.pids[pwm_roll], quad_common.targetAtt.roll, measure.roll, measure.rollDot, dt);
-	ppitch = pid_calc(&quad_common.pids[pwm_pitch], quad_common.targetAtt.pitch, measure.pitch, measure.pitchDot, dt);
-	pyaw = pid_calc(&quad_common.pids[pwm_yaw], quad_common.targetAtt.yaw, measure.yaw, measure.yawDot, dt);
+	proll = pid_calc(&quad_common.pids[pwm_roll], roll / 1000, measure.roll, measure.rollDot, dt);
+	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch / 1000, measure.pitch, measure.pitchDot, dt);
+	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw / 1000, measure.yaw, measure.yawDot, dt);
 	DEBUG_LOG("\n");
 
 	if (mma_control(throttle + palt, proll, ppitch, pyaw) < 0) {
@@ -275,7 +277,7 @@ static inline int quad_divLine(char **line, char **var, float *val)
 	return EOK;
 }
 
-
+#if TEST_ATTITUDE
 static int quad_attParse(FILE *file)
 {
 	int err = EOK;
@@ -318,7 +320,7 @@ static int quad_attParse(FILE *file)
 
 	return err;
 }
-
+#endif
 
 static int quad_pidParse(FILE *file, unsigned int i)
 {
@@ -459,7 +461,7 @@ static int quad_configRead(void)
 				break;
 			}
 		}
-
+#if TEST_ATTITUDE
 		/* @ATTITUDE - define target attitude */
 		if ((line[0] == '@') && (strcmp(&line[1], "ATTITUDE\n") == 0)) {
 			err = quad_attParse(file);
@@ -468,6 +470,7 @@ static int quad_configRead(void)
 				break;
 			}
 		}
+#endif
 	}
 
 	free(line);
