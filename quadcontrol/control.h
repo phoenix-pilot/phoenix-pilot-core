@@ -31,6 +31,13 @@ typedef struct {
 
 
 typedef struct {
+	float yaw;   /* yaw angle in milliradians in range (-PI, PI] */
+	float pitch; /* pitch angle in milliradians in range (-PI/2, PI/2] */
+	float roll;  /* roll angle in milliradians in range (-PI/2, PI/2] */
+} quad_att_t;
+
+
+typedef struct {
 	int32_t alt; /* altitude in 1E-3 [m] (millimetres) above MSL */
 	int32_t lat; /* latitude in 1E-7 degrees */
 	int32_t lon; /* longitude in 1E-7 degrees */

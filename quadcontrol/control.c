@@ -41,6 +41,7 @@
 
 #define ANGLE_THRESHOLD (M_PI / 6)
 #define RAD2DEG         ((float)180.0 / M_PI)
+#define DEG2RAD         0.0174532925f
 
 
 struct {
@@ -48,6 +49,7 @@ struct {
 
 	time_t lastTime;
 #if TEST_ATTITUDE
+	quad_att_t targetAtt;
 	time_t duration;
 #endif
 
@@ -124,14 +126,16 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 
 #if TEST_ATTITUDE
 	alt = measure.enuZ * 1000;
-	yaw = measure.yaw;
+	yaw = quad_common.targetAtt.roll * 1000;
+	pitch = quad_common.targetAtt.pitch * 1000;
+	roll = quad_common.targetAtt.roll * 1000;
 #endif
 
 	DEBUG_LOG("PID: %lld, ", now);
 	palt = pid_calc(&quad_common.pids[pwm_alt], alt, measure.enuZ * 1000, 0, dt);
-	proll = pid_calc(&quad_common.pids[pwm_roll], roll, measure.roll, measure.rollDot, dt);
-	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch, measure.pitch, measure.pitchDot, dt);
-	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw, measure.yaw, measure.yawDot, dt);
+	proll = pid_calc(&quad_common.pids[pwm_roll], roll / 1000, measure.roll, measure.rollDot, dt);
+	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch / 1000, measure.pitch, measure.pitchDot, dt);
+	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw / 1000, measure.yaw, measure.yawDot, dt);
 	DEBUG_LOG("\n");
 
 	if (mma_control(throttle + palt, proll, ppitch, pyaw) < 0) {
@@ -273,6 +277,50 @@ static inline int quad_divLine(char **line, char **var, float *val)
 	return EOK;
 }
 
+#if TEST_ATTITUDE
+static int quad_attParse(FILE *file)
+{
+	int err = EOK;
+	float val;
+	size_t len = 0;
+	unsigned int cnt = 0;
+	const unsigned int fieldsNb = 3;
+	char *line = NULL, *var;
+
+	while (getline(&line, &len, file) != -1 && cnt < fieldsNb) {
+		err = quad_divLine(&line, &var, &val);
+		if (err < 0) {
+			fprintf(stderr, "quad-control: attitude wrong line %s in file %s\n", line, PATH_PIDS_CONFIG);
+			break;
+		}
+
+		if (strcmp(var, "YAW") == 0) {
+			quad_common.targetAtt.yaw = val * DEG2RAD;
+		}
+		else if (strcmp(var, "PITCH") == 0) {
+			quad_common.targetAtt.pitch = val * DEG2RAD;
+		}
+		else if (strcmp(var, "ROLL") == 0) {
+			quad_common.targetAtt.roll = val * DEG2RAD;
+		}
+		else {
+			fprintf(stderr, "quad-control: attitude wrong variable %s\n", var);
+			err = -EINVAL;
+			break;
+		}
+
+		++cnt;
+	}
+
+	if (cnt != fieldsNb) {
+		err = -EINVAL;
+	}
+
+	free(line);
+
+	return err;
+}
+#endif
 
 static int quad_pidParse(FILE *file, unsigned int i)
 {
@@ -400,6 +448,7 @@ static int quad_configRead(void)
 		if ((line[0] == '@') && (strcmp(&line[1], "PID\n") == 0)) {
 			err = quad_pidParse(file, pidCnt++);
 			if (err < 0) {
+				fprintf(stderr, "quad-control: cannot parse pid parameters\n");
 				break;
 			}
 		}
@@ -408,9 +457,20 @@ static int quad_configRead(void)
 		if ((line[0] == '@') && (strcmp(&line[1], "THROTTLE\n") == 0)) {
 			err = quad_throttleParse(file);
 			if (err < 0) {
+				fprintf(stderr, "quad-control: cannot parse throttle parameters\n");
 				break;
 			}
 		}
+#if TEST_ATTITUDE
+		/* @ATTITUDE - define target attitude */
+		if ((line[0] == '@') && (strcmp(&line[1], "ATTITUDE\n") == 0)) {
+			err = quad_attParse(file);
+			if (err < 0) {
+				fprintf(stderr, "quad-control: cannot parse attitude parameters\n");
+				break;
+			}
+		}
+#endif
 	}
 
 	free(line);
