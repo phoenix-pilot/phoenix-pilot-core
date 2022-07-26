@@ -46,7 +46,7 @@
 
 struct {
 	pid_ctx_t pids[PID_NUMBERS];
-	target_attitude_t targetAtt;
+	quad_att_t targetAtt;
 
 	time_t lastTime;
 #if TEST_ATTITUDE
@@ -446,7 +446,7 @@ static int quad_configRead(void)
 		if ((line[0] == '@') && (strcmp(&line[1], "PID\n") == 0)) {
 			err = quad_pidParse(file, pidCnt++);
 			if (err < 0) {
-				printf("pids\n");
+				fprintf(stderr, "quad-control: cannot parse pid parameters\n");
 				break;
 			}
 		}
@@ -455,7 +455,7 @@ static int quad_configRead(void)
 		if ((line[0] == '@') && (strcmp(&line[1], "THROTTLE\n") == 0)) {
 			err = quad_throttleParse(file);
 			if (err < 0) {
-				printf("throttle\n");
+				fprintf(stderr, "quad-control: cannot parse throttle parameters\n");
 				break;
 			}
 		}
@@ -464,6 +464,7 @@ static int quad_configRead(void)
 		if ((line[0] == '@') && (strcmp(&line[1], "ATTITUDE\n") == 0)) {
 			err = quad_attParse(file);
 			if (err < 0) {
+				fprintf(stderr, "quad-control: cannot parse attitude parameters\n");
 				break;
 			}
 		}
