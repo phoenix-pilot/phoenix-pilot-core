@@ -37,10 +37,10 @@ struct {
 
 
 static const char *motorsPwm[] = {
-	PWM_MOTOR4,
-	PWM_MOTOR1,
-	PWM_MOTOR3,
-	PWM_MOTOR2
+	PWM_MOTOR1, /* front right, clockwise */
+	PWM_MOTOR2, /* rear left, clockwise */
+	PWM_MOTOR3, /* rear right, anti-clockwise */
+	PWM_MOTOR4  /* front left, anti-clockwise */
 };
 
 
@@ -58,13 +58,14 @@ int mma_control(float palt, float proll, float ppitch, float pyaw)
 		return -1;
 	}
 
-	pwm[0] = palt - proll + ppitch - pyaw;
-	pwm[1] = palt + proll + ppitch + pyaw;
+	pwm[0] = palt + proll + ppitch + pyaw;
+	pwm[1] = palt - proll - ppitch + pyaw;
 	pwm[2] = palt + proll - ppitch - pyaw;
-	pwm[3] = palt - proll - ppitch + pyaw;
+	pwm[3] = palt - proll + ppitch - pyaw;
 
 
 	for (i = 0; i < NUMBER_MOTORS; ++i) {
+
 		if (pwm[i] > 1.0f) {
 			pwm[i] = 1.0f;
 		}
