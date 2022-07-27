@@ -42,6 +42,7 @@
 #define ANGLE_THRESHOLD (M_PI / 6)
 #define RAD2DEG         ((float)180.0 / M_PI)
 #define DEG2RAD         0.0174532925f
+#define ANGLE_HOLD      INT32_MAX
 
 
 struct {
@@ -118,24 +119,26 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 	}
 
 	now = quad_timeMsGet();
-	DEBUG_LOG("EKFQ: %lld, %f, %f, %f, %f\n", now, measure.q0, measure.q1, measure.q2, measure.q3);
-	DEBUG_LOG("EKFE: %lld, %f, %f, %f\n", now, measure.yaw * RAD2DEG, measure.pitch * RAD2DEG, measure.roll * RAD2DEG);
 
 	dt = now - quad_common.lastTime;
 	quad_common.lastTime = now;
 
+	if (yaw == ANGLE_HOLD) {
+		yaw = measure.yaw * 1000;
+	}
+
 #if TEST_ATTITUDE
 	alt = measure.enuZ * 1000;
-	yaw = quad_common.targetAtt.roll * 1000;
-	pitch = quad_common.targetAtt.pitch * 1000;
-	roll = quad_common.targetAtt.roll * 1000;
 #endif
+
+	DEBUG_LOG("EKFQ: %lld, %f, %f, %f, %f\n", now, measure.q0, measure.q1, measure.q2, measure.q3);
+	DEBUG_LOG("EKFE: %lld, %f, %f, %f\n", now, measure.yaw * RAD2DEG, measure.pitch * RAD2DEG, measure.roll * RAD2DEG);
 
 	DEBUG_LOG("PID: %lld, ", now);
 	palt = pid_calc(&quad_common.pids[pwm_alt], alt, measure.enuZ * 1000, 0, dt);
-	proll = pid_calc(&quad_common.pids[pwm_roll], roll / 1000, measure.roll, measure.rollDot, dt);
-	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch / 1000, measure.pitch, measure.pitchDot, dt);
-	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw / 1000, measure.yaw, measure.yawDot, dt);
+	proll = pid_calc(&quad_common.pids[pwm_roll], roll / 1000.f, measure.roll, measure.rollDot, dt);
+	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch / 1000.f, measure.pitch, measure.pitchDot, dt);
+	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw / 1000.f, measure.yaw, measure.yawDot, dt);
 	DEBUG_LOG("\n");
 
 	if (mma_control(throttle + palt, proll, ppitch, pyaw) < 0) {
@@ -156,7 +159,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 
 	/* Soft motors start */
 	for (throttle = 0.0; throttle < quad_common.throttle.max; throttle += 0.01f) {
-		if (quad_motorsCtrl(throttle, mode->hover.alt, 0, 0, 0) < 0) {
+		if (quad_motorsCtrl(throttle, mode->hover.alt, 0, 0, ANGLE_HOLD) < 0) {
 			return -1;
 		}
 		usleep(1000 * 100);
@@ -179,7 +182,7 @@ static int quad_hover(const flight_mode_t *mode)
 
 #if TEST_ATTITUDE
 	while (quad_timeMsGet() < now + quad_common.duration) {
-		if (quad_motorsCtrl(quad_common.throttle.max, mode->hover.alt, 0, 0, 0) < 0) {
+		if (quad_motorsCtrl(quad_common.throttle.max, mode->hover.alt, quad_common.targetAtt.roll, quad_common.targetAtt.pitch, quad_common.targetAtt.yaw) < 0) {
 			return -1;
 		}
 	}
@@ -205,7 +208,7 @@ static int quad_landing(const flight_mode_t *mode)
 	/* Soft landing */
 	for (coeff = 1.0; coeff > 0.00001; coeff -= 0.02f) {
 #if TEST_ATTITUDE
-		if (quad_motorsCtrl(coeff * quad_common.throttle.max, 0, 0, 0, 0) < 0) {
+		if (quad_motorsCtrl(coeff * quad_common.throttle.max, 0, 0, 0, ANGLE_HOLD) < 0) {
 			return -1;
 		}
 #endif
@@ -295,13 +298,13 @@ static int quad_attParse(FILE *file)
 		}
 
 		if (strcmp(var, "YAW") == 0) {
-			quad_common.targetAtt.yaw = val * DEG2RAD;
+			quad_common.targetAtt.yaw = val * DEG2RAD * 1000;
 		}
 		else if (strcmp(var, "PITCH") == 0) {
-			quad_common.targetAtt.pitch = val * DEG2RAD;
+			quad_common.targetAtt.pitch = val * DEG2RAD * 1000;
 		}
 		else if (strcmp(var, "ROLL") == 0) {
-			quad_common.targetAtt.roll = val * DEG2RAD;
+			quad_common.targetAtt.roll = val * DEG2RAD * 1000;
 		}
 		else {
 			fprintf(stderr, "quad-control: attitude wrong variable %s\n", var);
