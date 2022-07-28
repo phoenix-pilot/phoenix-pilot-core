@@ -49,6 +49,7 @@ struct {
 	pid_ctx_t pids[PID_NUMBERS];
 
 	time_t lastTime;
+	quad_bounds_t bounds;
 #if TEST_ATTITUDE
 	quad_att_t targetAtt;
 	time_t duration;
@@ -527,6 +528,9 @@ static int quad_init(void)
 
 	/* EKF needs time to calibrate itself */
 	sleep(10);
+
+	/* get boundary values of euler angles from ekf module */
+	ekf_boundsGet(&(quad_common.bounds.boundYaw), &(quad_common.bounds.boundRoll), &(quad_common.bounds.boundPitch));
 
 	return 0;
 }
