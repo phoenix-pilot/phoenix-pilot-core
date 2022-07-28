@@ -50,4 +50,6 @@ extern void ekf_done(void);
 
 extern void ekf_stateGet(ekf_state_t *ekf_state);
 
+extern void ekf_boundsGet(float *bYaw, float *bRoll, float *bPitch);
+
 #endif

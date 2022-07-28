@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <math.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/threads.h>
@@ -130,6 +131,14 @@ void ekf_done(void)
 	threadJoin(0);
 	kmn_predDeinit(&ekf_common.stateEngine);
 	resourceDestroy(ekf_common.lock);
+}
+
+
+void ekf_boundsGet(float *bYaw, float *bRoll, float *bPitch)
+{
+	*bYaw = M_PI;
+	*bRoll = M_PI;
+	*bPitch = M_PI_2;
 }
 
 
