@@ -16,6 +16,8 @@
 
 #include <time.h>
 
+#define NO_BOUNDVAL 0.0
+
 typedef struct {
 	/* Coefficients */
 	float kp; /* proportional gain */
@@ -31,6 +33,8 @@ typedef struct {
 	float integral; /* Accumulate for integral term */
 	float prevErr;  /* Previous error */
 	float lastPid;  /* Last calculated PID value */
+
+	float boundVal; /* positive boundary value for process variable (symmetric boundary value assumed) */
 } pid_ctx_t;
 
 
@@ -39,7 +43,7 @@ extern int pid_init(pid_ctx_t *pid);
 
 
 /* Calculate the PID value based on gain values and precalculated change rate */
-extern float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, time_t dt);
+extern float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, float boundVal, time_t dt);
 
 
 /* TODO: Tuning gain coefficients */
