@@ -19,7 +19,7 @@
 #include <stdio.h>
 
 
-float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, time_t dt)
+float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, float boundVal, time_t dt)
 {
 	float err, out;
 	float p, i, d; /* Results for proportional, integral and derivative parts of PID */
@@ -33,6 +33,14 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, ti
 	}
 
 	err = setVal - currVal;
+
+	/* account for boundary values */
+	if (err > boundVal) {
+		err -= 2 * boundVal;
+	}
+	if (err < -boundVal) {
+		err += 2 * boundVal;
+	}
 
 	/* Derivative */
 	d = pid->kd * currValDot;
