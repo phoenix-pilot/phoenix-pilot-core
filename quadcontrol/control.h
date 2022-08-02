@@ -38,13 +38,6 @@ typedef struct {
 
 
 typedef struct {
-	float boundYaw;   /* boundary value for yaw angle */
-	float boundPitch; /* boundary value for pitch angle */
-	float boundRoll;  /* boundary value for roll angle */
-} quad_bounds_t;
-
-
-typedef struct {
 	int32_t alt; /* altitude in 1E-3 [m] (millimetres) above MSL */
 	int32_t lat; /* latitude in 1E-7 degrees */
 	int32_t lon; /* longitude in 1E-7 degrees */
