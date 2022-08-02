@@ -49,7 +49,6 @@ struct {
 	pid_ctx_t pids[PID_NUMBERS];
 
 	time_t lastTime;
-	quad_bounds_t bounds;
 #if TEST_ATTITUDE
 	quad_att_t targetAtt;
 	time_t duration;
@@ -136,10 +135,10 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 	DEBUG_LOG("EKFE: %lld, %f, %f, %f\n", now, measure.yaw * RAD2DEG, measure.pitch * RAD2DEG, measure.roll * RAD2DEG);
 
 	DEBUG_LOG("PID: %lld, ", now);
-	palt = pid_calc(&quad_common.pids[pwm_alt], alt, measure.enuZ * 1000, 0, NO_BOUNDVAL, dt);
-	proll = pid_calc(&quad_common.pids[pwm_roll], roll / 1000.f, measure.roll, measure.rollDot, quad_common.bounds.boundRoll, dt);
-	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch / 1000.f, measure.pitch, measure.pitchDot, quad_common.bounds.boundPitch, dt);
-	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw / 1000.f, measure.yaw, measure.yawDot, quad_common.bounds.boundYaw, dt);
+	palt = pid_calc(&quad_common.pids[pwm_alt], alt, measure.enuZ * 1000, 0, dt);
+	proll = pid_calc(&quad_common.pids[pwm_roll], roll / 1000.f, measure.roll, measure.rollDot, dt);
+	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch / 1000.f, measure.pitch, measure.pitchDot, dt);
+	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw / 1000.f, measure.yaw, measure.yawDot, dt);
 	DEBUG_LOG("\n");
 
 	if (mma_control(throttle + palt, proll, ppitch, pyaw) < 0) {
@@ -508,6 +507,8 @@ static int quad_init(void)
 			return -1;
 		}
 	}
+	/* get boundary values of euler angles from ekf module */
+	ekf_boundsGet(&quad_common.pids[pwm_yaw].errBound, &quad_common.pids[pwm_roll].errBound, &quad_common.pids[pwm_pitch].errBound);
 
 	/* MMA initialization */
 	if (mma_init(&quadCoeffs) < 0) {
@@ -528,9 +529,6 @@ static int quad_init(void)
 
 	/* EKF needs time to calibrate itself */
 	sleep(10);
-
-	/* get boundary values of euler angles from ekf module */
-	ekf_boundsGet(&(quad_common.bounds.boundYaw), &(quad_common.bounds.boundRoll), &(quad_common.bounds.boundPitch));
 
 	return 0;
 }
