@@ -1,9 +1,7 @@
 /*
  * Phoenix-Pilot
  *
- * phmatrix
- *
- * simple library for matrix operations
+ *  matrix  - simple library for matrix operations
  *
  * Copyright 2022 Phoenix Systems
  * Author: Mateusz Niewiadomski
