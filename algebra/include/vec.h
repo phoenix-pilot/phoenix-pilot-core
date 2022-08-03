@@ -1,9 +1,7 @@
 /*
  * Phoenix-Pilot
  *
- * rotas
- *
- * vec - 3d vectors operations library - header file
+ * vec - 3d vectors operations library
  *
  * Copyright 2022 Phoenix Systems
  * Author: Mateusz Niewiadomski

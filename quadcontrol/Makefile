@@ -6,5 +6,5 @@
 
 NAME := quad-control
 LOCAL_SRCS := control.c pid.c mma.c
-DEP_LIBS := libekf libmatrix libquat libvec3d
+DEP_LIBS := libekf libalgeb
 include $(binary.mk)
