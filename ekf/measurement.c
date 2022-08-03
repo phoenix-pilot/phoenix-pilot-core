@@ -27,8 +27,10 @@
 
 #include <libsensors.h>
 #include "sensc.h"
-#include "tools/rotas_dummy.h"
-#include "tools/phmatrix.h"
+#include <vec.h>
+#include <quat.h>
+#include <qrot.h>
+#include <matrix.h>
 
 #define EARTH_SEMI_MAJOR           6378137.0F
 #define EARTH_SEMI_MINOR           6356752.3F

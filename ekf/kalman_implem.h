@@ -19,8 +19,9 @@
 #include <sys/time.h>
 #include <stdint.h>
 
-#include "tools/phmatrix.h"
-#include "tools/rotas_dummy.h"
+#include <matrix.h>
+#include <vec.h>
+#include <quat.h>
 
 #include "kalman_core.h"
 

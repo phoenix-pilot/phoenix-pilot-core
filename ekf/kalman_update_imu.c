@@ -22,10 +22,12 @@
 
 #include <sys/msg.h>
 
-#include "kalman_implem.h"
+#include <vec.h>
+#include <quat.h>
+#include <qrot.h>
+#include <matrix.h>
 
-#include "tools/rotas_dummy.h"
-#include "tools/phmatrix.h"
+#include "kalman_implem.h"
 
 /* declare static calculation memory bank with matrices for EKF */
 DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, IMUMEAS_ROWS)
