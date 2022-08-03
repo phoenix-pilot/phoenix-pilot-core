@@ -21,7 +21,7 @@ float * buf = NULL;
 unsigned int buflen = 0;
 
 
-int matrix_alloc(matrix_t *matrix, int rows, int cols)
+int matrix_bufAlloc(matrix_t *matrix, int rows, int cols)
 {
 	float *data;
 
@@ -38,7 +38,7 @@ int matrix_alloc(matrix_t *matrix, int rows, int cols)
 	return 0;
 }
 
-void matrix_dealloc(matrix_t *matrix)
+void matrix_bufFree(matrix_t *matrix)
 {
 	if (matrix->data != NULL) {
 		free(matrix->data);

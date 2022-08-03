@@ -212,9 +212,10 @@ void meas_imuCalib(void)
 	int i, avg = IMU_CALIB_AVG;
 	vec_t gvec = { .x = 0, .y = 0, .z = 1 }, versorX = { .x = 1, .y = 0, .z = 0 }, n;
 	vec_t acc, gyr, mag, accAvg, gyrAvg, magAvg;
-	quat_t idenQuat = IDEN_QUAT;
+	quat_t idenQuat;
 	sensor_event_t accEvt, gyrEvt, magEvt;
 
+	quat_idenWrite(&idenQuat);
 	accAvg = gyrAvg = magAvg = (vec_t) { .x = 0, .y = 0, .z = 0 };
 
 	printf("IMU calibration...\n");

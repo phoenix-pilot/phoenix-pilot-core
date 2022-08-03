@@ -36,6 +36,8 @@
 #define UNI_GAS_CONST 8.3144598F /* J/(mol * K) */
 #define AIR_MOL_MASS  0.0289644F /* kg/mol */
 
+#define DEG2RAD 0.0174532925
+
 /* abbreviation of IndexMeasurement(valuename) */
 
 /* imu measurements */

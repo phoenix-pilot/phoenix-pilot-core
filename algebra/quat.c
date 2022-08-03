@@ -19,12 +19,6 @@
 #include "quat.h"
 
 
-quat_t quat(float a, float i, float j, float k)
-{
-	return (quat_t){.a = a, .i = i, .j = j, .k = k};
-}
-
-
 void quat_add(quat_t *A, const quat_t *B)
 {
 	A->a += B->a;
@@ -124,12 +118,12 @@ void quat_uvec2uvec(const vec_t *v1, const vec_t *v2, quat_t *q)
 
 	if (a > 0.99999999) {
 		/* if vectors are close to parallel */
-		*q = IDEN_QUAT;
+		quat_idenWrite(q);
 		return;
 	}
 	if (a < -0.99999999) {
 		/* if vectors are close to antiparallel */
-		*q = PI_QUAT;
+		quat_piWrite(q);
 		return;
 	}
 

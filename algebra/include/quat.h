@@ -16,25 +16,24 @@
 
 #include <vec.h>
 
-
-/* identity quaternion macro */
-#define IDEN_QUAT \
-	(quat_t) { .a = 1, .i = 0, .j = 0, .k = 0 }
-
-#define PI_QUAT \
-	(quat_t) { .a = 0, .i = 1, .j = 0, .k = 0 }
-
-
-#define DEG2RAD 0.0174532925
-
-
 typedef struct {
 	float i, j, k, a;
 } quat_t;
 
 
-/* get quaternion */
-extern quat_t quat(float a, float i, float j, float k);
+/* q = {1, 0, 0, 0}; makes quaternion pointed by `q` an identity quaternion */
+static inline void quat_idenWrite(quat_t *q)
+{
+	q->i = q->j = q->k = 0;
+	q->a = 1;
+}
+
+/* q = {0, 1, 0, 0}; makes quaternion pointed by `q` a PI angled rotation quaternion */
+static inline void quat_piWrite(quat_t *q)
+{
+	q->a = q->j = q->k = 0;
+	q->i = 1;
+}
 
 
 /* A += B; adds quaternion B to A */
