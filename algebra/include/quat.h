@@ -1,7 +1,7 @@
 /*
  * Phoenix-Pilot
  *
- * quat - quaternion algebra library - header file
+ * quat - quaternion algebra library
  *
  * Copyright 2022 Phoenix Systems
  * Author: Mateusz Niewiadomski
