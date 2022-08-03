@@ -1,9 +1,7 @@
 /*
  * Phoenix-Pilot
  *
- * phmatrix
- *
- * simple library for matrix operations - header file
+ * matrix - simple library for matrix operations - header file
  *
  * Copyright 2022 Phoenix Systems
  * Author: Mateusz Niewiadomski
