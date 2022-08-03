@@ -19,7 +19,7 @@
 
 vec_t vec(float x, float y, float z)
 {
-	return (vec_t){.x = x, .y = y, .z = z};
+	return (vec_t) { .x = x, .y = y, .z = z };
 }
 
 

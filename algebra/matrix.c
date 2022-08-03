@@ -47,7 +47,7 @@ void matrix_dealloc(matrix_t *matrix)
 }
 
 
-void matrix_print(matrix_t * A)
+void matrix_print(matrix_t *A)
 {
 	unsigned int row, col;
 
@@ -71,13 +71,15 @@ void matrix_print(matrix_t * A)
 
 
 /* get element (row, col) from M that is transposed */
-static inline float pos_trpd(matrix_t * M, unsigned int row, unsigned int col) {
+static inline float pos_trpd(matrix_t *M, unsigned int row, unsigned int col)
+{
 	return M->data[M->cols * col + row];
 }
 
 
 /* get element (row, col) from M that is not transposed */
-static inline float pos_norm(matrix_t * M, unsigned int row, unsigned int col) {
+static inline float pos_norm(matrix_t *M, unsigned int row, unsigned int col)
+{
 	return M->data[M->cols * row + col];
 }
 
@@ -237,7 +239,7 @@ int matrix_sparseProd(matrix_t *A, matrix_t *B, matrix_t *C)
 }
 
 
-int matrix_sparseSandwitch(matrix_t * A, matrix_t * B, matrix_t * C, matrix_t * tempC)
+int matrix_sparseSandwitch(matrix_t *A, matrix_t *B, matrix_t *C, matrix_t *tempC)
 {
 	matrix_sparseProd(A, B, tempC);
 	matrix_trp(A);
@@ -247,7 +249,7 @@ int matrix_sparseSandwitch(matrix_t * A, matrix_t * B, matrix_t * C, matrix_t * 
 }
 
 
-int matrix_sandwitch(matrix_t * A, matrix_t * B, matrix_t * C, matrix_t * tempC)
+int matrix_sandwitch(matrix_t *A, matrix_t *B, matrix_t *C, matrix_t *tempC)
 {
 	matrix_prod(A, B, tempC);
 	matrix_trp(A);
@@ -257,7 +259,7 @@ int matrix_sandwitch(matrix_t * A, matrix_t * B, matrix_t * C, matrix_t * tempC)
 }
 
 
-void matrix_diag(matrix_t * A)
+void matrix_diag(matrix_t *A)
 {
 	int i;
 
@@ -269,7 +271,7 @@ void matrix_diag(matrix_t * A)
 
 
 /* performs A + B = C, or A +=B if C is NULL */
-int matrix_add(matrix_t * A, matrix_t * B, matrix_t * C)
+int matrix_add(matrix_t *A, matrix_t *B, matrix_t *C)
 {
 	unsigned int row, col; /* represent position in output C matrix */
 
@@ -307,7 +309,7 @@ int matrix_add(matrix_t * A, matrix_t * B, matrix_t * C)
 }
 
 /* performs A + B = C, or A -=B if C is NULL */
-int matrix_sub(matrix_t * A, matrix_t * B, matrix_t * C)
+int matrix_sub(matrix_t *A, matrix_t *B, matrix_t *C)
 {
 	unsigned int row, col; /* represent position in output C matrix */
 
@@ -345,7 +347,7 @@ int matrix_sub(matrix_t * A, matrix_t * B, matrix_t * C)
 }
 
 
-int matrix_cmp(matrix_t * A, matrix_t * B)
+int matrix_cmp(matrix_t *A, matrix_t *B)
 {
 	unsigned int row, col; /* represent position in output C matrix */
 
@@ -389,9 +391,9 @@ int matrix_cmp(matrix_t * A, matrix_t * B)
 }
 
 
-int matrix_inv(matrix_t * A, matrix_t * B, float * buf, int buflen)
+int matrix_inv(matrix_t *A, matrix_t *B, float *buf, int buflen)
 {
-	matrix_t C = {0};
+	matrix_t C = { 0 };
 	int rows, cols, row, col, step;
 	float base;
 
@@ -453,7 +455,8 @@ int matrix_inv(matrix_t * A, matrix_t * B, float * buf, int buflen)
 	return 0;
 }
 
-void matrix_writeSubmatrix(matrix_t *A, int row, int col, matrix_t *B){
+void matrix_writeSubmatrix(matrix_t *A, int row, int col, matrix_t *B)
+{
 	int cprow;
 
 	for (cprow = 0; cprow < B->rows ; cprow++)
