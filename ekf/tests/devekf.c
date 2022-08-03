@@ -21,7 +21,6 @@
 
 #include <vec.h>
 #include <quat.h>
-#include <qrot.h>
 
 
 enum printMode { prntVersor, prntAtt, printAcc };
