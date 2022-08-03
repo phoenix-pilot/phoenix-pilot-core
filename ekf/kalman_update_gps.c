@@ -35,7 +35,7 @@ DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, GPSMEAS_ROWS)
 extern kalman_init_t init_values;
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
-static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, time_t timeStep)
+static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
 	vec_t enu_pos, enu_speed;
 	float hdop;
@@ -60,10 +60,10 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 }
 
 
-static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t *hx)
+static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx)
 {
-	phmatrix_t *state = state_est; /* aliasing for macros usage */
-	phx_zeroes(hx);
+	matrix_t *state = state_est; /* aliasing for macros usage */
+	matrix_zeroes(hx);
 
 	hx->data[imgpsxx] = xx;
 	hx->data[imgpsxy] = xy;
@@ -74,7 +74,7 @@ static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t *h
 }
 
 
-static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, time_t timeStep)
+static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_t timeStep)
 {
 	memset(H->data, 0, sizeof(H->rows * H->cols * sizeof(float)));
 	H->data[H->cols * imgpsxx + ixx] = 1;
@@ -84,7 +84,7 @@ static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, t
 }
 
 
-static void gpsUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
+static void gpsUpdateInitializations(matrix_t *H, matrix_t *R)
 {
 	/* covariance is live-updated with each gps measurement */
 	return;

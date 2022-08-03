@@ -86,9 +86,9 @@ vec_t geo2enu(float lat, float lon, float h, float latRef, float lonRef, vec_t *
 {
 	float sinLatRef, sinLonRef, cosLatRef, cosLonRef;
 	float rot_data[9], dif_data[3], enu_data[3];
-	phmatrix_t rot = { .rows = 3, .cols = 3, .transposed = 0, .data = rot_data };
-	phmatrix_t dif = { .rows = 3, .cols = 1, .transposed = 0, .data = dif_data };
-	phmatrix_t enu = { .rows = 3, .cols = 1, .transposed = 0, .data = enu_data };
+	matrix_t rot = { .rows = 3, .cols = 3, .transposed = 0, .data = rot_data };
+	matrix_t dif = { .rows = 3, .cols = 1, .transposed = 0, .data = dif_data };
+	matrix_t enu = { .rows = 3, .cols = 1, .transposed = 0, .data = enu_data };
 	vec_t pointEcef;
 
 	/* reference point coordinates trigonometric values */
@@ -115,7 +115,7 @@ vec_t geo2enu(float lat, float lon, float h, float latRef, float lonRef, vec_t *
 	dif.data[2] = pointEcef.z - refEcef->z;
 
 	/* perform ECEF to ENU by calculating matrix product (rot * dif) */
-	phx_product(&rot, &dif, &enu);
+	matrix_prod(&rot, &dif, &enu);
 
 	return (vec_t) { .x = enu.data[0], .y = enu.data[1], .z = enu.data[2] };
 }

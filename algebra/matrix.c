@@ -21,7 +21,7 @@ float * buf = NULL;
 unsigned int buflen = 0;
 
 
-int phx_newmatrix(phmatrix_t *matrix, int rows, int cols)
+int matrix_alloc(matrix_t *matrix, int rows, int cols)
 {
 	float *data;
 
@@ -38,7 +38,7 @@ int phx_newmatrix(phmatrix_t *matrix, int rows, int cols)
 	return 0;
 }
 
-void phx_matrixDestroy(phmatrix_t *matrix)
+void matrix_dealloc(matrix_t *matrix)
 {
 	if (matrix->data != NULL) {
 		free(matrix->data);
@@ -47,7 +47,7 @@ void phx_matrixDestroy(phmatrix_t *matrix)
 }
 
 
-void phx_print(phmatrix_t * A)
+void matrix_print(matrix_t * A)
 {
 	unsigned int row, col;
 
@@ -71,24 +71,24 @@ void phx_print(phmatrix_t * A)
 
 
 /* get element (row, col) from M that is transposed */
-static inline float pos_trpd(phmatrix_t * M, unsigned int row, unsigned int col) {
+static inline float pos_trpd(matrix_t * M, unsigned int row, unsigned int col) {
 	return M->data[M->cols * col + row];
 }
 
 
 /* get element (row, col) from M that is not transposed */
-static inline float pos_norm(phmatrix_t * M, unsigned int row, unsigned int col) {
+static inline float pos_norm(matrix_t * M, unsigned int row, unsigned int col) {
 	return M->data[M->cols * row + col];
 }
 
 
-void phx_transpose(phmatrix_t *A)
+void matrix_trp(matrix_t *A)
 {
 	A->transposed = !A->transposed;
 }
 
 
-int phx_product(phmatrix_t *A, phmatrix_t *B, phmatrix_t *C)
+int matrix_prod(matrix_t *A, matrix_t *B, matrix_t *C)
 {
 	unsigned int row, col; /* represent position in output C matrix */
 	unsigned int step; /* represent stepping down over rows/columns in A and B */
@@ -161,7 +161,7 @@ int phx_product(phmatrix_t *A, phmatrix_t *B, phmatrix_t *C)
 }
 
 
-int phx_product_sparse(phmatrix_t *A, phmatrix_t *B, phmatrix_t *C)
+int matrix_sparseProd(matrix_t *A, matrix_t *B, matrix_t *C)
 {
 	unsigned int row, col; /* represent position in output A matrix */
 	unsigned int step; /* represent stepping down over rows/columns in A and B */
@@ -237,31 +237,31 @@ int phx_product_sparse(phmatrix_t *A, phmatrix_t *B, phmatrix_t *C)
 }
 
 
-int phx_sadwitch_product_sparse(phmatrix_t * A, phmatrix_t * B, phmatrix_t * C, phmatrix_t * tempC)
+int matrix_sparseSandwitch(matrix_t * A, matrix_t * B, matrix_t * C, matrix_t * tempC)
 {
-	phx_product_sparse(A, B, tempC);
-	phx_transpose(A);
-	phx_product_sparse(A, tempC, C);
-	phx_transpose(A);
+	matrix_sparseProd(A, B, tempC);
+	matrix_trp(A);
+	matrix_sparseProd(A, tempC, C);
+	matrix_trp(A);
 	return 0;
 }
 
 
-int phx_sadwitch_product(phmatrix_t * A, phmatrix_t * B, phmatrix_t * C, phmatrix_t * tempC)
+int matrix_sandwitch(matrix_t * A, matrix_t * B, matrix_t * C, matrix_t * tempC)
 {
-	phx_product(A, B, tempC);
-	phx_transpose(A);
-	phx_product(tempC, A, C);
-	phx_transpose(A);
+	matrix_prod(A, B, tempC);
+	matrix_trp(A);
+	matrix_prod(tempC, A, C);
+	matrix_trp(A);
 	return 0;
 }
 
 
-void phx_diag(phmatrix_t * A)
+void matrix_diag(matrix_t * A)
 {
 	int i;
 
-	phx_zeroes(A);
+	matrix_zeroes(A);
 	for(i = 0; i < A->cols && i < A->rows; i++) {
 		A->data[A->cols * i + i] = 1.F;
 	}
@@ -269,7 +269,7 @@ void phx_diag(phmatrix_t * A)
 
 
 /* performs A + B = C, or A +=B if C is NULL */
-int phx_add(phmatrix_t * A, phmatrix_t * B, phmatrix_t * C)
+int matrix_add(matrix_t * A, matrix_t * B, matrix_t * C)
 {
 	unsigned int row, col; /* represent position in output C matrix */
 
@@ -307,7 +307,7 @@ int phx_add(phmatrix_t * A, phmatrix_t * B, phmatrix_t * C)
 }
 
 /* performs A + B = C, or A -=B if C is NULL */
-int phx_sub(phmatrix_t * A, phmatrix_t * B, phmatrix_t * C)
+int matrix_sub(matrix_t * A, matrix_t * B, matrix_t * C)
 {
 	unsigned int row, col; /* represent position in output C matrix */
 
@@ -345,7 +345,7 @@ int phx_sub(phmatrix_t * A, phmatrix_t * B, phmatrix_t * C)
 }
 
 
-int pxh_compare(phmatrix_t * A, phmatrix_t * B)
+int matrix_cmp(matrix_t * A, matrix_t * B)
 {
 	unsigned int row, col; /* represent position in output C matrix */
 
@@ -389,9 +389,9 @@ int pxh_compare(phmatrix_t * A, phmatrix_t * B)
 }
 
 
-int phx_inverse(phmatrix_t * A, phmatrix_t * B, float * buf, int buflen)
+int matrix_inv(matrix_t * A, matrix_t * B, float * buf, int buflen)
 {
-	phmatrix_t C = {0};
+	matrix_t C = {0};
 	int rows, cols, row, col, step;
 	float base;
 
@@ -399,12 +399,12 @@ int phx_inverse(phmatrix_t * A, phmatrix_t * B, float * buf, int buflen)
 	if (A->transposed) {
 		rows = A->cols;
 		cols = A->rows;
-		C = (phmatrix_t) { .rows = cols, .cols = rows * 2, .data = buf };
+		C = (matrix_t) { .rows = cols, .cols = rows * 2, .data = buf };
 	}
 	else {
 		rows = A->rows;
 		cols = A->cols;
-		C = (phmatrix_t) { .rows = rows, .cols = cols * 2, .data = buf };
+		C = (matrix_t) { .rows = rows, .cols = cols * 2, .data = buf };
 	}
 	memset(C.data, 0, sizeof(float) * buflen);
 
@@ -453,7 +453,7 @@ int phx_inverse(phmatrix_t * A, phmatrix_t * B, float * buf, int buflen)
 	return 0;
 }
 
-void phx_writesubmatrix(phmatrix_t *A, int row, int col, phmatrix_t *B){
+void matrix_writeSubmatrix(matrix_t *A, int row, int col, matrix_t *B){
 	int cprow;
 
 	for (cprow = 0; cprow < B->rows ; cprow++)
@@ -463,13 +463,13 @@ void phx_writesubmatrix(phmatrix_t *A, int row, int col, phmatrix_t *B){
 }
 
 
-void phx_zeroes(phmatrix_t *A)
+void matrix_zeroes(matrix_t *A)
 {
 	memset(A->data, 0, sizeof(float) * A->rows * A->cols);
 }
 
 
-void phx_scalar_product(phmatrix_t *A, float scalar)
+void matrix_times(matrix_t *A, float scalar)
 {
 	int i;
 	for (i = 0; i < A->rows * A->cols; i++) {

@@ -23,6 +23,9 @@
 	(quat_t) { .a = 0, .i = 1, .j = 0, .k = 0 }
 
 
+#define DEG2RAD 0.0174532925
+
+
 typedef struct {
 	float i, j, k, a;
 } quat_t;
