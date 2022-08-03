@@ -88,7 +88,7 @@ static float filterBaroSpeed(void)
 }
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
-static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, time_t timeStep)
+static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
 	float pressure, temp;
 	uint64_t currTstamp;
@@ -106,7 +106,7 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 	insertToBaroMemory(hz, (float)(currTstamp - lastTstamp));
 	lastTstamp = currTstamp;
 
-	phx_zeroes(Z);
+	matrix_zeroes(Z);
 	Z->data[imhz] = 8453.669 * log(meas_calibPressGet() / pressure);
 	Z->data[imxz] = 0.8 * hz + 0.2 * xz;
 
@@ -118,10 +118,10 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 }
 
 
-static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t *hx)
+static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx)
 {
-	phmatrix_t *state = state_est; /* aliasing for macros usage */
-	phx_zeroes(hx);
+	matrix_t *state = state_est; /* aliasing for macros usage */
+	matrix_zeroes(hx);
 
 	hx->data[imhz] = hz;
 	hx->data[imxz] = xz;
@@ -132,7 +132,7 @@ static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t *h
 }
 
 
-static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, time_t timeStep)
+static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_t timeStep)
 {
 	H->data[H->cols * imhz + ihz] = 1;
 	H->data[H->cols * imxz + ixz] = 1;
@@ -142,7 +142,7 @@ static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, t
 
 
 /* initialization function for barometer update step matrices values */
-static void baroUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
+static void baroUpdateInitializations(matrix_t *H, matrix_t *R)
 {
 	//R->data[R->cols * impx + impx] = init_values.R_pcov;
 	R->data[R->cols * imhz + imhz] = init_values.R_hcov;

@@ -35,12 +35,12 @@ struct {
 	update_engine_t baroEngine;
 	state_engine_t stateEngine;
 
-	phmatrix_t state;
-	phmatrix_t state_est;
-	phmatrix_t cov;
-	phmatrix_t cov_est;
-	phmatrix_t F;
-	phmatrix_t Q;
+	matrix_t state;
+	matrix_t state_est;
+	matrix_t cov;
+	matrix_t cov_est;
+	matrix_t F;
+	matrix_t Q;
 
 	volatile unsigned int run; /* proceed with ekf loop */
 	time_t lastTime;           /* last kalman loop time */

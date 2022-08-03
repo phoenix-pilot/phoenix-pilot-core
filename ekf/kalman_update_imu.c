@@ -43,7 +43,7 @@ int imu_mem_entry = 0;
 
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
-static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *R, time_t timeStep)
+static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
 	vec_t accel, gyro, mag;
 	vec_t magFltrd, accelFltrd;
@@ -90,7 +90,7 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 	/* remove earth acceleration from measurements */
 	accel.z -= EARTH_G;
 
-	phx_zeroes(Z);
+	matrix_zeroes(Z);
 	Z->data[imax] = accel.x;
 	Z->data[imay] = accel.y;
 	Z->data[imaz] = accel.z;
@@ -118,10 +118,10 @@ static phmatrix_t *getMeasurement(phmatrix_t *Z, phmatrix_t *state, phmatrix_t *
 }
 
 
-static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t *hx)
+static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx)
 {
-	phmatrix_t *state = state_est; /* aliasing for macros usage */
-	phx_zeroes(hx);
+	matrix_t *state = state_est; /* aliasing for macros usage */
+	matrix_zeroes(hx);
 
 	hx->data[imax] = ax;
 	hx->data[imay] = ay;
@@ -144,24 +144,24 @@ static phmatrix_t *getMeasurementPrediction(phmatrix_t *state_est, phmatrix_t *h
 }
 
 
-static void getMeasurementPredictionJacobian(phmatrix_t *H, phmatrix_t *state, time_t timeStep)
+static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_t timeStep)
 {
 	float I33_data[9] = { 0 };
-	phmatrix_t I33 = { .rows = 3, .cols = 3, .transposed = 0, .data = I33_data };
-	phx_diag(&I33);
+	matrix_t I33 = { .rows = 3, .cols = 3, .transposed = 0, .data = I33_data };
+	matrix_diag(&I33);
 
-	phx_zeroes(H);
-	phx_writesubmatrix(H, imax, iax, &I33);
-	phx_writesubmatrix(H, imwx, iwx, &I33);
-	phx_writesubmatrix(H, immx, imx, &I33);
+	matrix_zeroes(H);
+	matrix_writeSubmatrix(H, imax, iax, &I33);
+	matrix_writeSubmatrix(H, imwx, iwx, &I33);
+	matrix_writeSubmatrix(H, immx, imx, &I33);
 	/* using I33 and one direct write to write I44 */
-	phx_writesubmatrix(H, imqa, iqa, &I33);
+	matrix_writeSubmatrix(H, imqa, iqa, &I33);
 	H->data[H->cols * imqd + iqd] = 1;
 }
 
 
 /* initialization function for IMU update step matrices values */
-void imuUpdateInitializations(phmatrix_t *H, phmatrix_t *R)
+void imuUpdateInitializations(matrix_t *H, matrix_t *R)
 {
 	/* init of measurement noise matrix R */
 	R->data[R->cols * imax + imax] = init_values.R_acov;

@@ -109,7 +109,7 @@ void read_config(void)
 
 
 /* state vectors values init */
-static void init_state_vector(phmatrix_t *state, const kalman_calib_t *calib)
+static void init_state_vector(matrix_t *state, const kalman_calib_t *calib)
 {
 	state->data[ixx] = state->data[ixy] = state->data[ixz] = 0; /* start position at [0,0,0] */
 	state->data[ivx] = state->data[ivy] = state->data[ivz] = 0; /* start velocity at [0,0,0] */
@@ -134,9 +134,9 @@ static void init_state_vector(phmatrix_t *state, const kalman_calib_t *calib)
 
 
 /* covariance matrox values inits */
-static void init_cov_vector(phmatrix_t *cov)
+static void init_cov_vector(matrix_t *cov)
 {
-	phx_zeroes(cov);
+	matrix_zeroes(cov);
 	cov->data[cov->cols * ixx + ixx] = init_values.P_xerr * init_values.P_xerr;
 	cov->data[cov->cols * ixy + ixy] = init_values.P_xerr * init_values.P_xerr;
 	cov->data[cov->cols * ixz + ixz] = init_values.P_xerr * init_values.P_xerr;
@@ -170,7 +170,7 @@ vec_t last_a = { 0 };
 vec_t last_v = { 0 };
 
 /* State estimation function definition */
-static void calcStateEstimation(phmatrix_t *state, phmatrix_t *state_est, time_t timeStep)
+static void calcStateEstimation(matrix_t *state, matrix_t *state_est, time_t timeStep)
 {
 	float dt, dt2;
 	quat_t quat_q, quat_w, res;
@@ -229,14 +229,14 @@ static void calcStateEstimation(phmatrix_t *state, phmatrix_t *state_est, time_t
 
 
 /* prediction step jacobian calculation function */
-static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t timeStep)
+static void calcPredictionJacobian(matrix_t *F, matrix_t *state, time_t timeStep)
 {
 	float dt, dt2;
 	/* differentials matrices */
-	phmatrix_t dfqdq, dfqdw;
+	matrix_t dfqdq, dfqdw;
 	/* diagonal matrix */
 	float I33_data[9] = { 0 };
-	phmatrix_t I33 = { .rows = 3, .cols = 3, .transposed = 0, .data = I33_data };
+	matrix_t I33 = { .rows = 3, .cols = 3, .transposed = 0, .data = I33_data };
 
 	dt = timeStep / 1000000.F;
 	dt2 = dt / 2; /* helper value */
@@ -258,28 +258,28 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t time
 		qcdt2, -qbdt2, qadt2
 	};
 
-	dfqdq = (phmatrix_t) { .rows = 4, .cols = 4, .transposed = 0, .data = data_dfqdq };
-	dfqdw = (phmatrix_t) { .rows = 4, .cols = 3, .transposed = 0, .data = data_dfqdw };
+	dfqdq = (matrix_t) { .rows = 4, .cols = 4, .transposed = 0, .data = data_dfqdq };
+	dfqdw = (matrix_t) { .rows = 4, .cols = 3, .transposed = 0, .data = data_dfqdw };
 
-	phx_diag(&I33);
+	matrix_diag(&I33);
 
 	/* set F to zeroes and add ones on diag */
-	phx_zeroes(F);
-	phx_diag(F);
+	matrix_zeroes(F);
+	matrix_diag(F);
 
 	/* change I33 to (I * dt) matrix and write it to appropriate places */
-	phx_scalar_product(&I33, dt);
-	phx_writesubmatrix(F, ixx, ivx, &I33); /* dfx / dv */
-	phx_writesubmatrix(F, ivx, iax, &I33); /* dfv / da */
+	matrix_times(&I33, dt);
+	matrix_writeSubmatrix(F, ixx, ivx, &I33); /* dfx / dv */
+	matrix_writeSubmatrix(F, ivx, iax, &I33); /* dfv / da */
 
 	/* change I33 to (I * dt^2 / 2) matrix and write it to appropriate places */
-	phx_scalar_product(&I33, dt / 2);
-	//phx_scalar_product(&I33, 0.5);
-	//phx_writesubmatrix(F, ixx, iax, &I33); /* dfx / dv */
+	matrix_times(&I33, dt / 2);
+	//matrix_times(&I33, 0.5);
+	//matrix_writeSubmatrix(F, ixx, iax, &I33); /* dfx / dv */
 
 	/* write differentials matrices */
-	phx_writesubmatrix(F, iqa, iqa, &dfqdq);
-	phx_writesubmatrix(F, iqa, iwx, &dfqdw);
+	matrix_writeSubmatrix(F, iqa, iqa, &dfqdq);
+	matrix_writeSubmatrix(F, iqa, iwx, &dfqdw);
 
 	F->data[ihz * F->cols + ihz] = 1;
 	F->data[ihz * F->cols + ivz] = dt;
@@ -290,34 +290,34 @@ static void calcPredictionJacobian(phmatrix_t *F, phmatrix_t *state, time_t time
 /* initialization of prediction step matrix values */
 int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
 {
-	phmatrix_t *Q;
+	matrix_t *Q;
 
 
-	if (phx_newmatrix(&engine->state, STATE_ROWS, STATE_COLS) != 0) {
+	if (matrix_alloc(&engine->state, STATE_ROWS, STATE_COLS) != 0) {
 		return -1;
 	}
 
-	if (phx_newmatrix(&engine->state_est, STATE_ROWS, STATE_COLS) != 0) {
+	if (matrix_alloc(&engine->state_est, STATE_ROWS, STATE_COLS) != 0) {
 		kmn_predDeinit(engine);
 		return -1;
 	}
 
-	if (phx_newmatrix(&engine->cov, STATE_ROWS, STATE_ROWS) != 0) {
+	if (matrix_alloc(&engine->cov, STATE_ROWS, STATE_ROWS) != 0) {
 		kmn_predDeinit(engine);
 		return -1;
 	}
 
-	if (phx_newmatrix(&engine->cov_est, STATE_ROWS, STATE_ROWS) != 0) {
+	if (matrix_alloc(&engine->cov_est, STATE_ROWS, STATE_ROWS) != 0) {
 		kmn_predDeinit(engine);
 		return -1;
 	}
 
-	if (phx_newmatrix(&engine->F, STATE_ROWS, STATE_ROWS) != 0) {
+	if (matrix_alloc(&engine->F, STATE_ROWS, STATE_ROWS) != 0) {
 		kmn_predDeinit(engine);
 		return -1;
 	}
 
-	if (phx_newmatrix(&engine->Q, STATE_ROWS, STATE_ROWS) != 0) {
+	if (matrix_alloc(&engine->Q, STATE_ROWS, STATE_ROWS) != 0) {
 		kmn_predDeinit(engine);
 		return -1;
 	}
@@ -326,7 +326,7 @@ int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
 	init_cov_vector(&engine->cov);
 
 	/* prepare noise matrix Q */
-	phx_zeroes(&engine->Q);
+	matrix_zeroes(&engine->Q);
 	Q = &engine->Q;
 	Q->data[Q->cols * ixx + ixx] = Q->data[Q->cols * ixy + ixy] = init_values.Q_xcov;
 	Q->data[Q->cols * ivx + ivx] = Q->data[Q->cols * ivy + ivy] = init_values.Q_vcov;
@@ -354,10 +354,10 @@ int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
 
 void kmn_predDeinit(state_engine_t *engine)
 {
-	phx_matrixDestroy(&engine->state);
-	phx_matrixDestroy(&engine->state_est);
-	phx_matrixDestroy(&engine->cov);
-	phx_matrixDestroy(&engine->cov_est);
-	phx_matrixDestroy(&engine->F);
-	phx_matrixDestroy(&engine->Q);
+	matrix_dealloc(&engine->state);
+	matrix_dealloc(&engine->state_est);
+	matrix_dealloc(&engine->cov);
+	matrix_dealloc(&engine->cov_est);
+	matrix_dealloc(&engine->F);
+	matrix_dealloc(&engine->Q);
 }
