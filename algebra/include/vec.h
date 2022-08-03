@@ -21,10 +21,6 @@ typedef struct {
 } vec_t;
 
 
-/* returns vector initialized with passed values */
-extern vec_t vec(float x, float y, float z);
-
-
 /* C = A + B; stores sum of A and B into C */
 extern void vec_sum(const vec_t *A, const vec_t *B, vec_t *C);
 

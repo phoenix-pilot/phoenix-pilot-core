@@ -25,10 +25,10 @@ typedef struct {
 extern void matrix_zeroes(matrix_t *A);
 
 
-extern int matrix_alloc(matrix_t *matrix, int rows, int cols);
+extern int matrix_bufAlloc(matrix_t *matrix, int rows, int cols);
 
 
-extern void matrix_dealloc(matrix_t *matrix);
+extern void matrix_bufFree(matrix_t *matrix);
 
 
 /* sets the matrix data to diagonal 1s, rest is 0 */

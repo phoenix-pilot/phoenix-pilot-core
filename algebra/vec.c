@@ -17,12 +17,6 @@
 #include "vec.h"
 
 
-vec_t vec(float x, float y, float z)
-{
-	return (vec_t) { .x = x, .y = y, .z = z };
-}
-
-
 void vec_sum(const vec_t *A, const vec_t *B, vec_t *C)
 {
 	C->x = A->x + B->x;

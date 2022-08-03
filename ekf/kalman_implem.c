@@ -293,31 +293,31 @@ int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
 	matrix_t *Q;
 
 
-	if (matrix_alloc(&engine->state, STATE_ROWS, STATE_COLS) != 0) {
+	if (matrix_bufAlloc(&engine->state, STATE_ROWS, STATE_COLS) != 0) {
 		return -1;
 	}
 
-	if (matrix_alloc(&engine->state_est, STATE_ROWS, STATE_COLS) != 0) {
+	if (matrix_bufAlloc(&engine->state_est, STATE_ROWS, STATE_COLS) != 0) {
 		kmn_predDeinit(engine);
 		return -1;
 	}
 
-	if (matrix_alloc(&engine->cov, STATE_ROWS, STATE_ROWS) != 0) {
+	if (matrix_bufAlloc(&engine->cov, STATE_ROWS, STATE_ROWS) != 0) {
 		kmn_predDeinit(engine);
 		return -1;
 	}
 
-	if (matrix_alloc(&engine->cov_est, STATE_ROWS, STATE_ROWS) != 0) {
+	if (matrix_bufAlloc(&engine->cov_est, STATE_ROWS, STATE_ROWS) != 0) {
 		kmn_predDeinit(engine);
 		return -1;
 	}
 
-	if (matrix_alloc(&engine->F, STATE_ROWS, STATE_ROWS) != 0) {
+	if (matrix_bufAlloc(&engine->F, STATE_ROWS, STATE_ROWS) != 0) {
 		kmn_predDeinit(engine);
 		return -1;
 	}
 
-	if (matrix_alloc(&engine->Q, STATE_ROWS, STATE_ROWS) != 0) {
+	if (matrix_bufAlloc(&engine->Q, STATE_ROWS, STATE_ROWS) != 0) {
 		kmn_predDeinit(engine);
 		return -1;
 	}
@@ -354,10 +354,10 @@ int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
 
 void kmn_predDeinit(state_engine_t *engine)
 {
-	matrix_dealloc(&engine->state);
-	matrix_dealloc(&engine->state_est);
-	matrix_dealloc(&engine->cov);
-	matrix_dealloc(&engine->cov_est);
-	matrix_dealloc(&engine->F);
-	matrix_dealloc(&engine->Q);
+	matrix_bufFree(&engine->state);
+	matrix_bufFree(&engine->state_est);
+	matrix_bufFree(&engine->cov);
+	matrix_bufFree(&engine->cov_est);
+	matrix_bufFree(&engine->F);
+	matrix_bufFree(&engine->Q);
 }

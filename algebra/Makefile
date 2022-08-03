@@ -1,9 +1,7 @@
 #
 # Makefile for ekf algebra libraries:
 # 
-# libvec3d: 3d vector library
-# libmatrix: matrix calculations library  
-# libquat: quaternion operations library
+# libalg - matrix, 3d vector and quaternion operations library
 #
 # Copyright 2022 Phoenix Systems
 #
