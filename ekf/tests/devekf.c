@@ -19,7 +19,9 @@
 
 #include <ekflib.h>
 
-#include "../tools/rotas_dummy.h"
+#include <vec.h>
+#include <quat.h>
+#include <qrot.h>
 
 
 enum printMode { prntVersor, prntAtt, printAcc };

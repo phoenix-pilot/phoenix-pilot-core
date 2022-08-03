@@ -23,8 +23,9 @@
 
 #include "kalman_implem.h"
 
-#include "tools/rotas_dummy.h"
-#include "tools/phmatrix.h"
+#include <vec.h>
+#include <quat.h>
+#include <matrix.h>
 
 
 /* NOTE: must be kept in the same order as 'config_names' */

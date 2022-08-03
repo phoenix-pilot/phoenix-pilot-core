@@ -22,7 +22,8 @@
 #include <libsensors.h>
 
 #include "sensc.h"
-#include "tools/rotas_dummy.h"
+#include <vec.h>
+#include <quat.h>
 
 #define SENSORHUB_PIPES 3 /* number of connections with sensorhub */
 

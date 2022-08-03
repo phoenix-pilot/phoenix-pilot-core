@@ -16,7 +16,7 @@
 #ifndef PHKALMAN_CORE_H
 #define PHKALMAN_CORE_H
 
-#include "tools/phmatrix.h"
+#include <matrix.h>
 
 /* 
 * EKF needs matrices of correct sizes to perform update step. 
