@@ -14,6 +14,8 @@
 #ifndef __PHOENIX_QUAT_H__
 #define __PHOENIX_QUAT_H__
 
+#include <vec.h>
+
 
 /* identity quaternion macro */
 #define IDEN_QUAT \
@@ -73,5 +75,18 @@ extern void quat_times(quat_t *A, float x);
 
 /* calculates rotation euler angles from rotation quaternion */
 extern void quat_quat2euler(quat_t *q, float *roll, float *pitch, float *yaw);
+
+
+/* calculate quaternion q that rotates v1 into v2, assumed len(v1) == len(v2) */
+extern void quat_uvec2uvec(const vec_t *v1, const vec_t *v2, quat_t *q);
+
+
+/* rotates vector using rotation quaternion */
+extern void quat_vecRot(vec_t *vec, const quat_t *qRot);
+
+
+/* calculates quaternion res (closest to help_q), that rotates frame of reference (v1, v2) into (w1, w2) */
+extern void quat_frameRot(const vec_t *v1, const vec_t *v2, const vec_t *w1, const vec_t *w2, quat_t *res, const quat_t *help_q);
+
 
 #endif

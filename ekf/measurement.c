@@ -29,7 +29,6 @@
 #include "sensc.h"
 #include <vec.h>
 #include <quat.h>
-#include <qrot.h>
 #include <matrix.h>
 
 #define EARTH_SEMI_MAJOR           6378137.0F

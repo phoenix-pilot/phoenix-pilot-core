@@ -25,7 +25,6 @@
 
 #include <vec.h>
 #include <quat.h>
-#include <qrot.h>
 #include <matrix.h>
 
 #include "ekflib.h"
