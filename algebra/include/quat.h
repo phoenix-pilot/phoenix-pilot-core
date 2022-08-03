@@ -45,7 +45,7 @@ extern void quat_add(quat_t *A, const quat_t *B);
 extern void quat_mlt(const quat_t *A, const quat_t *B, quat_t *C);
 
 
-/* x = AB | returns euclidian 4D dot product of two quaternions */ 
+/* x = AB | returns euclidean 4D dot product of two quaternions */
 extern float quat_dot(const quat_t *A, const quat_t *B);
 
 
@@ -62,7 +62,7 @@ extern void quat_print(const quat_t *A);
 
 
 /* C = C / ||C|| | normalizes quaternion to a unit quaternion */
-extern void quat_normalize(quat_t * A);
+extern void quat_normalize(quat_t *A);
 
 
 /* calculates C that is result of: A * B * cjg(A), C can overlap with A or B */
