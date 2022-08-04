@@ -26,7 +26,7 @@
 #include "kalman_implem.h"
 
 #include <libsensors.h>
-#include "sensc.h"
+#include <sensc.h>
 #include <vec.h>
 #include <quat.h>
 #include <matrix.h>

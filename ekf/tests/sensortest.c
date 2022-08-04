@@ -20,7 +20,7 @@
 #include <fcntl.h>
 #include <sys/threads.h>
 
-#include "../sensc.h"
+#include <sensc.h>
 #include <ekflib.h>
 
 #define R2D           57.2957
