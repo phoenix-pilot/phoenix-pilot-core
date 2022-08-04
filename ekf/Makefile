@@ -11,19 +11,19 @@ KALMAN_SRCS := kalman_implem.c kalman_core.c kalman_update_imu.c kalman_update_b
 
 # EKF library
 NAME := libekf
-LOCAL_SRCS := ekflib.c $(KALMAN_SRCS) measurement.c sensc.c
+LOCAL_SRCS := ekflib.c $(KALMAN_SRCS) measurement.c
 LOCAL_HEADERS := ekflib.h
-DEPS := libalgeb
+DEPS := libalgeb libsensc
 include $(static-lib.mk)
 
 # EKF development application
 NAME := devekf
 LOCAL_SRCS := tests/devekf.c
-DEP_LIBS := libekf libalgeb
+DEP_LIBS := libekf libalgeb libsensc
 LOCAL_LDFLAGS := -z stack-size=16096 -z noexecstack
 include $(binary.mk)
 
 NAME := sensortest
 LOCAL_SRCS := tests/sensortest.c
-DEP_LIBS := libekf libalgeb
+DEP_LIBS := libekf libalgeb libsensc
 include $(binary.mk)
