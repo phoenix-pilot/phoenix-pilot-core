@@ -18,11 +18,18 @@
 #include <matrix.h>
 
 /* Creating matrix for testing */
+
+/* ROWS and COLS must be at least 2 */
 #define ROWS 10
 #define COLS 5
 
 static float buf[ROWS * COLS];
-static matrix_t A = { .data = buf, .cols = COLS, .rows = ROWS };
+static matrix_t A = { .data = buf, .cols = COLS, .rows = ROWS, .transposed = 0 };
+
+
+/* ##############################################################################
+ * ---------------------        matrix_zeroes tests       -----------------------
+ * ############################################################################## */
 
 
 TEST_GROUP(group_matrix_zeroes);
