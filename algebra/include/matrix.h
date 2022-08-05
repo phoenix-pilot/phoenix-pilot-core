@@ -31,6 +31,14 @@ extern int matrix_bufAlloc(matrix_t *matrix, int rows, int cols);
 extern void matrix_bufFree(matrix_t *matrix);
 
 
+/* return a pointer to matrix element in specified row and column
+ * if row or column exceeds matrix size NULL is returned */
+inline float *matrix_at(const matrix_t *A, unsigned int row, unsigned int col)
+{
+	return (A->transposed) ? ((row < A->cols && col < A->rows) ? &(A->data[A->cols * col + row]) : NULL) : ((row < A->rows && col < A->cols) ? &(A->data[A->cols * row + col]) : NULL);
+}
+
+
 /* sets the matrix data to diagonal 1s, rest is 0 */
 extern void matrix_diag(matrix_t *A);
 
