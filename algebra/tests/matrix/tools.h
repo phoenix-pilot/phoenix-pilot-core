@@ -33,3 +33,7 @@ extern int algebraTests_matrixZeroesCheck(matrix_t *A);
 
 /* Function checks if matrix_at return a NULL, when we are trying to get matrix element outside matrix */
 extern int algebraTests_invalidSeekCheck(matrix_t *M);
+
+
+/* This function checks if all elements on diagonal are ones and others are zeroes */
+extern int algebraTests_diagCheck(matrix_t *M);
