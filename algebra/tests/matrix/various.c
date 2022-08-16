@@ -19,11 +19,18 @@
 
 #include "tools.h"
 
+
+/* Must be different than zero and one */
+#define INIT_VAL 2.0
+
 /* Creating matrices for testing */
 
 /* ROWS and COLS must be at least 2 */
 #define ROWS 10
 #define COLS 5
+
+/* Size of square matrices */
+#define SQUARE_MAT_SIZE 5
 
 static float buf[ROWS * COLS];
 static matrix_t stMat = { .data = buf, .cols = COLS, .rows = ROWS, .transposed = 0 };
@@ -138,4 +145,81 @@ TEST_GROUP_RUNNER(group_matrix_zeroes)
 	RUN_TEST_CASE(group_matrix_zeroes, matrix_zeroes_std);
 	RUN_TEST_CASE(group_matrix_zeroes, matrix_zeroes_stdTrp);
 	RUN_TEST_CASE(group_matrix_zeroes, matrix_zeroes_stMat);
+}
+
+
+/* ##############################################################################
+ * -----------------------        matrix_diag tests       ------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_matrix_diag);
+
+
+TEST_SETUP(group_matrix_diag)
+{
+	M.data = NULL;
+	M.transposed = 0;
+}
+
+
+TEST_TEAR_DOWN(group_matrix_diag)
+{
+	matrix_bufFree(&M);
+	M.transposed = 0;
+}
+
+
+TEST(group_matrix_diag, matrix_diag_squareMat)
+{
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
+	algebraTests_fillWithVal(&M, INIT_VAL);
+
+	matrix_diag(&M);
+
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_diagCheck(&M));
+}
+
+
+TEST(group_matrix_diag, matrix_diag_squareMatTrp)
+{
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
+	matrix_trp(&M);
+	algebraTests_fillWithVal(&M, INIT_VAL);
+
+	matrix_diag(&M);
+
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_diagCheck(&M));
+}
+
+
+TEST(group_matrix_diag, matrix_diag_notSquareMat)
+{
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M, ROWS, COLS));
+	algebraTests_fillWithVal(&M, INIT_VAL);
+
+	matrix_diag(&M);
+
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_diagCheck(&M));
+}
+
+
+TEST(group_matrix_diag, matrix_diag_notSquareMatTrp)
+{
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M, ROWS, COLS));
+	matrix_trp(&M);
+	algebraTests_fillWithVal(&M, INIT_VAL);
+
+	matrix_diag(&M);
+
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_diagCheck(&M));
+}
+
+
+TEST_GROUP_RUNNER(group_matrix_diag)
+{
+	RUN_TEST_CASE(group_matrix_diag, matrix_diag_squareMat);
+	RUN_TEST_CASE(group_matrix_diag, matrix_diag_squareMatTrp);
+	RUN_TEST_CASE(group_matrix_diag, matrix_diag_notSquareMat);
+	RUN_TEST_CASE(group_matrix_diag, matrix_diag_notSquareMatTrp);
 }

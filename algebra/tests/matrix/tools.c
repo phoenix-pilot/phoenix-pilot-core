@@ -98,3 +98,25 @@ int algebraTests_matrixZeroesCheck(matrix_t *A)
 
 	return CHECK_OK;
 }
+
+
+int algebraTests_diagCheck(matrix_t *M)
+{
+	int rowsNum, colsNum, row, col;
+
+	rowsNum = matrix_rowsGet(M);
+	colsNum = matrix_colsGet(M);
+
+	for (row = 0; row < rowsNum; row++) {
+		for (col = 0; col < colsNum; col++) {
+			if (row == col && *matrix_at(M, row, col) != 1.0) {
+				return CHECK_FAIL;
+			}
+			if (row != col && *matrix_at(M, row, col) != 0.0) {
+				return CHECK_FAIL;
+			}
+		}
+	}
+
+	return CHECK_OK;
+}
