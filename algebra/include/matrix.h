@@ -14,6 +14,8 @@
 #ifndef PHMATRIX_H
 #define PHMATRIX_H
 
+#include <stddef.h>
+
 typedef struct {
 	unsigned int rows;
 	unsigned int cols;
