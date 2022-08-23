@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "matrix.h"
 
@@ -21,9 +22,14 @@ float * buf = NULL;
 unsigned int buflen = 0;
 
 
-int matrix_bufAlloc(matrix_t *matrix, int rows, int cols)
+int matrix_bufAlloc(matrix_t *matrix, unsigned int rows, unsigned int cols)
 {
 	float *data;
+
+	/* check for calloc 'nitems' overflow */
+	if (SIZE_MAX / rows < cols) {
+		return -1;
+	}
 
 	data = calloc(rows * cols, sizeof(float));
 	if (data == NULL) {
