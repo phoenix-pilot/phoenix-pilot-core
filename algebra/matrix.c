@@ -46,10 +46,8 @@ int matrix_bufAlloc(matrix_t *matrix, unsigned int rows, unsigned int cols)
 
 void matrix_bufFree(matrix_t *matrix)
 {
-	if (matrix->data != NULL) {
-		free(matrix->data);
-		matrix->data = NULL;
-	}
+	free(matrix->data);
+	matrix->data = NULL;
 }
 
 
