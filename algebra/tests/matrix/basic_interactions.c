@@ -292,3 +292,52 @@ TEST_GROUP_RUNNER(group_matrix_bufAlloc)
 	RUN_TEST_CASE(group_matrix_bufAlloc, matrix_bufAlloc_readAndWrite);
 	RUN_TEST_CASE(group_matrix_bufAlloc, matrix_bufAlloc_invalidArgs);
 }
+
+
+/* ##############################################################################
+ * ---------------------        matrix_bufFree tests       ----------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_matrix_bufFree);
+
+
+TEST_SETUP(group_matrix_bufFree)
+{
+	dynMat.data = NULL;
+}
+
+
+TEST_TEAR_DOWN(group_matrix_bufFree)
+{
+	free(dynMat.data);
+}
+
+
+TEST(group_matrix_bufFree, matrix_bufFree_std)
+{
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
+
+	matrix_bufFree(&dynMat);
+
+	TEST_ASSERT_NULL(dynMat.data);
+}
+
+
+TEST(group_matrix_bufFree, matrix_bufFree_doubleFreeSafe)
+{
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
+
+	matrix_bufFree(&dynMat);
+	TEST_ASSERT_NULL(dynMat.data);
+
+	matrix_bufFree(&dynMat);
+	TEST_ASSERT_NULL(dynMat.data);
+}
+
+
+TEST_GROUP_RUNNER(group_matrix_bufFree)
+{
+	RUN_TEST_CASE(group_matrix_bufFree, matrix_bufFree_std);
+	RUN_TEST_CASE(group_matrix_bufFree, matrix_bufFree_doubleFreeSafe);
+}
