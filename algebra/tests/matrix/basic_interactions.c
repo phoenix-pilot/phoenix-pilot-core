@@ -44,24 +44,33 @@ static matrix_t dynMat;
 
 void algebraTests_checkInvalidSeek(matrix_t *M)
 {
-	int row, col;
+	int rowsNum, colsNum, row, col;
+
+	if (M->transposed) {
+		rowsNum = M->cols;
+		colsNum = M->rows;
+	}
+	else {
+		rowsNum = M->rows;
+		colsNum = M->cols;
+	}
 
 	/* Both row and col outside matrix */
-	TEST_ASSERT_NULL(matrix_at(M, M->rows, M->cols));
-	TEST_ASSERT_NULL(matrix_at(M, M->rows + SMALL_SHIFT, M->cols + SMALL_SHIFT));
-	TEST_ASSERT_NULL(matrix_at(M, M->rows + BIG_SHIFT, M->cols + BIG_SHIFT));
+	TEST_ASSERT_NULL(matrix_at(M, rowsNum, colsNum));
+	TEST_ASSERT_NULL(matrix_at(M, rowsNum + SMALL_SHIFT, colsNum + SMALL_SHIFT));
+	TEST_ASSERT_NULL(matrix_at(M, rowsNum + BIG_SHIFT, colsNum + BIG_SHIFT));
 
 	/* Only row outside matrix */
-	col = M->cols / 2;
-	TEST_ASSERT_NULL(matrix_at(M, M->rows, col));
-	TEST_ASSERT_NULL(matrix_at(M, M->rows + SMALL_SHIFT, col));
-	TEST_ASSERT_NULL(matrix_at(M, M->rows + BIG_SHIFT, col));
+	col = colsNum / 2; /* arbitrary position within columns */
+	TEST_ASSERT_NULL(matrix_at(M, rowsNum, col));
+	TEST_ASSERT_NULL(matrix_at(M, rowsNum + SMALL_SHIFT, col));
+	TEST_ASSERT_NULL(matrix_at(M, rowsNum + BIG_SHIFT, col));
 
 	/* Only col outside matrix */
-	row = M->rows / 2;
-	TEST_ASSERT_NULL(matrix_at(M, row, M->cols));
-	TEST_ASSERT_NULL(matrix_at(M, row, M->cols + SMALL_SHIFT));
-	TEST_ASSERT_NULL(matrix_at(M, row, M->cols + BIG_SHIFT));
+	row = rowsNum / 2; /* arbitrary position within rows */
+	TEST_ASSERT_NULL(matrix_at(M, row, colsNum));
+	TEST_ASSERT_NULL(matrix_at(M, row, colsNum + SMALL_SHIFT));
+	TEST_ASSERT_NULL(matrix_at(M, row, colsNum + BIG_SHIFT));
 }
 
 
@@ -75,11 +84,13 @@ TEST_GROUP(group_matrix_at);
 TEST_SETUP(group_matrix_at)
 {
 	memset(buf, 1, sizeof(float) * ROWS * COLS);
+	stMat.transposed = 0;
 }
 
 
 TEST_TEAR_DOWN(group_matrix_at)
 {
+	stMat.transposed = 0;
 }
 
 
@@ -95,13 +106,34 @@ TEST(group_matrix_at, matrix_at_validSeek)
 }
 
 
+TEST(group_matrix_at, matrix_at_validSeekTrp)
+{
+	int row, col;
+
+	matrix_trp(&stMat);
+
+	for (row = 0; row < COLS; row++) {
+		for (col = 0; col < ROWS; col++) {
+			TEST_ASSERT_NOT_NULL(matrix_at(&stMat, row, col));
+		}
+	}
+}
+
+
 TEST(group_matrix_at, matrix_at_invalidSeek)
 {
 	algebraTests_checkInvalidSeek(&stMat);
 }
 
 
-TEST(group_matrix_at, matrix_at_writing)
+TEST(group_matrix_at, matrix_at_invalidSeekTrp)
+{
+	matrix_trp(&stMat);
+	algebraTests_checkInvalidSeek(&stMat);
+}
+
+
+TEST(group_matrix_at, matrix_at_write)
 {
 	int row, col, i;
 	float *matElem;
@@ -123,7 +155,31 @@ TEST(group_matrix_at, matrix_at_writing)
 }
 
 
-TEST(group_matrix_at, matrix_at_reading)
+TEST(group_matrix_at, matrix_at_writeTrp)
+{
+	int row, col, i;
+	float *matElem;
+	float exp_data[ROWS * COLS];
+
+	matrix_trp(&stMat);
+
+	i = 0;
+	for (col = 0; col < ROWS; col++) {
+		for (row = 0; row < COLS; row++) {
+			matElem = matrix_at(&stMat, row, col);
+			TEST_ASSERT_NOT_NULL(matElem);
+
+			/* Assigning different value to every matrix element and logically corresponding position in exp_data */
+			*matElem = exp_data[col * COLS + row] = i;
+			i++;
+		}
+	}
+
+	TEST_ASSERT_EQUAL_FLOAT_ARRAY(exp_data, stMat.data, ROWS * COLS);
+}
+
+
+TEST(group_matrix_at, matrix_at_read)
 {
 	int row, col, i;
 
@@ -142,7 +198,27 @@ TEST(group_matrix_at, matrix_at_reading)
 }
 
 
-TEST(group_matrix_at, matrix_at_writingAndReading)
+TEST(group_matrix_at, matrix_at_readTrp)
+{
+	int row, col, i;
+
+	for (i = 0; i < ROWS * COLS; i++) {
+		stMat.data[i] = i;
+	}
+
+	matrix_trp(&stMat);
+
+	i = 0;
+	for (col = 0; col < ROWS; col++) {
+		for (row = 0; row < COLS; row++) {
+			TEST_ASSERT_EQUAL_FLOAT(i, *matrix_at(&stMat, row, col));
+			i++;
+		}
+	}
+}
+
+
+TEST(group_matrix_at, matrix_at_writeRead)
 {
 	int row, col, i;
 
@@ -166,13 +242,44 @@ TEST(group_matrix_at, matrix_at_writingAndReading)
 }
 
 
+TEST(group_matrix_at, matrix_at_writeReadTrp)
+{
+	int row, col, i;
+
+	matrix_trp(&stMat);
+
+	/* Assigning different value to every matrix element */
+	i = 0;
+	for (row = 0; row < COLS; row++) {
+		for (col = 0; col < ROWS; col++) {
+			*matrix_at(&stMat, row, col) = i;
+			i++;
+		}
+	}
+
+	/* Checking every matrix element */
+	i = 0;
+	for (row = 0; row < COLS; row++) {
+		for (col = 0; col < ROWS; col++) {
+			TEST_ASSERT_EQUAL_FLOAT(i, *matrix_at(&stMat, row, col));
+			i++;
+		}
+	}
+}
+
+
 TEST_GROUP_RUNNER(group_matrix_at)
 {
 	RUN_TEST_CASE(group_matrix_at, matrix_at_validSeek);
+	RUN_TEST_CASE(group_matrix_at, matrix_at_validSeekTrp);
 	RUN_TEST_CASE(group_matrix_at, matrix_at_invalidSeek);
-	RUN_TEST_CASE(group_matrix_at, matrix_at_writing);
-	RUN_TEST_CASE(group_matrix_at, matrix_at_reading);
-	RUN_TEST_CASE(group_matrix_at, matrix_at_writingAndReading);
+	RUN_TEST_CASE(group_matrix_at, matrix_at_invalidSeekTrp);
+	RUN_TEST_CASE(group_matrix_at, matrix_at_write);
+	RUN_TEST_CASE(group_matrix_at, matrix_at_writeTrp);
+	RUN_TEST_CASE(group_matrix_at, matrix_at_read);
+	RUN_TEST_CASE(group_matrix_at, matrix_at_readTrp);
+	RUN_TEST_CASE(group_matrix_at, matrix_at_writeRead);
+	RUN_TEST_CASE(group_matrix_at, matrix_at_writeReadTrp);
 }
 
 
