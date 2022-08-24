@@ -28,6 +28,44 @@ static matrix_t stMat = { .data = buf, .cols = COLS, .rows = ROWS, .transposed =
 
 
 /* ##############################################################################
+ * -----------------------        matrix_trp tests       ------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_matrix_trp);
+
+
+TEST_SETUP(group_matrix_trp)
+{
+	stMat.transposed = 0;
+}
+
+
+TEST_TEAR_DOWN(group_matrix_trp)
+{
+	stMat.transposed = 0;
+}
+
+
+TEST(group_matrix_trp, matrix_trp_std)
+{
+	TEST_ASSERT_FALSE(stMat.transposed);
+
+	matrix_trp(&stMat);
+	TEST_ASSERT_TRUE(stMat.transposed);
+
+	matrix_trp(&stMat);
+	TEST_ASSERT_FALSE(stMat.transposed);
+}
+
+
+TEST_GROUP_RUNNER(group_matrix_trp)
+{
+	RUN_TEST_CASE(group_matrix_trp, matrix_trp_std);
+}
+
+
+/* ##############################################################################
  * ---------------------        matrix_zeroes tests       -----------------------
  * ############################################################################## */
 
