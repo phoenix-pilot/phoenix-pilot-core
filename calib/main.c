@@ -29,7 +29,7 @@
 #define CALIBMODE_OPT_MAGMOT  "mot"
 #define CALIBMODE_OPT_ACCROT  "rot"
 
-#define DEFAULT_FILESTR  "/etc/mag.calib"
+#define DEFAULT_FILESTR  "/etc/calib.conf"
 #define DEFAULT_SENSPATH "/dev/sensors"
 
 enum mCalibMode { modeMagIron = 0,
@@ -42,6 +42,11 @@ struct {
 } cal_common;
 
 
+extern int cal_calibsRead(const char *filepath);
+
+extern int cal_calibsWrite(const char *filepath);
+
+
 void cal_helpPrint(char *name)
 {
 	printf("Usage: %s [-m mode] [-f path]\n\
@@ -51,7 +56,8 @@ void cal_helpPrint(char *name)
   -x - accelerometer calibration mode.\n\
   -f - optional filename to save calibration output.\n\
   -s - optional filename of sensorhub driver.\n\
-  -h - prints this message and aborts calibration process.\n", name, CALIBMODE_OPT_MAGIRON, CALIBMODE_OPT_MAGMOT);
+  -h - prints this message and aborts calibration process.\n",
+		name, CALIBMODE_OPT_MAGIRON, CALIBMODE_OPT_MAGMOT);
 }
 
 
@@ -78,7 +84,7 @@ int cal_argParse(enum mCalibMode *mode, int argc, char *argv[])
 				cal_helpPrint(argv[0]);
 				break;
 			default: /* '?' */
-			printf("Parsing arguments error. %s", helpMsg);
+				printf("Parsing arguments error. %s", helpMsg);
 				return -1;
 		}
 	}
@@ -126,7 +132,8 @@ void cal_shutdownDeinit(void)
 }
 
 
-int cal_calibDo(enum mCalibMode mode) {
+int cal_calibDo(enum mCalibMode mode)
+{
 	switch (mode) {
 		case modeMagMot:
 			return cal_mMotCalib();
@@ -155,6 +162,11 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
+	if (cal_calibsRead(cal_common.filePath) < 0) {
+		/* error printed by cal_calibsWrite() */
+		return EXIT_FAILURE;
+	}
+
 	if (sensc_init(cal_common.sensPath) < 0) {
 		printf("Failed to setup sensorhub client!\n");
 		return EXIT_FAILURE;
@@ -172,6 +184,11 @@ int main(int argc, char **argv)
 	if (cal_calibDo(mode) < 0) {
 		printf("Failed to perform calibration process!\n");
 		cal_shutdownDeinit();
+		return EXIT_FAILURE;
+	}
+
+	if (cal_calibsWrite(cal_common.filePath) < 0) {
+		/* error printed by cal_calibsWrite() */
 		return EXIT_FAILURE;
 	}
 

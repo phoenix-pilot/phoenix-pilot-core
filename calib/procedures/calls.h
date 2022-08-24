@@ -14,6 +14,23 @@
 #ifndef __PILOT_CALIB_CALLS_H__
 #define __PILOT_CALIB_CALLS_H__
 
+#include <vec.h>
+#include <quat.h>
+#include <stdio.h>
+
+struct {
+	struct {
+		float dummyVal; /* to be expanded with mMotCalib calibration implementation */
+	} mMot;
+
+	struct {
+		float dummyVal; /* to be expanded with mStaticCalib calibration implementation */
+	} mStatic;
+
+	struct {
+		float dummyVal; /* to be expanded with aRotCalib calibration implementation */
+	} aRot;
+} calib_common;
 
 extern int cal_mMotCalib(void);
 
