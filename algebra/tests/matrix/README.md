@@ -7,4 +7,5 @@
     - `matrix_bufAlloc`
     - `matrix_bufFree`
 - `various.c` - contains tests not categorized to other categories. Tested functions:
+    - `matrix_trp`
     - `matrix_zeroes`

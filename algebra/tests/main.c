@@ -16,6 +16,7 @@
 
 void runner(void)
 {
+	RUN_TEST_GROUP(group_matrix_trp);
 	RUN_TEST_GROUP(group_matrix_at);
 	RUN_TEST_GROUP(group_matrix_bufAlloc);
 	RUN_TEST_GROUP(group_matrix_bufFree);
