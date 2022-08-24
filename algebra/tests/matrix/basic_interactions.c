@@ -18,13 +18,12 @@
 
 #include <matrix.h>
 
+#include "tools.h"
+
 
 /* Consts used by tests */
 #define SMALL_SHIFT 1
 #define BIG_SHIFT   1234
-
-#define BUF_ALLOC_OK   0
-#define BUF_ALLOC_FAIL -1
 
 
 /* Creating matrices for testing */
@@ -42,35 +41,50 @@ static matrix_t stMat = { .data = buf, .cols = COLS, .rows = ROWS, .transposed =
 static matrix_t dynMat;
 
 
-void algebraTests_checkInvalidSeek(matrix_t *M)
+int algebraTests_checkInvalidSeek(matrix_t *M)
 {
 	int rowsNum, colsNum, row, col;
 
-	if (M->transposed) {
-		rowsNum = M->cols;
-		colsNum = M->rows;
-	}
-	else {
-		rowsNum = M->rows;
-		colsNum = M->cols;
-	}
+	algebraTests_getRowColNum(M, &rowsNum, &colsNum);
 
 	/* Both row and col outside matrix */
-	TEST_ASSERT_NULL(matrix_at(M, rowsNum, colsNum));
-	TEST_ASSERT_NULL(matrix_at(M, rowsNum + SMALL_SHIFT, colsNum + SMALL_SHIFT));
-	TEST_ASSERT_NULL(matrix_at(M, rowsNum + BIG_SHIFT, colsNum + BIG_SHIFT));
+	if (matrix_at(M, rowsNum, colsNum) != NULL) {
+		return CHECK_FAIL;
+	}
+	if (matrix_at(M, rowsNum + SMALL_SHIFT, colsNum + SMALL_SHIFT) != NULL) {
+		return CHECK_FAIL;
+	}
+	if (matrix_at(M, rowsNum + BIG_SHIFT, colsNum + BIG_SHIFT) != NULL) {
+		return CHECK_FAIL;
+	}
 
 	/* Only row outside matrix */
 	col = colsNum / 2; /* arbitrary position within columns */
-	TEST_ASSERT_NULL(matrix_at(M, rowsNum, col));
-	TEST_ASSERT_NULL(matrix_at(M, rowsNum + SMALL_SHIFT, col));
-	TEST_ASSERT_NULL(matrix_at(M, rowsNum + BIG_SHIFT, col));
+
+	if (matrix_at(M, rowsNum, col) != NULL) {
+		return CHECK_FAIL;
+	}
+	if (matrix_at(M, rowsNum + SMALL_SHIFT, col) != NULL) {
+		return CHECK_FAIL;
+	}
+	if (matrix_at(M, rowsNum + BIG_SHIFT, col) != NULL) {
+		return CHECK_FAIL;
+	}
 
 	/* Only col outside matrix */
 	row = rowsNum / 2; /* arbitrary position within rows */
-	TEST_ASSERT_NULL(matrix_at(M, row, colsNum));
-	TEST_ASSERT_NULL(matrix_at(M, row, colsNum + SMALL_SHIFT));
-	TEST_ASSERT_NULL(matrix_at(M, row, colsNum + BIG_SHIFT));
+
+	if (matrix_at(M, row, colsNum) != NULL) {
+		return CHECK_FAIL;
+	}
+	if (matrix_at(M, row, colsNum + SMALL_SHIFT) != NULL) {
+		return CHECK_FAIL;
+	}
+	if (matrix_at(M, row, colsNum + BIG_SHIFT) != NULL) {
+		return CHECK_FAIL;
+	}
+
+	return CHECK_OK;
 }
 
 
@@ -122,14 +136,14 @@ TEST(group_matrix_at, matrix_at_validSeekTrp)
 
 TEST(group_matrix_at, matrix_at_invalidSeek)
 {
-	algebraTests_checkInvalidSeek(&stMat);
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_checkInvalidSeek(&stMat));
 }
 
 
 TEST(group_matrix_at, matrix_at_invalidSeekTrp)
 {
 	matrix_trp(&stMat);
-	algebraTests_checkInvalidSeek(&stMat);
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_checkInvalidSeek(&stMat));
 }
 
 
@@ -336,14 +350,14 @@ TEST(group_matrix_bufAlloc, matrix_bufAlloc_invalidSeek)
 {
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
 
-	algebraTests_checkInvalidSeek(&dynMat);
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_checkInvalidSeek(&stMat));
 }
 
 
 TEST(group_matrix_bufAlloc, matrix_bufAlloc_initVal)
 {
 	int row, col;
-
+	
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
 
 	for (row = 0; row < ROWS; row++) {
