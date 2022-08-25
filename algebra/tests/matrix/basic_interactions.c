@@ -76,6 +76,45 @@ TEST_GROUP_RUNNER(group_matrix_rowsGet)
 
 
 /* ##############################################################################
+ * -------------------        matrix_colsGet tests       ------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_matrix_colsGet);
+
+TEST_SETUP(group_matrix_colsGet)
+{
+	stMat.transposed = 0;
+}
+
+
+TEST_TEAR_DOWN(group_matrix_colsGet)
+{
+	stMat.transposed = 0;
+}
+
+
+TEST(group_matrix_colsGet, matrix_colsGet_std)
+{
+	TEST_ASSERT_EQUAL_UINT(COLS, matrix_colsGet(&stMat));
+}
+
+
+TEST(group_matrix_colsGet, matrix_colsGet_stdTrp)
+{
+	matrix_trp(&stMat);
+	TEST_ASSERT_EQUAL_UINT(ROWS, matrix_colsGet(&stMat));
+}
+
+
+TEST_GROUP_RUNNER(group_matrix_colsGet)
+{
+	RUN_TEST_CASE(group_matrix_colsGet, matrix_colsGet_std);
+	RUN_TEST_CASE(group_matrix_colsGet, matrix_colsGet_stdTrp);
+}
+
+
+/* ##############################################################################
  * ----------------------        matrix_at tests       --------------------------
  * ############################################################################## */
 
