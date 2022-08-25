@@ -173,6 +173,14 @@ typedef struct {
 	geodetic_t gpsRefGeodetic;
 } kalman_calib_t;
 
+typedef struct {
+	/* magnetometer correction data */
+	vec_t a;
+	vec_t b;
+	vec_t c;
+	float x; /* correction quadratic formula argument */
+} meas_corrs_t;
+
 int verbose;
 
 /* CALIBRATIONS */

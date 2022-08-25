@@ -40,6 +40,7 @@
 
 static struct {
 	kalman_calib_t calib;
+	meas_corrs_t corrs;
 } meas_common;
 
 /* accelerometer calibration data */
@@ -207,6 +208,63 @@ static void meas_mag2si(sensor_event_t *evt, vec_t *vec)
 }
 
 
+static void meas_calibsInterpret(const char * valName, float val)
+{
+	if (strcmp(valName, "mMot_ax") == 0) {
+		meas_common.corrs.a.x = val;
+	}
+	else if (strcmp(valName, "mMot_ay") == 0) {
+		meas_common.corrs.a.y = val;
+	}
+	else if (strcmp(valName, "mMot_az") == 0) {
+		meas_common.corrs.a.z = val;
+	}
+	else if (strcmp(valName, "mMot_bx") == 0) {
+		meas_common.corrs.b.x = val;
+	}
+	else if (strcmp(valName, "mMot_by") == 0) {
+		meas_common.corrs.b.y = val;
+	}
+	else if (strcmp(valName, "mMot_bz") == 0) {
+		meas_common.corrs.b.z = val;
+	}
+}
+
+
+static int meas_calibsFileRead(const char * path)
+{
+	FILE *file;
+	char buf[32], *p, *v;
+	float val;
+	
+	/* initialize the magnetometer correction argument with zero in case nobody changes it */
+	meas_common.corrs.x = 0;
+	/* we dismiss the `c` parameter */
+	meas_common.corrs.c.x = meas_common.corrs.c.y = meas_common.corrs.c.z = 0;
+	file = fopen(path, "r");
+	if (file == NULL) {
+		printf("Magnetometer calibration not available!\n");
+		meas_common.corrs.a.x = meas_common.corrs.a.y = meas_common.corrs.a.z = 0;
+		meas_common.corrs.b.x = meas_common.corrs.b.y = meas_common.corrs.b.z = 0;
+		return -1;
+	}
+
+	while (fgets(buf, sizeof(buf), file)) {
+		p = strtok(buf, " ");
+		v = strtok(NULL, " ");
+		val = atof(v);
+
+		meas_calibsInterpret(p, val);
+	}
+	fclose(file);
+
+	printf("Mag/Mot interference coefs:\n");
+	printf(" a=[%.2f, %.2f, %.2f]\n", meas_common.corrs.a.x, meas_common.corrs.a.y, meas_common.corrs.a.z);
+	printf(" b=[%.2f, %.2f, %.2f]\n", meas_common.corrs.b.x, meas_common.corrs.b.y, meas_common.corrs.b.z);
+	return 0;
+}
+
+
 void meas_imuCalib(void)
 {
 	int i, avg = IMU_CALIB_AVG;
@@ -219,6 +277,8 @@ void meas_imuCalib(void)
 	accAvg = gyrAvg = magAvg = (vec_t) { .x = 0, .y = 0, .z = 0 };
 
 	printf("IMU calibration...\n");
+
+	meas_calibsFileRead("/etc/calib.conf");
 
 	i = 0;
 	while (i < avg) {
@@ -282,6 +342,7 @@ void meas_baroCalib(void)
 int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 {
 	sensor_event_t accEvt, gyrEvt, magEvt;
+	vec_t magCorr = {.x = 0, .y = 0, .z = 0};
 
 	if (sensc_imuGet(&accEvt, &gyrEvt, &magEvt) < 0) {
 		return -1;
@@ -289,6 +350,15 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 
 	/* these timestamps do not need to be very accurate */
 	*timestamp = (accEvt.timestamp + gyrEvt.timestamp + magEvt.timestamp) / 3;
+
+	/* addition of motor/magnetometer interference correction */
+	vec_add(&magCorr, &meas_common.corrs.a);
+	vec_times(&magCorr, meas_common.corrs.x);
+	vec_add(&magCorr, &meas_common.corrs.b);
+	vec_times(&magCorr, meas_common.corrs.x);
+	magEvt.mag.magX += magCorr.x;
+	magEvt.mag.magY += magCorr.y;
+	magEvt.mag.magZ += magCorr.z;
 
 	meas_acc2si(&accEvt, accels); /* accelerations from mm/s^2 -> m/s^2 */
 	meas_gyr2si(&gyrEvt, gyros);  /* angulars from mrad/s -> rad/s */
