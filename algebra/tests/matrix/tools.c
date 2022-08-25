@@ -18,24 +18,12 @@
 #define BIG_SHIFT   1234
 
 
-void algebraTests_getRowColNum(matrix_t *M, int *rows, int *cols)
-{
-	if (M->transposed) {
-		*rows = M->cols;
-		*cols = M->rows;
-	}
-	else {
-		*rows = M->rows;
-		*cols = M->cols;
-	}
-}
-
-
 void algebraTests_fillWithVal(matrix_t *M, float val)
 {
 	int rowsNum, colsNum, row, col;
 
-	algebraTests_getRowColNum(M, &rowsNum, &colsNum);
+	rowsNum = matrix_rowsGet(M);
+	colsNum = matrix_colsGet(M);
 
 	for (row = 0; row < rowsNum; row++) {
 		for (col = 0; col < colsNum; col++) {
@@ -49,7 +37,8 @@ int algebraTests_checkInvalidSeek(matrix_t *M)
 {
 	int rowsNum, colsNum, row, col;
 
-	algebraTests_getRowColNum(M, &rowsNum, &colsNum);
+	rowsNum = matrix_rowsGet(M);
+	colsNum = matrix_colsGet(M);
 
 	/* Both row and col outside matrix */
 	if (matrix_at(M, rowsNum, colsNum) != NULL) {
@@ -96,7 +85,8 @@ int algebraTests_checkMatrixZeroes(matrix_t *A)
 {
 	int rowsNum, colsNum, row, col;
 
-	algebraTests_getRowColNum(A, &rowsNum, &colsNum);
+	rowsNum = matrix_rowsGet(A);
+	colsNum = matrix_colsGet(A);
 
 	for (row = 0; row < rowsNum; row++) {
 		for (col = 0; col < colsNum; col++) {
