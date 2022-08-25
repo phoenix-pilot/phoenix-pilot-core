@@ -426,3 +426,9 @@ float meas_calibPressGet(void)
 {
 	return meas_common.calib.base_pressure;
 }
+
+
+void meas_inputUpdate(float avgThrottle)
+{
+	meas_common.corrs.x = avgThrottle;
+}

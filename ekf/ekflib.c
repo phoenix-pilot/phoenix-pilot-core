@@ -183,3 +183,14 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	ekfState->pitchDot = angRates.y;
 	ekfState->yawDot = angRates.z;
 }
+
+
+int ekf_input(float avgThrottle)
+{
+	if (avgThrottle > 1 || avgThrottle < 0) {
+		return -1;
+	}
+
+	meas_inputUpdate(avgThrottle);
+	return 0;
+}

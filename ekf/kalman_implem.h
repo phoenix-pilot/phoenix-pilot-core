@@ -178,7 +178,7 @@ typedef struct {
 	vec_t a;
 	vec_t b;
 	vec_t c;
-	float x; /* correction quadratic formula argument */
+	volatile float x; /* correction quadratic formula argument */
 } meas_corrs_t;
 
 int verbose;
@@ -195,6 +195,8 @@ void meas_baroCalib(void);
 const kalman_calib_t *meas_calibGet(void);
 
 float meas_calibPressGet(void);
+
+void meas_inputUpdate(float avgThrottle);
 
 
 /* MEASUREMENT ACQUISITION */

@@ -23,6 +23,7 @@
 #include <syslog.h>
 #include <board_config.h>
 
+#include <ekflib.h>
 
 #define NUMBER_MOTORS 4
 
@@ -63,7 +64,6 @@ int mma_control(float palt, float proll, float ppitch, float pyaw)
 	pwm[2] = palt + proll - ppitch - pyaw;
 	pwm[3] = palt - proll + ppitch - pyaw;
 
-
 	for (i = 0; i < NUMBER_MOTORS; ++i) {
 
 		if (pwm[i] > 1.0f) {
@@ -83,6 +83,7 @@ int mma_control(float palt, float proll, float ppitch, float pyaw)
 	}
 	mutexUnlock(mma_common.lock);
 
+	ekf_input((pwm[0] + pwm[1] + pwm[2] + pwm[3]) / 4);
 	DEBUG_LOG("PWM: %f, %f, %f, %f\n", pwm[0], pwm[1], pwm[2], pwm[3]);
 
 	return 0;
