@@ -41,6 +41,18 @@ inline float *matrix_at(const matrix_t *A, unsigned int row, unsigned int col)
 }
 
 
+inline unsigned int matrix_rowsGet(matrix_t *A)
+{
+	return (A->transposed) ? A->cols : A->rows;
+}
+
+
+inline unsigned int matrix_colsGet(matrix_t *A)
+{
+	return (A->transposed) ? A->rows : A->cols;
+}
+
+
 /* sets the matrix data to diagonal 1s, rest is 0 */
 extern void matrix_diag(matrix_t *A);
 
