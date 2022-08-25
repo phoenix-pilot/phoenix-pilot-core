@@ -19,8 +19,14 @@
 #include <stdio.h>
 
 struct {
+	/* magnetometer interference from motors on common throttle: trueMag[x,y,z] = readMag[x,y,z] + (a[x,y,z] * meanThrtl + b[x,y,z])^2 */
 	struct {
-		float dummyVal; /* to be expanded with mMotCalib calibration implementation */
+		float ax;
+		float ay;
+		float az;
+		float bx;
+		float by;
+		float bz;
 	} mMot;
 
 	struct {
@@ -30,7 +36,8 @@ struct {
 	struct {
 		float dummyVal; /* to be expanded with aRotCalib calibration implementation */
 	} aRot;
-} calib_common;
+} calibs_common;
+
 
 extern int cal_mMotCalib(void);
 

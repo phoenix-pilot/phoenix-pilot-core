@@ -10,5 +10,5 @@
 NAME := calibtool
 CALIBS := acal_rot mcal_mot mcal_static
 LOCAL_SRCS := main.c cfg_rw.c $(addsuffix .c, $(addprefix procedures/, $(CALIBS)))
-DEP_LIBS := libsensc libmctl
+DEP_LIBS := libsensc libmctl libalgeb
 include $(binary.mk)
