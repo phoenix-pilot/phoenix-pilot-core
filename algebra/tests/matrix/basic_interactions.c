@@ -23,7 +23,7 @@
 
 /* Creating matrices for testing */
 
-/* ROWS and COLS must be at least 2 */
+/* ROWS and COLS must be at least 2 and cannot be the same */
 #define ROWS 10
 #define COLS 5
 
@@ -34,6 +34,45 @@ static matrix_t stMat = { .data = buf, .cols = COLS, .rows = ROWS, .transposed =
 
 /* Matrix for dynamic allocations */
 static matrix_t dynMat;
+
+
+/* ##############################################################################
+ * -------------------        matrix_rowsGet tests       ------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_matrix_rowsGet);
+
+TEST_SETUP(group_matrix_rowsGet)
+{
+	stMat.transposed = 0;
+}
+
+
+TEST_TEAR_DOWN(group_matrix_rowsGet)
+{
+	stMat.transposed = 0;
+}
+
+
+TEST(group_matrix_rowsGet, matrix_rowsGet_std)
+{
+	TEST_ASSERT_EQUAL_UINT(ROWS, matrix_rowsGet(&stMat));
+}
+
+
+TEST(group_matrix_rowsGet, matrix_rowsGet_stdTrp)
+{
+	matrix_trp(&stMat);
+	TEST_ASSERT_EQUAL_UINT(COLS, matrix_rowsGet(&stMat));
+}
+
+
+TEST_GROUP_RUNNER(group_matrix_rowsGet)
+{
+	RUN_TEST_CASE(group_matrix_rowsGet, matrix_rowsGet_std);
+	RUN_TEST_CASE(group_matrix_rowsGet, matrix_rowsGet_stdTrp);
+}
 
 
 /* ##############################################################################
