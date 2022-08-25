@@ -90,24 +90,6 @@ TEST_TEAR_DOWN(group_matrix_zeroes)
 }
 
 
-int algebraTests_checkMatrixZeroes(matrix_t *A)
-{
-	int rowsNum, colsNum, row, col;
-
-	algebraTests_getRowColNum(A, &rowsNum, &colsNum);
-
-	for (row = 0; row < rowsNum; row++) {
-		for (col = 0; col < colsNum; col++) {
-			if (*matrix_at(A, row, col) != 0.0) {
-				return CHECK_FAIL;
-			}
-		}
-	}
-
-	return CHECK_OK;
-}
-
-
 TEST(group_matrix_zeroes, matrix_zeroes_std)
 {
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M, ROWS, COLS));

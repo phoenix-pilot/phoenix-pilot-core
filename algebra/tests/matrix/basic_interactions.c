@@ -21,11 +21,6 @@
 #include "tools.h"
 
 
-/* Consts used by tests */
-#define SMALL_SHIFT 1
-#define BIG_SHIFT   1234
-
-
 /* Creating matrices for testing */
 
 /* ROWS and COLS must be at least 2 */
@@ -39,53 +34,6 @@ static matrix_t stMat = { .data = buf, .cols = COLS, .rows = ROWS, .transposed =
 
 /* Matrix for dynamic allocations */
 static matrix_t dynMat;
-
-
-int algebraTests_checkInvalidSeek(matrix_t *M)
-{
-	int rowsNum, colsNum, row, col;
-
-	algebraTests_getRowColNum(M, &rowsNum, &colsNum);
-
-	/* Both row and col outside matrix */
-	if (matrix_at(M, rowsNum, colsNum) != NULL) {
-		return CHECK_FAIL;
-	}
-	if (matrix_at(M, rowsNum + SMALL_SHIFT, colsNum + SMALL_SHIFT) != NULL) {
-		return CHECK_FAIL;
-	}
-	if (matrix_at(M, rowsNum + BIG_SHIFT, colsNum + BIG_SHIFT) != NULL) {
-		return CHECK_FAIL;
-	}
-
-	/* Only row outside matrix */
-	col = colsNum / 2; /* arbitrary position within columns */
-
-	if (matrix_at(M, rowsNum, col) != NULL) {
-		return CHECK_FAIL;
-	}
-	if (matrix_at(M, rowsNum + SMALL_SHIFT, col) != NULL) {
-		return CHECK_FAIL;
-	}
-	if (matrix_at(M, rowsNum + BIG_SHIFT, col) != NULL) {
-		return CHECK_FAIL;
-	}
-
-	/* Only col outside matrix */
-	row = rowsNum / 2; /* arbitrary position within rows */
-
-	if (matrix_at(M, row, colsNum) != NULL) {
-		return CHECK_FAIL;
-	}
-	if (matrix_at(M, row, colsNum + SMALL_SHIFT) != NULL) {
-		return CHECK_FAIL;
-	}
-	if (matrix_at(M, row, colsNum + BIG_SHIFT) != NULL) {
-		return CHECK_FAIL;
-	}
-
-	return CHECK_OK;
-}
 
 
 /* ##############################################################################
@@ -356,15 +304,9 @@ TEST(group_matrix_bufAlloc, matrix_bufAlloc_invalidSeek)
 
 TEST(group_matrix_bufAlloc, matrix_bufAlloc_initVal)
 {
-	int row, col;
-	
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
 
-	for (row = 0; row < ROWS; row++) {
-		for (col = 0; col < COLS; col++) {
-			TEST_ASSERT_EQUAL_FLOAT(0, *matrix_at(&dynMat, row, col));
-		}
-	}
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_checkMatrixZeroes(&dynMat));
 }
 
 
