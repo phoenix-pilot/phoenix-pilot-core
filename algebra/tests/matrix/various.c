@@ -20,9 +20,6 @@
 #include "tools.h"
 
 
-/* Must be different than zero and one */
-#define INIT_VAL 2.0
-
 /* Creating matrices for testing */
 
 /* ROWS and COLS must be at least 2 */
@@ -37,6 +34,11 @@ static matrix_t stMat = { .data = buf, .cols = COLS, .rows = ROWS, .transposed =
 
 /* Matrix for dynamical allocation */
 static matrix_t M;
+
+
+/* Must be different than zero and one */
+static float initVal[] = {2.0};
+static int initValLen = 1;
 
 /* ##############################################################################
  * -----------------------        matrix_trp tests       ------------------------
@@ -100,7 +102,7 @@ TEST_TEAR_DOWN(group_matrix_zeroes)
 TEST(group_matrix_zeroes, matrix_zeroes_std)
 {
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M, ROWS, COLS));
-	algebraTests_valFill(&M, 1.0);
+	algebraTests_buffFill(&M, initVal, initValLen);
 
 	matrix_zeroes(&M);
 
@@ -115,7 +117,7 @@ TEST(group_matrix_zeroes, matrix_zeroes_std)
 TEST(group_matrix_zeroes, matrix_zeroes_stdTrp)
 {
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M, ROWS, COLS));
-	algebraTests_valFill(&M, 1.0);
+	algebraTests_buffFill(&M, initVal, initValLen);
 	matrix_trp(&M);
 
 	matrix_zeroes(&M);
@@ -173,7 +175,7 @@ TEST_TEAR_DOWN(group_matrix_diag)
 TEST(group_matrix_diag, matrix_diag_squareMat)
 {
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
-	algebraTests_fillWithVal(&M, INIT_VAL);
+	algebraTests_buffFill(&M, initVal, initValLen);
 
 	matrix_diag(&M);
 
@@ -185,7 +187,7 @@ TEST(group_matrix_diag, matrix_diag_squareMatTrp)
 {
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
 	matrix_trp(&M);
-	algebraTests_fillWithVal(&M, INIT_VAL);
+	algebraTests_buffFill(&M, initVal, initValLen);
 
 	matrix_diag(&M);
 
@@ -196,7 +198,7 @@ TEST(group_matrix_diag, matrix_diag_squareMatTrp)
 TEST(group_matrix_diag, matrix_diag_notSquareMat)
 {
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M, ROWS, COLS));
-	algebraTests_fillWithVal(&M, INIT_VAL);
+	algebraTests_buffFill(&M, initVal, initValLen);
 
 	matrix_diag(&M);
 
@@ -208,7 +210,7 @@ TEST(group_matrix_diag, matrix_diag_notSquareMatTrp)
 {
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M, ROWS, COLS));
 	matrix_trp(&M);
-	algebraTests_fillWithVal(&M, INIT_VAL);
+	algebraTests_buffFill(&M, initVal, initValLen);
 
 	matrix_diag(&M);
 
