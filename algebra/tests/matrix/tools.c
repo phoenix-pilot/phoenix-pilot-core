@@ -13,23 +13,48 @@
 
 #include "tools.h"
 
+#include <string.h>
+
 
 #define SMALL_SHIFT 1
 #define BIG_SHIFT   1234
 
 
-void algebraTests_valFill(matrix_t *M, float val)
+void algebraTests_buffFill(matrix_t *M, const float *vals, unsigned int n)
 {
 	int rowsNum, colsNum, row, col;
+	int i = 0;
 
 	rowsNum = matrix_rowsGet(M);
 	colsNum = matrix_colsGet(M);
 
 	for (row = 0; row < rowsNum; row++) {
 		for (col = 0; col < colsNum; col++) {
-			*matrix_at(M, row, col) = val;
+			*matrix_at(M, row, col) = (n > 1) ? vals[i++] : vals[i];
 		}
 	}
+}
+
+
+int algebraTests_createAndFill(matrix_t *M, unsigned int rows, unsigned int cols, const float *vals, unsigned int n)
+{
+	if (matrix_bufAlloc(M, rows, cols) != BUF_ALLOC_OK) {
+		return BUF_ALLOC_FAIL;
+	}
+
+	algebraTests_buffFill(M, vals, n);
+	return BUF_ALLOC_OK;
+}
+
+
+int algebraTests_matrixCopy(matrix_t *des, matrix_t *src)
+{
+	if (algebraTests_createAndFill(des, src->rows, src->cols, src->data, src->rows * src->cols) != BUF_ALLOC_OK) {
+		return BUF_ALLOC_FAIL;
+	}
+
+	des->transposed = src->transposed;
+	return BUF_ALLOC_OK;
 }
 
 

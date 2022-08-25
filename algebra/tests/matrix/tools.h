@@ -22,9 +22,26 @@
 #define CHECK_FAIL -1
 
 
-/* Change every matrix element to val */
-/* Function does not change sizes and transposition of matrix */
-extern void algebraTests_valFill(matrix_t *M, float val);
+/* ##############################################################################
+ * ---------------------        matrix modification       -----------------------
+ * ############################################################################## */
+
+
+/* Fill matrix buffer with n-length array vals. If n=1 whole matrix is filled with vals[0] */
+extern void algebraTests_buffFill(matrix_t *M, const float *vals, unsigned int n);
+
+
+/* Create and fill matrix with n-length array vals. If n=1 whole matrix is filled with vals[0]. M must be uninitialized */
+extern int algebraTests_createAndFill(matrix_t *M, unsigned int rows, unsigned int cols, const float *vals, unsigned int n);
+
+
+/* Copies src to des. Destination matrix have to be uninitiated */
+extern int algebraTests_matrixCopy(matrix_t *src, matrix_t *des);
+
+
+/* ##############################################################################
+ * ------------------------        matrix checks       --------------------------
+ * ############################################################################## */
 
 
 /* Function checks if every matrix element is zero */
