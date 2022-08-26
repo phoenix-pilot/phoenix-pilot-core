@@ -162,14 +162,14 @@ TEST(group_matrix_at, matrix_at_validSeekTrp)
 
 TEST(group_matrix_at, matrix_at_invalidSeek)
 {
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_checkInvalidSeek(&stMat));
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_invalidSeekCheck(&stMat));
 }
 
 
 TEST(group_matrix_at, matrix_at_invalidSeekTrp)
 {
 	matrix_trp(&stMat);
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_checkInvalidSeek(&stMat));
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_invalidSeekCheck(&stMat));
 }
 
 
@@ -376,7 +376,7 @@ TEST(group_matrix_bufAlloc, matrix_bufAlloc_invalidSeek)
 {
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
 
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_checkInvalidSeek(&stMat));
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_invalidSeekCheck(&stMat));
 }
 
 

@@ -32,4 +32,4 @@ extern int algebraTests_matrixZeroesCheck(matrix_t *A);
 
 
 /* Function checks if matrix_at return a NULL, when we are trying to get matrix element outside matrix */
-extern int algebraTests_checkInvalidSeek(matrix_t *M);
+extern int algebraTests_invalidSeekCheck(matrix_t *M);
