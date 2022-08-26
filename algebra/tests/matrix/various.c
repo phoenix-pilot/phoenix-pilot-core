@@ -93,7 +93,7 @@ TEST_TEAR_DOWN(group_matrix_zeroes)
 TEST(group_matrix_zeroes, matrix_zeroes_std)
 {
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M, ROWS, COLS));
-	algebraTests_fillWithVal(&M, 1.0);
+	algebraTests_valFill(&M, 1.0);
 
 	matrix_zeroes(&M);
 
@@ -108,7 +108,7 @@ TEST(group_matrix_zeroes, matrix_zeroes_std)
 TEST(group_matrix_zeroes, matrix_zeroes_stdTrp)
 {
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M, ROWS, COLS));
-	algebraTests_fillWithVal(&M, 1.0);
+	algebraTests_valFill(&M, 1.0);
 	matrix_trp(&M);
 
 	matrix_zeroes(&M);
