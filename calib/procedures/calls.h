@@ -18,15 +18,16 @@
 #include <quat.h>
 #include <stdio.h>
 
+typedef struct {
+	vec_t a;
+	vec_t b;
+	vec_t c;
+} quadEq3D_t;
+
 struct {
 	/* magnetometer interference from motors on common throttle: trueMag[x,y,z] = readMag[x,y,z] + (a[x,y,z] * meanThrtl + b[x,y,z])^2 */
 	struct {
-		float ax;
-		float ay;
-		float az;
-		float bx;
-		float by;
-		float bz;
+		quadEq3D_t motCal[4];
 	} mMot;
 
 	struct {

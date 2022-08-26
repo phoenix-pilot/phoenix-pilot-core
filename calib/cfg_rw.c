@@ -20,23 +20,52 @@
 
 static int cal_mMotCfgRead(const char * valName, float val)
 {
-	if (strcmp(valName, "mMot_ax")) {
-		calibs_common.mMot.ax = val;
-	}
-	else if (strcmp(valName, "mMot_ay")) {
-		calibs_common.mMot.ay = val;
-	}
-	else if (strcmp(valName, "mMot_az")) {
-		calibs_common.mMot.az = val;
-	}
-	else if (strcmp(valName, "mMot_bx")) {
-		calibs_common.mMot.bx = val;
-	}
-	else if (strcmp(valName, "mMot_by")) {
-		calibs_common.mMot.by = val;
-	}
-	else if (strcmp(valName, "mMot_bz")) {
-		calibs_common.mMot.bz = val;
+	vec_t *vec;
+
+	/* mMot specific */
+	int motor;
+	char abc, xyz;
+
+	if (strstr(valName, "mMot") != NULL) {
+		if (strlen(valName) < 10) {
+			return -1;
+		}
+
+		/* 3 specifiers to be found: motor, a/b/c parameter, x/y/z parameter: mMot_m0_a_x */
+		motor = valName[6] - '0'; /* to get the motor digit as int */
+		abc = valName[8];
+		xyz = valName[10];
+
+		switch (abc) {
+			case 'a':
+				vec = &calibs_common.mMot.motCal[motor].a;
+				break;
+			case 'b':
+				vec = &calibs_common.mMot.motCal[motor].b;
+				break;
+			case 'c':
+				vec = &calibs_common.mMot.motCal[motor].c;
+				break;
+			default:
+				return -1;
+				break;
+		}
+
+		switch (xyz) {
+			case 'x':
+				vec->x = val;
+				break;
+			case 'y':
+				vec->y = val;
+				break;
+			case 'z':
+				vec->z = val;
+				break;
+			default:
+				return -1;
+				break;
+		}
+
 	}
 
 	return 0;
@@ -45,22 +74,30 @@ static int cal_mMotCfgRead(const char * valName, float val)
 
 static void cal_defCfgSet(void)
 {
-	calibs_common.mMot.ax = calibs_common.mMot.ay = calibs_common.mMot.az = 0;
-	calibs_common.mMot.bx = calibs_common.mMot.by = calibs_common.mMot.bz = 0;
-
-	calibs_common.aRot.dummyVal = 0;
-	calibs_common.mStatic.dummyVal = 0;
+	int i;
+	for (i = 0; i < 4; i++) {
+		vec_times(&calibs_common.mMot.motCal[i].a, 0);
+		vec_times(&calibs_common.mMot.motCal[i].b, 0);
+		vec_times(&calibs_common.mMot.motCal[i].c, 0);
+	}
 }
 
 
 static void cal_printCfg(FILE *file)
 {
-	fprintf(file, "mMot_ax %f\n", calibs_common.mMot.ax);
-	fprintf(file, "mMot_ay %f\n", calibs_common.mMot.ay);
-	fprintf(file, "mMot_az %f\n", calibs_common.mMot.az);
-	fprintf(file, "mMot_bx %f\n", calibs_common.mMot.bx);
-	fprintf(file, "mMot_by %f\n", calibs_common.mMot.by);
-	fprintf(file, "mMot_bz %f\n", calibs_common.mMot.bz);
+	int i;
+
+	for (i = 0; i < 4; i++) {
+		fprintf(file, "mMot_m%d_a_x %f\n", i, calibs_common.mMot.motCal[i].a.x);
+		fprintf(file, "mMot_m%d_a_y %f\n", i, calibs_common.mMot.motCal[i].a.y);
+		fprintf(file, "mMot_m%d_a_z %f\n", i, calibs_common.mMot.motCal[i].a.z);
+		fprintf(file, "mMot_m%d_b_x %f\n", i, calibs_common.mMot.motCal[i].b.x);
+		fprintf(file, "mMot_m%d_b_y %f\n", i, calibs_common.mMot.motCal[i].b.y);
+		fprintf(file, "mMot_m%d_b_z %f\n", i, calibs_common.mMot.motCal[i].b.z);
+		fprintf(file, "mMot_m%d_c_x %f\n", i, calibs_common.mMot.motCal[i].c.x);
+		fprintf(file, "mMot_m%d_c_y %f\n", i, calibs_common.mMot.motCal[i].c.y);
+		fprintf(file, "mMot_m%d_c_z %f\n", i, calibs_common.mMot.motCal[i].c.z);
+	}
 }
 
 
@@ -83,7 +120,9 @@ int cal_calibsRead(const char *filepath)
 		v = strtok(NULL, " ");
 		val = atof(v);
 
-		cal_mMotCfgRead(p, val);
+		if (cal_mMotCfgRead(p, val) < 0) {
+			return -1;
+		}
 	}
 	fclose(fd);
 
