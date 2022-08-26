@@ -81,7 +81,7 @@ int algebraTests_checkInvalidSeek(matrix_t *M)
 }
 
 
-int algebraTests_checkMatrixZeroes(matrix_t *A)
+int algebraTests_matrixZeroesCheck(matrix_t *A)
 {
 	int rowsNum, colsNum, row, col;
 

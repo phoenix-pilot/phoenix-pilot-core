@@ -101,7 +101,7 @@ TEST(group_matrix_zeroes, matrix_zeroes_std)
 	TEST_ASSERT_EQUAL_INT(COLS, M.cols);
 	TEST_ASSERT_FALSE(M.transposed);
 
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_checkMatrixZeroes(&M));
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_matrixZeroesCheck(&M));
 }
 
 
@@ -117,7 +117,7 @@ TEST(group_matrix_zeroes, matrix_zeroes_stdTrp)
 	TEST_ASSERT_EQUAL_INT(COLS, M.cols);
 	TEST_ASSERT_TRUE(M.transposed);
 
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_checkMatrixZeroes(&M));
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_matrixZeroesCheck(&M));
 }
 
 
@@ -129,7 +129,7 @@ TEST(group_matrix_zeroes, matrix_zeroes_stMat)
 	TEST_ASSERT_EQUAL_INT(COLS, stMat.cols);
 	TEST_ASSERT_FALSE(stMat.transposed);
 
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_checkMatrixZeroes(&stMat));
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_matrixZeroesCheck(&stMat));
 }
 
 

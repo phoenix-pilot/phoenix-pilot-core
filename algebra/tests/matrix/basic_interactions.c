@@ -384,7 +384,7 @@ TEST(group_matrix_bufAlloc, matrix_bufAlloc_initVal)
 {
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
 
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_checkMatrixZeroes(&dynMat));
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_matrixZeroesCheck(&dynMat));
 }
 
 
