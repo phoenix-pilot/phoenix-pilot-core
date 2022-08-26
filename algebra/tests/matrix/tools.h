@@ -24,7 +24,7 @@
 
 /* Change every matrix element to val */
 /* Function does not change sizes and transposition of matrix */
-extern void algebraTests_fillWithVal(matrix_t *M, float val);
+extern void algebraTests_valFill(matrix_t *M, float val);
 
 
 /* Function checks if every matrix element is zero */

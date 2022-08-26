@@ -18,7 +18,7 @@
 #define BIG_SHIFT   1234
 
 
-void algebraTests_fillWithVal(matrix_t *M, float val)
+void algebraTests_valFill(matrix_t *M, float val)
 {
 	int rowsNum, colsNum, row, col;
 
