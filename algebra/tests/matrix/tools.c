@@ -33,7 +33,7 @@ void algebraTests_valFill(matrix_t *M, float val)
 }
 
 
-int algebraTests_checkInvalidSeek(matrix_t *M)
+int algebraTests_invalidSeekCheck(matrix_t *M)
 {
 	int rowsNum, colsNum, row, col;
 
