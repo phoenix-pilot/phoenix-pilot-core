@@ -28,7 +28,7 @@ extern void algebraTests_valFill(matrix_t *M, float val);
 
 
 /* Function checks if every matrix element is zero */
-extern int algebraTests_checkMatrixZeroes(matrix_t *A);
+extern int algebraTests_matrixZeroesCheck(matrix_t *A);
 
 
 /* Function checks if matrix_at return a NULL, when we are trying to get matrix element outside matrix */
