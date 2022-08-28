@@ -174,11 +174,16 @@ typedef struct {
 } kalman_calib_t;
 
 typedef struct {
-	/* magnetometer correction data */
 	vec_t a;
 	vec_t b;
 	vec_t c;
-	volatile float x; /* correction quadratic formula argument */
+} quadEq3D_t;
+
+typedef struct {
+	/* magnetometer correction data */
+	quadEq3D_t corrEq[4];
+	volatile vec_t magMotCorr;
+	handle_t magMotLock;
 } meas_corrs_t;
 
 int verbose;
@@ -196,7 +201,7 @@ const kalman_calib_t *meas_calibGet(void);
 
 float meas_calibPressGet(void);
 
-void meas_inputUpdate(float avgThrottle);
+void meas_inputUpdate(const float *thrtls, int nMotors);
 
 
 /* MEASUREMENT ACQUISITION */

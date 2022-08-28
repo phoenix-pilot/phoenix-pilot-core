@@ -125,7 +125,7 @@ static void cal_magAvgGet(vec_t *out, unsigned int samples)
 int cal_mMotCalib(void)
 {
 	vec_t magBase, magCurr, magDiff;
-	float thrtl = 0, thrtlStep;
+	float thrtl = 0, thrtlStep, startThrtl = 0.5;
 	float x[CALIB_POINTS], y[3][CALIB_POINTS];
 	unsigned int m, pts;
 
@@ -137,9 +137,9 @@ int cal_mMotCalib(void)
 	/* get base magnetometer reading */
 	cal_magAvgGet(&magBase, AVG_SAMPLES);
 
-	thrtlStep = 0.9 / CALIB_POINTS;
+	thrtlStep = (1.0 - startThrtl) / CALIB_POINTS;
 	for (m = 0; m < NUM_OF_MOTORS; m++) {
-		thrtl = 0;
+		thrtl = startThrtl;
 		for (pts = 0; pts < CALIB_POINTS; pts++) {
 			if (mctl_thrtlSet(m, thrtl, tempoHigh) < 0) {
 				mctl_disarm();

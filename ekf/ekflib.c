@@ -185,12 +185,7 @@ void ekf_stateGet(ekf_state_t *ekfState)
 }
 
 
-int ekf_input(float avgThrottle)
+void ekf_input(const float *thrtls, int nMotors)
 {
-	if (avgThrottle > 1 || avgThrottle < 0) {
-		return -1;
-	}
-
-	meas_inputUpdate(avgThrottle);
-	return 0;
+	meas_inputUpdate(thrtls, nMotors);
 }

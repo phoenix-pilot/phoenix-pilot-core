@@ -20,6 +20,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/threads.h>
 
 #include <sys/msg.h>
 
@@ -208,26 +209,59 @@ static void meas_mag2si(sensor_event_t *evt, vec_t *vec)
 }
 
 
-static void meas_calibsInterpret(const char * valName, float val)
+static int meas_calibsInterpret(const char * valName, float val)
 {
-	if (strcmp(valName, "mMot_ax") == 0) {
-		meas_common.corrs.a.x = val;
+	vec_t *vec;
+
+	/* mMot specific */
+	int motor;
+	char abc, xyz;
+
+	if (strstr(valName, "mMot") != NULL) {
+		if (strlen(valName) < 10) {
+			printf("too short mMot message\n");
+			return -1;
+		}
+
+		/* 3 specifiers to be found: motor, a/b/c parameter, x/y/z parameter: mMot_m0_a_x */
+		motor = valName[6] - '0'; /* to get the motor digit as int */
+		abc = valName[8];
+		xyz = valName[10];
+
+		switch (abc) {
+			case 'a':
+				vec = &meas_common.corrs.corrEq[motor].a;
+				break;
+			case 'b':
+				vec = &meas_common.corrs.corrEq[motor].b;
+				break;
+			case 'c':
+				vec = &meas_common.corrs.corrEq[motor].c;
+				break;
+			default:
+				printf("Wrong a/b/c, found: %c in %s\n", abc, valName);
+				return -1;
+				break;
+		}
+
+		switch (xyz) {
+			case 'x':
+				vec->x = val;
+				break;
+			case 'y':
+				vec->y = val;
+				break;
+			case 'z':
+				vec->z = val;
+				break;
+			default:
+				printf("Wrong x/y/z, found: %c in %s\n", xyz, valName);
+				return -1;
+				break;
+		}
 	}
-	else if (strcmp(valName, "mMot_ay") == 0) {
-		meas_common.corrs.a.y = val;
-	}
-	else if (strcmp(valName, "mMot_az") == 0) {
-		meas_common.corrs.a.z = val;
-	}
-	else if (strcmp(valName, "mMot_bx") == 0) {
-		meas_common.corrs.b.x = val;
-	}
-	else if (strcmp(valName, "mMot_by") == 0) {
-		meas_common.corrs.b.y = val;
-	}
-	else if (strcmp(valName, "mMot_bz") == 0) {
-		meas_common.corrs.b.z = val;
-	}
+
+	return 0;
 }
 
 
@@ -236,16 +270,11 @@ static int meas_calibsFileRead(const char * path)
 	FILE *file;
 	char buf[32], *p, *v;
 	float val;
-	
-	/* initialize the magnetometer correction argument with zero in case nobody changes it */
-	meas_common.corrs.x = 0;
-	/* we dismiss the `c` parameter */
-	meas_common.corrs.c.x = meas_common.corrs.c.y = meas_common.corrs.c.z = 0;
+	int i;
+
 	file = fopen(path, "r");
 	if (file == NULL) {
 		printf("Magnetometer calibration not available!\n");
-		meas_common.corrs.a.x = meas_common.corrs.a.y = meas_common.corrs.a.z = 0;
-		meas_common.corrs.b.x = meas_common.corrs.b.y = meas_common.corrs.b.z = 0;
 		return -1;
 	}
 
@@ -254,14 +283,53 @@ static int meas_calibsFileRead(const char * path)
 		v = strtok(NULL, " ");
 		val = atof(v);
 
-		meas_calibsInterpret(p, val);
+		if (meas_calibsInterpret(p, val) < 0) {
+			printf("error on interpretting\n");
+			return -1;
+		}
 	}
 	fclose(file);
 
-	printf("Mag/Mot interference coefs:\n");
-	printf(" a=[%.2f, %.2f, %.2f]\n", meas_common.corrs.a.x, meas_common.corrs.a.y, meas_common.corrs.a.z);
-	printf(" b=[%.2f, %.2f, %.2f]\n", meas_common.corrs.b.x, meas_common.corrs.b.y, meas_common.corrs.b.z);
+	/* print parameters for each motor compensation equation */
+	for (i = 0; i < 4; i++) {
+		printf(
+			"mMot_mot%d: a=[%.2f, %.2f, %.2f], b=[%.2f, %.2f, %.2f], c=[%.2f, %.2f, %.2f]\n",
+			i,
+			meas_common.corrs.corrEq[i].a.x,
+			meas_common.corrs.corrEq[i].a.y,
+			meas_common.corrs.corrEq[i].a.z,
+			meas_common.corrs.corrEq[i].b.x,
+			meas_common.corrs.corrEq[i].b.y,
+			meas_common.corrs.corrEq[i].b.z,
+			meas_common.corrs.corrEq[i].c.x,
+			meas_common.corrs.corrEq[i].c.y,
+			meas_common.corrs.corrEq[i].c.z
+			);
+	}
+
 	return 0;
+}
+
+
+void meas_inputUpdate(const float *thrtls, int nMotors) {
+	vec_t corr = { .x = 0, .y = 0, .z = 0 };
+	vec_t motInterf;
+	int i;
+
+	for (i = 0; i < 4; i++) {
+		motInterf = meas_common.corrs.corrEq[i].a;           /* y = a */
+		vec_times(&motInterf, thrtls[0]);                    /* y = a * x */
+		vec_add(&motInterf, &meas_common.corrs.corrEq[i].b); /* y = a * x + b */
+		vec_times(&motInterf, thrtls[0]);                    /* y = (a * x + b) * x */
+		vec_add(&motInterf, &meas_common.corrs.corrEq[i].c); /* y = (a * x + b) * x + c = ax^2 + bx + c */
+
+		vec_add(&corr, &motInterf);
+	}
+
+	/* save the correction vector to structure */
+	mutexLock(meas_common.corrs.magMotLock);
+	meas_common.corrs.magMotCorr = corr;
+	mutexUnlock(meas_common.corrs.magMotLock);
 }
 
 
@@ -277,6 +345,10 @@ void meas_imuCalib(void)
 	accAvg = gyrAvg = magAvg = (vec_t) { .x = 0, .y = 0, .z = 0 };
 
 	printf("IMU calibration...\n");
+
+	/* FIXME: no fail handling */
+	mutexCreate(&meas_common.corrs.magMotLock);
+	meas_common.corrs.magMotCorr = (vec_t) { .x = 0, .y = 0, .z = 0 };
 
 	meas_calibsFileRead("/etc/calib.conf");
 
@@ -339,10 +411,19 @@ void meas_baroCalib(void)
 	meas_common.calib.base_temp = (float)temp / avg;
 }
 
+
+static inline void meas_magMotCorr(sensor_event_t * magEvt) {
+	mutexLock(meas_common.corrs.magMotLock);
+	magEvt->mag.magX += meas_common.corrs.magMotCorr.x;
+	magEvt->mag.magY += meas_common.corrs.magMotCorr.y;
+	magEvt->mag.magZ += meas_common.corrs.magMotCorr.z;
+	mutexUnlock(meas_common.corrs.magMotLock);
+}
+
+
 int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 {
 	sensor_event_t accEvt, gyrEvt, magEvt;
-	vec_t magCorr = {.x = 0, .y = 0, .z = 0};
 
 	if (sensc_imuGet(&accEvt, &gyrEvt, &magEvt) < 0) {
 		return -1;
@@ -351,14 +432,7 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 	/* these timestamps do not need to be very accurate */
 	*timestamp = (accEvt.timestamp + gyrEvt.timestamp + magEvt.timestamp) / 3;
 
-	/* addition of motor/magnetometer interference correction */
-	vec_add(&magCorr, &meas_common.corrs.a);
-	vec_times(&magCorr, meas_common.corrs.x);
-	vec_add(&magCorr, &meas_common.corrs.b);
-	vec_times(&magCorr, meas_common.corrs.x);
-	magEvt.mag.magX += magCorr.x;
-	magEvt.mag.magY += magCorr.y;
-	magEvt.mag.magZ += magCorr.z;
+	meas_magMotCorr(&magEvt);
 
 	meas_acc2si(&accEvt, accels); /* accelerations from mm/s^2 -> m/s^2 */
 	meas_gyr2si(&gyrEvt, gyros);  /* angulars from mrad/s -> rad/s */
@@ -425,10 +499,4 @@ const kalman_calib_t *meas_calibGet(void)
 float meas_calibPressGet(void)
 {
 	return meas_common.calib.base_pressure;
-}
-
-
-void meas_inputUpdate(float avgThrottle)
-{
-	meas_common.corrs.x = avgThrottle;
 }

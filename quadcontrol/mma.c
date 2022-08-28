@@ -83,7 +83,7 @@ int mma_control(float palt, float proll, float ppitch, float pyaw)
 	}
 	mutexUnlock(mma_common.lock);
 
-	ekf_input((pwm[0] + pwm[1] + pwm[2] + pwm[3]) / 4);
+	ekf_input(pwm, sizeof(pwm) / sizeof(pwm[0]));
 	DEBUG_LOG("PWM: %f, %f, %f, %f\n", pwm[0], pwm[1], pwm[2], pwm[3]);
 
 	return 0;
