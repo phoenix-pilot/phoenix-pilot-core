@@ -24,6 +24,7 @@ void runner(void)
 	RUN_TEST_GROUP(group_matrix_bufFree);
 	RUN_TEST_GROUP(group_matrix_zeroes);
 	RUN_TEST_GROUP(group_matrix_diag);
+	RUN_TEST_GROUP(group_matrix_times);
 }
 
 
