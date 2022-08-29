@@ -42,8 +42,8 @@ kalman_init_t init_values = {
 	.P_pxerr = 0.01,           /* 10 hPa */
 
 	.R_acov = 0.1,
-	.R_wcov = 0.01,
-	.R_mcov = 0.1,
+	.R_wcov = 0.1,
+	.R_mcov = 1.0,
 	.R_qcov = 0.1,
 
 	.R_pcov = 0.1,

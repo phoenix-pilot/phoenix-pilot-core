@@ -18,16 +18,20 @@
 #include <quat.h>
 #include <stdio.h>
 
+
+#define CALIB_POINTS 11
+
 typedef struct {
 	vec_t a;
 	vec_t b;
 	vec_t c;
 } quadEq3D_t;
 
+
 struct {
 	/* magnetometer interference from motors on common throttle: trueMag[x,y,z] = readMag[x,y,z] + (a[x,y,z] * meanThrtl + b[x,y,z])^2 */
 	struct {
-		quadEq3D_t motCal[4];
+		vec_t motCal[4][CALIB_POINTS]; /* [motorIdx][calibrationPoint][x/y] */
 	} mMot;
 
 	struct {

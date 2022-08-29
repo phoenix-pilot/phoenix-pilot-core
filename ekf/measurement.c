@@ -209,55 +209,33 @@ static void meas_mag2si(sensor_event_t *evt, vec_t *vec)
 }
 
 
-static int meas_calibsInterpret(const char * valName, float val)
+static int meas_calibsInterpret(const char * data)
 {
-	vec_t *vec;
+	vec_t vec;
+	unsigned int motIdx, i;
 
-	/* mMot specific */
-	int motor;
-	char abc, xyz;
+	if (strcmp(data, "mMot") == 0) {
+		/* point to substring "pts" */
+		data = strtok(NULL, " ");
+		
+		/* point motor index */
+		data = strtok(NULL, " "); 
+		motIdx = atoi(data); /* FIXME: this is unsafe, no atoi check! */
 
-	if (strstr(valName, "mMot") != NULL) {
-		if (strlen(valName) < 10) {
-			printf("too short mMot message\n");
-			return -1;
-		}
+		/* point to calib data */
+		data = strtok(NULL, " ");
+		i = 0;
+		for (i = 0; i < 11; i++) {
+			vec.l = atof(data);
+			data = strtok(NULL, " ");
+			vec.x = atof(data);
+			data = strtok(NULL, " ");
+			vec.y = atof(data);
+			data = strtok(NULL, " ");
+			vec.z = atof(data);
+			data = strtok(NULL, " ");
 
-		/* 3 specifiers to be found: motor, a/b/c parameter, x/y/z parameter: mMot_m0_a_x */
-		motor = valName[6] - '0'; /* to get the motor digit as int */
-		abc = valName[8];
-		xyz = valName[10];
-
-		switch (abc) {
-			case 'a':
-				vec = &meas_common.corrs.corrEq[motor].a;
-				break;
-			case 'b':
-				vec = &meas_common.corrs.corrEq[motor].b;
-				break;
-			case 'c':
-				vec = &meas_common.corrs.corrEq[motor].c;
-				break;
-			default:
-				printf("Wrong a/b/c, found: %c in %s\n", abc, valName);
-				return -1;
-				break;
-		}
-
-		switch (xyz) {
-			case 'x':
-				vec->x = val;
-				break;
-			case 'y':
-				vec->y = val;
-				break;
-			case 'z':
-				vec->z = val;
-				break;
-			default:
-				printf("Wrong x/y/z, found: %c in %s\n", xyz, valName);
-				return -1;
-				break;
+			meas_common.corrs.motCal[motIdx][i] = vec;
 		}
 	}
 
@@ -268,9 +246,8 @@ static int meas_calibsInterpret(const char * valName, float val)
 static int meas_calibsFileRead(const char * path)
 {
 	FILE *file;
-	char buf[32], *p, *v;
-	float val;
-	int i;
+	char buf[512], *data;
+	int motIdx, pts;
 
 	file = fopen(path, "r");
 	if (file == NULL) {
@@ -279,11 +256,9 @@ static int meas_calibsFileRead(const char * path)
 	}
 
 	while (fgets(buf, sizeof(buf), file)) {
-		p = strtok(buf, " ");
-		v = strtok(NULL, " ");
-		val = atof(v);
+		data = strtok(buf, " ");
 
-		if (meas_calibsInterpret(p, val) < 0) {
+		if (meas_calibsInterpret(data) < 0) {
 			printf("error on interpretting\n");
 			return -1;
 		}
@@ -291,20 +266,16 @@ static int meas_calibsFileRead(const char * path)
 	fclose(file);
 
 	/* print parameters for each motor compensation equation */
-	for (i = 0; i < 4; i++) {
-		printf(
-			"mMot_mot%d: a=[%.2f, %.2f, %.2f], b=[%.2f, %.2f, %.2f], c=[%.2f, %.2f, %.2f]\n",
-			i,
-			meas_common.corrs.corrEq[i].a.x,
-			meas_common.corrs.corrEq[i].a.y,
-			meas_common.corrs.corrEq[i].a.z,
-			meas_common.corrs.corrEq[i].b.x,
-			meas_common.corrs.corrEq[i].b.y,
-			meas_common.corrs.corrEq[i].b.z,
-			meas_common.corrs.corrEq[i].c.x,
-			meas_common.corrs.corrEq[i].c.y,
-			meas_common.corrs.corrEq[i].c.z
-			);
+	for (motIdx = 0; motIdx < 4; motIdx++) {
+		printf("mMot mot%d", motIdx);
+		for (pts = 0; pts < 11; pts++) {
+			printf(" %.2f %.2f %.2f %.2f",
+			meas_common.corrs.motCal[motIdx][pts].l,
+			meas_common.corrs.motCal[motIdx][pts].x,
+			meas_common.corrs.motCal[motIdx][pts].y,
+			meas_common.corrs.motCal[motIdx][pts].z);
+		}
+		printf("\n");
 	}
 
 	return 0;
@@ -313,17 +284,22 @@ static int meas_calibsFileRead(const char * path)
 
 void meas_inputUpdate(const float *thrtls, int nMotors) {
 	vec_t corr = { .x = 0, .y = 0, .z = 0 };
-	vec_t motInterf;
-	int i;
+	vec_t motInterf, subSlope;
+	int idxLow;
+	int motIdx;
+	float subX;
 
-	for (i = 0; i < 4; i++) {
-		motInterf = meas_common.corrs.corrEq[i].a;           /* y = a */
-		vec_times(&motInterf, thrtls[0]);                    /* y = a * x */
-		vec_add(&motInterf, &meas_common.corrs.corrEq[i].b); /* y = a * x + b */
-		vec_times(&motInterf, thrtls[0]);                    /* y = (a * x + b) * x */
-		vec_add(&motInterf, &meas_common.corrs.corrEq[i].c); /* y = (a * x + b) * x + c = ax^2 + bx + c */
+	for (motIdx = 0; motIdx < 4; motIdx++) {
+		idxLow = thrtls[motIdx] * 10;
+		if (idxLow >= 10) {
+			idxLow = 9;
+		}
+		vec_add(&corr, &meas_common.corrs.motCal[motIdx][idxLow]);
 
-		vec_add(&corr, &motInterf);
+		vec_dif(&meas_common.corrs.motCal[motIdx][idxLow + 1], &meas_common.corrs.motCal[motIdx][idxLow], &subSlope);
+		subX = 10 * thrtls[motIdx] - idxLow;
+		vec_times(&subSlope, subX);
+		vec_add(&corr, &subSlope);
 	}
 
 	/* save the correction vector to structure */

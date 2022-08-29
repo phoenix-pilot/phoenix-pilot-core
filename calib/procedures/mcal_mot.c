@@ -27,7 +27,6 @@
 
 #define AVG_SAMPLES 100
 #define AVG_WAIT 1000 * 10
-#define CALIB_POINTS 10
 
 /* FIXME: this should be handled inside, or taken from mtcl */
 #define NUM_OF_MOTORS 4
@@ -125,9 +124,8 @@ static void cal_magAvgGet(vec_t *out, unsigned int samples)
 int cal_mMotCalib(void)
 {
 	vec_t magBase, magCurr, magDiff;
-	float thrtl = 0, thrtlStep, startThrtl = 0.5;
-	float x[CALIB_POINTS], y[3][CALIB_POINTS];
 	unsigned int m, pts;
+	float thrtls[] = { 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 };
 
 	/* arm motors in safe mode. Warnings displayed by mctl_arm() */
 	if (mctl_arm(1) < 0) {
@@ -136,27 +134,19 @@ int cal_mMotCalib(void)
 
 	/* get base magnetometer reading */
 	cal_magAvgGet(&magBase, AVG_SAMPLES);
-
-	thrtlStep = (1.0 - startThrtl) / CALIB_POINTS;
 	for (m = 0; m < NUM_OF_MOTORS; m++) {
-		thrtl = startThrtl;
 		for (pts = 0; pts < CALIB_POINTS; pts++) {
-			if (mctl_thrtlSet(m, thrtl, tempoHigh) < 0) {
+			if (mctl_thrtlSet(m, thrtls[pts], tempoHigh) < 0) {
 				mctl_disarm();
 				return -1;
 			}
 
 			cal_magAvgGet(&magCurr, AVG_SAMPLES);
 			vec_dif(&magBase, &magCurr, &magDiff);
+			calibs_common.mMot.motCal[m][pts] = magDiff;
+			calibs_common.mMot.motCal[m][pts].l = thrtls[pts];
 
-			x[pts] = thrtl;
-			y[0][pts] = magDiff.x;
-			y[1][pts] = magDiff.y;
-			y[2][pts] = magDiff.z;
-
-			printf("%f %f %f %f\n", thrtl, magDiff.x, magDiff.y, magDiff.z);
-
-			thrtl += thrtlStep;
+			printf("%f %f %f %f\n", thrtls[pts], magDiff.x, magDiff.y, magDiff.z);
 		}
 
 		if (mctl_thrtlSet(m, 0, tempoInst) < 0) {
@@ -165,12 +155,12 @@ int cal_mMotCalib(void)
 		}
 		usleep(1000 * 400); /* wait for engine to slow down */
 
-		/* fitting quadratic equation for magnetometer x-axis interference from m-th engine */
-		cal_qlsmFit(x, y[0], CALIB_POINTS, &calibs_common.mMot.motCal[m].a.x, &calibs_common.mMot.motCal[m].b.x, &calibs_common.mMot.motCal[m].c.x);
-		/* fitting quadratic equation for magnetometer y-axis interference from m-th engine */
-		cal_qlsmFit(x, y[1], CALIB_POINTS, &calibs_common.mMot.motCal[m].a.y, &calibs_common.mMot.motCal[m].b.y, &calibs_common.mMot.motCal[m].c.y);
-		/* fitting quadratic equation for magnetometer z-axis interference from m-th engine */
-		cal_qlsmFit(x, y[2], CALIB_POINTS, &calibs_common.mMot.motCal[m].a.z, &calibs_common.mMot.motCal[m].b.z, &calibs_common.mMot.motCal[m].c.z);
+		// /* fitting quadratic equation for magnetometer x-axis interference from m-th engine */
+		// cal_qlsmFit(x, y[0], CALIB_POINTS, &calibs_common.mMot.motCal[m].a.x, &calibs_common.mMot.motCal[m].b.x, &calibs_common.mMot.motCal[m].c.x);
+		// /* fitting quadratic equation for magnetometer y-axis interference from m-th engine */
+		// cal_qlsmFit(x, y[1], CALIB_POINTS, &calibs_common.mMot.motCal[m].a.y, &calibs_common.mMot.motCal[m].b.y, &calibs_common.mMot.motCal[m].c.y);
+		// /* fitting quadratic equation for magnetometer z-axis interference from m-th engine */
+		// cal_qlsmFit(x, y[2], CALIB_POINTS, &calibs_common.mMot.motCal[m].a.z, &calibs_common.mMot.motCal[m].b.z, &calibs_common.mMot.motCal[m].c.z);
 	}
 	mctl_disarm();
 

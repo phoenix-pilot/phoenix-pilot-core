@@ -181,7 +181,7 @@ typedef struct {
 
 typedef struct {
 	/* magnetometer correction data */
-	quadEq3D_t corrEq[4];
+	vec_t motCal[4][11];
 	volatile vec_t magMotCorr;
 	handle_t magMotLock;
 } meas_corrs_t;
