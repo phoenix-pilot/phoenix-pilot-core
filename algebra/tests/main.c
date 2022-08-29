@@ -29,6 +29,9 @@ void runner(void)
 
 	/* Quaternions library tests */
 	RUN_TEST_GROUP(group_quat_idenWrite);
+
+	/* Vectors library tests */
+	RUN_TEST_GROUP(group_vec_sum);
 }
 
 
