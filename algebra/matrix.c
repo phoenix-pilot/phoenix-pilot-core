@@ -18,7 +18,7 @@
 
 #include "matrix.h"
 
-float * buf = NULL;
+float *buf = NULL;
 unsigned int buflen = 0;
 
 
@@ -57,7 +57,7 @@ void matrix_print(matrix_t *A)
 
 	if (A->transposed) {
 		for (row = 0; row < A->cols; row++) {
-			for (col = 0; col < A->rows; col++ ) {
+			for (col = 0; col < A->rows; col++) {
 				printf("%f ", A->data[row + A->cols * col]);
 			}
 			printf("\n");
@@ -65,7 +65,7 @@ void matrix_print(matrix_t *A)
 	}
 	else {
 		for (row = 0; row < A->rows; row++) {
-			for (col = 0; col < A->cols; col++ ) {
+			for (col = 0; col < A->cols; col++) {
 				printf("%f ", A->data[col + A->cols * row]);
 			}
 			printf("\n");
@@ -96,8 +96,8 @@ void matrix_trp(matrix_t *A)
 
 int matrix_prod(matrix_t *A, matrix_t *B, matrix_t *C)
 {
-	unsigned int row, col; /* represent position in output C matrix */
-	unsigned int step; /* represent stepping down over rows/columns in A and B */
+	unsigned int row, col;                               /* represent position in output C matrix */
+	unsigned int step;                                   /* represent stepping down over rows/columns in A and B */
 	const unsigned int Acols = A->cols, Bcols = B->cols; /* rewritten Acols and Bcols for better performance */
 	float currC;
 
@@ -170,8 +170,8 @@ int matrix_prod(matrix_t *A, matrix_t *B, matrix_t *C)
 int matrix_sparseProd(matrix_t *A, matrix_t *B, matrix_t *C)
 {
 	unsigned int row, col; /* represent position in output A matrix */
-	unsigned int step; /* represent stepping down over rows/columns in A and B */
-	//const unsigned int Acols = A->cols, Bcols = B->cols; /* rewritten Acols and Bcols for better performance */
+	unsigned int step;     /* represent stepping down over rows/columns in A and B */
+	// const unsigned int Acols = A->cols, Bcols = B->cols; /* rewritten Acols and Bcols for better performance */
 	float currA;
 
 	memset(C->data, 0, sizeof(float) * C->rows * C->cols);
@@ -268,7 +268,7 @@ void matrix_diag(matrix_t *A)
 	int i;
 
 	matrix_zeroes(A);
-	for(i = 0; i < A->cols && i < A->rows; i++) {
+	for (i = 0; i < A->cols && i < A->rows; i++) {
 		A->data[A->cols * i + i] = 1.F;
 	}
 }
@@ -278,37 +278,47 @@ void matrix_diag(matrix_t *A)
 int matrix_add(matrix_t *A, matrix_t *B, matrix_t *C)
 {
 	unsigned int row, col; /* represent position in output C matrix */
+	unsigned int rowsC = A->rows, colsC = A->cols;
 
 	if (C != NULL) {
-		/* force switch C matrix to untransposed */
-		memset(C->data, 0, sizeof(float) * C->rows * C->cols);
-		/* force switch C matrix to untransposed */
-		if (C->transposed) {
-			row = C->rows;
-			C->rows = C->cols;
-			C->cols = row;
-			C->transposed = A->transposed;
+		if (!(C->rows == A->rows && C->cols == A->cols) && !(C->rows == A->cols && C->cols == A->rows)) {
+			return -1;
 		}
 	}
 	else {
 		C = A;
 	}
 
-	/* different B matrix indexing only one of B or A is transposed */
-	if (!A->transposed == !B->transposed){
-		for (row = 0; row < C->rows; row++) {
-			for(col = 0; col < C->cols; col++) {
-				C->data[C->cols * row + col] = A->data[A->cols * row + col] + B->data[B->cols * row + col];
+	/* different B matrix indexing only if one of B or A is transposed */
+	if (!A->transposed == !B->transposed) {
+		if (A->rows != B->rows || A->cols != B->cols) {
+			return -1;
+		}
+
+		for (row = 0; row < rowsC; row++) {
+			for (col = 0; col < colsC; col++) {
+				C->data[colsC * row + col] = A->data[A->cols * row + col] + B->data[B->cols * row + col];
 			}
 		}
 	}
 	else {
-		for (row = 0; row < C->rows; row++) {
-			for(col = 0; col < C->cols; col++) {
-				C->data[C->cols * row + col] = A->data[A->cols * row + col] + B->data[B->cols * col + row];
+		if (A->rows != B->cols || A->cols != B->rows) {
+			return -1;
+		}
+
+		for (row = 0; row < rowsC; row++) {
+			for (col = 0; col < colsC; col++) {
+				C->data[colsC * row + col] = A->data[A->cols * row + col] + B->data[B->cols * col + row];
 			}
 		}
 	}
+
+	if (C != A) {
+		C->rows = rowsC;
+		C->cols = colsC;
+		C->transposed = A->transposed;
+	}
+
 	return 0;
 }
 
@@ -333,16 +343,16 @@ int matrix_sub(matrix_t *A, matrix_t *B, matrix_t *C)
 	}
 
 	/* different B matrix indexing only one of B or A is transposed */
-	if (!A->transposed == !B->transposed){
+	if (!A->transposed == !B->transposed) {
 		for (row = 0; row < C->rows; row++) {
-			for(col = 0; col < C->cols; col++) {
+			for (col = 0; col < C->cols; col++) {
 				C->data[C->cols * row + col] = A->data[A->cols * row + col] - B->data[B->cols * row + col];
 			}
 		}
 	}
 	else {
 		for (row = 0; row < C->rows; row++) {
-			for(col = 0; col < C->cols; col++) {
+			for (col = 0; col < C->cols; col++) {
 				C->data[C->cols * row + col] = A->data[A->cols * row + col] - B->data[B->cols * col + row];
 			}
 		}
@@ -430,7 +440,7 @@ int matrix_inv(matrix_t *A, matrix_t *B, float *buf, int buflen)
 		}
 		/* now left submatrix has ones on diagonal element of row[col] */
 
-		for (row = col+1; row < C.rows; row++) {
+		for (row = col + 1; row < C.rows; row++) {
 			base = C.data[C.cols * row + col];
 			for (step = 0; step < C.cols; step++) {
 				C.data[C.cols * row + step] -= base * C.data[C.cols * col + step];
@@ -439,10 +449,10 @@ int matrix_inv(matrix_t *A, matrix_t *B, float *buf, int buflen)
 	}
 
 	/* upper triangle elimination +*/
-	for (col = cols-1; col >= 0; col--) {
+	for (col = cols - 1; col >= 0; col--) {
 		base = C.data[C.cols * col + col];
 
-		for (row = col-1; row >= 0; row--) {
+		for (row = col - 1; row >= 0; row--) {
 			base = C.data[C.cols * row + col];
 			for (step = col; step < C.cols; step++) {
 				C.data[C.cols * row + step] -= base * C.data[C.cols * col + step];
@@ -463,9 +473,8 @@ void matrix_writeSubmatrix(matrix_t *A, int row, int col, matrix_t *B)
 {
 	int cprow;
 
-	for (cprow = 0; cprow < B->rows ; cprow++)
-	{
-		memcpy((char*)&A->data[A->cols * (cprow + row) + col], (char*)&B->data[B->cols * cprow], sizeof(float) * B->cols);
+	for (cprow = 0; cprow < B->rows; cprow++) {
+		memcpy((char *)&A->data[A->cols * (cprow + row) + col], (char *)&B->data[B->cols * cprow], sizeof(float) * B->cols);
 	}
 }
 
