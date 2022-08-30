@@ -94,7 +94,7 @@ extern int matrix_sub(matrix_t *A, matrix_t *B, matrix_t *C);
 
 
 /* compares contents of A and B */
-extern int matrix_cmp(matrix_t *A, matrix_t *B);
+extern int matrix_cmp(const matrix_t *A, const matrix_t *B);
 
 
 /* calculates inverse matrix */
