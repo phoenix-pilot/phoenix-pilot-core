@@ -326,37 +326,47 @@ int matrix_add(matrix_t *A, matrix_t *B, matrix_t *C)
 int matrix_sub(matrix_t *A, matrix_t *B, matrix_t *C)
 {
 	unsigned int row, col; /* represent position in output C matrix */
+	unsigned int rowsC = A->rows, colsC = A->cols;
 
 	if (C != NULL) {
-		memset(C->data, 0, sizeof(float) * C->rows * C->cols);
-		/* force switch C matrix to untransposed */
-		if (C->transposed) {
-			row = C->rows;
-			C->rows = C->cols;
-			C->cols = row;
-			C->transposed = A->transposed;
+		if (!(C->rows == A->rows && C->cols == A->cols) && !(C->rows == A->cols && C->cols == A->rows)) {
+			return -1;
 		}
 	}
 	else {
-		/* if C is NULL addition happen into A so treat A as C */
 		C = A;
 	}
 
-	/* different B matrix indexing only one of B or A is transposed */
+	/* different B matrix indexing only if one of B or A is transposed */
 	if (!A->transposed == !B->transposed) {
-		for (row = 0; row < C->rows; row++) {
-			for (col = 0; col < C->cols; col++) {
-				C->data[C->cols * row + col] = A->data[A->cols * row + col] - B->data[B->cols * row + col];
+		if (A->rows != B->rows || A->cols != B->cols) {
+			return -1;
+		}
+
+		for (row = 0; row < rowsC; row++) {
+			for (col = 0; col < colsC; col++) {
+				C->data[colsC * row + col] = A->data[A->cols * row + col] - B->data[B->cols * row + col];
 			}
 		}
 	}
 	else {
-		for (row = 0; row < C->rows; row++) {
-			for (col = 0; col < C->cols; col++) {
-				C->data[C->cols * row + col] = A->data[A->cols * row + col] - B->data[B->cols * col + row];
+		if (A->rows != B->cols || A->cols != B->rows) {
+			return -1;
+		}
+
+		for (row = 0; row < rowsC; row++) {
+			for (col = 0; col < colsC; col++) {
+				C->data[colsC * row + col] = A->data[A->cols * row + col] - B->data[B->cols * col + row];
 			}
 		}
 	}
+
+	if (C != A) {
+		C->rows = rowsC;
+		C->cols = colsC;
+		C->transposed = A->transposed;
+	}
+
 	return 0;
 }
 

@@ -89,7 +89,7 @@ extern int matrix_sparseSandwitch(matrix_t *A, matrix_t *B, matrix_t *C, matrix_
 extern int matrix_add(matrix_t *A, matrix_t *B, matrix_t *C);
 
 
-/* if C is not null perform C = A - B, otherwise A += B */
+/* if C is not null perform C = A - B, otherwise A -= B */
 extern int matrix_sub(matrix_t *A, matrix_t *B, matrix_t *C);
 
 
