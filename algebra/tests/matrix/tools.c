@@ -13,6 +13,7 @@
 
 #include "tools.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 
@@ -54,6 +55,39 @@ int algebraTests_matrixCopy(matrix_t *des, matrix_t *src)
 	}
 
 	des->transposed = src->transposed;
+	return BUF_ALLOC_OK;
+}
+
+
+int algebraTests_realTrp(matrix_t *M)
+{
+	/* As its turns out it is not easy to transpose matrix without additional buffer */
+	/* https://en.wikipedia.org/wiki/In-place_matrix_transposition */
+	/* This solution is fast and easier to understand */
+
+	int rowsNum, colsNum, row, col;
+	matrix_t tmpM;
+
+	if (matrix_bufAlloc(&tmpM, M->cols, M->rows) != BUF_ALLOC_OK) {
+		return BUF_ALLOC_FAIL;
+	}
+	tmpM.transposed = M->transposed;
+
+	rowsNum = matrix_rowsGet(M);
+	colsNum = matrix_colsGet(M);
+
+	for (row = 0; row < rowsNum; row++) {
+		for (col = 0; col < colsNum; col++) {
+			*matrix_at(&tmpM, col, row) = *matrix_at(M, row, col);
+		}
+	}
+
+	memcpy(M->data, tmpM.data, sizeof(float) * M->rows * M->cols);
+	matrix_bufFree(&tmpM);
+
+	M->cols = tmpM.cols;
+	M->rows = tmpM.rows;
+
 	return BUF_ALLOC_OK;
 }
 

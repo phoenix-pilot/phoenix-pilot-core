@@ -39,6 +39,10 @@ extern int algebraTests_createAndFill(matrix_t *M, unsigned int rows, unsigned i
 extern int algebraTests_matrixCopy(matrix_t *src, matrix_t *des);
 
 
+/* Transposes matrix by rearranging its elements. Does not change M->transposed */
+extern int algebraTests_realTrp(matrix_t *M);
+
+
 /* ##############################################################################
  * ------------------------        matrix checks       --------------------------
  * ############################################################################## */
