@@ -75,14 +75,14 @@ void matrix_print(matrix_t *A)
 
 
 /* get element (row, col) from M that is transposed */
-static inline float pos_trpd(matrix_t *M, unsigned int row, unsigned int col)
+static inline float pos_trpd(const matrix_t *M, unsigned int row, unsigned int col)
 {
 	return M->data[M->cols * col + row];
 }
 
 
 /* get element (row, col) from M that is not transposed */
-static inline float pos_norm(matrix_t *M, unsigned int row, unsigned int col)
+static inline float pos_norm(const matrix_t *M, unsigned int row, unsigned int col)
 {
 	return M->data[M->cols * row + col];
 }
@@ -371,42 +371,63 @@ int matrix_sub(matrix_t *A, matrix_t *B, matrix_t *C)
 }
 
 
-int matrix_cmp(matrix_t *A, matrix_t *B)
+int matrix_cmp(const matrix_t *A, const matrix_t *B)
 {
 	unsigned int row, col; /* represent position in output C matrix */
 
 	if (A->transposed) {
 		if (B->transposed) {
+			if (A->cols != B->cols || A->rows != B->rows) {
+				return -1;
+			}
+
 			for (row = 0; row < A->cols; row++) {
 				for (col = 0; col < A->rows; col++) {
-					if (pos_trpd(A, row, col) != pos_trpd(B, row, col))
+					if (pos_trpd(A, row, col) != pos_trpd(B, row, col)) {
 						return -1;
+					}
 				}
 			}
 		}
 		else {
+			if (A->cols != B->rows || A->rows != B->cols) {
+				return -1;
+			}
+
 			for (row = 0; row < A->cols; row++) {
 				for (col = 0; col < A->rows; col++) {
-					if (pos_trpd(A, row, col) != pos_norm(B, row, col))
+					if (pos_trpd(A, row, col) != pos_norm(B, row, col)) {
 						return -1;
+					}
 				}
 			}
 		}
 	}
 	else {
 		if (B->transposed) {
+			if (A->cols != B->rows || A->rows != B->cols) {
+				return -1;
+			}
+
+
 			for (row = 0; row < A->rows; row++) {
 				for (col = 0; col < A->cols; col++) {
-					if (pos_norm(A, row, col) != pos_trpd(B, row, col))
+					if (pos_norm(A, row, col) != pos_trpd(B, row, col)) {
 						return -1;
+					}
 				}
 			}
 		}
 		else {
+			if (A->cols != B->cols || A->rows != B->rows) {
+				return -1;
+			}
+
 			for (row = 0; row < A->rows; row++) {
 				for (col = 0; col < A->cols; col++) {
-					if (pos_norm(A, row, col) != pos_norm(B, row, col))
+					if (pos_norm(A, row, col) != pos_norm(B, row, col)) {
 						return -1;
+					}
 				}
 			}
 		}
