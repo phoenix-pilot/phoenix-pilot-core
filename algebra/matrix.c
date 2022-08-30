@@ -100,38 +100,38 @@ int matrix_prod(matrix_t *A, matrix_t *B, matrix_t *C)
 	unsigned int step;                                   /* represent stepping down over rows/columns in A and B */
 	const unsigned int Acols = A->cols, Bcols = B->cols; /* rewritten Acols and Bcols for better performance */
 	float currC;
-
-	memset(C->data, 0, sizeof(float) * C->rows * C->cols);
-	/* force switch C matrix to untransposed */
-	if (C->transposed) {
-		row = C->rows;
-		C->rows = C->cols;
-		C->cols = row;
-		C->transposed = 0;
-	}
+	matrix_t tmp = { .data = C->data, .rows = matrix_rowsGet(C), .cols = matrix_colsGet(C), .transposed = 0 };
 
 	if (A->transposed) {
 		if (B->transposed) {
 			/* both transposed logic */
-			for (row = 0; row < C->rows; row++) {
-				for (col = 0; col < C->cols; col++) {
+			if (A->rows != B->cols || tmp.cols != B->rows || tmp.rows != A->cols) {
+				return -1;
+			}
+
+			for (row = 0; row < tmp.rows; row++) {
+				for (col = 0; col < tmp.cols; col++) {
 					currC = 0;
 					for (step = 0; step < A->rows; step++) {
 						currC += A->data[row + Acols * step] * B->data[step + Bcols * col];
 					}
-					C->data[col + C->cols * row] = currC;
+					tmp.data[col + tmp.cols * row] = currC;
 				}
 			}
 		}
 		else {
 			/* only A is transposed */
-			for (row = 0; row < C->rows; row++) {
-				for (col = 0; col < C->cols; col++) {
+			if (A->rows != B->rows || tmp.cols != B->cols || tmp.rows != A->cols) {
+				return -1;
+			}
+
+			for (row = 0; row < tmp.rows; row++) {
+				for (col = 0; col < tmp.cols; col++) {
 					currC = 0;
 					for (step = 0; step < A->rows; step++) {
 						currC += A->data[row + Acols * step] * B->data[col + Bcols * step];
 					}
-					C->data[col + C->cols * row] = currC;
+					tmp.data[col + tmp.cols * row] = currC;
 				}
 			}
 		}
@@ -140,29 +140,42 @@ int matrix_prod(matrix_t *A, matrix_t *B, matrix_t *C)
 		row = A->rows;
 		if (B->transposed) {
 			/* only B transposed logic */
-			for (row = 0; row < C->rows; row++) {
-				for (col = 0; col < C->cols; col++) {
+			if (A->cols != B->cols || tmp.cols != B->rows || tmp.rows != A->rows) {
+				return -1;
+			}
+
+			for (row = 0; row < tmp.rows; row++) {
+				for (col = 0; col < tmp.cols; col++) {
 					currC = 0;
 					for (step = 0; step < Acols; step++) {
 						currC += A->data[step + Acols * row] * B->data[step + Bcols * col];
 					}
-					C->data[col + C->cols * row] = currC;
+					tmp.data[col + tmp.cols * row] = currC;
 				}
 			}
 		}
 		else {
 			/* no matrix is transposed */
-			for (row = 0; row < C->rows; row++) {
-				for (col = 0; col < C->cols; col++) {
+			if (A->cols != B->rows || tmp.cols != B->cols || tmp.rows != A->rows) {
+				return -1;
+			}
+
+			for (row = 0; row < tmp.rows; row++) {
+				for (col = 0; col < tmp.cols; col++) {
 					currC = 0;
 					for (step = 0; step < A->cols; step++) {
 						currC += A->data[step + Acols * row] * B->data[col + Bcols * step];
 					}
-					C->data[col + C->cols * row] = currC;
+					tmp.data[col + tmp.cols * row] = currC;
 				}
 			}
 		}
 	}
+
+	C->cols = tmp.cols;
+	C->rows = tmp.rows;
+	C->transposed = tmp.transposed;
+
 	return 0;
 }
 
