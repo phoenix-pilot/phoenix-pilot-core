@@ -137,7 +137,8 @@ int mctl_thrtlSet(unsigned int motorIdx, float targetThrottle, enum thrtlTempo t
 
 int mctl_init(unsigned int motors, const char **motFiles)
 {
-	unsigned int i, err = 0;
+	int id, cnt;
+	bool err;
 
 	if (motors == 0) {
 		return -1;
@@ -152,25 +153,45 @@ int mctl_init(unsigned int motors, const char **motFiles)
 		return -1;
 	}
 
-	for (i = 0; i < mctl_common.mNb; i++) {
-		mctl_common.pwmFiles[i] = fopen(motFiles[i], "r+");
+	err = false;
+	for (id = 0; id < mctl_common.mNb; id++) {
+		cnt = 0;
+
+		mctl_common.pwmFiles[id] = fopen(motFiles[id], "r+");
+		while (mctl_common.pwmFiles[id] == NULL && !err) {
+			usleep(10 * 1000);
+			++cnt;
+
+			if (cnt > 10000) {
+				fprintf(stderr, "mctl: timeout waiting on %s \n", motFiles[id]);
+				err = true;
+				break;
+			}
+
+			mctl_common.pwmFiles[id] = fopen(motFiles[id], "r+");
+		}
+
+		if (err) {
+			break;
+		}
+	}
+
+	/* handle error at files opening */
+	if (err) {
+		/* close all files previous to the failed one */
+		for (id--; id >= 0; id--) {
+			fclose(mctl_common.pwmFiles[id]);
+		}
+
+		free(mctl_common.pwmFiles);
+		free(mctl_common.mThrottles);
+
+		return -1;
 	}
 
 	mctl_common.init = true;
 
-	for (i = 0; i < mctl_common.mNb; i++) {
-		if (mctl_common.pwmFiles[i] == NULL) {
-			fprintf(stderr, "Failed at opening %u-th motor descriptor\n", i);
-			err = -1;
-		}
-	}
-
-	if (err != 0) {
-		/* deinit via mctl_deinit() as init flag is set */
-		mctl_deinit();
-	}
-
-	return err;
+	return 0;
 }
 
 
