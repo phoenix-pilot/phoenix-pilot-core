@@ -17,55 +17,53 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <sys/threads.h>
 
 #include <syslog.h>
 #include <board_config.h>
 
+#include <mctl.h>
+
 
 #define NUMBER_MOTORS 4
 
-#define PWM_MIN_SCALER 100000
+
+static const char *motorPaths[] = {
+	PWM_MOTOR1,
+	PWM_MOTOR2,
+	PWM_MOTOR3,
+	PWM_MOTOR4
+};
+
 
 struct {
-	unsigned int armed;
 	handle_t lock;
 	quad_coeffs_t coeffs;
-	FILE *files[NUMBER_MOTORS];
 } mma_common;
-
-
-static const char *motorsPwm[] = {
-	PWM_MOTOR1, /* front right, clockwise */
-	PWM_MOTOR2, /* rear left, clockwise */
-	PWM_MOTOR3, /* rear right, anti-clockwise */
-	PWM_MOTOR4  /* front left, anti-clockwise */
-};
 
 
 int mma_control(float palt, float proll, float ppitch, float pyaw)
 {
-	int err;
 	unsigned int i;
-	uint32_t tmp;
 	float pwm[NUMBER_MOTORS];
-
-	mutexLock(mma_common.lock);
-	if (mma_common.armed == 0) {
-		fprintf(stderr, "mma: cannot set PWMs, module is disarmed\n");
-		mutexUnlock(mma_common.lock);
-		return -1;
-	}
 
 	pwm[0] = palt + proll + ppitch + pyaw;
 	pwm[1] = palt - proll - ppitch + pyaw;
 	pwm[2] = palt + proll - ppitch - pyaw;
 	pwm[3] = palt - proll + ppitch - pyaw;
 
+	mutexLock(mma_common.lock);
+
+	if (!mctl_isArmed()) {
+		mutexUnlock(mma_common.lock);
+
+		fprintf(stderr, "mma: cannot set PWMs, module is disarmed\n");
+		return -1;
+	}
 
 	for (i = 0; i < NUMBER_MOTORS; ++i) {
-
 		if (pwm[i] > 1.0f) {
 			pwm[i] = 1.0f;
 		}
@@ -73,14 +71,11 @@ int mma_control(float palt, float proll, float ppitch, float pyaw)
 			pwm[i] = 0.0f;
 		}
 
-		tmp = (uint32_t)((pwm[i] + 1.0f) * (float)PWM_MIN_SCALER);
-
-		err = fprintf(mma_common.files[i], "%u\n", tmp);
-		if (err < 0) {
-			fprintf(stderr, "mma: cannot set PWM for motor: %s\n", motorsPwm[i]);
+		if (mctl_thrtlSet(i, pwm[i], tempoInst) < 0) {
+			fprintf(stderr, "mma: cannot set PWM for motor: %u\n", i);
 		}
-		fflush(mma_common.files[i]);
 	}
+
 	mutexUnlock(mma_common.lock);
 
 	DEBUG_LOG("PWM: %f, %f, %f, %f\n", pwm[0], pwm[1], pwm[2], pwm[3]);
@@ -89,62 +84,26 @@ int mma_control(float palt, float proll, float ppitch, float pyaw)
 }
 
 
-static void _mma_motorsIdle(void)
-{
-	int err;
-	unsigned int i;
-
-	for (i = 0; i < NUMBER_MOTORS; ++i) {
-		err = fprintf(mma_common.files[i], "%d\n", PWM_MIN_SCALER);
-		if (err < 0) {
-			fprintf(stderr, "mma: cannot set PWM for motor: %s\n", motorsPwm[i]);
-		}
-		fflush(mma_common.files[i]);
-	}
-}
-
-
 void mma_start(void)
 {
 	mutexLock(mma_common.lock);
-	/* Arm module */
-	mma_common.armed = 1;
-
-	_mma_motorsIdle();
+	mctl_arm(armMode_auto);
 	mutexUnlock(mma_common.lock);
-
-	/* Wait for motor initialization */
-	sleep(2);
 }
 
 
 void mma_stop(void)
 {
 	mutexLock(mma_common.lock);
-	/* Disarm module */
-	mma_common.armed = 0;
-
-	_mma_motorsIdle();
+	mctl_disarm();
 	mutexUnlock(mma_common.lock);
 }
 
 
 void mma_done(void)
 {
-	unsigned int i;
-
 	mutexLock(mma_common.lock);
-
-	/* make sure that motors are stopped before closing dev files */
-	mma_common.armed = 0;
-	_mma_motorsIdle();
-	usleep(100 * 1000);
-
-	for (i = 0; i < NUMBER_MOTORS; ++i) {
-		if (mma_common.files[i] != NULL) {
-			fclose(mma_common.files[i]);
-		}
-	}
+	mctl_deinit();
 	mutexUnlock(mma_common.lock);
 
 	resourceDestroy(mma_common.lock);
@@ -153,30 +112,18 @@ void mma_done(void)
 
 int mma_init(const quad_coeffs_t *coeffs)
 {
-	unsigned int i;
-	int cnt, err = 0;
+	int err;
 
-	if ((err = mutexCreate(&mma_common.lock)) < 0) {
+	err = mutexCreate(&mma_common.lock);
+	if (err < 0) {
+		printf("mma: cannot initialize mutex\n");
 		return err;
 	}
 
-	/* Initialize motors */
-	for (i = 0; i < NUMBER_MOTORS; ++i) {
-		cnt = 0;
-
-		mma_common.files[i] = fopen(motorsPwm[i], "r+");
-		while (mma_common.files[i] == NULL) {
-			usleep(10 * 1000);
-			++cnt;
-
-			if (cnt > 10000) {
-				fprintf(stderr, "mma: timeout waiting on %s \n", motorsPwm[i]);
-				mma_done();
-				resourceDestroy(mma_common.lock);
-				return EXIT_FAILURE;
-			}
-			mma_common.files[i] = fopen(motorsPwm[i], "r+");
-		}
+	if (mctl_init(NUMBER_MOTORS, motorPaths) < 0) {
+		printf("mma: cannot initialize motors\n");
+		resourceDestroy(mma_common.lock);
+		return EXIT_FAILURE;
 	}
 
 	/* TODO: mma_common.coeffs for future usage */
