@@ -252,7 +252,7 @@ int mctl_init(unsigned int motors, const char **motFiles)
 	}
 
 	err = false;
-	for (id = 0; id < mctl_common.mNb; id++) {
+	for (id = 0; (id < mctl_common.mNb) && (err == false); id++) {
 		cnt = 0;
 
 		mctl_common.pwmFiles[id] = fopen(motFiles[id], "r+");
@@ -268,11 +268,8 @@ int mctl_init(unsigned int motors, const char **motFiles)
 
 			mctl_common.pwmFiles[id] = fopen(motFiles[id], "r+");
 		}
-
-		if (err) {
-			break;
-		}
 	}
+
 
 	/* handle error at files opening */
 	if (err) {
