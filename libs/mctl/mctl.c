@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <math.h>
@@ -29,11 +30,11 @@
 
 
 struct {
-	FILE **pwmFiles;    /* motors pwm files descriptors */
-	float *mThrottles;  /* motors current throttle value */
-	unsigned int init;  /* motors descriptors initialization flag */
-	unsigned int armed; /* motors armed/disarmed flag */
-	unsigned int mNb;   /* number of motors */
+	FILE **pwmFiles;   /* motors pwm files descriptors */
+	float *mThrottles; /* motors current throttle value */
+	bool init;         /* motors descriptors initialization flag */
+	bool armed;        /* motors armed/disarmed flag */
+	unsigned int mNb;  /* number of motors */
 } mctl_common;
 
 
@@ -153,7 +154,7 @@ int mctl_init(unsigned int motors, const char **motFiles)
 		mctl_common.pwmFiles[i] = fopen(motFiles[i], "r+");
 	}
 
-	mctl_common.init = 1;
+	mctl_common.init = true;
 
 	for (i = 0; i < mctl_common.mNb; i++) {
 		if (mctl_common.pwmFiles[i] == NULL) {
@@ -163,7 +164,7 @@ int mctl_init(unsigned int motors, const char **motFiles)
 	}
 
 	if (err != 0) {
-		/* deinit via mctl_deinit() as init is set */
+		/* deinit via mctl_deinit() as init flag is set */
 		mctl_deinit();
 	}
 
@@ -203,7 +204,7 @@ int mctl_arm(unsigned int safeMode)
 	sleep(2);
 	fprintf(stdout, "Engines armed!\n");
 
-	mctl_common.armed = 1;
+	mctl_common.armed = true;
 	return 0;
 }
 
@@ -221,7 +222,7 @@ int mctl_disarm(void)
 
 	/* as long, as there is any engine armed, we cannot lower armed flag - safety critical! */
 	if (!err) {
-		mctl_common.armed = 0;
+		mctl_common.armed = false;
 		return 0;
 	}
 	return -1;
@@ -243,7 +244,7 @@ void mctl_deinit(void)
 	}
 
 	if (mctl_common.init) {
-		mctl_common.init = 0;
+		mctl_common.init = false;
 		for (i = 0; i < mctl_common.mNb; i++) {
 			if (mctl_common.pwmFiles[i] != NULL) {
 				fclose(mctl_common.pwmFiles[i]);
@@ -255,7 +256,7 @@ void mctl_deinit(void)
 }
 
 
-unsigned int mctl_isArmed(void)
+bool mctl_isArmed(void)
 {
 	return mctl_common.armed;
 }

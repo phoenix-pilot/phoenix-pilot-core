@@ -14,6 +14,9 @@
 #ifndef __PILOT_MCTL_H__
 #define __PILOT_MCTL_H__
 
+#include <stdbool.h>
+
+
 /* 
  * throttle change tempo:
  *  - tempoInst = instant change to new value
@@ -40,7 +43,7 @@ int mctl_disarm(void);
 
 
 /* returns 1 if motors are armed, 0 otherwise */
-unsigned int mctl_isArmed(void);
+bool mctl_isArmed(void);
 
 
 /* changes engine throttle (in range [0.0, 1.0]) with given tempo */
