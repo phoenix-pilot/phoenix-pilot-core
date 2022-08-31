@@ -76,9 +76,11 @@ static inline int mctl_motOff(unsigned int id)
 	if (id >= mctl_common.mNb) {
 		return -1;
 	}
+
 	if (fprintf(mctl_common.pwmFiles[id], "0") < (sizeof("0") - 1)) {
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -99,6 +101,7 @@ int mctl_thrtlSet(unsigned int motorIdx, float targetThrottle, enum thrtlTempo t
 		fprintf(stderr, "Motors not prepared!\n");
 		return -1;
 	}
+
 	if (motorIdx >= mctl_common.mNb) {
 		return -1;
 	}
@@ -120,6 +123,7 @@ int mctl_thrtlSet(unsigned int motorIdx, float targetThrottle, enum thrtlTempo t
 			if (mctl_motWrite(motorIdx, currThrtl) < 0) {
 				return -1;
 			}
+
 			usleep(10 * 1000);
 		}
 	}
@@ -196,10 +200,12 @@ int mctl_arm(unsigned int safeMode)
 			return -1;
 		}
 	}
+
 	sleep(2);
 	fprintf(stdout, "Engines armed!\n");
 
 	mctl_common.armed = true;
+
 	return 0;
 }
 
@@ -220,6 +226,7 @@ int mctl_disarm(void)
 		mctl_common.armed = false;
 		return 0;
 	}
+
 	return -1;
 }
 
@@ -234,18 +241,21 @@ void mctl_deinit(void)
 		do {
 			/* mctl_disarm sets correct armed */
 			flag = mctl_disarm();
-			usleep(1000 * 100);
 			rep--;
+
+			usleep(1000 * 100);
 		} while (flag && rep > 0);
 	}
 
 	if (mctl_common.init) {
 		mctl_common.init = false;
+
 		for (i = 0; i < mctl_common.mNb; i++) {
 			if (mctl_common.pwmFiles[i] != NULL) {
 				fclose(mctl_common.pwmFiles[i]);
 			}
 		}
+
 		free(mctl_common.pwmFiles);
 		free(mctl_common.mThrottles);
 	}
