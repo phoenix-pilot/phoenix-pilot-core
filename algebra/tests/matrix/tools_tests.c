@@ -107,10 +107,25 @@ TEST(group_algebraTests_realTrp, algebraTests_realTrp_notSquareMatTrp)
 }
 
 
+TEST(group_algebraTests_realTrp, algebraTests_realTrp_trpTwoTimes)
+{
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+		algebraTests_createAndFill(&M1, buffs_rowsF, buffs_colsF, buffs_F, buffs_colsF * buffs_rowsF));
+	matrix_trp(&M1);
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M1));
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M1));
+
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_identicalMatrix(&M1, &M2));
+}
+
+
 TEST_GROUP_RUNNER(group_algebraTests_realTrp)
 {
 	RUN_TEST_CASE(group_algebraTests_realTrp, algebraTests_realTrp_squareMat);
 	RUN_TEST_CASE(group_algebraTests_realTrp, algebraTests_realTrp_squareMatTrp);
 	RUN_TEST_CASE(group_algebraTests_realTrp, algebraTests_realTrp_notSquareMat);
 	RUN_TEST_CASE(group_algebraTests_realTrp, algebraTests_realTrp_notSquareMatTrp);
+	RUN_TEST_CASE(group_algebraTests_realTrp, algebraTests_realTrp_trpTwoTimes);
 }

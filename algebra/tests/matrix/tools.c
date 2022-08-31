@@ -201,3 +201,25 @@ int algebraTests_dataTrpCheck(matrix_t *M1, matrix_t *M2)
 
 	return CHECK_OK;
 }
+
+
+int algebraTest_identicalMatrix(const matrix_t *M1, const matrix_t *M2)
+{
+	int i;
+	
+	if(M1->rows != M2->rows || M1->cols != M2->cols) {
+		return CHECK_FAIL;
+	}
+
+	if(M1->transposed != M2->transposed) {
+		return CHECK_FAIL;
+	}
+
+	for(i=0; i < M1->rows * M1->cols; i++) {
+		if(M1->data[i] != M2->data[i]) {
+			return CHECK_FAIL;
+		}
+	}
+
+	return CHECK_OK;
+}

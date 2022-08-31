@@ -21,6 +21,8 @@
 #define CHECK_OK   0
 #define CHECK_FAIL -1
 
+#define PRODUCT_OK 0
+
 
 /* ##############################################################################
  * ---------------------        matrix modification       -----------------------
@@ -62,3 +64,7 @@ extern int algebraTests_diagCheck(matrix_t *M);
 
 /* Checks if M2 is equal to M1 transposed */
 extern int algebraTests_dataTrpCheck(matrix_t *M1, matrix_t *M2);
+
+
+/* Checks if M1 is identical to M2 */
+extern int algebraTest_identicalMatrix(const matrix_t *M1, const matrix_t *M2);
