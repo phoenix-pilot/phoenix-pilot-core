@@ -68,8 +68,13 @@ static int mctl_motWrite(unsigned int id, float thrtl)
 
 static inline int mctl_motOff(unsigned int id)
 {
-	/* if index out of bounds or error during write, return -1 */
-	return (id >= mctl_common.mNb || fprintf(mctl_common.pwmFiles[id], "0") < sizeof("0") - 1) ? -1 : 0;
+	if (id >= mctl_common.mNb) {
+		return -1;
+	}
+	if (fprintf(mctl_common.pwmFiles[id], "0") < (sizeof("0") - 1)) {
+		return -1;
+	}
+	return 0;
 }
 
 
