@@ -29,10 +29,8 @@
 
 #define NUMBER_MOTORS 4
 
-#define PWM_MIN_SCALER 100000
 
-
-const char *motorPaths[] = {
+static const char *motorPaths[] = {
 	PWM_MOTOR1,
 	PWM_MOTOR2,
 	PWM_MOTOR3,
@@ -41,7 +39,6 @@ const char *motorPaths[] = {
 
 
 struct {
-	unsigned int armed;
 	handle_t lock;
 	quad_coeffs_t coeffs;
 } mma_common;
@@ -115,9 +112,10 @@ void mma_done(void)
 
 int mma_init(const quad_coeffs_t *coeffs)
 {
-	int err = 0;
+	int err;
 
-	if ((err = mutexCreate(&mma_common.lock)) < 0) {
+	err = mutexCreate(&mma_common.lock);
+	if (err < 0) {
 		printf("mma: cannot initialize mutex\n");
 		return err;
 	}
