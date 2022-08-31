@@ -58,7 +58,6 @@ int algebraTests_matrixCopy(matrix_t *des, matrix_t *src)
 	return BUF_ALLOC_OK;
 }
 
-
 int algebraTests_realTrp(matrix_t *M)
 {
 	/* As its turns out it is not easy to transpose matrix without additional buffer */
@@ -172,6 +171,29 @@ int algebraTests_diagCheck(matrix_t *M)
 				return CHECK_FAIL;
 			}
 			if (row != col && *matrix_at(M, row, col) != 0.0) {
+				return CHECK_FAIL;
+			}
+		}
+	}
+
+	return CHECK_OK;
+}
+
+
+int algebraTests_dataTrpCheck(matrix_t *M1, matrix_t *M2)
+{
+	unsigned int row, col, nRows, nCols;
+
+	nRows = matrix_rowsGet(M1);
+	nCols = matrix_colsGet(M1);
+
+	if (nRows != matrix_colsGet(M2) || nCols != matrix_rowsGet(M2)) {
+		return CHECK_FAIL;
+	}
+
+	for (row = 0; row < nRows; row++) {
+		for (col = 0; col < nCols; col++) {
+			if (*matrix_at(M1, row, col) != *matrix_at(M2, col, row)) {
 				return CHECK_FAIL;
 			}
 		}

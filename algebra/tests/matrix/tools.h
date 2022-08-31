@@ -36,7 +36,7 @@ extern int algebraTests_createAndFill(matrix_t *M, unsigned int rows, unsigned i
 
 
 /* Copies src to des. Destination matrix have to be uninitiated */
-extern int algebraTests_matrixCopy(matrix_t *src, matrix_t *des);
+extern int algebraTests_matrixCopy(matrix_t *des, matrix_t *src);
 
 
 /* Transposes matrix by rearranging its elements. Does not change M->transposed */
@@ -56,5 +56,9 @@ extern int algebraTests_matrixZeroesCheck(matrix_t *A);
 extern int algebraTests_invalidSeekCheck(matrix_t *M);
 
 
-/* This function checks if all elements on diagonal are ones and others are zeroes */
+/* Checks if M2 corresponds to M1 physically transposed (with swapped data in buffer, and switched cols and rows) */
 extern int algebraTests_diagCheck(matrix_t *M);
+
+
+/* Checks if M2 is equal to M1 transposed */
+extern int algebraTests_dataTrpCheck(matrix_t *M1, matrix_t *M2);

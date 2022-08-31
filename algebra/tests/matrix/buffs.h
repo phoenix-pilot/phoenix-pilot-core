@@ -13,9 +13,9 @@
 
 
 /* A - small square matrix with integer values */
-const unsigned int buffs_rowsA = 3, buffs_colsA = 3;
+static const unsigned int buffs_rowsA = 3, buffs_colsA = 3;
 
-const float buffs_A[] = {
+static const float buffs_A[] = {
     -1, -2,  3,
      0,  2, -1,
     -1,  3,  0
@@ -23,9 +23,9 @@ const float buffs_A[] = {
 
 
 /* B - small square matrix with integer values */
-const unsigned int buffs_rowsB = 3, buffs_colsB = 3;
+static const unsigned int buffs_rowsB = 3, buffs_colsB = 3;
 
-const float buffs_B[] = {
+static const float buffs_B[] = {
     1,  5,  1,
     2,  1,  2,
     3,  2,  3
@@ -33,18 +33,18 @@ const float buffs_B[] = {
 
 
 /* C - small matrix with integer values*/
-const unsigned int buffs_rowsC = 2, buffs_colsC = 3;
+static const unsigned int buffs_rowsC = 2, buffs_colsC = 3;
 
-const float buffs_C[] = {
+static const float buffs_C[] = {
     0, 3, 5,
     5, 5, 2
 };
 
 
 /* D - small matrix with integer values*/
-const unsigned int buffs_rowsD = 3, buffs_colsD = 2;
+static const unsigned int buffs_rowsD = 3, buffs_colsD = 2;
 
-const float buffs_D[] = {
+static const float buffs_D[] = {
     3,  4,
     3, -2,
     4, -2
@@ -52,9 +52,9 @@ const float buffs_D[] = {
 
 
 /* E - big matrix with float values */
-const unsigned int buffs_rowsE = 20, buffs_colsE = 15;
+static const unsigned int buffs_rowsE = 20, buffs_colsE = 15;
 
-const float buffs_E[] = {  
+static const float buffs_E[] = {  
      78.95615,	 46.66450,	 96.14773,	 74.12088,	 74.88720,	  6.46915,	 53.16968,	-40.29660,	 -1.40914,	-24.74833,	-52.48458,	 34.02692,	 55.92622,	-45.76079,	 21.56489,
      76.43067,	-89.92965,	-33.09507,	 90.14247,	 46.25325,	 34.20910,	-24.32962,	 43.36492,	 -9.96188,	 91.01780,	  8.01281,	 48.33970,	 11.17384,	 -7.38102,	-96.72735,
      21.44963,	 27.27700,	 60.10502,	-37.28911,	 43.84365,	 18.49805,	 78.76087,	 97.75989,	 -1.92337,	 46.24458,	 21.56828,	-71.00521,	 53.42809,	-29.95182,	-32.96295,
@@ -79,9 +79,9 @@ const float buffs_E[] = {
 
 
 /* F - big matrix with float values */
-const unsigned int buffs_rowsF = 15, buffs_colsF = 12;
+static const unsigned int buffs_rowsF = 15, buffs_colsF = 12;
 
-const float buffs_F[] = { 
+static const float buffs_F[] = { 
      61.48089,	-44.80124,	-49.33748,	 98.07285,	-55.78205,	 14.16248,	 46.01931,	 33.17280,	-36.05119,	 41.81020,	 -5.50665,	-60.96922,
      45.35729,	 87.08668,	 -1.61851,	-76.66452,	-26.06310,	 49.55097,	-52.17210,	-21.60139,	-52.77478,	 96.48536,	 53.59350,	 89.44353,
     -97.40409,	-36.28306,	 66.57804,	 25.44342,	-81.05998,	-49.04616,	 -2.33492,	 27.97118,	 35.50844,	-82.08937,	 -8.37861,	-34.25712,
