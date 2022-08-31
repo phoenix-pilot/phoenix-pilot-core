@@ -27,6 +27,7 @@
 
 #define THROTTLE_DOWN   0.0    /* default/init/lowest position of throttle */
 #define THROTTLE_SCALER 100000 /* base thrtl->pwm scaling factor */
+#define PWM_MSG_LEN     7      /* length of PWM message sent to pwm driver files + newline */
 
 
 struct {
@@ -59,7 +60,8 @@ static int mctl_motWrite(unsigned int id, float thrtl)
 
 	thrtlVal = (unsigned int)((thrtl + 1.0f) * (float)THROTTLE_SCALER);
 
-	if (fprintf(mctl_common.pwmFiles[id], "%u\n", thrtlVal) < 0) {
+	/* check for fprintf() fail, or partial success one PWM message write */
+	if (fprintf(mctl_common.pwmFiles[id], "%u\n", thrtlVal) < PWM_MSG_LEN) {
 		fprintf(stderr, "mctl: cannot set PWM for motor: %d\n", id);
 		return -1;
 	}
@@ -77,7 +79,8 @@ static inline int mctl_motOff(unsigned int id)
 		return -1;
 	}
 
-	if (fprintf(mctl_common.pwmFiles[id], "0") < (sizeof("0") - 1)) {
+	/* check for fprintf() fail, or partial success on one sign write */
+	if (fprintf(mctl_common.pwmFiles[id], "0") < 1) {
 		return -1;
 	}
 
