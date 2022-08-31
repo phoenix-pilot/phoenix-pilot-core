@@ -135,6 +135,104 @@ int mctl_thrtlSet(unsigned int motorIdx, float targetThrottle, enum thrtlTempo t
 }
 
 
+bool mctl_isArmed(void)
+{
+	return mctl_common.armed;
+}
+
+
+int mctl_disarm(void)
+{
+	int i;
+	bool err = false;
+
+	for (i = 0; i < mctl_common.mNb; i++) {
+		if (mctl_motOff(i) < 0) {
+			err = true;
+		}
+	}
+
+	/* as long, as there is any engine armed, we cannot lower armed flag - safety critical! */
+	if (!err) {
+		mctl_common.armed = false;
+		return 0;
+	}
+
+	return -1;
+}
+
+
+int mctl_arm(enum armMode mode)
+{
+	unsigned int i;
+	char choice;
+
+	if (mctl_common.armed) {
+		return 0;
+	}
+
+	/* every unsupported mode is treated as safeMode */
+	if (mode != armMode_auto) {
+		mctl_printRed("Engines are about to be armed!\nEnsure safety! Keep distance from engines!\n");
+
+		fprintf(stdout, "Type [y] to continue, or any other key to abort...\n");
+		choice = getchar();
+		fflush(stdin); /* clear buffer from [enter] if any key was passed */
+
+		if (choice != 'y') {
+			fprintf(stdout, "Aborting\n");
+			return -1;
+		}
+	}
+
+	mctl_printRed("Arming engines... \n");
+	for (i = 0; i < mctl_common.mNb; i++) {
+		if (mctl_motWrite(i, THROTTLE_DOWN) < 0) {
+			fprintf(stderr, "Failed to arm\n");
+			return -1;
+		}
+	}
+
+	sleep(2);
+	fprintf(stdout, "Engines armed!\n");
+
+	mctl_common.armed = true;
+
+	return 0;
+}
+
+
+void mctl_deinit(void)
+{
+	unsigned int i, rep, flag;
+
+	if (mctl_common.armed) {
+		rep = 10;
+		/* ensure all engines off; safety critical! */
+		do {
+			/* mctl_disarm sets correct armed */
+			flag = mctl_disarm();
+			rep--;
+
+			usleep(1000 * 100);
+		} while (flag && rep > 0);
+	}
+
+	if (mctl_common.init) {
+		mctl_common.init = false;
+
+		for (i = 0; i < mctl_common.mNb; i++) {
+			if (mctl_common.pwmFiles[i] != NULL) {
+				fclose(mctl_common.pwmFiles[i]);
+			}
+		}
+
+		free(mctl_common.pwmFiles);
+		free(mctl_common.mThrottles);
+	}
+}
+
+
 int mctl_init(unsigned int motors, const char **motFiles)
 {
 	int id, cnt;
@@ -192,102 +290,4 @@ int mctl_init(unsigned int motors, const char **motFiles)
 	mctl_common.init = true;
 
 	return 0;
-}
-
-
-int mctl_arm(enum armMode mode)
-{
-	unsigned int i;
-	char choice;
-
-	if (mctl_common.armed) {
-		return 0;
-	}
-
-	/* every unsupported mode is treated as safeMode */
-	if (mode != armMode_auto) {
-		mctl_printRed("Engines are about to be armed!\nEnsure safety! Keep distance from engines!\n");
-
-		fprintf(stdout, "Type [y] to continue, or any other key to abort...\n");
-		choice = getchar();
-		fflush(stdin); /* clear buffer from [enter] if any key was passed */
-
-		if (choice != 'y') {
-			fprintf(stdout, "Aborting\n");
-			return -1;
-		}
-	}
-
-	mctl_printRed("Arming engines... \n");
-	for (i = 0; i < mctl_common.mNb; i++) {
-		if (mctl_motWrite(i, THROTTLE_DOWN) < 0) {
-			fprintf(stderr, "Failed to arm\n");
-			return -1;
-		}
-	}
-
-	sleep(2);
-	fprintf(stdout, "Engines armed!\n");
-
-	mctl_common.armed = true;
-
-	return 0;
-}
-
-
-int mctl_disarm(void)
-{
-	int i;
-	bool err = false;
-
-	for (i = 0; i < mctl_common.mNb; i++) {
-		if (mctl_motOff(i) < 0) {
-			err = true;
-		}
-	}
-
-	/* as long, as there is any engine armed, we cannot lower armed flag - safety critical! */
-	if (!err) {
-		mctl_common.armed = false;
-		return 0;
-	}
-
-	return -1;
-}
-
-
-void mctl_deinit(void)
-{
-	unsigned int i, rep, flag;
-
-	if (mctl_common.armed) {
-		rep = 10;
-		/* ensure all engines off; safety critical! */
-		do {
-			/* mctl_disarm sets correct armed */
-			flag = mctl_disarm();
-			rep--;
-
-			usleep(1000 * 100);
-		} while (flag && rep > 0);
-	}
-
-	if (mctl_common.init) {
-		mctl_common.init = false;
-
-		for (i = 0; i < mctl_common.mNb; i++) {
-			if (mctl_common.pwmFiles[i] != NULL) {
-				fclose(mctl_common.pwmFiles[i]);
-			}
-		}
-
-		free(mctl_common.pwmFiles);
-		free(mctl_common.mThrottles);
-	}
-}
-
-
-bool mctl_isArmed(void)
-{
-	return mctl_common.armed;
 }
