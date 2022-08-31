@@ -174,7 +174,7 @@ int mctl_init(unsigned int motors, const char **motFiles)
 }
 
 
-int mctl_arm(unsigned int safeMode)
+int mctl_arm(enum armMode mode)
 {
 	unsigned int i;
 	char choice;
@@ -183,7 +183,8 @@ int mctl_arm(unsigned int safeMode)
 		return 0;
 	}
 
-	if (safeMode) {
+	/* every unsupported mode is treated as safeMode */
+	if (mode != armMode_auto) {
 		mctl_printRed("Engines are about to be armed!\nEnsure safety! Keep distance from engines!\n");
 
 		fprintf(stdout, "Type [y] to continue, or any other key to abort...\n");
