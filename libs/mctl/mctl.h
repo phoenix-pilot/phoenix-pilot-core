@@ -23,7 +23,7 @@
  *  - tempoSlow = change throttle to new value gradually, slow mode
  *  - tempoHigh = change throttle to new value gradually, fast mode
  */
-enum thrtlTempo { tempoInst, tempoSlow, tempoHigh };
+enum thrtlTempo { tempoInst = 0, tempoSlow = 1, tempoHigh = 2 };
 
 
 /* Initialize engines module WITH 'motors' engines under 'motFiles' paths */

@@ -38,6 +38,10 @@ struct {
 } mctl_common;
 
 
+/* throttle tempo predetermined values */
+static const float mctl_tempoVals[] = { 0, 0.006f, 0.002f };
+
+
 static int mctl_motWrite(unsigned int id, float thrtl)
 {
 	unsigned int thrtlVal;
@@ -93,24 +97,15 @@ int mctl_thrtlSet(unsigned int motorIdx, float targetThrottle, enum thrtlTempo t
 
 	if (!mctl_common.init || !mctl_common.armed) {
 		fprintf(stderr, "Motors not prepared!\n");
+		return -1;
+	}
+	if (motorIdx >= mctl_common.mNb) {
+		return -1;
 	}
 
 	/* shortcut when instant change is required */
 	if (tempo != tempoInst) {
-		/* using tempo enum to calculate rate of one small change of engine speed */
-		switch (tempo) {
-			case tempoSlow:
-				/* rate of 0.6% per step */
-				rate = 0.6 / 100;
-				break;
-			case tempoHigh:
-				/* rate of 0.2% per step */
-				rate = 0.2 / 100;
-				break;
-			default:
-				fprintf(stderr, "mctl_thrtlSet: unknown motor tempo %d!\n", tempo);
-				return -1;
-		}
+		rate = mctl_tempoVals[tempo];
 
 		currThrtl = mctl_common.mThrottles[motorIdx];
 		change = targetThrottle - currThrtl;
@@ -196,7 +191,7 @@ int mctl_arm(unsigned int safeMode)
 
 	mctl_printRed("Arming engines... \n");
 	for (i = 0; i < mctl_common.mNb; i++) {
-		if (mctl_motWrite(i, THROTTLE_DOWN)) {
+		if (mctl_motWrite(i, THROTTLE_DOWN) < 0) {
 			fprintf(stderr, "Failed to arm\n");
 			return -1;
 		}
@@ -212,11 +207,11 @@ int mctl_arm(unsigned int safeMode)
 int mctl_disarm(void)
 {
 	int i;
-	unsigned int err = 0;
+	bool err = false;
 
 	for (i = 0; i < mctl_common.mNb; i++) {
 		if (mctl_motOff(i) < 0) {
-			err = 1;
+			err = true;
 		}
 	}
 
@@ -240,6 +235,7 @@ void mctl_deinit(void)
 			/* mctl_disarm sets correct armed */
 			flag = mctl_disarm();
 			usleep(1000 * 100);
+			rep--;
 		} while (flag && rep > 0);
 	}
 
