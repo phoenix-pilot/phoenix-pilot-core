@@ -26,27 +26,31 @@
 enum thrtlTempo { tempoInst = 0, tempoSlow = 1, tempoHigh = 2 };
 
 
-/* Initialize engines module WITH 'motors' engines under 'motFiles' paths */
-int mctl_init(unsigned int motors, const char **motFiles);
+enum armMode { armMode_user, armMode_auto };
 
 
-/* Disarm, and deinitialize engine module */
-void mctl_deinit(void);
-
-
-/* Arm engines. safeMode = true: warnings displayed and user consent needed */
-int mctl_arm(unsigned int safeMode);
-
-
-/* disarm engines */
-int mctl_disarm(void);
+/* changes engine throttle (in range [0.0, 1.0]) with given tempo */
+int mctl_thrtlSet(unsigned int motorIdx, float targetThrottle, enum thrtlTempo tempo);
 
 
 /* returns 1 if motors are armed, 0 otherwise */
 bool mctl_isArmed(void);
 
 
-/* changes engine throttle (in range [0.0, 1.0]) with given tempo */
-int mctl_thrtlSet(unsigned int motorIdx, float targetThrottle, enum thrtlTempo tempo);
+/* disarm engines */
+int mctl_disarm(void);
+
+
+/* Arm engines. safeMode = true: warnings displayed and user consent needed */
+int mctl_arm(enum armMode mode);
+
+
+/* Disarm, and deinitialize engine module */
+void mctl_deinit(void);
+
+
+/* Initialize engines module WITH 'motors' engines under 'motFiles' paths */
+int mctl_init(unsigned int motors, const char **motFiles);
+
 
 #endif
