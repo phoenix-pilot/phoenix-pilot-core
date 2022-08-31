@@ -91,6 +91,17 @@ int algebraTests_realTrp(matrix_t *M)
 }
 
 
+int algebraTests_transposeSwap(matrix_t *M)
+{
+	if (algebraTests_realTrp(M) != BUF_ALLOC_OK) {
+		return BUF_ALLOC_FAIL;
+	}
+	matrix_trp(M);
+
+	return BUF_ALLOC_OK;
+}
+
+
 int algebraTests_invalidSeekCheck(matrix_t *M)
 {
 	int rowsNum, colsNum, row, col;
@@ -203,20 +214,20 @@ int algebraTests_dataTrpCheck(matrix_t *M1, matrix_t *M2)
 }
 
 
-int algebraTest_identicalMatrix(const matrix_t *M1, const matrix_t *M2)
+int algebraTest_equalMatrix(const matrix_t *M1, const matrix_t *M2)
 {
-	int i;
-	
-	if(M1->rows != M2->rows || M1->cols != M2->cols) {
+	unsigned int i;
+
+	if (M1->rows != M2->rows || M1->cols != M2->cols) {
 		return CHECK_FAIL;
 	}
 
-	if(M1->transposed != M2->transposed) {
+	if (M1->transposed != M2->transposed) {
 		return CHECK_FAIL;
 	}
 
-	for(i=0; i < M1->rows * M1->cols; i++) {
-		if(M1->data[i] != M2->data[i]) {
+	for (i = 0; i < M1->rows * M1->cols; i++) {
+		if (M1->data[i] != M2->data[i]) {
 			return CHECK_FAIL;
 		}
 	}

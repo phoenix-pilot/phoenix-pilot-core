@@ -11,6 +11,9 @@
  * %LICENSE%
  */
 
+#ifndef MATRIX_TEST_TOOLS_H
+#define MATRIX_TEST_TOOLS_H
+
 #include <matrix.h>
 
 /* Defines for matrix_bufAlloc results */
@@ -45,6 +48,10 @@ extern int algebraTests_matrixCopy(matrix_t *des, matrix_t *src);
 extern int algebraTests_realTrp(matrix_t *M);
 
 
+/* Transpose `M` using matrix_trp() and swap its memory so it is also transposed. Does not change `M` in mathematical meaning */
+extern int algebraTests_transposeSwap(matrix_t *M);
+
+
 /* ##############################################################################
  * ------------------------        matrix checks       --------------------------
  * ############################################################################## */
@@ -66,5 +73,7 @@ extern int algebraTests_diagCheck(matrix_t *M);
 extern int algebraTests_dataTrpCheck(matrix_t *M1, matrix_t *M2);
 
 
-/* Checks if M1 is identical to M2 */
-extern int algebraTest_identicalMatrix(const matrix_t *M1, const matrix_t *M2);
+/* Checks if M1 is identical to M2. Different between matrix_cmp is that .transposed flag must be equal in both matrices */
+extern int algebraTest_equalMatrix(const matrix_t *M1, const matrix_t *M2);
+
+#endif

@@ -111,13 +111,15 @@ TEST(group_algebraTests_realTrp, algebraTests_realTrp_trpTwoTimes)
 {
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsF, buffs_colsF, buffs_F, buffs_colsF * buffs_rowsF));
-	matrix_trp(&M1);
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
+	matrix_trp(&M1);
+	matrix_trp(&M2);
+
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M1));
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M1));
 
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_identicalMatrix(&M1, &M2));
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M1, &M2));
 }
 
 
