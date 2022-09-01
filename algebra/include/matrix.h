@@ -101,8 +101,8 @@ extern int matrix_cmp(const matrix_t *A, const matrix_t *B);
 extern int matrix_inv(matrix_t *A, matrix_t *B, float *buf, int buflen);
 
 
-/* writes submatrix B into matrix A beginning from position A(row, col). Works only for non-transposed matrices */
-extern void matrix_writeSubmatrix(matrix_t *A, int row, int col, matrix_t *B);
+/* writes submatrix `src` into matrix `dst` beginning from position dst(row, col). Works only for non-transposed matrices */
+extern int matrix_writeSubmatrix(matrix_t *dst, unsigned int row, unsigned int col, matrix_t *src);
 
 
 #endif /* PHMATRIX_H */
