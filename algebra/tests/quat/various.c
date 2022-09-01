@@ -58,3 +58,41 @@ TEST_GROUP_RUNNER(group_quat_idenWrite)
 {
 	RUN_TEST_CASE(group_quat_idenWrite, quat_idenWrite_std);
 }
+
+
+/* ##############################################################################
+ * ----------------------        quat_piWrite tests       -----------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_piWrite);
+
+
+TEST_SETUP(group_quat_piWrite)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_piWrite)
+{
+}
+
+
+TEST(group_quat_piWrite, quat_piWrite_std)
+{
+	/* Initialising quaternion with non zero and non one values */
+	quat_t A = Q1;
+
+	quat_piWrite(&A);
+
+	TEST_ASSERT_EQUAL_FLOAT(0.0f, A.a);
+	TEST_ASSERT_EQUAL_FLOAT(1.0f, A.i);
+	TEST_ASSERT_EQUAL_FLOAT(0.0f, A.j);
+	TEST_ASSERT_EQUAL_FLOAT(0.0f, A.k);
+}
+
+
+TEST_GROUP_RUNNER(group_quat_piWrite)
+{
+	RUN_TEST_CASE(group_quat_piWrite, quat_piWrite_std);
+}
