@@ -256,8 +256,24 @@ int matrix_sparseProd(matrix_t *A, matrix_t *B, matrix_t *C)
 }
 
 
+static inline int matrix_sandwitchValid(matrix_t *A, matrix_t *B, matrix_t *C, matrix_t *tempC)
+{
+	unsigned int colsA = matrix_colsGet(A), rowsA = matrix_rowsGet(A);
+	unsigned int colsB = matrix_colsGet(B), rowsB = matrix_rowsGet(B);
+	unsigned int colsC = matrix_colsGet(C), rowsC = matrix_rowsGet(C);
+	unsigned int colsTempC = matrix_colsGet(tempC), rowsTempC = matrix_rowsGet(tempC);
+
+	return colsA == rowsB && rowsA == rowsTempC && colsB == colsTempC && /* First multiplication */
+		colsTempC == colsA && rowsTempC == rowsC && rowsA == colsC;      /* Second multiplication */
+}
+
+
 int matrix_sparseSandwitch(matrix_t *A, matrix_t *B, matrix_t *C, matrix_t *tempC)
 {
+	if (!matrix_sandwitchValid(A, B, C, tempC)) {
+		return -1;
+	}
+
 	matrix_sparseProd(A, B, tempC);
 	matrix_trp(A);
 	matrix_sparseProd(A, tempC, C);
@@ -268,6 +284,10 @@ int matrix_sparseSandwitch(matrix_t *A, matrix_t *B, matrix_t *C, matrix_t *temp
 
 int matrix_sandwitch(matrix_t *A, matrix_t *B, matrix_t *C, matrix_t *tempC)
 {
+	if (!matrix_sandwitchValid(A, B, C, tempC)) {
+		return -1;
+	}
+
 	matrix_prod(A, B, tempC);
 	matrix_trp(A);
 	matrix_prod(tempC, A, C);
