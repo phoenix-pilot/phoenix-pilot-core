@@ -533,13 +533,19 @@ int matrix_inv(matrix_t *A, matrix_t *B, float *buf, int buflen)
 	return 0;
 }
 
-void matrix_writeSubmatrix(matrix_t *A, int row, int col, matrix_t *B)
+int matrix_writeSubmatrix(matrix_t *dst, unsigned int row, unsigned int col, matrix_t *src)
 {
 	int cprow;
 
-	for (cprow = 0; cprow < B->rows; cprow++) {
-		memcpy((char *)&A->data[A->cols * (cprow + row) + col], (char *)&B->data[B->cols * cprow], sizeof(float) * B->cols);
+	if (col + src->cols > dst->cols || row + src->rows > dst->rows) {
+		return -1;
 	}
+
+	for (cprow = 0; cprow < src->rows; cprow++) {
+		memcpy((char *)&dst->data[dst->cols * (cprow + row) + col], (char *)&src->data[src->cols * cprow], sizeof(float) * src->cols);
+	}
+
+	return 0;
 }
 
 
