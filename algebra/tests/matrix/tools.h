@@ -30,6 +30,8 @@
 #define WRITE_SUBMAT_OK   0
 #define WRITE_SUBMAT_FAIL -1
 
+#define MAT_CMP_OK 0
+
 /* Defines used by tests */
 
 /* Must be at least 1 */
@@ -37,6 +39,7 @@
 
 /* Must be bigger than SMALL_SHIFT */
 #define BIG_SHIFT 1234
+
 
 /* ##############################################################################
  * ---------------------        matrix modification       -----------------------
