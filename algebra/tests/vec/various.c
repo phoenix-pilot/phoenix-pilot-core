@@ -78,3 +78,56 @@ TEST_GROUP_RUNNER(group_vec_sum)
 	RUN_TEST_CASE(group_vec_sum, vec_sum_std);
 	RUN_TEST_CASE(group_vec_sum, vec_sum_biggerValues);
 }
+
+
+/* ##############################################################################
+ * -------------------------        vec_add tests       -------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_vec_add);
+
+
+TEST_SETUP(group_vec_add)
+{
+}
+
+
+TEST_TEAR_DOWN(group_vec_add)
+{
+}
+
+
+TEST(group_vec_add, vec_add_std)
+{
+	vec_t A = V1;
+	vec_t B = V2;
+	vec_t cpyA = A;
+
+	vec_add(&A, &B);
+
+	TEST_ASSERT_EQUAL_FLOAT(cpyA.x + B.x, A.x);
+	TEST_ASSERT_EQUAL_FLOAT(cpyA.y + B.y, A.y);
+	TEST_ASSERT_EQUAL_FLOAT(cpyA.z + B.z, A.z);
+}
+
+
+TEST(group_vec_add, vec_add_biggerValues)
+{
+	vec_t A = V3;
+	vec_t B = V4;
+	vec_t cpyA = A;
+
+	vec_add(&A, &B);
+
+	TEST_ASSERT_EQUAL_FLOAT(cpyA.x + B.x, A.x);
+	TEST_ASSERT_EQUAL_FLOAT(cpyA.y + B.y, A.y);
+	TEST_ASSERT_EQUAL_FLOAT(cpyA.z + B.z, A.z);
+}
+
+
+TEST_GROUP_RUNNER(group_vec_add)
+{
+	RUN_TEST_CASE(group_vec_add, vec_add_std);
+	RUN_TEST_CASE(group_vec_add, vec_add_biggerValues);
+}
