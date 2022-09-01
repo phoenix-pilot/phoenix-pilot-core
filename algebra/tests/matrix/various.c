@@ -629,3 +629,66 @@ TEST_GROUP_RUNNER(group_matrix_writeSubmatrix)
 	RUN_TEST_CASE(group_matrix_writeSubmatrix, matrix_writeSubmatrix_tooBigMat);
 	RUN_TEST_CASE(group_matrix_writeSubmatrix, matrix_writeSubmatrix_failureRetain);
 }
+
+
+/* ##############################################################################
+ * ----------------------        matrix_cmp tests       -------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_matrix_cmp);
+
+
+TEST_SETUP(group_matrix_cmp)
+{
+	/* M1 = E */
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
+
+	/* M2 = E */
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+}
+
+
+TEST_TEAR_DOWN(group_matrix_cmp)
+{
+	matrix_bufFree(&M1);
+	matrix_bufFree(&M2);
+}
+
+
+TEST(group_matrix_cmp, matrix_cmp_std)
+{
+	TEST_ASSERT_EQUAL_INT(MAT_CMP_OK, matrix_cmp(&M1, &M2));
+	TEST_ASSERT_EQUAL_INT(MAT_CMP_OK, matrix_cmp(&M2, &M1));
+
+	(*matrix_at(&M2, M2.rows / 2, M2.cols / 2))++;
+	TEST_ASSERT_NOT_EQUAL_INT(MAT_CMP_OK, matrix_cmp(&M1, &M2));
+	TEST_ASSERT_NOT_EQUAL_INT(MAT_CMP_OK, matrix_cmp(&M2, &M1));
+}
+
+
+TEST(group_matrix_cmp, matrix_cmp_diffRowsNum)
+{
+	M2.rows--;
+
+	TEST_ASSERT_NOT_EQUAL_INT(MAT_CMP_OK, matrix_cmp(&M1, &M2));
+	TEST_ASSERT_NOT_EQUAL_INT(MAT_CMP_OK, matrix_cmp(&M2, &M1));
+}
+
+
+TEST(group_matrix_cmp, matrix_cmp_diffColsNum)
+{
+	M2.cols--;
+
+	TEST_ASSERT_NOT_EQUAL_INT(MAT_CMP_OK, matrix_cmp(&M1, &M2));
+	TEST_ASSERT_NOT_EQUAL_INT(MAT_CMP_OK, matrix_cmp(&M2, &M1));
+}
+
+
+TEST_GROUP_RUNNER(group_matrix_cmp)
+{
+	RUN_TEST_CASE(group_matrix_cmp, matrix_cmp_std);
+	RUN_TEST_CASE(group_matrix_cmp, matrix_cmp_diffRowsNum);
+	RUN_TEST_CASE(group_matrix_cmp, matrix_cmp_diffColsNum);
+}
