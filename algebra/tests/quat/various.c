@@ -21,6 +21,12 @@
 /* Matrix without zero and one */
 static const quat_t Q1 = { .a = 2.0f, .i = 2.0f, .j = 2.0f, .k = 2.0f };
 
+static const quat_t Q2 = { .a = 3.0f, .i = 0.0f, .j = 6.0f, .k = 1.0f };
+static const quat_t Q3 = { .a = 1.0f, .i = 2.0f, .j = 1.0f, .k = 5.0f };
+
+static const quat_t Q4 = { .a = 815.23f, .i = -818.07f, .j = -451.47f, .k = -546.79f };
+static const quat_t Q5 = { .a = 334.23f, .i = -822.81f, .j = 349.42f, .k = 548.18f };
+
 
 /* ##############################################################################
  * ---------------------        quat_idenWrite tests       ----------------------
@@ -95,4 +101,59 @@ TEST(group_quat_piWrite, quat_piWrite_std)
 TEST_GROUP_RUNNER(group_quat_piWrite)
 {
 	RUN_TEST_CASE(group_quat_piWrite, quat_piWrite_std);
+}
+
+
+/* ##############################################################################
+ * ----------------------        quat_add tests       -----------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_add);
+
+
+TEST_SETUP(group_quat_add)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_add)
+{
+}
+
+
+TEST(group_quat_add, quat_add_std)
+{
+	quat_t A = Q2;
+	quat_t B = Q3;
+	quat_t C = A;
+
+	quat_add(&A, &B);
+
+	TEST_ASSERT_EQUAL_FLOAT(C.a + B.a, A.a);
+	TEST_ASSERT_EQUAL_FLOAT(C.i + B.i, A.i);
+	TEST_ASSERT_EQUAL_FLOAT(C.j + B.j, A.j);
+	TEST_ASSERT_EQUAL_FLOAT(C.k + B.k, A.k);
+}
+
+
+TEST(group_quat_add, quat_add_biggerValues)
+{
+	quat_t A = Q4;
+	quat_t B = Q5;
+	quat_t C = A;
+
+	quat_add(&A, &B);
+
+	TEST_ASSERT_EQUAL_FLOAT(C.a + B.a, A.a);
+	TEST_ASSERT_EQUAL_FLOAT(C.i + B.i, A.i);
+	TEST_ASSERT_EQUAL_FLOAT(C.j + B.j, A.j);
+	TEST_ASSERT_EQUAL_FLOAT(C.k + B.k, A.k);
+}
+
+
+TEST_GROUP_RUNNER(group_quat_add)
+{
+	RUN_TEST_CASE(group_quat_add, quat_add_std);
+	RUN_TEST_CASE(group_quat_add, quat_add_biggerValues);
 }
