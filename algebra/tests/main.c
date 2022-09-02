@@ -34,6 +34,7 @@ void runner(void)
 	/* Vectors library tests */
 	RUN_TEST_GROUP(group_vec_sum);
 	RUN_TEST_GROUP(group_vec_add);
+	RUN_TEST_GROUP(group_vec_dif);
 }
 
 
