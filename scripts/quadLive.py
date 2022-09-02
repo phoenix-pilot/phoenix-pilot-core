@@ -47,44 +47,43 @@ class lpgui:
 
         self.win.nextRow()
 
-        self.y = [[] for _ in range(3)]
-        self.py = self.win.addPlot(title="Yaw", colspan=1)
-        self.py.addLegend()
-
         # Prepare roll/pitch plot
-        self.e = [[] for _ in range(3)]
-        self.p2 = self.win.addPlot(title="Roll & Pitch", colspan=2)
-        self.p2.addLegend()
-        self.elines = [
-            self.py.plot(pen="red", name="yaw"), 
-            self.p2.plot(pen="green", name="pitch"), 
-            self.p2.plot(pen="blue", name="roll")]
+        self.eulerData = [[] for _ in range(3)]
+        self.rollPitchPlot = self.win.addPlot(title="Roll & Pitch", colspan=2)
+        self.rollPitchPlot.addLegend()
+        # Prepare yaw plot
+        self.yawPlot = self.win.addPlot(title="Yaw", colspan=1)
+        self.yawPlot.addLegend()
+        self.eulerDatalines = [
+            self.yawPlot.plot(pen="red", name="yaw"),
+            self.rollPitchPlot.plot(pen="green", name="pitch"),
+            self.rollPitchPlot.plot(pen="blue", name="roll")]
 
         self.win.nextRow()
 
         # Prepare PID plots
-        self.pids = [[[] for _ in range(4)] for _ in range(3)]
-        self.winpids = [self.win.addPlot(title="Roll pid"), self.win.addPlot(title="Pitch pid"), self.win.addPlot(title="Yaw pid")]
-        self.linepids = [[] for _ in range(3)]
-        for w in range(len(self.winpids)):
-            self.winpids[w].showGrid(x=False, y=True, alpha=0.5)
-            self.winpids[w].addLegend()
-            self.linepids[w].append(self.winpids[w].plot(pen="red", name="P"))
-            self.linepids[w].append(self.winpids[w].plot(pen="green", name="I"))
-            self.linepids[w].append(self.winpids[w].plot(pen="blue", name="D"))
-            self.linepids[w].append(self.winpids[w].plot(pen="orange", name="Σ"))
+        self.pidData = [[[] for _ in range(4)] for _ in range(3)]
+        self.pidPlots = [self.win.addPlot(title="Roll pid"), self.win.addPlot(title="Pitch pid"), self.win.addPlot(title="Yaw pid")]
+        self.pidLines = [[] for _ in range(3)]
+        for w in range(len(self.pidPlots)):
+            self.pidPlots[w].showGrid(x=False, y=True, alpha=0.5)
+            self.pidPlots[w].addLegend()
+            self.pidLines[w].append(self.pidPlots[w].plot(pen="red", name="P"))
+            self.pidLines[w].append(self.pidPlots[w].plot(pen="green", name="I"))
+            self.pidLines[w].append(self.pidPlots[w].plot(pen="blue", name="D"))
+            self.pidLines[w].append(self.pidPlots[w].plot(pen="orange", name="Σ"))
 
         self.win.nextRow()
 
         # Prepare PWM plots
-        self.pwms = [[] for _ in range(4)]
-        self.winpwm = self.win.addPlot(title="Engine PWMs", colspan=3)
-        self.winpwm.addLegend()
+        self.pwmData = [[] for _ in range(4)]
+        self.pwmPlots = self.win.addPlot(title="Engine PWMs", colspan=3)
+        self.pwmPlots.addLegend()
         self.pwmlines = [
-            self.winpwm.plot(pen="white", name="M4"),
-            self.winpwm.plot(pen="red", name="M1"),
-            self.winpwm.plot(pen="green", name="M3"),
-            self.winpwm.plot(pen="blue", name="M2")]
+            self.pwmPlots.plot(pen="white", name="M1"),
+            self.pwmPlots.plot(pen="red", name="M2"),
+            self.pwmPlots.plot(pen="green", name="M3"),
+            self.pwmPlots.plot(pen="blue", name="M4")]
 
         # Quadrocontrol has maximum frequency of 100Hz (with calculation time excluded) so with 10ms wait we should catch all data
         self.timer = QtCore.QTimer()
@@ -100,34 +99,34 @@ class lpgui:
 
         # EKFE - ekf log of Euler angles
         if ls[0] == "EKFE":
-            for i in range(len(self.e)):
-                if len(self.e[i]) > self.plotcut:
-                    self.e[i].pop(0)
-                self.e[i].append(float(ls[i+2]))
-                self.elines[i].setData(self.e[i])
+            for i in range(len(self.eulerData)):
+                if len(self.eulerData[i]) > self.plotcut:
+                    self.eulerData[i].pop(0)
+                self.eulerData[i].append(float(ls[i+2]))
+                self.eulerDatalines[i].setData(self.eulerData[i])
         # PID - logs of pid values from pid controllers
         if ls[0] == "PID":
             # iterate over roll/pitch/yaw plots
-            for p in range(len(self.pids)):
+            for p in range(len(self.pidData)):
                 # iterate over pid values in one plot
-                for l in range(len(self.pids[p])):
-                    if len(self.pids[p][l]) > self.plotcut:
-                        self.pids[p][l].pop(0)
+                for l in range(len(self.pidData[p])):
+                    if len(self.pidData[p][l]) > self.plotcut:
+                        self.pidData[p][l].pop(0)
                     v = float(ls[2 + (p + 1) * 4 + l])
                     # There happens to be some huge values at the start so crop them
                     if -100 < v < 100:
-                        self.pids[p][l].append(v)
-                    self.linepids[p][l].setData(self.pids[p][l])
+                        self.pidData[p][l].append(v)
+                    self.pidLines[p][l].setData(self.pidData[p][l])
         # PWM - percent of throttle on each engine
         if ls[0] == "PWM":
             for i in range(0, 4):
-                if len(self.pwms[i]) > self.plotcut:
-                    self.pwms[i].pop(0)
+                if len(self.pwmData[i]) > self.plotcut:
+                    self.pwmData[i].pop(0)
                 v = float(ls[i+1])
                 # autoscaling causes problems at start end the very end
                 if v > self.pwmLow:
-                    self.pwms[i].append(v)
-                self.pwmlines[i].setData(self.pwms[i])
+                    self.pwmData[i].append(v)
+                self.pwmlines[i].setData(self.pwmData[i])
 
 
     def update(self):
@@ -155,8 +154,8 @@ class lpgui:
 def main():
     cmdParse = argparse.ArgumentParser()
     cmdParse.add_argument("port", default="/dev/ttyUSB0")
-    cmdParse.add_argument("-c", "--cut", required=False, default=200)
-    cmdParse.add_argument("-p", "--pwm", required=False, default=0.15)
+    cmdParse.add_argument("-c", "--cut", required=False, default=200, type=int)
+    cmdParse.add_argument("-p", "--pwm", required=False, default=0.15, type=float)
     args = cmdParse.parse_args()
 
     try:
@@ -168,6 +167,7 @@ def main():
     gui = lpgui(ser, args)
 
     signal.signal(signal.SIGINT, gui.guiStop)
+    signal.signal(signal.SIGHUP, gui.guiStop)
 
 
 # Run quadLive
