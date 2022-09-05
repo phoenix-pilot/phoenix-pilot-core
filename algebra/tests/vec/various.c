@@ -184,3 +184,56 @@ TEST_GROUP_RUNNER(group_vec_dif)
 	RUN_TEST_CASE(group_vec_dif, vec_dif_std);
 	RUN_TEST_CASE(group_vec_dif, vec_dif_biggerValues);
 }
+
+
+/* ##############################################################################
+ * -------------------------        vec_sub tests       -------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_vec_sub);
+
+
+TEST_SETUP(group_vec_sub)
+{
+}
+
+
+TEST_TEAR_DOWN(group_vec_sub)
+{
+}
+
+
+TEST(group_vec_sub, vec_sub_std)
+{
+	vec_t A = V1;
+	vec_t B = V2;
+	vec_t cpyA = A;
+
+	vec_sub(&A, &B);
+
+	TEST_ASSERT_EQUAL_FLOAT(cpyA.x - B.x, A.x);
+	TEST_ASSERT_EQUAL_FLOAT(cpyA.y - B.y, A.y);
+	TEST_ASSERT_EQUAL_FLOAT(cpyA.z - B.z, A.z);
+}
+
+
+TEST(group_vec_sub, vec_sub_biggerValues)
+{
+	vec_t A = V3;
+	vec_t B = V4;
+	vec_t cpyA = A;
+
+	vec_sub(&A, &B);
+
+	TEST_ASSERT_EQUAL_FLOAT(cpyA.x - B.x, A.x);
+	TEST_ASSERT_EQUAL_FLOAT(cpyA.y - B.y, A.y);
+	TEST_ASSERT_EQUAL_FLOAT(cpyA.z - B.z, A.z);
+}
+
+
+TEST_GROUP_RUNNER(group_vec_sub)
+{
+	RUN_TEST_CASE(group_vec_sub, vec_sub_std);
+	RUN_TEST_CASE(group_vec_sub, vec_sub_biggerValues);
+}
