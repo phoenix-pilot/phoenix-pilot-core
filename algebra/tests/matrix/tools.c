@@ -13,6 +13,7 @@
 
 #include "tools.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 
@@ -54,6 +55,49 @@ int algebraTests_matrixCopy(matrix_t *des, matrix_t *src)
 	}
 
 	des->transposed = src->transposed;
+	return BUF_ALLOC_OK;
+}
+
+int algebraTests_realTrp(matrix_t *M)
+{
+	/* As its turns out it is not easy to transpose matrix without additional buffer */
+	/* https://en.wikipedia.org/wiki/In-place_matrix_transposition */
+	/* This solution is fast and easier to understand */
+
+	int rowsNum, colsNum, row, col;
+	matrix_t tmpM;
+
+	if (matrix_bufAlloc(&tmpM, M->cols, M->rows) != BUF_ALLOC_OK) {
+		return BUF_ALLOC_FAIL;
+	}
+	tmpM.transposed = M->transposed;
+
+	rowsNum = matrix_rowsGet(M);
+	colsNum = matrix_colsGet(M);
+
+	for (row = 0; row < rowsNum; row++) {
+		for (col = 0; col < colsNum; col++) {
+			*matrix_at(&tmpM, col, row) = *matrix_at(M, row, col);
+		}
+	}
+
+	memcpy(M->data, tmpM.data, sizeof(float) * M->rows * M->cols);
+	matrix_bufFree(&tmpM);
+
+	M->cols = tmpM.cols;
+	M->rows = tmpM.rows;
+
+	return BUF_ALLOC_OK;
+}
+
+
+int algebraTests_transposeSwap(matrix_t *M)
+{
+	if (algebraTests_realTrp(M) != BUF_ALLOC_OK) {
+		return BUF_ALLOC_FAIL;
+	}
+	matrix_trp(M);
+
 	return BUF_ALLOC_OK;
 }
 
@@ -140,6 +184,51 @@ int algebraTests_diagCheck(matrix_t *M)
 			if (row != col && *matrix_at(M, row, col) != 0.0) {
 				return CHECK_FAIL;
 			}
+		}
+	}
+
+	return CHECK_OK;
+}
+
+
+int algebraTests_dataTrpCheck(matrix_t *M1, matrix_t *M2)
+{
+	unsigned int row, col, nRows, nCols;
+
+	nRows = matrix_rowsGet(M1);
+	nCols = matrix_colsGet(M1);
+
+	if (nRows != matrix_colsGet(M2) || nCols != matrix_rowsGet(M2)) {
+		return CHECK_FAIL;
+	}
+
+	for (row = 0; row < nRows; row++) {
+		for (col = 0; col < nCols; col++) {
+			if (*matrix_at(M1, row, col) != *matrix_at(M2, col, row)) {
+				return CHECK_FAIL;
+			}
+		}
+	}
+
+	return CHECK_OK;
+}
+
+
+int algebraTest_equalMatrix(const matrix_t *M1, const matrix_t *M2)
+{
+	unsigned int i;
+
+	if (M1->rows != M2->rows || M1->cols != M2->cols) {
+		return CHECK_FAIL;
+	}
+
+	if (M1->transposed != M2->transposed) {
+		return CHECK_FAIL;
+	}
+
+	for (i = 0; i < M1->rows * M1->cols; i++) {
+		if (M1->data[i] != M2->data[i]) {
+			return CHECK_FAIL;
 		}
 	}
 

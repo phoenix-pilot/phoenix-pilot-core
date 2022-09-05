@@ -11,6 +11,9 @@
  * %LICENSE%
  */
 
+#ifndef MATRIX_TEST_TOOLS_H
+#define MATRIX_TEST_TOOLS_H
+
 #include <matrix.h>
 
 /* Defines for matrix_bufAlloc results */
@@ -20,6 +23,8 @@
 /* Defines for functions that validate matrix parameters */
 #define CHECK_OK   0
 #define CHECK_FAIL -1
+
+#define PRODUCT_OK 0
 
 
 /* ##############################################################################
@@ -36,7 +41,15 @@ extern int algebraTests_createAndFill(matrix_t *M, unsigned int rows, unsigned i
 
 
 /* Copies src to des. Destination matrix have to be uninitiated */
-extern int algebraTests_matrixCopy(matrix_t *src, matrix_t *des);
+extern int algebraTests_matrixCopy(matrix_t *des, matrix_t *src);
+
+
+/* Transposes matrix by rearranging its elements. Does not change M->transposed */
+extern int algebraTests_realTrp(matrix_t *M);
+
+
+/* Transpose `M` using matrix_trp() and swap its memory so it is also transposed. Does not change `M` in mathematical meaning */
+extern int algebraTests_transposeSwap(matrix_t *M);
 
 
 /* ##############################################################################
@@ -52,5 +65,15 @@ extern int algebraTests_matrixZeroesCheck(matrix_t *A);
 extern int algebraTests_invalidSeekCheck(matrix_t *M);
 
 
-/* This function checks if all elements on diagonal are ones and others are zeroes */
+/* Checks if M2 corresponds to M1 physically transposed (with swapped data in buffer, and switched cols and rows) */
 extern int algebraTests_diagCheck(matrix_t *M);
+
+
+/* Checks if M2 is equal to M1 transposed */
+extern int algebraTests_dataTrpCheck(matrix_t *M1, matrix_t *M2);
+
+
+/* Checks if M1 is identical to M2. Different between matrix_cmp is that .transposed flag must be equal in both matrices */
+extern int algebraTest_equalMatrix(const matrix_t *M1, const matrix_t *M2);
+
+#endif
