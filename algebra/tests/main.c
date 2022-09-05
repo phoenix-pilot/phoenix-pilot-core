@@ -29,15 +29,15 @@ void runner(void)
 	RUN_TEST_GROUP(group_matrix_times);
 	RUN_TEST_GROUP(group_matrix_prod);
 
-	/* Quaternions library tests */
-	RUN_TEST_GROUP(group_quat_idenWrite);
-	RUN_TEST_GROUP(group_quat_piWrite);
-	RUN_TEST_GROUP(group_quat_add);
-
 	/* Vectors library tests */
 	RUN_TEST_GROUP(group_vec_sum);
 	RUN_TEST_GROUP(group_vec_add);
 	RUN_TEST_GROUP(group_vec_dif);
+
+	/* Quaternions library tests */
+	RUN_TEST_GROUP(group_quat_idenWrite);
+	RUN_TEST_GROUP(group_quat_piWrite);
+	RUN_TEST_GROUP(group_quat_add);
 }
 
 
