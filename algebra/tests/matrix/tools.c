@@ -17,10 +17,6 @@
 #include <string.h>
 
 
-#define SMALL_SHIFT 1
-#define BIG_SHIFT   1234
-
-
 void algebraTests_buffFill(matrix_t *M, const float *vals, unsigned int n)
 {
 	int rowsNum, colsNum, row, col;
@@ -229,6 +225,46 @@ int algebraTest_equalMatrix(const matrix_t *M1, const matrix_t *M2)
 	for (i = 0; i < M1->rows * M1->cols; i++) {
 		if (M1->data[i] != M2->data[i]) {
 			return CHECK_FAIL;
+		}
+	}
+
+	return CHECK_OK;
+}
+
+
+int algebraTests_submatCheck(const matrix_t *dst, unsigned int row, unsigned int col, const matrix_t *src, const matrix_t *M)
+{
+	unsigned int currRow, currCol;
+	int inSubmat;
+
+	if (dst->transposed != 0 || src->transposed != 0 || M->transposed != 0) {
+		return CHECK_FAIL;
+	}
+
+	if (dst->rows != M->rows || dst->cols != M->cols) {
+		return CHECK_FAIL;
+	}
+
+	if (col + src->cols > dst->cols || row + src->rows > dst->rows) {
+		return CHECK_FAIL;
+	}
+
+	for (currRow = 0; currRow < dst->rows; currRow++) {
+		for (currCol = 0; currCol < dst->cols; currCol++) {
+			inSubmat = currRow >= row && currRow < row + src->rows && currCol >= col && currCol < col + src->cols;
+
+			if (inSubmat) {
+				/* Checking elements from src */
+				if (*matrix_at(M, currRow, currCol) != *matrix_at(src, currRow - row, currCol - col)) {
+					return CHECK_FAIL;
+				}
+			}
+			else {
+				/* Checking elements from dst */
+				if (*matrix_at(M, currRow, currCol) != *matrix_at(dst, currRow, currCol)) {
+					return CHECK_FAIL;
+				}
+			}
 		}
 	}
 

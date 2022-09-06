@@ -26,6 +26,16 @@
 
 #define PRODUCT_OK 0
 
+#define WRITE_SUBMAT_OK   0
+#define WRITE_SUBMAT_FAIL -1
+
+/* Defines used by tests */
+
+/* Must be at least 1 */
+#define SMALL_SHIFT 1
+
+/* Must be bigger than SMALL_SHIFT */
+#define BIG_SHIFT 1234
 
 /* ##############################################################################
  * ---------------------        matrix modification       -----------------------
@@ -75,5 +85,9 @@ extern int algebraTests_dataTrpCheck(matrix_t *M1, matrix_t *M2);
 
 /* Checks if M1 is identical to M2. Different between matrix_cmp is that .transposed flag must be equal in both matrices */
 extern int algebraTest_equalMatrix(const matrix_t *M1, const matrix_t *M2);
+
+
+/* Checks if `M` is equal to `dst` with `src` printed in `col` and `row`. All matrices have to be non-transposed*/
+extern int algebraTests_submatCheck(const matrix_t *dst, unsigned int row, unsigned int col, const matrix_t *src, const matrix_t *M);
 
 #endif
