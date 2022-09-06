@@ -16,6 +16,9 @@
 #include <quat.h>
 
 
+#define QUAT_CMP_OK 0
+
+
 /* Quaternions used for tests */
 
 /* Matrix without zero and one */
@@ -26,6 +29,61 @@ static const quat_t Q3 = { .a = 1.0f, .i = 2.0f, .j = 1.0f, .k = 5.0f };
 
 static const quat_t Q4 = { .a = 815.23f, .i = -818.07f, .j = -451.47f, .k = -546.79f };
 static const quat_t Q5 = { .a = 334.23f, .i = -822.81f, .j = 349.42f, .k = 548.18f };
+
+
+/* ##############################################################################
+ * ------------------------        quat_cmp tests       -------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_cmp);
+
+
+TEST_SETUP(group_quat_cmp)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_cmp)
+{
+}
+
+
+TEST(group_quat_cmp, quat_cmp_stdPass)
+{
+	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &Q2));
+}
+
+
+TEST(group_quat_cmp, quat_cmp_different)
+{
+	quat_t A, I, J, K, Q;
+
+	A = I = J = K = Q = Q2;
+
+	A.a++;
+	I.i++;
+	J.j++;
+	K.k++;
+
+	Q.a++;
+	Q.i++;
+	Q.j++;
+	Q.k++;
+
+	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &A));
+	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &I));
+	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &J));
+	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &K));
+	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &Q));
+}
+
+
+TEST_GROUP_RUNNER(group_quat_cmp)
+{
+	RUN_TEST_CASE(group_quat_cmp, quat_cmp_stdPass);
+	RUN_TEST_CASE(group_quat_cmp, quat_cmp_different);
+}
 
 
 /* ##############################################################################
