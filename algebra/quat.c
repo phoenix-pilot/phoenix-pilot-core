@@ -19,12 +19,39 @@
 #include "quat.h"
 
 
+void quat_sum(const quat_t *A, const quat_t *B, quat_t *C)
+{
+	C->a = A->a + B->a;
+	C->i = A->i + B->i;
+	C->j = A->j + B->j;
+	C->k = A->k + B->k;
+}
+
+
 void quat_add(quat_t *A, const quat_t *B)
 {
 	A->a += B->a;
 	A->i += B->i;
 	A->j += B->j;
 	A->k += B->k;
+}
+
+
+void quat_dif(const quat_t *A, const quat_t *B, quat_t *C)
+{
+	C->a = A->a - B->a;
+	C->i = A->i - B->i;
+	C->j = A->j - B->j;
+	C->k = A->k - B->k;
+}
+
+
+void quat_sub(quat_t *A, const quat_t *B)
+{
+	A->a -= B->a;
+	A->i -= B->i;
+	A->j -= B->j;
+	A->k -= B->k;
 }
 
 
