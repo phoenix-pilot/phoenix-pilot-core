@@ -35,6 +35,7 @@ void runner(void)
 	RUN_TEST_GROUP(group_vec_add);
 	RUN_TEST_GROUP(group_vec_dif);
 	RUN_TEST_GROUP(group_vec_sub);
+	RUN_TEST_GROUP(group_vec_cross);
 
 	/* Quaternions library tests */
 	RUN_TEST_GROUP(group_quat_cmp);
