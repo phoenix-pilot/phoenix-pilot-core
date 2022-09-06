@@ -18,6 +18,9 @@
 
 #define VEC_CMP_OK 0
 
+#define POS_SCALAR 2.5
+#define NEG_SCALAR -3.75
+
 
 /* Values used for vectors library tests */
 
@@ -28,6 +31,10 @@ static const vec_t V2 = { .x = 4.0f, .y = 5.0f, .z = 6.0f };
 /* More complicated values */
 static const vec_t V3 = { .x = -261.48f, .y = 731.11f, .z = -919.51f };
 static const vec_t V4 = { .x = 613.36f, .y = -708.58f, .z = -150.27f };
+
+/* This vectors are perpendicular to each other */
+static const vec_t V5 = { .x = 0.0f, .y = 1.0f, .z = 4.0f };
+static const vec_t V6 = { .x = 5.0f, .y = -8.0f, .z = 2.0f };
 
 
 /* ##############################################################################
@@ -302,4 +309,106 @@ TEST_GROUP_RUNNER(group_vec_sub)
 {
 	RUN_TEST_CASE(group_vec_sub, vec_sub_std);
 	RUN_TEST_CASE(group_vec_sub, vec_sub_biggerValues);
+}
+
+
+/* ##############################################################################
+ * ------------------------        vec_cross tests       ------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_vec_cross);
+
+
+TEST_SETUP(group_vec_cross)
+{
+}
+
+
+TEST_TEAR_DOWN(group_vec_cross)
+{
+}
+
+
+TEST(group_vec_cross, vec_cross_std)
+{
+	vec_t A = V1;
+	vec_t B = V2;
+	vec_t C;
+
+	vec_cross(&A, &B, &C);
+
+	TEST_ASSERT_EQUAL_FLOAT(A.y * B.z - A.z * B.y, C.x);
+	TEST_ASSERT_EQUAL_FLOAT(A.z * B.x - A.x * B.z, C.y);
+	TEST_ASSERT_EQUAL_FLOAT(A.x * B.y - A.y * B.x, C.z);
+}
+
+
+TEST(group_vec_cross, vec_cross_biggerValues)
+{
+	vec_t A = V3;
+	vec_t B = V4;
+	vec_t C;
+
+	vec_cross(&A, &B, &C);
+
+	TEST_ASSERT_EQUAL_FLOAT(A.y * B.z - A.z * B.y, C.x);
+	TEST_ASSERT_EQUAL_FLOAT(A.z * B.x - A.x * B.z, C.y);
+	TEST_ASSERT_EQUAL_FLOAT(A.x * B.y - A.y * B.x, C.z);
+}
+
+
+TEST(group_vec_cross, vec_cross_perpendicular)
+{
+	vec_t A = V5;
+	vec_t B = V6;
+	vec_t C;
+
+	vec_cross(&A, &B, &C);
+
+	TEST_ASSERT_EQUAL_FLOAT(A.y * B.z - A.z * B.y, C.x);
+	TEST_ASSERT_EQUAL_FLOAT(A.z * B.x - A.x * B.z, C.y);
+	TEST_ASSERT_EQUAL_FLOAT(A.x * B.y - A.y * B.x, C.z);
+
+	vec_cross(&B, &A, &C);
+
+	TEST_ASSERT_EQUAL_FLOAT(B.y * A.z - B.z * A.y, C.x);
+	TEST_ASSERT_EQUAL_FLOAT(B.z * A.x - B.x * A.z, C.y);
+	TEST_ASSERT_EQUAL_FLOAT(B.x * A.y - B.y * A.x, C.z);
+}
+
+
+TEST(group_vec_cross, vec_cross_parallel)
+{
+	vec_t A = V2;
+	vec_t B = A;
+	vec_t C;
+
+	/* Parallel with common direction */
+	vec_times(&B, POS_SCALAR);
+
+	vec_cross(&A, &B, &C);
+
+	TEST_ASSERT_EQUAL_FLOAT(0.0, C.x);
+	TEST_ASSERT_EQUAL_FLOAT(0.0, C.y);
+	TEST_ASSERT_EQUAL_FLOAT(0.0, C.z);
+
+	/* Parallel with opposite directions */
+	B = A;
+	vec_times(&B, NEG_SCALAR);
+
+	vec_cross(&B, &A, &C);
+
+	TEST_ASSERT_EQUAL_FLOAT(0.0, C.x);
+	TEST_ASSERT_EQUAL_FLOAT(0.0, C.y);
+	TEST_ASSERT_EQUAL_FLOAT(0.0, C.z);
+}
+
+
+TEST_GROUP_RUNNER(group_vec_cross)
+{
+	RUN_TEST_CASE(group_vec_cross, vec_cross_std);
+	RUN_TEST_CASE(group_vec_cross, vec_cross_biggerValues);
+	RUN_TEST_CASE(group_vec_cross, vec_cross_perpendicular);
+	RUN_TEST_CASE(group_vec_cross, vec_cross_parallel);
 }
