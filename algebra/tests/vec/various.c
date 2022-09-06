@@ -16,6 +16,9 @@
 #include <vec.h>
 
 
+#define VEC_CMP_OK 0
+
+
 /* Values used for vectors library tests */
 
 /* Small values */
@@ -25,6 +28,69 @@ static const vec_t V2 = { .x = 4.0f, .y = 5.0f, .z = 6.0f };
 /* More complicated values */
 static const vec_t V3 = { .x = -261.48f, .y = 731.11f, .z = -919.51f };
 static const vec_t V4 = { .x = 613.36f, .y = -708.58f, .z = -150.27f };
+
+
+/* ##############################################################################
+ * -------------------------        vec_cmp tests       -------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_vec_cmp);
+
+
+TEST_SETUP(group_vec_cmp)
+{
+}
+
+
+TEST_TEAR_DOWN(group_vec_cmp)
+{
+}
+
+
+TEST(group_vec_cmp, vec_cmp_stdPass)
+{
+	TEST_ASSERT_EQUAL_INT(VEC_CMP_OK, vec_cmp(&V3, &V3));
+}
+
+
+TEST(group_vec_cmp, vec_cmp_different)
+{
+	/* Different x */
+	vec_t A = V3;
+	A.x++;
+
+	TEST_ASSERT_NOT_EQUAL_INT(VEC_CMP_OK, vec_cmp(&A, &V3));
+
+	/* Different y */
+	A = V3;
+	A.y++;
+
+	TEST_ASSERT_NOT_EQUAL_INT(VEC_CMP_OK, vec_cmp(&A, &V3));
+
+	/* Different z */
+	A = V3;
+	A.z++;
+
+	TEST_ASSERT_NOT_EQUAL_INT(VEC_CMP_OK, vec_cmp(&A, &V3));
+}
+
+
+TEST(group_vec_cmp, vec_cmp_diffLNotFails)
+{
+	vec_t A = V3;
+	A.l++;
+
+	TEST_ASSERT_EQUAL_INT(VEC_CMP_OK, vec_cmp(&A, &V3));
+}
+
+
+TEST_GROUP_RUNNER(group_vec_cmp)
+{
+	RUN_TEST_CASE(group_vec_cmp, vec_cmp_stdPass);
+	RUN_TEST_CASE(group_vec_cmp, vec_cmp_different);
+	RUN_TEST_CASE(group_vec_cmp, vec_cmp_diffLNotFails);
+}
 
 
 /* ##############################################################################
