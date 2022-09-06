@@ -35,7 +35,7 @@ static float buf[ROWS * COLS];
 static matrix_t stMat = { .data = buf, .cols = COLS, .rows = ROWS, .transposed = 0 };
 
 /* Matrix for dynamical allocation */
-static matrix_t M1, M2;
+static matrix_t M1, M2, M3;
 
 
 /* Must be different than zero and one */
@@ -482,4 +482,150 @@ TEST_GROUP_RUNNER(group_matrix_times)
 	RUN_TEST_CASE(group_matrix_times, matrix_times_minusInfTrp);
 	RUN_TEST_CASE(group_matrix_times, matrix_times_nan);
 	RUN_TEST_CASE(group_matrix_times, matrix_times_nanTrp);
+}
+
+
+/* ##############################################################################
+ * -----------------        matrix_writeSubmatrix tests       -------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_matrix_writeSubmatrix);
+
+
+TEST_SETUP(group_matrix_writeSubmatrix)
+{
+	/* M1 = F */
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+		algebraTests_createAndFill(&M1, buffs_rowsF, buffs_colsF, buffs_F, buffs_colsF * buffs_rowsF));
+
+	/* M2 = B */
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+		algebraTests_createAndFill(&M2, buffs_rowsB, buffs_colsB, buffs_B, buffs_colsB * buffs_rowsB));
+
+	/* M3 = M1 */
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M3, &M1));
+}
+
+
+TEST_TEAR_DOWN(group_matrix_writeSubmatrix)
+{
+	matrix_bufFree(&M1);
+	matrix_bufFree(&M2);
+	matrix_bufFree(&M3);
+}
+
+
+TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_onStart)
+{
+	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, 0, 0, &M2));
+
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_submatCheck(&M3, 0, 0, &M2, &M1));
+}
+
+
+TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_inMiddle)
+{
+	unsigned int row, col;
+
+	row = matrix_rowsGet(&M1) - matrix_rowsGet(&M2);
+	col = matrix_colsGet(&M1) - matrix_colsGet(&M2);
+
+	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, row, col, &M2));
+
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_submatCheck(&M3, row, col, &M2, &M1));
+}
+
+
+/* This test checks if function changes `Src` matrix */
+TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_sourceRetain)
+{
+	/* store copy of M2 in M3 */
+	matrix_bufFree(&M3);
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M3, &M2));
+
+	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, 0, 0, &M2));
+
+	/* M2 and M3 should be the same */
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M3, &M2));
+}
+
+
+TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_fullWrite)
+{
+	/* store copy of M1 in M2 */
+	matrix_bufFree(&M2);
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+
+	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, 0, 0, &M2));
+
+	/* Matrix A and B have the same sizes, so after witeSubmatrix M1 should be equal to M2 */
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M1, &M2));
+}
+
+
+TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_tooFewCols)
+{
+	unsigned int row, col;
+
+	row = 0;
+	col = M1.cols - M2.cols / 2;
+
+	/* It is impossible to write M2 to M1 into this position */
+	/* M1 has too few columns */
+	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_FAIL, matrix_writeSubmatrix(&M1, row, col, &M2));
+}
+
+
+TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_tooFewRows)
+{
+	unsigned int row, col;
+
+	row = M1.rows - M2.cols / 2;
+	col = 0;
+
+	/* It is impossible to write M2 to M1 into this position */
+	/* M1 has too few rows */
+	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_FAIL, matrix_writeSubmatrix(&M1, row, col, &M2));
+}
+
+
+TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_tooBigMat)
+{
+	/* M1 is bigger than M2 */
+	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_FAIL, matrix_writeSubmatrix(&M2, 0, 0, &M1));
+}
+
+
+/* This tests checks if matrix changes after function fail */
+TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_failureRetain)
+{
+	unsigned int row, col;
+
+	row = M1.rows;
+	col = M1.cols;
+
+	/* Copying matrix M1 to M3 */
+	matrix_bufFree(&M3);
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M3, &M1));
+
+	/* It is impossible to write M2 to M1 into this position */
+	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_FAIL, matrix_writeSubmatrix(&M1, row, col, &M2));
+
+	/* M1 should not change after fail */
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M3, &M1));
+}
+
+
+TEST_GROUP_RUNNER(group_matrix_writeSubmatrix)
+{
+	RUN_TEST_CASE(group_matrix_writeSubmatrix, matrix_writeSubmatrix_onStart);
+	RUN_TEST_CASE(group_matrix_writeSubmatrix, matrix_writeSubmatrix_inMiddle);
+	RUN_TEST_CASE(group_matrix_writeSubmatrix, matrix_writeSubmatrix_sourceRetain);
+	RUN_TEST_CASE(group_matrix_writeSubmatrix, matrix_writeSubmatrix_fullWrite);
+
+	RUN_TEST_CASE(group_matrix_writeSubmatrix, matrix_writeSubmatrix_tooFewCols);
+	RUN_TEST_CASE(group_matrix_writeSubmatrix, matrix_writeSubmatrix_tooFewRows);
+	RUN_TEST_CASE(group_matrix_writeSubmatrix, matrix_writeSubmatrix_tooBigMat);
+	RUN_TEST_CASE(group_matrix_writeSubmatrix, matrix_writeSubmatrix_failureRetain);
 }
