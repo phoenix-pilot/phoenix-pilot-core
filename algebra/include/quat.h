@@ -36,8 +36,27 @@ static inline void quat_piWrite(quat_t *q)
 }
 
 
+/* Compares dwo quaternions. Returns 0 if they are equal and not 0 if they are different */
+static inline int quat_cmp(const quat_t *A, const quat_t *B)
+{
+	return !(A->a == B->a && A->i == B->i && A->j == B->j && A->k == B->k);
+}
+
+
+/* C = A + B; stores sum of A and B into C */
+extern void quat_sum(const quat_t *A, const quat_t *B, quat_t *C);
+
+
 /* A += B; adds quaternion B to A */
 extern void quat_add(quat_t *A, const quat_t *B);
+
+
+/* C = A - B; stores difference of A and B in C */
+extern void quat_dif(const quat_t *A, const quat_t *B, quat_t *C);
+
+
+/* A -= B; subtracts B from A */
+extern void quat_sub(quat_t *A, const quat_t *B);
 
 
 /* A * B = C; multiply A and B and store result in C */
