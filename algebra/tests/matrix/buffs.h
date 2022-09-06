@@ -14,6 +14,7 @@
 #ifndef MATRIX_TEST_BUFF_H
 #define MATRIX_TEST_BUFF_H
 
+/* clang-format off */
 
 /* A - small square matrix with integer values */
 static const unsigned int buffs_rowsA = 3, buffs_colsA = 3;
@@ -112,7 +113,7 @@ static const float buffs_F[] = {
 };
 
 
-/* This matrix is equal to E*F. We are using here precise result - that's how we are using this division notation */
+/* This matrix is equal to E*F. We are using here precise result - that's why we are using this division notation */
 static const unsigned int buffs_rowsEtimesF = 20, buffs_colsEtimesF = 12;
 
 static const float buffs_EtimesF[] = {
@@ -137,5 +138,7 @@ static const float buffs_EtimesF[] = {
       36947468036203.0/10000000000.0,	  -93643668195409.0/5000000000.0,	       508640623699.0/62500000.0,	      184595829259.0/625000000.0,	    1514361235619.0/2500000000.0,	-152376283338813.0/10000000000.0,	   18213280141419.0/5000000000.0,	   2382632424939.0/10000000000.0,	   33765733982541.0/5000000000.0,	 -114657518579791.0/5000000000.0,	 -28428030639357.0/5000000000.0,	       282198642897.0/50000000.0,
      -83273854772559.0/10000000000.0,	    1136372614037.0/1250000000.0,	   60294569322277.0/5000000000.0,	  -45088836422489.0/5000000000.0,	  115238186485109.0/5000000000.0,	-141969064869371.0/10000000000.0,	   86723148742737.0/5000000000.0,	     -499695832287.0/250000000.0,	     5896919040381.0/400000000.0,	  -24234852190289.0/1250000000.0,	  -9146457036891.0/2500000000.0,	     -724203867487.0/156250000.0
 };
+
+/* clang-format on */
 
 #endif
