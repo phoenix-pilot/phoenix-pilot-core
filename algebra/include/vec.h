@@ -21,6 +21,13 @@ typedef struct {
 } vec_t;
 
 
+/* Compares vectors. Return 0 if A is equal to B and not 0 in other case */
+static inline int vec_cmp(const vec_t *A, const vec_t *B)
+{
+	return !(A->x == B->x && A->y == B->y && A->z == B->z);
+}
+
+
 /* C = A + B; stores sum of A and B into C */
 extern void vec_sum(const vec_t *A, const vec_t *B, vec_t *C);
 

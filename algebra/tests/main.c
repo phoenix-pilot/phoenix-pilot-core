@@ -30,6 +30,7 @@ void runner(void)
 	RUN_TEST_GROUP(group_matrix_prod);
 
 	/* Vectors library tests */
+	RUN_TEST_GROUP(group_vec_cmp);
 	RUN_TEST_GROUP(group_vec_sum);
 	RUN_TEST_GROUP(group_vec_add);
 	RUN_TEST_GROUP(group_vec_dif);
