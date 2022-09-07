@@ -18,7 +18,12 @@
 #include "tools.h"
 #include "buffs.h"
 
-static matrix_t M1, M2, M3, Exp;
+
+/* Must be bigger than 1 */
+#define SQUARE_MAT_SIZE 4
+
+
+static matrix_t M1, M2, M3, M4, M5, Exp;
 
 
 /* ##############################################################################
@@ -184,6 +189,9 @@ TEST_SETUP(group_matrix_prod_bigMat)
 
 	/* Allocating matrix for results */
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, Exp.rows, Exp.cols));
+
+	M4.data = NULL;
+	M5.data = NULL;
 }
 
 
@@ -192,6 +200,8 @@ TEST_TEAR_DOWN(group_matrix_prod_bigMat)
 	matrix_bufFree(&M1);
 	matrix_bufFree(&M2);
 	matrix_bufFree(&M3);
+	matrix_bufFree(&M4);
+	matrix_bufFree(&M5);
 	matrix_bufFree(&Exp);
 }
 
@@ -303,7 +313,105 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsAllMatTrp)
 }
 
 
-/* FIXME: Add tests for incorrect matrix sizes to multiply */
+/* This tests checks if function changes source matrices after success */
+TEST(group_matrix_prod_bigMat, matrix_prod_sourceRetain)
+{
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M1));
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M5, &M2));
+
+	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
+
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M1, &M4));
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M2, &M5));
+}
+
+
+TEST_GROUP(group_matrix_prod_badMats);
+
+
+TEST_SETUP(group_matrix_prod_badMats)
+{
+	/* These matrix sizes are correct, but will be changed in tests */
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M1, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M2, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, M1.rows, M2.cols));
+	M4.data = NULL;
+}
+
+
+TEST_TEAR_DOWN(group_matrix_prod_badMats)
+{
+	matrix_bufFree(&M1);
+	matrix_bufFree(&M2);
+	matrix_bufFree(&M3);
+	matrix_bufFree(&M4);
+}
+
+
+TEST(group_matrix_prod_badMats, matrix_prod_badInputMats)
+{
+	M2.rows--;
+	M2.cols--;
+
+	/* We want M3 to have right size */
+	M3.cols--;
+
+	/* No matrix is transposed */
+	TEST_ASSERT_EQUAL_INT(PRODUCT_FAIL, matrix_prod(&M1, &M2, &M3));
+
+	/* First matrix is transposed */
+	matrix_trp(&M1);
+
+	TEST_ASSERT_EQUAL_INT(PRODUCT_FAIL, matrix_prod(&M1, &M2, &M3));
+
+	/* Second matrix is transposed */
+	matrix_trp(&M1);
+	matrix_trp(&M2);
+
+	TEST_ASSERT_EQUAL_INT(PRODUCT_FAIL, matrix_prod(&M1, &M2, &M3));
+
+	/* First and second transposed */
+	matrix_trp(&M1);
+
+	TEST_ASSERT_EQUAL_INT(PRODUCT_FAIL, matrix_prod(&M1, &M2, &M3));
+}
+
+
+TEST(group_matrix_prod_badMats, matrix_prod_badResMat)
+{
+	/* Incorrect rows number */
+	M3.rows--;
+
+	TEST_ASSERT_EQUAL_INT(PRODUCT_FAIL, matrix_prod(&M1, &M2, &M3));
+
+	matrix_trp(&M3);
+
+	TEST_ASSERT_EQUAL_INT(PRODUCT_FAIL, matrix_prod(&M1, &M2, &M3));
+
+	/* Incorrect cols number */
+	M3.rows++;
+	M3.cols--;
+
+	TEST_ASSERT_EQUAL_INT(PRODUCT_FAIL, matrix_prod(&M1, &M2, &M3));
+
+	matrix_trp(&M3);
+
+	TEST_ASSERT_EQUAL_INT(PRODUCT_FAIL, matrix_prod(&M1, &M2, &M3));
+}
+
+
+/* This test checks if result matrix is changing when function fails */
+TEST(group_matrix_prod_badMats, matrix_prod_failureRetain)
+{
+	M2.rows--;
+	M2.cols--;
+
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M3));
+
+	TEST_ASSERT_EQUAL_INT(PRODUCT_FAIL, matrix_prod(&M1, &M2, &M3));
+
+	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M4, &M3));
+}
 
 
 TEST_GROUP_RUNNER(group_matrix_prod)
@@ -325,4 +433,10 @@ TEST_GROUP_RUNNER(group_matrix_prod)
 	RUN_TEST_CASE(group_matrix_prod_bigMat, matrix_prod_bigMatsResultAndFirstMatTrp);
 	RUN_TEST_CASE(group_matrix_prod_bigMat, matrix_prod_bigMatsResultAndSecondMatTrp);
 	RUN_TEST_CASE(group_matrix_prod_bigMat, matrix_prod_bigMatsAllMatTrp);
+
+	RUN_TEST_CASE(group_matrix_prod_bigMat, matrix_prod_sourceRetain);
+
+	RUN_TEST_CASE(group_matrix_prod_badMats, matrix_prod_badInputMats);
+	RUN_TEST_CASE(group_matrix_prod_badMats, matrix_prod_badResMat);
+	RUN_TEST_CASE(group_matrix_prod_badMats, matrix_prod_failureRetain);
 }

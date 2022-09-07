@@ -24,7 +24,8 @@
 #define CHECK_OK   0
 #define CHECK_FAIL -1
 
-#define PRODUCT_OK 0
+#define PRODUCT_OK   0
+#define PRODUCT_FAIL -1
 
 
 /* ##############################################################################
