@@ -1,7 +1,8 @@
 /*
  * Phoenix-Pilot
  *
- * mag.c: drone magnetometer calibration module
+ * Drone magnetometer calibration module
+ * Calibration of magnetometer against motor interference
  *
  * Copyright 2022 Phoenix Systems
  * Author: Mateusz Niewiadomski
