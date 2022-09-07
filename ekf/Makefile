@@ -27,3 +27,8 @@ NAME := sensortest
 LOCAL_SRCS := tests/sensortest.c
 DEP_LIBS := libekf libalgeb libsensc libcalib
 include $(binary.mk)
+
+NAME := altlog
+LOCAL_SRCS := tests/altlog.c
+DEP_LIBS := libekf libalgeb libsensc
+include $(binary.mk)
