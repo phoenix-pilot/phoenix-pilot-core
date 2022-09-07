@@ -163,7 +163,7 @@ TEST_GROUP_RUNNER(group_quat_piWrite)
 
 
 /* ##############################################################################
- * ----------------------        quat_add tests       -----------------------
+ * ------------------------        quat_add tests       -------------------------
  * ############################################################################## */
 
 
@@ -218,7 +218,7 @@ TEST_GROUP_RUNNER(group_quat_add)
 
 
 /* ##############################################################################
- * ----------------------        quat_sum tests       -----------------------
+ * ------------------------        quat_sum tests       -------------------------
  * ############################################################################## */
 
 
@@ -273,7 +273,7 @@ TEST_GROUP_RUNNER(group_quat_sum)
 
 
 /* ##############################################################################
- * ----------------------        quat_sub tests       -----------------------
+ * ------------------------        quat_sub tests       -------------------------
  * ############################################################################## */
 
 
@@ -326,3 +326,57 @@ TEST_GROUP_RUNNER(group_quat_sub)
 	RUN_TEST_CASE(group_quat_sub, quat_sub_biggerValues);
 }
 
+
+/* ##############################################################################
+ * ------------------------        quat_dif tests       -------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_dif);
+
+
+TEST_SETUP(group_quat_dif)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_dif)
+{
+}
+
+
+TEST(group_quat_dif, quat_dif_std)
+{
+	quat_t A = Q2;
+	quat_t B = Q3;
+	quat_t C;
+
+	quat_dif(&A, &B, &C);
+
+	TEST_ASSERT_EQUAL_FLOAT(A.a - B.a, C.a);
+	TEST_ASSERT_EQUAL_FLOAT(A.i - B.i, C.i);
+	TEST_ASSERT_EQUAL_FLOAT(A.j - B.j, C.j);
+	TEST_ASSERT_EQUAL_FLOAT(A.k - B.k, C.k);
+}
+
+
+TEST(group_quat_dif, quat_dif_biggerValues)
+{
+	quat_t A = Q4;
+	quat_t B = Q5;
+	quat_t C;
+
+	quat_dif(&A, &B, &C);
+
+	TEST_ASSERT_EQUAL_FLOAT(A.a - B.a, C.a);
+	TEST_ASSERT_EQUAL_FLOAT(A.i - B.i, C.i);
+	TEST_ASSERT_EQUAL_FLOAT(A.j - B.j, C.j);
+	TEST_ASSERT_EQUAL_FLOAT(A.k - B.k, C.k);
+}
+
+
+TEST_GROUP_RUNNER(group_quat_dif)
+{
+	RUN_TEST_CASE(group_quat_dif, quat_dif_std);
+	RUN_TEST_CASE(group_quat_dif, quat_dif_biggerValues);
+}
