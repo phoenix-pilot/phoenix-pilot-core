@@ -270,3 +270,59 @@ TEST_GROUP_RUNNER(group_quat_sum)
 	RUN_TEST_CASE(group_quat_sum, quat_sum_std);
 	RUN_TEST_CASE(group_quat_sum, quat_sum_biggerValues);
 }
+
+
+/* ##############################################################################
+ * ----------------------        quat_sub tests       -----------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_sub);
+
+
+TEST_SETUP(group_quat_sub)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_sub)
+{
+}
+
+
+TEST(group_quat_sub, quat_sub_std)
+{
+	quat_t A = Q2;
+	quat_t B = Q3;
+	quat_t C = A;
+
+	quat_sub(&A, &B);
+
+	TEST_ASSERT_EQUAL_FLOAT(C.a - B.a, A.a);
+	TEST_ASSERT_EQUAL_FLOAT(C.i - B.i, A.i);
+	TEST_ASSERT_EQUAL_FLOAT(C.j - B.j, A.j);
+	TEST_ASSERT_EQUAL_FLOAT(C.k - B.k, A.k);
+}
+
+
+TEST(group_quat_sub, quat_sub_biggerValues)
+{
+	quat_t A = Q4;
+	quat_t B = Q5;
+	quat_t C = A;
+
+	quat_sub(&A, &B);
+
+	TEST_ASSERT_EQUAL_FLOAT(C.a - B.a, A.a);
+	TEST_ASSERT_EQUAL_FLOAT(C.i - B.i, A.i);
+	TEST_ASSERT_EQUAL_FLOAT(C.j - B.j, A.j);
+	TEST_ASSERT_EQUAL_FLOAT(C.k - B.k, A.k);
+}
+
+
+TEST_GROUP_RUNNER(group_quat_sub)
+{
+	RUN_TEST_CASE(group_quat_sub, quat_sub_std);
+	RUN_TEST_CASE(group_quat_sub, quat_sub_biggerValues);
+}
+

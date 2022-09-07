@@ -45,6 +45,7 @@ void runner(void)
 	RUN_TEST_GROUP(group_quat_piWrite);
 	RUN_TEST_GROUP(group_quat_add);
 	RUN_TEST_GROUP(group_quat_sum);
+	RUN_TEST_GROUP(group_quat_sub);
 }
 
 
