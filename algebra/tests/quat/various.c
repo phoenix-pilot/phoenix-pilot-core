@@ -18,6 +18,9 @@
 
 #define QUAT_CMP_OK 0
 
+#define POS_SCALAR 4.12
+#define NEG_SCALAR -3.72
+
 
 /* Quaternions used for tests */
 
@@ -516,4 +519,90 @@ TEST_GROUP_RUNNER(group_quat_mlt)
 	RUN_TEST_CASE(group_quat_mlt, quat_mlt_quatMltTable);
 	RUN_TEST_CASE(group_quat_mlt, quat_mlt_std);
 	RUN_TEST_CASE(group_quat_mlt, quat_mlt_biggerValues);
+}
+
+
+/* ##############################################################################
+ * -----------------------        quat_times tests       ------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_times);
+
+
+TEST_SETUP(group_quat_times)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_times)
+{
+}
+
+
+TEST(group_quat_times, quat_times_std)
+{
+	quat_t A = Q5;
+	quat_t B = A;
+
+	quat_times(&A, POS_SCALAR);
+
+	TEST_ASSERT_EQUAL_FLOAT(B.a * POS_SCALAR, A.a);
+	TEST_ASSERT_EQUAL_FLOAT(B.i * POS_SCALAR, A.i);
+	TEST_ASSERT_EQUAL_FLOAT(B.j * POS_SCALAR, A.j);
+	TEST_ASSERT_EQUAL_FLOAT(B.k * POS_SCALAR, A.k);
+
+	A = B;
+
+	quat_times(&A, NEG_SCALAR);
+
+	TEST_ASSERT_EQUAL_FLOAT(B.a * NEG_SCALAR, A.a);
+	TEST_ASSERT_EQUAL_FLOAT(B.i * NEG_SCALAR, A.i);
+	TEST_ASSERT_EQUAL_FLOAT(B.j * NEG_SCALAR, A.j);
+	TEST_ASSERT_EQUAL_FLOAT(B.k * NEG_SCALAR, A.k);
+}
+
+
+TEST(group_quat_times, quat_times_infs)
+{
+	quat_t A = Q5;
+	quat_t B = A;
+
+	quat_times(&A, INFINITY);
+
+	TEST_ASSERT_EQUAL_FLOAT(B.a * INFINITY, A.a);
+	TEST_ASSERT_EQUAL_FLOAT(B.i * INFINITY, A.i);
+	TEST_ASSERT_EQUAL_FLOAT(B.j * INFINITY, A.j);
+	TEST_ASSERT_EQUAL_FLOAT(B.k * INFINITY, A.k);
+
+	A = B;
+
+	quat_times(&A, -INFINITY);
+
+	TEST_ASSERT_EQUAL_FLOAT(B.a * -INFINITY, A.a);
+	TEST_ASSERT_EQUAL_FLOAT(B.i * -INFINITY, A.i);
+	TEST_ASSERT_EQUAL_FLOAT(B.j * -INFINITY, A.j);
+	TEST_ASSERT_EQUAL_FLOAT(B.k * -INFINITY, A.k);
+}
+
+
+TEST(group_quat_times, quat_times_nan)
+{
+	quat_t A = Q5;
+	quat_t B = A;
+
+	quat_times(&A, NAN);
+
+	TEST_ASSERT_EQUAL_FLOAT(B.a * NAN, A.a);
+	TEST_ASSERT_EQUAL_FLOAT(B.i * NAN, A.i);
+	TEST_ASSERT_EQUAL_FLOAT(B.j * NAN, A.j);
+	TEST_ASSERT_EQUAL_FLOAT(B.k * NAN, A.k);
+}
+
+
+TEST_GROUP_RUNNER(group_quat_times)
+{
+	RUN_TEST_CASE(group_quat_times, quat_times_std);
+	RUN_TEST_CASE(group_quat_times, quat_times_infs);
+	RUN_TEST_CASE(group_quat_times, quat_times_nan);
 }
