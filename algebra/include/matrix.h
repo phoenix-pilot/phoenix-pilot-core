@@ -35,19 +35,19 @@ extern void matrix_bufFree(matrix_t *matrix);
 
 /* return a pointer to matrix element in specified row and column
  * if row or column exceeds matrix size NULL is returned */
-inline float *matrix_at(const matrix_t *A, unsigned int row, unsigned int col)
+static inline float *matrix_at(const matrix_t *A, unsigned int row, unsigned int col)
 {
 	return (A->transposed) ? ((row < A->cols && col < A->rows) ? &(A->data[A->cols * col + row]) : NULL) : ((row < A->rows && col < A->cols) ? &(A->data[A->cols * row + col]) : NULL);
 }
 
 
-inline unsigned int matrix_rowsGet(matrix_t *A)
+static inline unsigned int matrix_rowsGet(matrix_t *A)
 {
 	return (A->transposed) ? A->cols : A->rows;
 }
 
 
-inline unsigned int matrix_colsGet(matrix_t *A)
+static inline unsigned int matrix_colsGet(matrix_t *A)
 {
 	return (A->transposed) ? A->rows : A->cols;
 }
