@@ -184,41 +184,40 @@ int matrix_sparseProd(matrix_t *A, matrix_t *B, matrix_t *C)
 {
 	unsigned int row, col; /* represent position in output A matrix */
 	unsigned int step;     /* represent stepping down over rows/columns in A and B */
-	// const unsigned int Acols = A->cols, Bcols = B->cols; /* rewritten Acols and Bcols for better performance */
 	float currA;
-
-	memset(C->data, 0, sizeof(float) * C->rows * C->cols);
-	/* force switch C matrix to untransposed */
-	if (C->transposed) {
-		row = C->rows;
-		C->rows = C->cols;
-		C->cols = row;
-		C->transposed = 0;
-	}
+	matrix_t tmp = { .data = C->data, .rows = matrix_rowsGet(C), .cols = matrix_colsGet(C), .transposed = 0 };
 
 	if (A->transposed) {
 		if (B->transposed) {
 			/* both matrix transposed */
-			for (row = 0; row < A->rows; row++) {
-				for (col = 0; col < A->cols; col++) {
+			if (A->rows != B->cols || tmp.cols != B->rows || tmp.rows != A->cols) {
+				return -1;
+			}
+
+			for (row = 0; row < A->cols; row++) {
+				for (col = 0; col < A->rows; col++) {
 					currA = A->data[A->cols * col + row];
-					if (currA == 0)
-						continue;
-					for (step = 0; step < C->cols; step++) {
-						C->data[row * C->cols + step] += currA * B->data[B->cols * step + col];
+					if (currA != 0) {
+						for (step = 0; step < tmp.cols; step++) {
+							tmp.data[row * tmp.cols + step] += currA * B->data[B->cols * step + col];
+						}
 					}
 				}
 			}
 		}
 		else {
 			/* only A is transposed */
-			for (row = 0; row < A->rows; row++) {
-				for (col = 0; col < A->cols; col++) {
+			if (A->rows != B->rows || tmp.cols != B->cols || tmp.rows != A->cols) {
+				return -1;
+			}
+
+			for (row = 0; row < A->cols; row++) {
+				for (col = 0; col < A->rows; col++) {
 					currA = A->data[A->cols * col + row];
-					if (currA == 0)
-						continue;
-					for (step = 0; step < C->cols; step++) {
-						C->data[row * C->cols + step] += currA * B->data[B->cols * col + step];
+					if (currA != 0) {
+						for (step = 0; step < tmp.cols; step++) {
+							tmp.data[row * tmp.cols + step] += currA * B->data[B->cols * col + step];
+						}
 					}
 				}
 			}
@@ -227,31 +226,46 @@ int matrix_sparseProd(matrix_t *A, matrix_t *B, matrix_t *C)
 	else {
 		if (B->transposed) {
 			/* only B is transposed */
+			if (A->cols != B->cols || tmp.cols != B->rows || tmp.rows != A->rows) {
+				return -1;
+			}
+
 			for (row = 0; row < A->rows; row++) {
 				for (col = 0; col < A->cols; col++) {
 					currA = A->data[A->cols * row + col];
-					if (currA == 0)
-						continue;
-					for (step = 0; step < C->cols; step++) {
-						C->data[row * C->cols + step] += currA * B->data[B->cols * step + col];
+
+					if (currA != 0) {
+						for (step = 0; step < tmp.cols; step++) {
+							tmp.data[row * tmp.cols + step] += currA * B->data[B->cols * step + col];
+						}
 					}
 				}
 			}
 		}
 		else {
 			/* no matrix is transposed */
+			if (A->cols != B->rows || tmp.cols != B->cols || tmp.rows != A->rows) {
+				return -1;
+			}
+
 			for (row = 0; row < A->rows; row++) {
 				for (col = 0; col < A->cols; col++) {
 					currA = A->data[A->cols * row + col];
-					if (currA == 0)
-						continue;
-					for (step = 0; step < C->cols; step++) {
-						C->data[row * C->cols + step] += currA * B->data[B->cols * col + step];
+
+					if (currA != 0) {
+						for (step = 0; step < tmp.cols; step++) {
+							tmp.data[row * tmp.cols + step] += currA * B->data[B->cols * col + step];
+						}
 					}
 				}
 			}
 		}
 	}
+
+	C->cols = tmp.cols;
+	C->rows = tmp.rows;
+	C->transposed = tmp.transposed;
+
 	return 0;
 }
 
