@@ -168,7 +168,7 @@ __attribute__((constructor(102))) static void cal_magironRegister(void)
 
 	/* hard iron calibration matrix init */
 	magiron_common.hardCal.rows = 3;
-	magiron_common.hardCal.rows = 1;
+	magiron_common.hardCal.cols = 1;
 	magiron_common.hardCal.transposed = 0;
 	magiron_common.hardCal.data = magiron_common.hardCalBuf;
 	matrix_zeroes(&magiron_common.hardCal);
@@ -179,18 +179,18 @@ __attribute__((constructor(102))) static void cal_magironRegister(void)
 	*/
 
 	/* hard iron vector matrix */
-	magiron_common.hardCal.data[0] = 42.47503636;
-	magiron_common.hardCal.data[1] = 1084.20661751;
-	magiron_common.hardCal.data[2] = -111.58247011;
+	*matrix_at(&magiron_common.hardCal, 0, 0) = 42.47503636;
+	*matrix_at(&magiron_common.hardCal, 1, 0) = 1084.20661751;
+	*matrix_at(&magiron_common.hardCal, 2, 0) = -111.58247011;
 
 	/* soft iron matrix */
-	magiron_common.softCal.data[0] = 0.9409439;
-	magiron_common.softCal.data[1] = 0.09766692;
-	magiron_common.softCal.data[2] = -0.01307758;
-	magiron_common.softCal.data[3] = 0.09766692;
-	magiron_common.softCal.data[4] = 1.01364504;
-	magiron_common.softCal.data[5] = -0.01144832;
-	magiron_common.softCal.data[6] = -0.01307758;
-	magiron_common.softCal.data[7] = -0.01144832;
-	magiron_common.softCal.data[8] = 1.0593312;
+	*matrix_at(&magiron_common.softCal, 0, 0) = 0.9409439;
+	*matrix_at(&magiron_common.softCal, 0, 1) = 0.09766692;
+	*matrix_at(&magiron_common.softCal, 0, 2) = -0.01307758;
+	*matrix_at(&magiron_common.softCal, 1, 0) = 0.09766692;
+	*matrix_at(&magiron_common.softCal, 1, 1) = 1.01364504;
+	*matrix_at(&magiron_common.softCal, 1, 2) = -0.01144832;
+	*matrix_at(&magiron_common.softCal, 2, 0) = -0.01307758;
+	*matrix_at(&magiron_common.softCal, 2, 1) = -0.01144832;
+	*matrix_at(&magiron_common.softCal, 2, 2) = 1.0593312;
 }
