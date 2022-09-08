@@ -306,6 +306,95 @@ TEST_GROUP_RUNNER(group_vec_sub)
 
 
 /* ##############################################################################
+ * ------------------------        vec_times tests       ------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_vec_times);
+
+
+TEST_SETUP(group_vec_times)
+{
+}
+
+
+TEST_TEAR_DOWN(group_vec_times)
+{
+}
+
+
+TEST(group_vec_times, vec_times_std)
+{
+	vec_t A = V3;
+	vec_t Exp = {
+		.x = A.x * POS_SCALAR,
+		.y = A.y * POS_SCALAR,
+		.z = A.z * POS_SCALAR
+	};
+
+	vec_times(&A, POS_SCALAR);
+
+	TEST_ASSERT_EQUAL_VEC(Exp, A);
+
+	A = V3;
+	Exp.x = A.x * NEG_SCALAR;
+	Exp.y = A.y * NEG_SCALAR;
+	Exp.z = A.z * NEG_SCALAR;
+
+	vec_times(&A, NEG_SCALAR);
+
+	TEST_ASSERT_EQUAL_VEC(Exp, A);
+}
+
+
+TEST(group_vec_times, vec_times_infs)
+{
+	vec_t A = V3;
+	vec_t Exp = {
+		.x = A.x * INFINITY,
+		.y = A.y * INFINITY,
+		.z = A.z * INFINITY
+	};
+
+	vec_times(&A, INFINITY);
+
+	TEST_ASSERT_EQUAL_VEC(Exp, A)
+
+	A = V3;
+	Exp.x = A.x * -INFINITY;
+	Exp.y = A.y * -INFINITY;
+	Exp.z = A.z * -INFINITY;
+
+	vec_times(&A, -INFINITY);
+
+	TEST_ASSERT_EQUAL_VEC(Exp, A);
+}
+
+
+TEST(group_vec_times, vec_times_nan)
+{
+	vec_t A = V3;
+	vec_t Exp = {
+		.x = A.x * NAN,
+		.y = A.y * NAN,
+		.z = A.z * NAN
+	};
+
+	vec_times(&A, NAN);
+
+	TEST_ASSERT_EQUAL_VEC(Exp, A);
+}
+
+
+TEST_GROUP_RUNNER(group_vec_times)
+{
+	RUN_TEST_CASE(group_vec_times, vec_times_std);
+	RUN_TEST_CASE(group_vec_times, vec_times_infs);
+	RUN_TEST_CASE(group_vec_times, vec_times_nan);
+}
+
+
+/* ##############################################################################
  * ------------------------        vec_cross tests       ------------------------
  * ############################################################################## */
 
