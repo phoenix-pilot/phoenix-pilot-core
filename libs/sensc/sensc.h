@@ -19,8 +19,11 @@
 #include <libsensors.h>
 
 
+typedef enum { corrDisable = 0, corrEnable } sensc_corrMode_t;
+
+
 /* initializes sensor client that should be accessible under path (e.g /dev/sensors) */
-extern int sensc_init(const char *path);
+extern int sensc_init(const char *path, sensc_corrMode_t mode);
 
 /* deinitializes all initialized parts of sensor client */
 extern void sensc_deinit(void);
