@@ -17,6 +17,16 @@
 #include <string.h>
 
 
+void test_assert_float_array_within(float delta, float *expected, float *actual, unsigned int elemNum, int line, char *message)
+{
+	unsigned int i;
+
+	for (i = 0; i < elemNum; i++) {
+		UNITY_TEST_ASSERT_FLOAT_WITHIN(delta, expected[i], actual[i], line, message);
+	}
+}
+
+
 void algebraTests_buffFill(matrix_t *M, const float *vals, unsigned int n)
 {
 	int rowsNum, colsNum, row, col;

@@ -16,13 +16,22 @@
 
 #include <matrix.h>
 
+#include <unity_fixture.h>
 
-/* Checks if `expected` is identical to `actual`. Different between matrix_cmp is that .transposed flag must be equal in both matrices */
+
+/* Checks if `expected` is identical to `actual`. Difference between matrix_cmp is that .transposed flag must be equal in both matrices */
 #define TEST_ASSERT_EQUAL_MATRIX(expected, actual) \
 	TEST_ASSERT_EQUAL_UINT_MESSAGE((expected).transposed, (actual).transposed, "Transposition flag is not equal"); \
 	TEST_ASSERT_EQUAL_UINT_MESSAGE((expected).rows, (actual).rows, "Different rowspan"); \
 	TEST_ASSERT_EQUAL_UINT_MESSAGE((expected).cols, (actual).cols, "Different colspan"); \
 	TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE((expected).data, (actual).data, (actual).rows *(actual).cols, "Different matrix element");
+
+/* Checks if every element of `actual is within +/- `delta` of the value from `expected` */
+#define TEST_ASSERT_MATRIX_WITHIN(delta, expected, actual) \
+	TEST_ASSERT_EQUAL_UINT_MESSAGE((expected).transposed, (actual).transposed, "Transposition flag is not equal"); \
+	TEST_ASSERT_EQUAL_UINT_MESSAGE((expected).rows, (actual).rows, "Different rowspan"); \
+	TEST_ASSERT_EQUAL_UINT_MESSAGE((expected).cols, (actual).cols, "Different colspan"); \
+	test_assert_float_array_within((delta), (expected).data, (actual).data, (actual).rows *(actual).cols, __LINE__, "Different matrix element");
 
 
 /* Defines for matrix_bufAlloc results */
@@ -36,6 +45,9 @@
 #define PRODUCT_OK   0
 #define PRODUCT_FAIL -1
 
+#define SANDWITCH_OK   0
+#define SANDWITCH_FAIL -1
+
 #define WRITE_SUBMAT_OK   0
 #define WRITE_SUBMAT_FAIL -1
 
@@ -48,6 +60,15 @@
 
 /* Must be bigger than SMALL_SHIFT */
 #define BIG_SHIFT 1234
+
+
+/* ##############################################################################
+ * ----------------------        assertions helpers       -----------------------
+ * ############################################################################## */
+
+
+/* This function is used in definition of TEST_ASSERT_MATRIX_WITHIN macro */
+extern void test_assert_float_array_within(float delta, float *expected, float *actual, unsigned int elemNum, int line, char *message);
 
 
 /* ##############################################################################
