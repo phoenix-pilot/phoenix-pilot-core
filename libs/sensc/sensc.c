@@ -21,6 +21,9 @@
 
 #include <libsensors.h>
 
+#include <calib.h>
+#include <hmap.h>
+
 #include "sensc.h"
 
 #define SENSORHUB_PIPES 3 /* number of connections with sensorhub */
@@ -31,7 +34,16 @@ struct {
 	sensors_data_t *data;
 	int fd[SENSORHUB_PIPES]; /* each for one sensor type */
 	unsigned char buff[0x400];
+
+	hmap *calibs;
 } sensc_common;
+
+
+/* Implementation required by <calib.h> */
+void calib_register(calib_t *cal)
+{
+	hmap_insert(sensc_common.calibs, cal->name, cal);
+}
 
 
 static int sensc_setupDscr(fd_id_t type, int typeFlag)
@@ -179,4 +191,21 @@ int sensc_gpsGet(sensor_event_t *gpsEvt)
 	}
 
 	return -1;
+}
+
+
+__attribute__((constructor(101))) static void sensc_premain(void)
+{
+	sensc_common.calibs = hmap_init(CALIBS_SIZE);
+
+	if (sensc_common.calibs == NULL) {
+		printf("calibtool: hashmap allocation fail!");
+		exit(EXIT_FAILURE);
+	}
+}
+
+
+__attribute__((destructor(101))) static void calib_postmain(void)
+{
+	hmap_free(sensc_common.calibs);
 }

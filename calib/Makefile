@@ -6,9 +6,14 @@
 # Copyright 2022 Phoenix Systems
 #
 
-# Magnetometer calibration tool
+# # Magnetometer calibration tool
+# NAME := calibtool
+# CALIBS := magmot.c magiron.c
+# LOCAL_SRCS := main.c hmap.c $(CALIBS)
+# DEP_LIBS := libsensc libmctl libalgeb libcalib
+# include $(binary.mk)
+
 NAME := calibtool
-CALIBS := magmot.c magiron.c
-LOCAL_SRCS := main.c hmap.c $(CALIBS)
-DEP_LIBS := libsensc libmctl libalgeb
+LOCAL_SRCS := main.c
+DEP_LIBS := libsensc libmctl libalgeb libcalib
 include $(binary.mk)

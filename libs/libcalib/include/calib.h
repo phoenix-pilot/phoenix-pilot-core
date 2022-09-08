@@ -17,8 +17,16 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include <matrix.h>
+#include <vec.h>
+#include <libsensors.h>
+
 
 #define SENSOR_PATH "/dev/sensors"
+
+/* Maximum number of calibrations available. Can be freely increased */
+#define CALIBS_SIZE 16
+
 
 typedef struct _calib_t {
 	char name[16]; /* alias of this calibration */
@@ -33,11 +41,16 @@ typedef struct _calib_t {
 	int (*interpret)(const char *valName, float val); /* calibration file data interpreter */
 	int (*write)(FILE *file);                         /* calibration file data write */
 
-	struct _calib_t *next; /* linked list pointer */
+	/* Correction calculation prodecures */
+	int (*cDo)(sensor_event_t *evt); /* corrects given measurement event based on own correction type */
+	int (*cInit)(void);              /* initialization of correction algorithm, NULL if unnecessary */
+	int (*cDone)(void);              /* deinitialization of correction algorithm, NULL if unnecessary */
+	int (*cRecalc)(void);            /* correction recalculation procedure */
+	const time_t delay;                 /* time delay in microseconds between correction recalculation, 0 if correction is time-invariant */
 } calib_t;
 
 
 /* registering new calibration procedure */
-void calib_register(calib_t *c);
+extern void calib_register(calib_t *c);
 
 #endif

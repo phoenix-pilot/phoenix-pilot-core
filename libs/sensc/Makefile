@@ -10,4 +10,5 @@
 NAME := libsensc
 LOCAL_SRCS := sensc.c
 LOCAL_HEADERS := sensc.h
+DEP_LIBS := libmctl libalgeb
 include $(static-lib.mk)

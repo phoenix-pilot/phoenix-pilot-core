@@ -21,7 +21,6 @@
 #include "hmap.h"
 
 #define CALIB_FILE  "/etc/calib.conf" /* Path to calibration parameters file */
-#define CALIBS_SIZE 16                /* Maximum number of calibrations available. Can be freely increased */
 
 /* text formatting defined */
 #define COLOR_BOLD "\e[1m"

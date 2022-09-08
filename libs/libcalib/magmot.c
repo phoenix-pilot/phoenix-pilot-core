@@ -16,7 +16,9 @@
 #include <math.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 #include <errno.h>
+#include <sys/threads.h>
 
 #include <board_config.h>
 #include <libsensors.h>
@@ -35,6 +37,7 @@
 
 /* FIXME: this should be handled inside, or taken from mtcl */
 #define NUM_OF_MOTORS 4
+#define PWM_PRESCALER 100000
 
 static const char *motorFiles[] = {
 	PWM_MOTOR1,
@@ -46,6 +49,11 @@ static const char *motorFiles[] = {
 struct {
 	/* motorEq[motorId 0/1/2...NUM_OF_MOTORS][axisId x/y/z][equation_param a/b/c] */
 	float motorEq[NUM_OF_MOTORS][3][3];
+
+	/* Correction variables */
+	FILE *pwmFiles[NUM_OF_MOTORS];
+	vec_t corr;
+	handle_t corrLock;
 } magmot_common;
 
 
@@ -296,6 +304,105 @@ static int cal_magmotInit(int argc, const char **argv)
 }
 
 
+static int corr_magironInit(void)
+{
+	int i = 0;
+	bool err = false;
+
+	if (mutexCreate(&magmot_common.corrLock) < 0) {
+		return -ENOMEM;
+	}
+
+	while (i < NUM_OF_MOTORS && !err) {
+		magmot_common.pwmFiles[i] = fopen(motorFiles[i], "r");
+		err = (magmot_common.pwmFiles[i] == NULL);
+	}
+
+	if (err) {
+		/* if error occured close all previously opened files */
+		while (--i >= 0) {
+			fclose(magmot_common.pwmFiles[i]);
+		}
+		resourceDestroy(magmot_common.corrLock);
+
+		return -ENOMEM;
+	}
+
+	return EOK;
+}
+
+
+static int corr_magmotDone(void)
+{
+	int i = 0;
+
+	while (i < NUM_OF_MOTORS) {
+		fclose(magmot_common.pwmFiles[i++]);
+	}
+
+	resourceDestroy(magmot_common.corrLock);
+
+	return EOK;
+}
+
+
+static int corr_magmotRecalc(void)
+{
+	long throttles[NUM_OF_MOTORS];
+	char buff[16];
+	int mot, param;
+	float throttle;
+	vec_t axisImpact[3], impact = { 0 };
+
+	for (mot = 0; mot < NUM_OF_MOTORS; mot++) {
+		fread(buff, sizeof(char), sizeof(buff), magmot_common.pwmFiles[mot]);
+
+		throttles[mot] = strtod(buff, NULL);
+
+		/* strtod fail also fails this check */
+		throttles[mot] -= PWM_PRESCALER;
+		if (throttles[mot] > PWM_PRESCALER || throttles[mot] < 0) {
+			return -EINVAL;
+		}
+	}
+
+	for (mot = 0; mot < NUM_OF_MOTORS; mot++) {
+		throttle = (float)throttles[mot] / PWM_PRESCALER;
+
+		for (param = 0; param < 3; param++) {
+			axisImpact[param].x = magmot_common.motorEq[mot][0][param];
+			axisImpact[param].y = magmot_common.motorEq[mot][1][param];
+			axisImpact[param].z = magmot_common.motorEq[mot][2][param];
+		}
+
+		vec_times(&axisImpact[0], throttle * throttle);
+		vec_times(&axisImpact[1], throttle);
+
+		vec_sub(&impact, &axisImpact[0]);
+		vec_sub(&impact, &axisImpact[1]);
+		vec_sub(&impact, &axisImpact[2]);
+	}
+
+	mutexLock(magmot_common.corrLock);
+	magmot_common.corr = impact;
+	mutexUnlock(magmot_common.corrLock);
+
+	return EOK;
+}
+
+
+int corr_magmotDo(sensor_event_t *evt)
+{
+	mutexLock(magmot_common.corrLock);
+	evt->mag.magX += magmot_common.corr.x;
+	evt->mag.magY += magmot_common.corr.y;
+	evt->mag.magZ += magmot_common.corr.z;
+	mutexUnlock(magmot_common.corrLock);
+
+	return EOK;
+}
+
+
 __attribute__((constructor(102))) static void cal_magmotRegister(void)
 {
 	unsigned int motor, axis, param;
@@ -306,7 +413,13 @@ __attribute__((constructor(102))) static void cal_magmotRegister(void)
 		.done = cal_magmotDone,
 		.interpret = cal_magmotInterpret,
 		.write = cal_magmotWrite,
-		.help = cal_magmotHelp
+		.help = cal_magmotHelp,
+
+		.cInit = corr_magironInit,
+		.cDone = corr_magmotDone,
+		.cRecalc = corr_magmotRecalc,
+		.cDo = corr_magmotDo,
+		.delay = 100 * 1000
 	};
 
 	calib_register(&cal);
