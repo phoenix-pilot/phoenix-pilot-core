@@ -16,6 +16,13 @@
 #include <quat.h>
 
 
+#define TEST_ASSERT_EQUAL_QUAT(expected, actual) \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).a, (actual).a, "Different real part of quaternion"); \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).i, (actual).i, "Different `i` part of quaternion"); \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).i, (actual).i, "Different `j` part of quaternion"); \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).i, (actual).i, "Different `k` part of quaternion");
+
+
 #define QUAT_CMP_OK 0
 
 #define POS_SCALAR 4.12
