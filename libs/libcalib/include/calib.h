@@ -36,6 +36,6 @@ typedef struct _calib_t {
 
 
 /* registering new calibration procedure */
-void calib_register(calib_t *c);
+extern void calib_register(calib_t *c);
 
 #endif
