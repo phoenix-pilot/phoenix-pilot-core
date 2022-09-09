@@ -16,6 +16,13 @@
 #include <quat.h>
 
 
+#define TEST_ASSERT_EQUAL_QUAT(expected, actual) \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).a, (actual).a, "Different real part of quaternion"); \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).i, (actual).i, "Different `i` part of quaternion"); \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).i, (actual).i, "Different `j` part of quaternion"); \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).i, (actual).i, "Different `k` part of quaternion");
+
+
 #define QUAT_CMP_OK 0
 
 #define POS_SCALAR 4.12
@@ -115,13 +122,11 @@ TEST(group_quat_idenWrite, quat_idenWrite_std)
 {
 	/* Initialising quaternion with non zero and non one values */
 	quat_t A = Q1;
+	quat_t Exp = { .a = 1.0f, .i = 0.0f, .j = 0.0f, .k = 0.0f };
 
 	quat_idenWrite(&A);
 
-	TEST_ASSERT_EQUAL_FLOAT(1.0, A.a);
-	TEST_ASSERT_EQUAL_FLOAT(0.0, A.i);
-	TEST_ASSERT_EQUAL_FLOAT(0.0, A.j);
-	TEST_ASSERT_EQUAL_FLOAT(0.0, A.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, A);
 }
 
 
@@ -153,13 +158,11 @@ TEST(group_quat_piWrite, quat_piWrite_std)
 {
 	/* Initialising quaternion with non zero and non one values */
 	quat_t A = Q1;
+	quat_t Exp = { .a = 0.0f, .i = 1.0f, .j = 0.0f, .k = 0.0f };
 
 	quat_piWrite(&A);
 
-	TEST_ASSERT_EQUAL_FLOAT(0.0, A.a);
-	TEST_ASSERT_EQUAL_FLOAT(1.0, A.i);
-	TEST_ASSERT_EQUAL_FLOAT(0.0, A.j);
-	TEST_ASSERT_EQUAL_FLOAT(0.0, A.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, A);
 }
 
 
@@ -191,14 +194,11 @@ TEST(group_quat_add, quat_add_std)
 {
 	quat_t A = Q2;
 	quat_t B = Q3;
-	quat_t C = A;
+	quat_t Exp = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
 
 	quat_add(&A, &B);
 
-	TEST_ASSERT_EQUAL_FLOAT(C.a + B.a, A.a);
-	TEST_ASSERT_EQUAL_FLOAT(C.i + B.i, A.i);
-	TEST_ASSERT_EQUAL_FLOAT(C.j + B.j, A.j);
-	TEST_ASSERT_EQUAL_FLOAT(C.k + B.k, A.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, A);
 }
 
 
@@ -206,14 +206,11 @@ TEST(group_quat_add, quat_add_biggerValues)
 {
 	quat_t A = Q4;
 	quat_t B = Q5;
-	quat_t C = A;
+	quat_t Exp = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
 
 	quat_add(&A, &B);
 
-	TEST_ASSERT_EQUAL_FLOAT(C.a + B.a, A.a);
-	TEST_ASSERT_EQUAL_FLOAT(C.i + B.i, A.i);
-	TEST_ASSERT_EQUAL_FLOAT(C.j + B.j, A.j);
-	TEST_ASSERT_EQUAL_FLOAT(C.k + B.k, A.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, A);
 }
 
 
@@ -247,13 +244,11 @@ TEST(group_quat_sum, quat_sum_std)
 	quat_t A = Q2;
 	quat_t B = Q3;
 	quat_t C;
+	quat_t Exp = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
 
 	quat_sum(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(A.a + B.a, C.a);
-	TEST_ASSERT_EQUAL_FLOAT(A.i + B.i, C.i);
-	TEST_ASSERT_EQUAL_FLOAT(A.j + B.j, C.j);
-	TEST_ASSERT_EQUAL_FLOAT(A.k + B.k, C.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, C);
 }
 
 
@@ -262,13 +257,11 @@ TEST(group_quat_sum, quat_sum_biggerValues)
 	quat_t A = Q4;
 	quat_t B = Q5;
 	quat_t C;
+	quat_t Exp = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
 
 	quat_sum(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(A.a + B.a, C.a);
-	TEST_ASSERT_EQUAL_FLOAT(A.i + B.i, C.i);
-	TEST_ASSERT_EQUAL_FLOAT(A.j + B.j, C.j);
-	TEST_ASSERT_EQUAL_FLOAT(A.k + B.k, C.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, C);
 }
 
 
@@ -301,14 +294,11 @@ TEST(group_quat_sub, quat_sub_std)
 {
 	quat_t A = Q2;
 	quat_t B = Q3;
-	quat_t C = A;
+	quat_t Exp = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
 
 	quat_sub(&A, &B);
 
-	TEST_ASSERT_EQUAL_FLOAT(C.a - B.a, A.a);
-	TEST_ASSERT_EQUAL_FLOAT(C.i - B.i, A.i);
-	TEST_ASSERT_EQUAL_FLOAT(C.j - B.j, A.j);
-	TEST_ASSERT_EQUAL_FLOAT(C.k - B.k, A.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, A);
 }
 
 
@@ -316,14 +306,11 @@ TEST(group_quat_sub, quat_sub_biggerValues)
 {
 	quat_t A = Q4;
 	quat_t B = Q5;
-	quat_t C = A;
+	quat_t Exp = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
 
 	quat_sub(&A, &B);
 
-	TEST_ASSERT_EQUAL_FLOAT(C.a - B.a, A.a);
-	TEST_ASSERT_EQUAL_FLOAT(C.i - B.i, A.i);
-	TEST_ASSERT_EQUAL_FLOAT(C.j - B.j, A.j);
-	TEST_ASSERT_EQUAL_FLOAT(C.k - B.k, A.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, A);
 }
 
 
@@ -357,13 +344,11 @@ TEST(group_quat_dif, quat_dif_std)
 	quat_t A = Q2;
 	quat_t B = Q3;
 	quat_t C;
+	quat_t Exp = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
 
 	quat_dif(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(A.a - B.a, C.a);
-	TEST_ASSERT_EQUAL_FLOAT(A.i - B.i, C.i);
-	TEST_ASSERT_EQUAL_FLOAT(A.j - B.j, C.j);
-	TEST_ASSERT_EQUAL_FLOAT(A.k - B.k, C.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, C);
 }
 
 
@@ -372,13 +357,11 @@ TEST(group_quat_dif, quat_dif_biggerValues)
 	quat_t A = Q4;
 	quat_t B = Q5;
 	quat_t C;
+	quat_t Exp = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
 
 	quat_dif(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(A.a - B.a, C.a);
-	TEST_ASSERT_EQUAL_FLOAT(A.i - B.i, C.i);
-	TEST_ASSERT_EQUAL_FLOAT(A.j - B.j, C.j);
-	TEST_ASSERT_EQUAL_FLOAT(A.k - B.k, C.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, C);
 }
 
 
@@ -418,67 +401,67 @@ TEST(group_quat_mlt, quat_mlt_quatMltTable)
 
 	/* Checking if 1 * 1 is equal to 1 */
 	quat_mlt(&qA, &qA, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &qA));
+	TEST_ASSERT_EQUAL_QUAT(qA, Res);
 
 	/* Checking if 1 * i is equal to i */
 	quat_mlt(&qA, &qI, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &qI));
+	TEST_ASSERT_EQUAL_QUAT(qI, Res);
 
 	/* Checking if 1 * j is equal to j */
 	quat_mlt(&qA, &qJ, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &qJ));
+	TEST_ASSERT_EQUAL_QUAT(qJ, Res);
 
 	/* Checking if 1 * k is equal to k */
 	quat_mlt(&qA, &qK, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &qK));
+	TEST_ASSERT_EQUAL_QUAT(qK, Res);
 
 	/* Checking if i * 1 is equal to i */
 	quat_mlt(&qI, &qA, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &qI));
+	TEST_ASSERT_EQUAL_QUAT(qI, Res);
 
 	/* Checking if i * i is equal to -1 */
 	quat_mlt(&qI, &qI, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &nqA));
+	TEST_ASSERT_EQUAL_QUAT(nqA, Res);
 
 	/* Checking if i * j is equal to k */
 	quat_mlt(&qI, &qJ, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &qK));
+	TEST_ASSERT_EQUAL_QUAT(qK, Res);
 
 	/* Checking if i * k is equal to -j */
 	quat_mlt(&qI, &qK, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &nqJ));
+	TEST_ASSERT_EQUAL_QUAT(nqJ, Res);
 
 	/* Checking if j * 1 is equal to j */
 	quat_mlt(&qJ, &qA, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &qJ));
+	TEST_ASSERT_EQUAL_QUAT(qJ, Res);
 
 	/* Checking if j * i is equal to -k */
 	quat_mlt(&qJ, &qI, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &nqK));
+	TEST_ASSERT_EQUAL_QUAT(nqK, Res);
 
 	/* Checking if j * j is equal to -1 */
 	quat_mlt(&qJ, &qJ, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &nqA));
+	TEST_ASSERT_EQUAL_QUAT(nqA, Res);
 
 	/* Checking if j * k is equal to i */
 	quat_mlt(&qJ, &qK, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &qI));
+	TEST_ASSERT_EQUAL_QUAT(qI, Res);
 
 	/* Checking if k * 1 is equal to k */
 	quat_mlt(&qK, &qA, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &qK));
+	TEST_ASSERT_EQUAL_QUAT(qK, Res);
 
 	/* Checking if k * i is equal to j */
 	quat_mlt(&qK, &qI, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &qJ));
+	TEST_ASSERT_EQUAL_QUAT(qJ, Res);
 
 	/* Checking if k * j is equal to -i */
 	quat_mlt(&qK, &qJ, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &nqI));
+	TEST_ASSERT_EQUAL_QUAT(nqI, Res);
 
 	/* Checking if k * k is equal to -1 */
 	quat_mlt(&qK, &qK, &Res);
-	TEST_ASSERT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Res, &nqA));
+	TEST_ASSERT_EQUAL_QUAT(nqA, Res);
 }
 
 
@@ -487,14 +470,10 @@ TEST(group_quat_mlt, quat_mlt_std)
 	quat_t A = Q2;
 	quat_t B = Q3;
 	quat_t C;
-	quat_t Exp = Q2timesQ3;
 
 	quat_mlt(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(Exp.a, C.a);
-	TEST_ASSERT_EQUAL_FLOAT(Exp.i, C.i);
-	TEST_ASSERT_EQUAL_FLOAT(Exp.j, C.j);
-	TEST_ASSERT_EQUAL_FLOAT(Exp.k, C.k);
+	TEST_ASSERT_EQUAL_QUAT(Q2timesQ3, C);
 }
 
 
@@ -503,14 +482,10 @@ TEST(group_quat_mlt, quat_mlt_biggerValues)
 	quat_t A = Q4;
 	quat_t B = Q5;
 	quat_t C;
-	quat_t Exp = Q4timesQ5;
 
 	quat_mlt(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(Exp.a, C.a);
-	TEST_ASSERT_EQUAL_FLOAT(Exp.i, C.i);
-	TEST_ASSERT_EQUAL_FLOAT(Exp.j, C.j);
-	TEST_ASSERT_EQUAL_FLOAT(Exp.k, C.k);
+	TEST_ASSERT_EQUAL_QUAT(Q4timesQ5, C);
 }
 
 
@@ -543,60 +518,63 @@ TEST_TEAR_DOWN(group_quat_times)
 TEST(group_quat_times, quat_times_std)
 {
 	quat_t A = Q5;
-	quat_t B = A;
+	quat_t Exp = {
+		.a = A.a * POS_SCALAR,
+		.i = A.i * POS_SCALAR,
+		.j = A.j * POS_SCALAR,
+		.k = A.k * POS_SCALAR
+	};
 
 	quat_times(&A, POS_SCALAR);
 
-	TEST_ASSERT_EQUAL_FLOAT(B.a * POS_SCALAR, A.a);
-	TEST_ASSERT_EQUAL_FLOAT(B.i * POS_SCALAR, A.i);
-	TEST_ASSERT_EQUAL_FLOAT(B.j * POS_SCALAR, A.j);
-	TEST_ASSERT_EQUAL_FLOAT(B.k * POS_SCALAR, A.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, A);
 
-	A = B;
+	A = Q5;
+	Exp.a = A.a * NEG_SCALAR;
+	Exp.i = A.i * NEG_SCALAR;
+	Exp.j = A.j * NEG_SCALAR;
+	Exp.k = A.k * NEG_SCALAR;
 
 	quat_times(&A, NEG_SCALAR);
 
-	TEST_ASSERT_EQUAL_FLOAT(B.a * NEG_SCALAR, A.a);
-	TEST_ASSERT_EQUAL_FLOAT(B.i * NEG_SCALAR, A.i);
-	TEST_ASSERT_EQUAL_FLOAT(B.j * NEG_SCALAR, A.j);
-	TEST_ASSERT_EQUAL_FLOAT(B.k * NEG_SCALAR, A.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, A);
 }
 
 
 TEST(group_quat_times, quat_times_infs)
 {
 	quat_t A = Q5;
-	quat_t B = A;
+	quat_t Exp = {
+		.a = A.a * INFINITY,
+		.i = A.i * INFINITY,
+		.j = A.j * INFINITY,
+		.k = A.k * INFINITY
+	};
 
 	quat_times(&A, INFINITY);
 
-	TEST_ASSERT_EQUAL_FLOAT(B.a * INFINITY, A.a);
-	TEST_ASSERT_EQUAL_FLOAT(B.i * INFINITY, A.i);
-	TEST_ASSERT_EQUAL_FLOAT(B.j * INFINITY, A.j);
-	TEST_ASSERT_EQUAL_FLOAT(B.k * INFINITY, A.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, A);
 
-	A = B;
+	A = Q5;
+	Exp.a = A.a * -INFINITY;
+	Exp.i = A.i * -INFINITY;
+	Exp.j = A.j * -INFINITY;
+	Exp.k = A.k * -INFINITY;
 
 	quat_times(&A, -INFINITY);
 
-	TEST_ASSERT_EQUAL_FLOAT(B.a * -INFINITY, A.a);
-	TEST_ASSERT_EQUAL_FLOAT(B.i * -INFINITY, A.i);
-	TEST_ASSERT_EQUAL_FLOAT(B.j * -INFINITY, A.j);
-	TEST_ASSERT_EQUAL_FLOAT(B.k * -INFINITY, A.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, A);
 }
 
 
 TEST(group_quat_times, quat_times_nan)
 {
 	quat_t A = Q5;
-	quat_t B = A;
+	quat_t Exp = { .a = A.a * NAN, .i = A.i * NAN, .j = A.j * NAN, .k = A.k * NAN };
 
 	quat_times(&A, NAN);
 
-	TEST_ASSERT_EQUAL_FLOAT(B.a * NAN, A.a);
-	TEST_ASSERT_EQUAL_FLOAT(B.i * NAN, A.i);
-	TEST_ASSERT_EQUAL_FLOAT(B.j * NAN, A.j);
-	TEST_ASSERT_EQUAL_FLOAT(B.k * NAN, A.k);
+	TEST_ASSERT_EQUAL_QUAT(Exp, A);
 }
 
 
