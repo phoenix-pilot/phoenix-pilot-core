@@ -17,6 +17,9 @@
 #include <string.h>
 #include <errno.h>
 
+#include <board_config.h>
+#include <libsensors.h>
+
 #include <matrix.h>
 #include <vec.h>
 
@@ -150,6 +153,26 @@ static int cal_magironInit(int argc, const char **argv)
 }
 
 
+static int corr_magironDo(sensor_event_t *evt)
+{
+	float measBuf[3] = { evt->mag.magX, evt->mag.magY, evt->mag.magZ };
+	float corrBuff[3];
+	matrix_t meas = { .data = measBuf, .rows = 3, .cols = 1, .transposed = 0 };
+	matrix_t corr = { .data = corrBuff, .rows = 3, .cols = 1, .transposed = 0 };
+
+	/* precompiled values need to be subtracted, as they are error, not correction */
+	matrix_sub(&meas, &magiron_common.hardCal, NULL);
+	matrix_prod(&magiron_common.softCal, &meas, &corr);
+
+	evt->mag.magX = *matrix_at(&corr, 0, 0);
+	evt->mag.magY = *matrix_at(&corr, 1, 0);
+	evt->mag.magZ = *matrix_at(&corr, 2, 0);
+
+	return 0;
+}
+
+
+
 static void cal_magironPreinit(void)
 {
 	/* Soft iron calibration matrix init */
@@ -198,7 +221,13 @@ __attribute__((constructor(102))) static void cal_magironRegister(void)
 		.done = cal_magironDone,
 		.interpret = cal_magironInterpret,
 		.write = cal_magironWrite,
-		.help = cal_magironHelp
+		.help = cal_magironHelp,
+
+		.corrInit = NULL,
+		.corrRecalc = NULL,
+		.corrDone = NULL,
+		.corrDo = corr_magironDo,
+		.delay = 0
 	};
 
 	calib_register(&cal);
