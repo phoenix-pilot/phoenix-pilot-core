@@ -16,6 +16,11 @@
 #include <vec.h>
 
 
+#define TEST_ASSERT_EQUAL_VEC(expected, actual) \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).x, (actual).x, "Different `x` part of vectors"); \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).y, (actual).y, "Different `y` part of vectors"); \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).z, (actual).z, "Different `z` part of vectors");
+
 #define VEC_CMP_OK 0
 
 #define POS_SCALAR 2.5
