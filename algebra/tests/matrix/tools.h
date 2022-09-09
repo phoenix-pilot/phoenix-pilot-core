@@ -16,6 +16,15 @@
 
 #include <matrix.h>
 
+
+/* Checks if `expected` is identical to `actual`. Different between matrix_cmp is that .transposed flag must be equal in both matrices */
+#define TEST_ASSERT_EQUAL_MATRIX(expected, actual) \
+	TEST_ASSERT_EQUAL_UINT_MESSAGE((expected).transposed, (actual).transposed, "Transposition flag is not equal"); \
+	TEST_ASSERT_EQUAL_UINT_MESSAGE((expected).rows, (actual).rows, "Different rowspan"); \
+	TEST_ASSERT_EQUAL_UINT_MESSAGE((expected).cols, (actual).cols, "Different colspan"); \
+	TEST_ASSERT_EQUAL_FLOAT_ARRAY_MESSAGE((expected).data, (actual).data, (actual).rows *(actual).cols, "Different matrix element");
+
+
 /* Defines for matrix_bufAlloc results */
 #define BUF_ALLOC_OK   0
 #define BUF_ALLOC_FAIL -1

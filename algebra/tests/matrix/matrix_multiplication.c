@@ -66,10 +66,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_std)
 {
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -80,10 +77,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_firstMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -93,10 +87,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_secondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -107,10 +98,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_firstAndSecondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -120,10 +108,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_resultMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -134,10 +119,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_resultAndFirstMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -148,10 +130,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_resultAndSecondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -163,10 +142,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_allMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -210,10 +186,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsStd)
 {
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -223,10 +196,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsFirstMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -236,10 +206,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsSecondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -250,10 +217,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsFirstAndSecondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -263,10 +227,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsResultMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -277,10 +238,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsResultAndFirstMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -291,10 +249,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsResultAndSecondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -306,10 +261,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsAllMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_UINT(Exp.rows, M3.rows);
-	TEST_ASSERT_EQUAL_UINT(Exp.cols, M3.cols);
-	TEST_ASSERT_EQUAL_UINT(Exp.transposed, M3.transposed);
-	TEST_ASSERT_EQUAL_FLOAT_ARRAY(Exp.data, M3.data, M3.rows * M3.cols);
+	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
 }
 
 
@@ -321,8 +273,8 @@ TEST(group_matrix_prod_bigMat, matrix_prod_sourceRetain)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M1, &M4));
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M2, &M5));
+	TEST_ASSERT_EQUAL_MATRIX(M1, M4);
+	TEST_ASSERT_EQUAL_MATRIX(M2, M5);
 }
 
 
@@ -410,7 +362,7 @@ TEST(group_matrix_prod_badMats, matrix_prod_failureRetain)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_FAIL, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M4, &M3));
+	TEST_ASSERT_EQUAL_MATRIX(M4, M3);
 }
 
 
