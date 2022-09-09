@@ -17,10 +17,16 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include <matrix.h>
+#include <vec.h>
+#include <libsensors.h>
+
 #include "hmap.h"
 
 
-#define SENSOR_PATH "/dev/sensors"
+#define SENSOR_PATH "/dev/sensors"   /* path to sensor manager device */
+#define CALIB_FILE "/etc/calib.conf" /* Path to calibration parameters file */
+#define CALIBS_SIZE 16               /* Maximum number of calibrations available. Can be freely increased */
 
 typedef struct _calib_t {
 	char name[16]; /* alias of this calibration */
@@ -34,6 +40,13 @@ typedef struct _calib_t {
 	const char *(*help)(void);             /* help message description */
 	int (*interpret)(const char *, float); /* calibration file data interpreter */
 	int (*write)(FILE *);                  /* calibration file data write */
+
+	/* Correction calculation prodecures */
+	int (*corrDo)(sensor_event_t *); /* corrects given measurement event based on own correction type */
+	int (*corrInit)(void);           /* initialization of correction algorithm, NULL if unnecessary */
+	int (*corrDone)(void);           /* deinitialization of correction algorithm, NULL if unnecessary */
+	int (*corrRecalc)(void);         /* correction recalculation procedure */
+	const time_t delay;              /* time delay in microseconds between correction recalculation, 0 if correction is time-invariant */
 } calib_t;
 
 
