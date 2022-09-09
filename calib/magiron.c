@@ -26,6 +26,11 @@
 #define CHAR_HARDIRON 'h'
 #define CHAR_SOFTIRON 's'
 
+#define SOFTCAL_ROWSPAN 3
+#define SOFTCAL_COLSPAN 3
+#define HARDCAL_ROWSPAN 3
+#define HARDCAL_COLSPAN 1
+
 
 struct {
 	/* Calibration parameters */
@@ -33,8 +38,8 @@ struct {
 	matrix_t hardCal;
 
 	/* Utility variables */
-	float softCalBuf[9];
-	float hardCalBuf[3];
+	float softCalBuf[SOFTCAL_ROWSPAN * SOFTCAL_COLSPAN];
+	float hardCalBuf[HARDCAL_ROWSPAN * HARDCAL_COLSPAN];
 } magiron_common;
 
 
@@ -100,11 +105,11 @@ static int cal_magironWrite(FILE *file)
 }
 
 
-static int cal_magironInterpret(const char *valName, float val)
+static int cal_magironInterpret(const char *name, float val)
 {
 	float *valSlot;
 
-	valSlot = magiron_paramSlot(valName);
+	valSlot = magiron_paramSlot(name);
 	if (valSlot == NULL) {
 		return -ENOENT;
 	}
@@ -117,7 +122,7 @@ static int cal_magironInterpret(const char *valName, float val)
 
 static const char *cal_magironHelp(void)
 {
-	return "  Magnetometer calibration against soft/hard iron interference.\n";
+	return "Magnetometer calibration against soft/hard iron interference.\n";
 }
 
 
@@ -145,30 +150,18 @@ static int cal_magironInit(int argc, const char **argv)
 }
 
 
-__attribute__((constructor(102))) static void cal_magironRegister(void)
+static void cal_magironPreinit(void)
 {
-	static calib_t cal = {
-		.name = "magiron",
-		.init = cal_magironInit,
-		.run = cal_magironRun,
-		.done = cal_magironDone,
-		.interpret = cal_magironInterpret,
-		.write = cal_magironWrite,
-		.help = cal_magironHelp
-	};
-
-	calib_register(&cal);
-
 	/* Soft iron calibration matrix init */
-	magiron_common.softCal.cols = 3;
-	magiron_common.softCal.rows = 3;
+	magiron_common.softCal.cols = SOFTCAL_COLSPAN;
+	magiron_common.softCal.rows = SOFTCAL_ROWSPAN;
 	magiron_common.softCal.transposed = 0;
 	magiron_common.softCal.data = magiron_common.softCalBuf;
 	matrix_diag(&magiron_common.softCal);
 
 	/* hard iron calibration matrix init */
-	magiron_common.hardCal.rows = 3;
-	magiron_common.hardCal.rows = 1;
+	magiron_common.hardCal.cols = HARDCAL_COLSPAN;
+	magiron_common.hardCal.rows = HARDCAL_ROWSPAN;
 	magiron_common.hardCal.transposed = 0;
 	magiron_common.hardCal.data = magiron_common.hardCalBuf;
 	matrix_zeroes(&magiron_common.hardCal);
@@ -193,4 +186,22 @@ __attribute__((constructor(102))) static void cal_magironRegister(void)
 	magiron_common.softCal.data[6] = -0.01307758;
 	magiron_common.softCal.data[7] = -0.01144832;
 	magiron_common.softCal.data[8] = 1.0593312;
+}
+
+
+__attribute__((constructor(102))) static void cal_magironRegister(void)
+{
+	static calib_t cal = {
+		.name = "magiron",
+		.init = cal_magironInit,
+		.run = cal_magironRun,
+		.done = cal_magironDone,
+		.interpret = cal_magironInterpret,
+		.write = cal_magironWrite,
+		.help = cal_magironHelp
+	};
+
+	calib_register(&cal);
+
+	cal_magironPreinit();
 }
