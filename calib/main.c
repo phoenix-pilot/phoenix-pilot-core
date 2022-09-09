@@ -29,15 +29,8 @@
 
 
 struct {
-	hmap *calibs;
+	hmap_t *calibs;
 } calib_common;
-
-
-/* Get calibration procedure named `key` */
-static inline calib_t *calib_get(const char *key)
-{
-	return hmap_get(calib_common.calibs, key);
-}
 
 
 /* Register new calib_t procedure. */
@@ -57,15 +50,21 @@ static void calib_help(void)
 	printf("Usage: calibtool mode [ARGS]\n");
 	printf(
 		"  %i calibration mode%savailable%c\n\n",
-		calib_common.calibs->used,
-		(calib_common.calibs->used == 1) ? " " : "s ",
-		(calib_common.calibs->used == 0) ? '.' : ':');
+		calib_common.calibs->size,
+		(calib_common.calibs->size == 1) ? " " : "s ",
+		(calib_common.calibs->size == 0) ? '.' : ':');
 
 	/* iterating over hashmap */
 	iter = 0;
 	cal = (calib_t *)hmap_next(calib_common.calibs, &iter);
 	while (cal != NULL) {
-		printf("  %s%s%s:\n%s\n", COLOR_BOLD, cal->name, COLOR_OFF, cal->help());
+		if (cal->help == NULL) {
+			fprintf(stderr, "calibtool: calibration %s lacks help function\n", cal->name);
+		}
+		else {
+			printf("  %s%s%s:\n  %s\n", COLOR_BOLD, cal->name, COLOR_OFF, cal->help());
+		}
+
 		cal = (calib_t *)hmap_next(calib_common.calibs, &iter);
 	}
 }
@@ -108,11 +107,14 @@ static int calib_read(const char *path)
 		}
 		else if (head[0] == '@') {
 			/* tag condition */
-			cal = calib_get(&head[1]);
+			cal = hmap_get(calib_common.calibs, &head[1]);
 			if (cal == NULL) {
 				fprintf(stderr, "calibtool: error reading %s at line %i: unknown calib mode %s \n", path, lineNum, head);
 				ret = -ENOENT;
 				break;
+			}
+			if (cal->interpret == NULL) {
+				fprintf(stderr, "calibtool: calibration %s lacks interpreter\n", cal->name);
 			}
 		}
 		else {
@@ -191,6 +193,14 @@ static int calib_do(calib_t *cal, int argc, const char **argv)
 {
 	int ret;
 
+	if (cal == NULL) {
+		return -ENOENT;
+	}
+
+	if (cal->init == NULL || cal->run == NULL || cal->done == NULL) {
+		return -EINVAL;
+	}
+
 	ret = cal->init(argc, argv);
 	if (ret != EOK) {
 		fprintf(stderr, "calibtool: procedure '%s' init failed with code: %d\n", cal->name, ret);
@@ -225,7 +235,7 @@ int main(int argc, const char **argv)
 	}
 
 	/* get calibration procedure according to user choice */
-	cal = calib_get(argv[1]);
+	cal = hmap_get(calib_common.calibs, argv[1]);
 	if (cal == NULL) {
 		fprintf(stderr, "calibtool: unknown procedure '%s'. Use option '-h' to print help.\n", argv[1]);
 		return EXIT_FAILURE;

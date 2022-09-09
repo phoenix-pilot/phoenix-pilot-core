@@ -29,11 +29,9 @@ typedef struct _calib_t {
 	int (*init)(int, const char **); /* procedure initialization */
 
 	/* utility related */
-	const char *(*help)(void);                        /* help message description */
-	int (*interpret)(const char *valName, float val); /* calibration file data interpreter */
-	int (*write)(FILE *file);                         /* calibration file data write */
-
-	struct _calib_t *next; /* linked list pointer */
+	const char *(*help)(void);             /* help message description */
+	int (*interpret)(const char *, float); /* calibration file data interpreter */
+	int (*write)(FILE *);                  /* calibration file data write */
 } calib_t;
 
 

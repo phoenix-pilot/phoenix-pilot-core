@@ -41,124 +41,144 @@ static unsigned long hmap_hash(const char *key)
 }
 
 
-void *hmap_next(hmap *hm, unsigned int *iter)
+void *hmap_next(hmap_t *hm, unsigned int *iter)
 {
 	void *val = NULL;
 
-	while (*iter < hm->nitems && val == NULL) {
-		val = hm->list[(*iter)++].value;
+	if (iter != NULL) {
+		while (*iter < hm->capacity && val == NULL) {
+			val = hm->arr[(*iter)++].value;
+		}
 	}
 
 	return val;
 }
 
 
-void *hmap_get(const hmap *hm, const char *key)
+void *hmap_get(const hmap_t *hm, const char *key)
 {
 	unsigned long hash, i;
-	const hmap_entry_t *curr;
 
-	i = hash = hmap_hash(key) % hm->nitems;
+	if (hm == NULL || key == NULL) {
+		errno = EINVAL;
+		return NULL;
+	}
 
-	do {
-		curr = &hm->list[i];
+	/* hash the key with modulo size to not overflow the array */
+	hash = hmap_hash(key) % hm->capacity;
+	i = hash;
 
-		if (curr->value == NULL) {
-			break;
-		}
-
-		if (curr->hash == hash) {
-			if (strcmp(key, curr->key) == 0) {
-				return curr->value;
+	while (hm->arr[i].value != NULL) {
+		if (hm->arr[i].hash == hash) {
+			if (strcmp(hm->arr[i].key, key) == 0) {
+				return hm->arr[i].value;
 			}
 		}
 
-		if (++i == hm->nitems) {
+		/* loop the index */
+		if (++i == hm->capacity) {
 			i = 0;
 		}
-	} while (i != hash);
+
+		if (i == hash) {
+			/* whole hashmap traversed without empty bucket */
+			break;
+		}
+	}
 
 	errno = ENOENT;
 	return NULL;
 }
 
 
-int hmap_insert(hmap *hm, const char *key, void *val)
+int hmap_insert(hmap_t *hm, const char *key, void *val)
 {
 	unsigned long i, hash;
-	hmap_entry_t *curr;
 
-	hash = i = hmap_hash(key) % hm->nitems;
-	do {
-		curr = &hm->list[i];
+	if (hm == NULL || key == NULL || val == NULL) {
+		errno = EINVAL;
+		return -1;
+	}
 
-		/* collision check */
-		if (curr->value == NULL) {
-			/* fill entry */
-			curr->value = val;
-			curr->key = key;
-			curr->hash = hash;
+	/* hash the key with modulo size to not overflow the array */
+	hash = hmap_hash(key) % hm->capacity;
+	i = hash;
 
-			hm->used++;
+	/* check for collision */
+	if (hm->arr[i].value != NULL) {
+		/* traverse hashmap to find next free bucket */
+		do {
+			if (++i == hm->capacity) {
+				i = 0;
+			}
 
-			return 0;
-		}
+			if (i == hash) {
+				/* whole hashmap traversed without empty bucket */
+				errno = ENOMEM;
+				return -1;
+			}
 
-		if (++i == hm->nitems) {
-			i = 0;
-		}
-	} while (i != hash);
+		} while (hm->arr[i].value != NULL);
+	}
 
-	errno = ENOMEM;
-	return -1;
+	/* fill empty entry */
+	hm->arr[i].value = val;
+	hm->arr[i].key = key;
+	hm->arr[i].hash = hash;
+
+	hm->size++;
+
+	return 0;
 }
 
 
-void hmap_clear(hmap *hm)
+void hmap_clear(hmap_t *hm)
 {
 	size_t i;
 
-	for (i = 0; i < hm->nitems; i++) {
-		hm->list[i].value = NULL;
-	}
+	if (hm != NULL) {
+		for (i = 0; i < hm->capacity; i++) {
+			hm->arr[i].value = NULL;
+		}
 
-	hm->used = 0;
+		hm->size = 0;
+	}
 }
 
 
-void hmap_free(hmap *hm)
+void hmap_free(hmap_t *hm)
 {
 	if (hm != NULL) {
-		free(hm->list);
+		free(hm->arr);
 		free(hm);
 	}
 }
 
 
-hmap *hmap_init(size_t nitems)
+hmap_t *hmap_init(size_t capacity)
 {
-	hmap *hm;
-	hmap_entry_t *entries;
+	hmap_t *hm;
 	size_t i;
 
-	entries = calloc(nitems, sizeof(hmap_entry_t));
-	hm = malloc(sizeof(hmap));
-
-	if (entries == NULL || hm == NULL) {
-		free(entries);
-		free(hm);
-
+	hm = malloc(sizeof(hmap_t));
+	if (hm == NULL) {
 		errno = ENOMEM;
 		return NULL;
 	}
 
-	for (i = 0; i < nitems; i++) {
-		entries[i].value = NULL;
+	hm->capacity = capacity;
+	hm->size = 0;
+
+	hm->arr = calloc(capacity, sizeof(hmap_entry_t));
+	if (hm->arr == NULL) {
+		free(hm);
+		errno = ENOMEM;
+		return NULL;
 	}
 
-	hm->nitems = nitems;
-	hm->list = entries;
-	hm->used = 0;
+	for (i = 0; i < capacity; i++) {
+		hm->arr[i].value = NULL;
+	}
 
 	return hm;
 }

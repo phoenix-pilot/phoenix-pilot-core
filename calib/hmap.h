@@ -25,34 +25,34 @@ typedef struct _hmap_entry_t {
 
 /* Hashmap metadata structure */
 typedef struct {
-	hmap_entry_t *list; /* array of hashmap elements */
-	size_t nitems;      /* maximum capacity of hashmap */
-	size_t used;        /* used capacity of hashmap */
-} hmap;
+	hmap_entry_t *arr; /* array of hashmap elements */
+	size_t capacity;   /* maximum capacity of hashmap */
+	size_t size;       /* used capacity of hashmap */
+} hmap_t;
 
 
 /* 
 * Iterates over hashmap values using 'i' iterator. Returns NULL if iteration ended. 
 * 'i'=0 restarts iteration. 'i' does not correspond to hashmap elements order.
 */
-void *hmap_next(hmap *hm, unsigned int *i);
+void *hmap_next(hmap_t *hm, unsigned int *i);
 
 
 /* returns value for 'key', NULL if 'key' not found */
-void *hmap_get(const hmap *hm, const char *key);
+void *hmap_get(const hmap_t *hm, const char *key);
 
 
 /* Inserts 'key'/'value' into hashmap. Return 0 on success, -1 otherwise */
-int hmap_insert(hmap *hm, const char *key, void *val);
+int hmap_insert(hmap_t *hm, const char *key, void *val);
 
 
 /* Clear the hashmap */
-void hmap_clear(hmap *hm);
+void hmap_clear(hmap_t *hm);
 
 
 /* Deallocates hashmap pointed by `hm` */
-void hmap_free(hmap *hm);
+void hmap_free(hmap_t *hm);
 
 
-/* Allocates a hashmap of `nitems` capacity */
-hmap *hmap_init(size_t nitems);
+/* Allocates a hashmap of `capacity` capacity */
+hmap_t *hmap_init(size_t capacity);
