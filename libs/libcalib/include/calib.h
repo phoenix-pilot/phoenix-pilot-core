@@ -17,6 +17,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "hmap.h"
+
 
 #define SENSOR_PATH "/dev/sensors"
 
@@ -37,5 +39,11 @@ typedef struct _calib_t {
 
 /* registering new calibration procedure */
 extern void calib_register(calib_t *c);
+
+/*
+* Reads calibration paramaeters file and writes its data to procedures in `hm`
+* Returns 0 on success, -1 if an error occured that prevented read of all  params.
+*/
+extern int calib_read(const char *path, hmap_t *hm);
 
 #endif
