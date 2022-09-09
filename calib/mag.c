@@ -29,7 +29,7 @@
 
 
 #define AVG_SAMPLES  100
-#define AVG_WAIT     1000 * 10
+#define AVG_WAIT     (1000 * 10)
 #define CALIB_POINTS 10
 
 /* FIXME: this should be handled inside, or taken from mtcl */
@@ -211,7 +211,7 @@ int cal_magmotInterpret(const char *valName, float val)
 
 const char *cal_magmotHelp(void)
 {
-	return "  Magnetometer vs engine interference calibration\n";
+	return "Magnetometer vs engine interference calibration\n";
 }
 
 
