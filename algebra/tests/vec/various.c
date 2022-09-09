@@ -16,6 +16,11 @@
 #include <vec.h>
 
 
+#define TEST_ASSERT_EQUAL_VEC(expected, actual) \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).x, (actual).x, "Different `x` part of vectors"); \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).y, (actual).y, "Different `y` part of vectors"); \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).z, (actual).z, "Different `z` part of vectors");
+
 #define VEC_CMP_OK 0
 
 #define POS_SCALAR 2.5
@@ -123,12 +128,11 @@ TEST(group_vec_sum, vec_sum_std)
 	vec_t A = V1;
 	vec_t B = V2;
 	vec_t C;
+	vec_t Exp = { .x = A.x + B.x, .y = A.y + B.y, .z = A.z + B.z };
 
 	vec_sum(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(A.x + B.x, C.x);
-	TEST_ASSERT_EQUAL_FLOAT(A.y + B.y, C.y);
-	TEST_ASSERT_EQUAL_FLOAT(A.z + B.z, C.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, C);
 }
 
 
@@ -137,12 +141,11 @@ TEST(group_vec_sum, vec_sum_biggerValues)
 	vec_t A = V3;
 	vec_t B = V4;
 	vec_t C;
+	vec_t Exp = { .x = A.x + B.x, .y = A.y + B.y, .z = A.z + B.z };
 
 	vec_sum(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(A.x + B.x, C.x);
-	TEST_ASSERT_EQUAL_FLOAT(A.y + B.y, C.y);
-	TEST_ASSERT_EQUAL_FLOAT(A.z + B.z, C.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, C);
 }
 
 
@@ -175,13 +178,11 @@ TEST(group_vec_add, vec_add_std)
 {
 	vec_t A = V1;
 	vec_t B = V2;
-	vec_t cpyA = A;
+	vec_t Exp = { .x = A.x + B.x, .y = A.y + B.y, .z = A.z + B.z };
 
 	vec_add(&A, &B);
 
-	TEST_ASSERT_EQUAL_FLOAT(cpyA.x + B.x, A.x);
-	TEST_ASSERT_EQUAL_FLOAT(cpyA.y + B.y, A.y);
-	TEST_ASSERT_EQUAL_FLOAT(cpyA.z + B.z, A.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, A);
 }
 
 
@@ -189,13 +190,11 @@ TEST(group_vec_add, vec_add_biggerValues)
 {
 	vec_t A = V3;
 	vec_t B = V4;
-	vec_t cpyA = A;
+	vec_t Exp = { .x = A.x + B.x, .y = A.y + B.y, .z = A.z + B.z };
 
 	vec_add(&A, &B);
 
-	TEST_ASSERT_EQUAL_FLOAT(cpyA.x + B.x, A.x);
-	TEST_ASSERT_EQUAL_FLOAT(cpyA.y + B.y, A.y);
-	TEST_ASSERT_EQUAL_FLOAT(cpyA.z + B.z, A.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, A);
 }
 
 
@@ -229,12 +228,11 @@ TEST(group_vec_dif, vec_dif_std)
 	vec_t A = V1;
 	vec_t B = V2;
 	vec_t C;
+	vec_t Exp = { .x = A.x - B.x, .y = A.y - B.y, .z = A.z - B.z };
 
 	vec_dif(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(A.x - B.x, C.x);
-	TEST_ASSERT_EQUAL_FLOAT(A.y - B.y, C.y);
-	TEST_ASSERT_EQUAL_FLOAT(A.z - B.z, C.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, C);
 }
 
 
@@ -243,12 +241,11 @@ TEST(group_vec_dif, vec_dif_biggerValues)
 	vec_t A = V3;
 	vec_t B = V4;
 	vec_t C;
+	vec_t Exp = { .x = A.x - B.x, .y = A.y - B.y, .z = A.z - B.z };
 
 	vec_dif(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(A.x - B.x, C.x);
-	TEST_ASSERT_EQUAL_FLOAT(A.y - B.y, C.y);
-	TEST_ASSERT_EQUAL_FLOAT(A.z - B.z, C.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, C);
 }
 
 
@@ -281,13 +278,11 @@ TEST(group_vec_sub, vec_sub_std)
 {
 	vec_t A = V1;
 	vec_t B = V2;
-	vec_t cpyA = A;
+	vec_t Exp = { .x = A.x - B.x, .y = A.y - B.y, .z = A.z - B.z };
 
 	vec_sub(&A, &B);
 
-	TEST_ASSERT_EQUAL_FLOAT(cpyA.x - B.x, A.x);
-	TEST_ASSERT_EQUAL_FLOAT(cpyA.y - B.y, A.y);
-	TEST_ASSERT_EQUAL_FLOAT(cpyA.z - B.z, A.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, A);
 }
 
 
@@ -295,13 +290,11 @@ TEST(group_vec_sub, vec_sub_biggerValues)
 {
 	vec_t A = V3;
 	vec_t B = V4;
-	vec_t cpyA = A;
+	vec_t Exp = { .x = A.x - B.x, .y = A.y - B.y, .z = A.z - B.z };
 
 	vec_sub(&A, &B);
 
-	TEST_ASSERT_EQUAL_FLOAT(cpyA.x - B.x, A.x);
-	TEST_ASSERT_EQUAL_FLOAT(cpyA.y - B.y, A.y);
-	TEST_ASSERT_EQUAL_FLOAT(cpyA.z - B.z, A.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, A);
 }
 
 
@@ -335,12 +328,15 @@ TEST(group_vec_cross, vec_cross_std)
 	vec_t A = V1;
 	vec_t B = V2;
 	vec_t C;
+	vec_t Exp = {
+		.x = A.y * B.z - A.z * B.y,
+		.y = A.z * B.x - A.x * B.z,
+		.z = A.x * B.y - A.y * B.x
+	};
 
 	vec_cross(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(A.y * B.z - A.z * B.y, C.x);
-	TEST_ASSERT_EQUAL_FLOAT(A.z * B.x - A.x * B.z, C.y);
-	TEST_ASSERT_EQUAL_FLOAT(A.x * B.y - A.y * B.x, C.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, C);
 }
 
 
@@ -349,12 +345,15 @@ TEST(group_vec_cross, vec_cross_biggerValues)
 	vec_t A = V3;
 	vec_t B = V4;
 	vec_t C;
+	vec_t Exp = {
+		.x = A.y * B.z - A.z * B.y,
+		.y = A.z * B.x - A.x * B.z,
+		.z = A.x * B.y - A.y * B.x
+	};
 
 	vec_cross(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(A.y * B.z - A.z * B.y, C.x);
-	TEST_ASSERT_EQUAL_FLOAT(A.z * B.x - A.x * B.z, C.y);
-	TEST_ASSERT_EQUAL_FLOAT(A.x * B.y - A.y * B.x, C.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, C);
 }
 
 
@@ -363,18 +362,23 @@ TEST(group_vec_cross, vec_cross_perpendicular)
 	vec_t A = V5;
 	vec_t B = V6;
 	vec_t C;
+	vec_t Exp = {
+		.x = A.y * B.z - A.z * B.y,
+		.y = A.z * B.x - A.x * B.z,
+		.z = A.x * B.y - A.y * B.x
+	};
 
 	vec_cross(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(A.y * B.z - A.z * B.y, C.x);
-	TEST_ASSERT_EQUAL_FLOAT(A.z * B.x - A.x * B.z, C.y);
-	TEST_ASSERT_EQUAL_FLOAT(A.x * B.y - A.y * B.x, C.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, C);
+
+	Exp.x = B.y * A.z - B.z * A.y;
+	Exp.y = B.z * A.x - B.x * A.z;
+	Exp.z = B.x * A.y - B.y * A.x;
 
 	vec_cross(&B, &A, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(B.y * A.z - B.z * A.y, C.x);
-	TEST_ASSERT_EQUAL_FLOAT(B.z * A.x - B.x * A.z, C.y);
-	TEST_ASSERT_EQUAL_FLOAT(B.x * A.y - B.y * A.x, C.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, C);
 }
 
 
@@ -383,15 +387,14 @@ TEST(group_vec_cross, vec_cross_parallel)
 	vec_t A = V2;
 	vec_t B = A;
 	vec_t C;
+	vec_t Exp = { .x = 0.0, .y = 0.0, .z = 0.0 };
 
 	/* Parallel with common direction */
 	vec_times(&B, POS_SCALAR);
 
 	vec_cross(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(0.0, C.x);
-	TEST_ASSERT_EQUAL_FLOAT(0.0, C.y);
-	TEST_ASSERT_EQUAL_FLOAT(0.0, C.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, C);
 
 	/* Parallel with opposite directions */
 	B = A;
@@ -399,9 +402,7 @@ TEST(group_vec_cross, vec_cross_parallel)
 
 	vec_cross(&B, &A, &C);
 
-	TEST_ASSERT_EQUAL_FLOAT(0.0, C.x);
-	TEST_ASSERT_EQUAL_FLOAT(0.0, C.y);
-	TEST_ASSERT_EQUAL_FLOAT(0.0, C.z);
+	TEST_ASSERT_EQUAL_VEC(Exp, C);
 }
 
 
