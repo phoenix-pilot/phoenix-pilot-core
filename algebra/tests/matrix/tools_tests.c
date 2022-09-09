@@ -115,7 +115,7 @@ TEST(group_algebraTests_realTrp, algebraTests_realTrp_trpTwoTimes)
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M1));
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M1));
 
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M1, &M2));
+	TEST_ASSERT_EQUAL_MATRIX(M1, M2);
 }
 
 

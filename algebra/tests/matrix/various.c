@@ -547,7 +547,7 @@ TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_sourceRetain)
 	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, 0, 0, &M2));
 
 	/* M2 and M3 should be the same */
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M3, &M2));
+	TEST_ASSERT_EQUAL_MATRIX(M3, M2);
 }
 
 
@@ -560,7 +560,7 @@ TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_fullWrite)
 	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, 0, 0, &M2));
 
 	/* Matrix A and B have the same sizes, so after witeSubmatrix M1 should be equal to M2 */
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M1, &M2));
+	TEST_ASSERT_EQUAL_MATRIX(M1, M2);
 }
 
 
@@ -613,7 +613,7 @@ TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_failureRetain)
 	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_FAIL, matrix_writeSubmatrix(&M1, row, col, &M2));
 
 	/* M1 should not change after fail */
-	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTest_equalMatrix(&M3, &M1));
+	TEST_ASSERT_EQUAL_MATRIX(M3, M1);
 }
 
 
