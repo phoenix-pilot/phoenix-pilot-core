@@ -1,31 +1,12 @@
-/*
- * Phoenix-Pilot
- *
- * sensorhub client corrections module
- *
- * Copyright 2022 Phoenix Systems
- * Author: Mateusz Niewiadomski
- *
- * This file is part of Phoenix-Pilot software
- *
- * %LICENSE%
- */
+#ifndef _LIBCALIB_CORR_H_
+#define _LIBCALIB_CORR_H_
 
-#ifndef _SENSC_CORR_H_
-#define _SENSC_CORR_H_
+#include <calibcore.h>
 
-#include <libsensors.h>
+/* registering new calibration/correction procedure */
+extern void corr_register(calib_t *c); 
 
 
-/* applies known corrections to magnetometer event */
-extern int corr_mag(sensor_event_t *magEvt);
-
-
-/* deinitializes correction thread and correction procedures*/
-extern void corr_done(void);
-
-
-/* initializes correction procedures and thread */
-extern int corr_init(void);
+extern hmap_t *corr_hashmapGet(void);
 
 #endif

@@ -28,7 +28,7 @@
 #include <vec.h>
 #include <matrix.h>
 
-#include "libcalib.h"
+#include "../calibcore.h"
 #include "magmot.h"
 
 /*

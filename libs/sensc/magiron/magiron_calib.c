@@ -23,8 +23,10 @@
 #include <matrix.h>
 #include <vec.h>
 
-#include "libcalib.h"
+#include "../calibcore.h"
+
 #include "magiron.h"
+#include "../calib.h"
 
 
 #define CHAR_HARDIRON 'h'
@@ -74,7 +76,7 @@ __attribute__((constructor(102))) static void calib_magironRegister(void)
 		.help = magiron_help,
 	};
 
-	common_register(&cal);
+	calib_register(&cal);
 
 	magiron_preinit();
 }

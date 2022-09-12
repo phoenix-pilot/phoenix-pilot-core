@@ -4,14 +4,8 @@
 #include <string.h>
 
 #include "hmap.h"
-#include "libcalib.h"
+#include "calibcore.h"
 
-/* 
-* Reads calibration file, and given a @tag sends preformatted pair param/value 
-* to correct calibration procedure interpreter. 
-*
-* Uses calibration procedures from `calibs` hashmap
-*/
 int calib_read(const char *path, hmap_t *calibs)
 {
 	FILE *file;

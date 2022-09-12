@@ -23,7 +23,7 @@
 #include <matrix.h>
 #include <vec.h>
 
-#include "libcalib.h"
+#include "../calibcore.h"
 #include "magiron.h"
 
 

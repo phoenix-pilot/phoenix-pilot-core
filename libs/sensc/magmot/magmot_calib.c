@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include <libsensors.h>
 
@@ -8,8 +9,9 @@
 #include <mctl.h>
 #include <sensc.h>
 
-#include "libcalib.h"
+#include "../calibcore.h"
 #include "magmot.h"
+#include "../calib.h"
 
 /*
 * Quadratic Least Square Method. Solving matrix formula X = f(A, B) for
@@ -200,7 +202,7 @@ __attribute__((constructor(102))) static void cal_magmotRegister(void)
 		// .delay = 100 * 1000
 	};
 
-	common_register(&cal);
+	calib_register(&cal);
 
 	magmot_preinit();
 }

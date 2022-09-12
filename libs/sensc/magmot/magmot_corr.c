@@ -6,8 +6,9 @@
 #include <vec.h>
 #include <libsensors.h>
 
-#include "libcalib.h"
+#include "../calibcore.h"
 #include "magmot.h"
+#include "../corr.h"
 
 
 static int magmot_init(void)
@@ -125,7 +126,7 @@ __attribute__((constructor(102))) static void cal_magmotRegister(void)
 		.help = magmot_help,
 	};
 
-	common_register(&cal);
+	corr_register(&cal);
 
 	magmot_preinit();
 }

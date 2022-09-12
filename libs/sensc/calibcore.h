@@ -1,18 +1,5 @@
-/*
- * Phoenix-Pilot
- *
- * calib.h: drone calibration module
- *
- * Copyright 2022 Phoenix Systems
- * Author: Mateusz Niewiadomski
- *
- * This file is part of Phoenix-Pilot software
- *
- * %LICENSE%
- */
-
-#ifndef _CALIBTOOL_CALIB_H_
-#define _CALIBTOOL_CALIB_H_
+#ifndef _CALIB_CORE_H_
+#define _CALIB_CORE_H_
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -21,7 +8,7 @@
 #include <vec.h>
 #include <libsensors.h>
 
-#include "hmap.h"
+#include <hmap.h>
 
 
 #define SENSOR_PATH "/dev/sensors"   /* path to sensor manager device */
@@ -55,18 +42,12 @@ typedef struct {
 
 } calib_t;
 
-
-/* TODO: common_register needs to be moved to some internal header file */
-/* registering new calibration/correction procedure */
-extern void common_register(calib_t *c); 
-
-/*
-* Reads calibration paramaeters file and writes its data to procedures in `hm`
-* Returns 0 on success, -1 if an error occured that prevented read of all  params.
+/* 
+* Reads calibration file, and given a @tag sends preformatted pair param/value 
+* to correct calibration procedure interpreter. 
+*
+* Uses calibration procedures from `calibs` hashmap
 */
-extern int calib_read(const char *path, hmap_t *hm);
-
-
-extern hmap_t *calib_hashmapGet(void);
+int calib_read(const char *path, hmap_t *calibs);
 
 #endif

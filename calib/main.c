@@ -17,8 +17,9 @@
 #include <stdbool.h>
 #include <errno.h>
 
-#include <libcalib.h>
+#include <calibcore.h>
 #include <hmap.h>
+#include <calib.h>
 
 
 /* text formatting defined */
@@ -101,17 +102,17 @@ static int calib_do(calib_t *cal, int argc, const char **argv)
 		return -ENOENT;
 	}
 
-	if (cal->init == NULL || cal->run == NULL || cal->done == NULL) {
+	if (cal->proc.calib.init == NULL || cal->proc.calib.run == NULL || cal->proc.calib.done == NULL) {
 		return -EINVAL;
 	}
 
-	ret = cal->init(argc, argv);
+	ret = cal->proc.calib.init(argc, argv);
 	if (ret != EOK) {
 		fprintf(stderr, "calibtool: procedure '%s' init failed with code: %d\n", cal->name, ret);
 		return ret;
 	}
-	ret = cal->run();
-	cal->done();
+	ret = cal->proc.calib.run();
+	cal->proc.calib.done();
 
 	if (ret != EOK) {
 		fprintf(stderr, "calibtool: procedure '%s' failed with code: %d\n", cal->name, ret);

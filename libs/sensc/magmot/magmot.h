@@ -41,9 +41,9 @@ const char *magmot_help(void);
 int magmot_interpret(const char *valName, float val);
 
 
-static int magmot_write(FILE *file);
+int magmot_write(FILE *file);
 
 
-static void magmot_preinit(void);
+void magmot_preinit(void);
 
 #endif

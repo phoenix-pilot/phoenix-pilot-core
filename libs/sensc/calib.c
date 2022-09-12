@@ -15,8 +15,8 @@
 #include <string.h>
 #include <errno.h>
 
-#include "libcalib.h"
-#include "hmap.h"
+#include <calibcore.h>
+#include <hmap.h>
 
 
 struct {
@@ -25,7 +25,7 @@ struct {
 
 
 /* Register new calib_t procedure. */
-void common_register(calib_t *c)
+void calib_register(calib_t *c)
 {
 	if (hmap_insert(calib_common.calibs, c->name, c) < 0) {
 		fprintf(stderr, "calibtool: ailed to register %s procedure\n", c->name);

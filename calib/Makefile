@@ -9,5 +9,5 @@
 # Magnetometer calibration tool
 NAME := calibtool
 LOCAL_SRCS := main.c
-DEP_LIBS := libsensc libmctl libalgeb libcalib
+DEP_LIBS := libcalib libmctl libalgeb libhmap
 include $(binary.mk)

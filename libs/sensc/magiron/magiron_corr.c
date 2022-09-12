@@ -20,8 +20,9 @@
 
 #include <matrix.h>
 
-#include "libcalib.h"
+#include "../calibcore.h"
 #include "magiron.h"
+#include "../corr.h"
 
 
 static int magiron_do(sensor_event_t *evt)
@@ -59,7 +60,7 @@ __attribute__((constructor(102))) static void corr_magironRegister(void)
 		.help = magiron_help
 	};
 
-	common_register(&cal);
+	corr_register(&cal);
 
 	magiron_preinit();
 }
