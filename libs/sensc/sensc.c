@@ -58,7 +58,7 @@ static int sensc_setupDscr(fd_id_t type, int typeFlag)
 }
 
 
-int sensc_init(const char *path)
+int sensc_init(const char *path, sensc_corrMode_t mode)
 {
 	int i = 0;
 	unsigned int err = 0;

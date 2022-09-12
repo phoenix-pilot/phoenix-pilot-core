@@ -151,7 +151,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (sensc_init("/dev/sensors") < 0) {
+	if (sensc_init("/dev/sensors", corrDisable) < 0) {
 		printf("cannot initialize sensor client\n");
 		return EXIT_FAILURE;
 	}

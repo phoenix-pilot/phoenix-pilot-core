@@ -291,7 +291,7 @@ static int cal_magmotDone(void)
 
 static int cal_magmotInit(int argc, const char **argv)
 {
-	if (sensc_init(SENSOR_PATH) < 0) {
+	if (sensc_init(SENSOR_PATH, corrDisable) < 0) {
 		return -ENXIO;
 	}
 

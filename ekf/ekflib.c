@@ -59,7 +59,7 @@ int ekf_init(void)
 	}
 
 	ekf_common.run = 0;
-	if (sensc_init("/dev/sensors") < 0) {
+	if (sensc_init("/dev/sensors", corrEnable) < 0) {
 		return -1;
 	}
 
