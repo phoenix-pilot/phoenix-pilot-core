@@ -36,6 +36,7 @@ void runner(void)
 	RUN_TEST_GROUP(group_matrix_sub);
 	RUN_TEST_GROUP(group_matrix_writeSubmatrix);
 	RUN_TEST_GROUP(group_matrix_cmp);
+	RUN_TEST_GROUP(group_matrix_inv);
 
 	/* Vectors library tests */
 	RUN_TEST_GROUP(group_vec_cmp);
