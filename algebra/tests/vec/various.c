@@ -413,3 +413,56 @@ TEST_GROUP_RUNNER(group_vec_cross)
 	RUN_TEST_CASE(group_vec_cross, vec_cross_perpendicular);
 	RUN_TEST_CASE(group_vec_cross, vec_cross_parallel);
 }
+
+
+/* ##############################################################################
+ * -------------------------        vec_len tests       -------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_vec_len);
+
+
+TEST_SETUP(group_vec_len)
+{
+}
+
+
+TEST_TEAR_DOWN(group_vec_len)
+{
+}
+
+
+TEST(group_vec_len, vec_len_std)
+{
+	vec_t A = V1;
+	float expected = sqrt(A.x * A.x + A.y * A.y + A.z * A.z);
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, vec_len(&A));
+}
+
+
+TEST(group_vec_len, vec_len_biggerValues)
+{
+	vec_t A = V3;
+	float expected = sqrt(A.x * A.x + A.y * A.y + A.z * A.z);
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, vec_len(&A));
+}
+
+
+TEST(group_vec_len, vec_len_zeroLen)
+{
+	vec_t A = { .x = 0.0f, .y = 0.0f, .z = 0.0f };
+	float expected = 0;
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, vec_len(&A));
+}
+
+
+TEST_GROUP_RUNNER(group_vec_len)
+{
+	RUN_TEST_CASE(group_vec_len, vec_len_std);
+	RUN_TEST_CASE(group_vec_len, vec_len_biggerValues);
+	RUN_TEST_CASE(group_vec_len, vec_len_zeroLen);
+}
