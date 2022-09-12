@@ -21,6 +21,7 @@
 
 #include <libsensors.h>
 
+#include "corr.h"
 #include "sensc.h"
 
 #define SENSORHUB_PIPES 3 /* number of connections with sensorhub */
