@@ -505,6 +505,85 @@ TEST_GROUP_RUNNER(group_vec_cross)
 
 
 /* ##############################################################################
+ * -------------------------        vec_dot tests       -------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_vec_dot);
+
+
+TEST_SETUP(group_vec_dot)
+{
+}
+
+
+TEST_TEAR_DOWN(group_vec_dot)
+{
+}
+
+
+TEST(group_vec_dot, vec_dot_std)
+{
+	vec_t A = V1;
+	vec_t B = V2;
+	float expected = A.x * B.x + A.y * B.y + A.z * B.z;
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, vec_dot(&A, &B));
+}
+
+
+TEST(group_vec_dot, vec_dot_biggerValues)
+{
+	vec_t A = V3;
+	vec_t B = V4;
+	float expected = A.x * B.x + A.y * B.y + A.z * B.z;
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, vec_dot(&A, &B));
+}
+
+
+TEST(group_vec_dot, vec_dot_perpendicular)
+{
+	vec_t A = V5;
+	vec_t B = V6;
+	float expected = 0;
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, vec_dot(&A, &B));
+	TEST_ASSERT_EQUAL_FLOAT(expected, vec_dot(&B, &A));
+}
+
+
+TEST(group_vec_dot, vec_dot_parallel)
+{
+	vec_t A = V2;
+	vec_t B = A;
+	float expected;
+
+	/* Parallel with common direction */
+	vec_times(&B, POS_SCALAR);
+	expected = A.x * B.x + A.y * B.y + A.z * B.z;
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, vec_dot(&A, &B));
+
+	/* Parallel with opposite directions */
+	B = A;
+	vec_times(&B, NEG_SCALAR);
+	expected = A.x * B.x + A.y * B.y + A.z * B.z;
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, vec_dot(&A, &B));
+}
+
+
+TEST_GROUP_RUNNER(group_vec_dot)
+{
+	RUN_TEST_CASE(group_vec_dot, vec_dot_std);
+	RUN_TEST_CASE(group_vec_dot, vec_dot_biggerValues);
+	RUN_TEST_CASE(group_vec_dot, vec_dot_perpendicular);
+	RUN_TEST_CASE(group_vec_dot, vec_dot_parallel);
+}
+
+
+/* ##############################################################################
  * -------------------------        vec_len tests       -------------------------
  * ############################################################################## */
 
