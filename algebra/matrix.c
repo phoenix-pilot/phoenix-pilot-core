@@ -493,6 +493,14 @@ int matrix_inv(matrix_t *A, matrix_t *B, float *buf, int buflen)
 	int rows, cols, row, col, step;
 	float base;
 
+	if (A->rows != A->cols || B->rows != B->cols || A->rows != B->rows) {
+		return -1;
+	}
+
+	if (buflen < A->rows * A->cols * 2) {
+		return -1;
+	}
+
 	/* create working matrix */
 	if (A->transposed) {
 		rows = A->cols;
@@ -517,6 +525,10 @@ int matrix_inv(matrix_t *A, matrix_t *B, float *buf, int buflen)
 	/* lower triangle elimination */
 	for (col = 0; col < cols; col++) {
 		base = C.data[C.cols * col + col];
+		if (base == 0) {
+			return -1;
+		}
+
 		for (step = 0; step < C.cols; step++) {
 			C.data[C.cols * col + step] /= base;
 		}

@@ -97,7 +97,7 @@ extern int matrix_sub(matrix_t *A, matrix_t *B, matrix_t *C);
 extern int matrix_cmp(const matrix_t *A, const matrix_t *B);
 
 
-/* calculates inverse matrix */
+/* calculates inverse matrix, `buf` have to be twice as big as matrix `A`, bufLen >= A->rows * A->cols * 2 */
 extern int matrix_inv(matrix_t *A, matrix_t *B, float *buf, int buflen);
 
 
