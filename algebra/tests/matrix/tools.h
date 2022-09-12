@@ -59,6 +59,9 @@
 
 #define MAT_CMP_OK 0
 
+#define INV_OK   0
+#define INV_FAIL -1
+
 /* Defines used by tests */
 
 /* Must be at least 1 */
