@@ -8,6 +8,6 @@
 
 # Sensorhub client library
 NAME := libsensc
-LOCAL_SRCS := sensc.c corr.c
+LOCAL_SRCS := sensc.c
 LOCAL_HEADERS := sensc.h
 include $(static-lib.mk)

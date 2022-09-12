@@ -23,27 +23,12 @@
 #include <matrix.h>
 #include <vec.h>
 
-#include "calib.h"
+#include "libcalib.h"
+#include "magiron.h"
 
 
 #define CHAR_HARDIRON 'h'
 #define CHAR_SOFTIRON 's'
-
-#define SOFTCAL_ROWSPAN 3
-#define SOFTCAL_COLSPAN 3
-#define HARDCAL_ROWSPAN 3
-#define HARDCAL_COLSPAN 1
-
-
-struct {
-	/* Calibration parameters */
-	matrix_t softCal;
-	matrix_t hardCal;
-
-	/* Utility variables */
-	float softCalBuf[SOFTCAL_ROWSPAN * SOFTCAL_COLSPAN];
-	float hardCalBuf[HARDCAL_ROWSPAN * HARDCAL_COLSPAN];
-} magiron_common;
 
 
 /* returns pointer do data slot named as 'paramName' */
@@ -96,7 +81,7 @@ static void magiron_printIron(FILE *file, char type, matrix_t *mat)
 }
 
 
-static int cal_magironWrite(FILE *file)
+int magiron_write(FILE *file)
 {
 	/* Printing hard iron calibration parameters */
 	magiron_printIron(file, CHAR_HARDIRON, &magiron_common.hardCal);
@@ -108,7 +93,7 @@ static int cal_magironWrite(FILE *file)
 }
 
 
-static int cal_magironInterpret(const char *name, float val)
+int magiron_interpret(const char *name, float val)
 {
 	float *valSlot;
 
@@ -123,57 +108,7 @@ static int cal_magironInterpret(const char *name, float val)
 }
 
 
-static const char *cal_magironHelp(void)
-{
-	return "Magnetometer calibration against soft/hard iron interference.\n";
-}
-
-
-static int cal_magironDone(void)
-{
-	/* Stub implementation. Calibration procedure returns precompiled data */
-	return EOK;
-}
-
-
-static int cal_magironRun(void)
-{
-	printf("This calibration procedure is not implemented and it returns precalculated values!\n Press enter to continue...\n");
-	getchar();
-	fflush(stdin);
-
-	return EOK;
-}
-
-
-static int cal_magironInit(int argc, const char **argv)
-{
-	/* Stub implementation. Calibration procedure returns precompiled data */
-	return EOK;
-}
-
-
-static int corr_magironDo(sensor_event_t *evt)
-{
-	float measBuf[3] = { evt->mag.magX, evt->mag.magY, evt->mag.magZ };
-	float corrBuff[3];
-	matrix_t meas = { .data = measBuf, .rows = 3, .cols = 1, .transposed = 0 };
-	matrix_t corr = { .data = corrBuff, .rows = 3, .cols = 1, .transposed = 0 };
-
-	/* precompiled values need to be subtracted, as they are error, not correction */
-	matrix_sub(&meas, &magiron_common.hardCal, NULL);
-	matrix_prod(&magiron_common.softCal, &meas, &corr);
-
-	evt->mag.magX = *matrix_at(&corr, 0, 0);
-	evt->mag.magY = *matrix_at(&corr, 1, 0);
-	evt->mag.magZ = *matrix_at(&corr, 2, 0);
-
-	return 0;
-}
-
-
-
-static void cal_magironPreinit(void)
+void magiron_preinit(void)
 {
 	/* Soft iron calibration matrix init */
 	magiron_common.softCal.cols = SOFTCAL_COLSPAN;
@@ -212,25 +147,7 @@ static void cal_magironPreinit(void)
 }
 
 
-__attribute__((constructor(102))) static void cal_magironRegister(void)
+const char *magiron_help(void)
 {
-	static calib_t cal = {
-		.name = "magiron",
-		.init = cal_magironInit,
-		.run = cal_magironRun,
-		.done = cal_magironDone,
-		.interpret = cal_magironInterpret,
-		.write = cal_magironWrite,
-		.help = cal_magironHelp,
-
-		.corrInit = NULL,
-		.corrRecalc = NULL,
-		.corrDone = NULL,
-		.corrDo = corr_magironDo,
-		.delay = 0
-	};
-
-	calib_register(&cal);
-
-	cal_magironPreinit();
+	return "Magnetometer calibration against soft/hard iron interference.\n";
 }

@@ -17,7 +17,7 @@
 #include <stdbool.h>
 #include <errno.h>
 
-#include <calib.h>
+#include <libcalib.h>
 #include <hmap.h>
 
 
