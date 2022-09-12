@@ -48,6 +48,9 @@
 #define SANDWITCH_OK   0
 #define SANDWITCH_FAIL -1
 
+#define ADD_OK   0
+#define ADD_FAIL -1
+
 #define WRITE_SUBMAT_OK   0
 #define WRITE_SUBMAT_FAIL -1
 

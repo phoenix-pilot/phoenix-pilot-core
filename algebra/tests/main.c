@@ -30,6 +30,7 @@ void runner(void)
 	RUN_TEST_GROUP(group_matrix_times);
 	RUN_TEST_GROUP(group_matrix_prod);
 	RUN_TEST_GROUP(group_matrix_sandwitch);
+	RUN_TEST_GROUP(group_matrix_add);
 	RUN_TEST_GROUP(group_matrix_writeSubmatrix);
 	RUN_TEST_GROUP(group_matrix_cmp);
 
