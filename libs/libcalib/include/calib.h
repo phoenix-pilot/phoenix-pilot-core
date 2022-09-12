@@ -28,7 +28,7 @@
 #define CALIB_FILE "/etc/calib.conf" /* Path to calibration parameters file */
 #define CALIBS_SIZE 16               /* Maximum number of calibrations available. Can be freely increased */
 
-typedef struct _calib_t {
+typedef struct {
 	char name[16]; /* alias of this calibration */
 
 	/* process related */
@@ -58,5 +58,8 @@ extern void calib_register(calib_t *c);
 * Returns 0 on success, -1 if an error occured that prevented read of all  params.
 */
 extern int calib_read(const char *path, hmap_t *hm);
+
+
+extern hmap_t *calib_hashmapGet(void);
 
 #endif
