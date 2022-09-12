@@ -44,6 +44,10 @@ static const quat_t Q5 = { .a = 334.23f, .i = -822.81f, .j = 349.42f, .k = 548.1
 
 static const quat_t Q4timesQ5 = { .a = 56850.1358f, .i = -1000630.3952f, .j = 1032316.741f, .k = -393184.8904f };
 
+/* These quaternions are perpendicular do each other (when considered as 4d vectors) */
+static const quat_t Q6 = { .a = 0.0f, .i = 1.0f, .j = 5.0f, .k = 2.0f };
+static const quat_t Q7 = { .a = 8.0f, .i = 4.0f, .j = 1.0f, .k = -4.5f };
+
 
 /* ##############################################################################
  * ------------------------        quat_cmp tests       -------------------------
@@ -630,4 +634,83 @@ TEST_GROUP_RUNNER(group_quat_cjg)
 {
 	RUN_TEST_CASE(group_quat_cjg, quat_cjg_std);
 	RUN_TEST_CASE(group_quat_cjg, quat_cjg_biggerValues);
+}
+
+
+/* ##############################################################################
+ * ------------------------        quat_dot tests       -------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_dot);
+
+
+TEST_SETUP(group_quat_dot)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_dot)
+{
+}
+
+
+TEST(group_quat_dot, quat_dot_std)
+{
+	quat_t A = Q2;
+	quat_t B = Q3;
+	float expected = A.a * B.a + A.i * B.i + A.j * B.j + A.k * B.k;
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&A, &B));
+}
+
+
+TEST(group_quat_dot, quat_dot_biggerValues)
+{
+	quat_t A = Q4;
+	quat_t B = Q5;
+	float expected = A.a * B.a + A.i * B.i + A.j * B.j + A.k * B.k;
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&A, &B));
+}
+
+
+TEST(group_quat_dot, quat_dot_perpendicular)
+{
+	quat_t A = Q6;
+	quat_t B = Q7;
+	float expected = 0;
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&A, &B));
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&B, &A));
+}
+
+
+TEST(group_quat_dot, quat_dot_parallel)
+{
+	quat_t A = Q2;
+	quat_t B = A;
+	float expected;
+
+	/* Parallel with common direction */
+	quat_times(&B, POS_SCALAR);
+	expected = A.a * B.a + A.i * B.i + A.j * B.j + A.k * B.k;
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&A, &B));
+
+	/* Parallel with opposite directions */
+	B = A;
+	quat_times(&B, NEG_SCALAR);
+	expected = A.a * B.a + A.i * B.i + A.j * B.j + A.k * B.k;
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&A, &B));
+}
+
+
+TEST_GROUP_RUNNER(group_quat_dot)
+{
+	RUN_TEST_CASE(group_quat_dot, quat_dot_std);
+	RUN_TEST_CASE(group_quat_dot, quat_dot_biggerValues);
+	RUN_TEST_CASE(group_quat_dot, quat_dot_perpendicular);
+	RUN_TEST_CASE(group_quat_dot, quat_dot_parallel);
 }
