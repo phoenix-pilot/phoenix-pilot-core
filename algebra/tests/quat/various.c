@@ -584,3 +584,50 @@ TEST_GROUP_RUNNER(group_quat_times)
 	RUN_TEST_CASE(group_quat_times, quat_times_infs);
 	RUN_TEST_CASE(group_quat_times, quat_times_nan);
 }
+
+
+/* ##############################################################################
+ * ------------------------        quat_cjg tests       -------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_cjg);
+
+
+TEST_SETUP(group_quat_cjg)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_cjg)
+{
+}
+
+
+TEST(group_quat_cjg, quat_cjg_std)
+{
+	quat_t A = Q2;
+	quat_t Exp = { .a = A.a, .i = -A.i, .j = -A.j, .k = -A.k };
+
+	quat_cjg(&A);
+
+	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+}
+
+
+TEST(group_quat_cjg, quat_cjg_biggerValues)
+{
+	quat_t A = Q4;
+	quat_t Exp = { .a = A.a, .i = -A.i, .j = -A.j, .k = -A.k };
+
+	quat_cjg(&A);
+
+	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+}
+
+
+TEST_GROUP_RUNNER(group_quat_cjg)
+{
+	RUN_TEST_CASE(group_quat_cjg, quat_cjg_std);
+	RUN_TEST_CASE(group_quat_cjg, quat_cjg_biggerValues);
+}
