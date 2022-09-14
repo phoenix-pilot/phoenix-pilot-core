@@ -79,11 +79,44 @@ float vec_len(const vec_t *A)
 
 void vec_normal(const vec_t *A, const vec_t *B, vec_t *C)
 {
-	float len;
+	float lenSquared;
+	vec_t v = { .x = 1.0f, .y = 0.0f, .y = 0.0f, .z = 0.0f };
+	const vec_t *longerV;
 
 	vec_cross(A, B, C);
-	len = vec_len(C);
-	(len != 0) ? vec_times(C, 1.F / len) : vec_times(C, 0);
+	lenSquared = vec_dot(C, C);
+
+	if (lenSquared != 0) {
+		vec_times(C, 1.F / sqrtf(lenSquared));
+		return;
+	}
+	/* First `vec_cross` returned zero vector. `A` and `B` are parallel, or there is at least one zero vector. */
+
+	longerV = (vec_dot(A, A) > vec_dot(B, B)) ? A : B;
+
+	vec_cross(longerV, &v, C);
+	lenSquared = vec_dot(C, C);
+
+	if (lenSquared != 0) {
+		vec_times(C, 1.F / sqrtf(lenSquared));
+		return;
+	}
+	/* Second `vec_cross` returned zero vector. Longer of `A` and `B` must be parallel to `v` or be a zero vector. */
+
+	v.z = 1;
+
+	vec_cross(longerV, &v, C);
+	lenSquared = vec_dot(C, C);
+
+	if (lenSquared != 0) {
+		vec_times(C, 1.F / sqrtf(lenSquared));
+		return;
+	}
+	/* Third `vec_cross` returned zero vector. `A` and `B` must be both a zero vectors. */
+
+	C->x = 0;
+	C->y = 0;
+	C->z = 0;
 }
 
 
