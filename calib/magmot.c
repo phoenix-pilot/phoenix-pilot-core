@@ -45,9 +45,6 @@ static const char *motorFiles[] = {
 };
 
 struct {
-	/* motorEq[motorId 0/1/2...NUM_OF_MOTORS][axisId x/y/z][equation_param a/b/c] */
-	float motorEq[NUM_OF_MOTORS][3][3];
-
 	calib_t params;
 } magmot_common;
 
@@ -194,6 +191,7 @@ static int cal_magmotRun(void)
 	float thrtl = 0, thrtlStep, startThrtl = 0.3;
 	float x[CALIB_POINTS], y[3][CALIB_POINTS];
 	unsigned int m, pts;
+	float (*motorEq)[3][3];
 
 	/* arm motors in safe mode. Warnings displayed by mctl_arm() */
 	if (mctl_arm(armMode_user) < 0) {
@@ -231,12 +229,15 @@ static int cal_magmotRun(void)
 		}
 		usleep(1000 * 400); /* wait for engine to slow down */
 
+		/* aliasing for better readability */
+		motorEq = magmot_common.params.params.magmot.motorEq;
+
 		/* fitting quadratic equation for magnetometer x-axis interference from m-th engine */
-		magmot_qlsmFit(x, y[0], CALIB_POINTS, &magmot_common.motorEq[m][0][0], &magmot_common.motorEq[m][0][1], &magmot_common.motorEq[m][0][2]);
+		magmot_qlsmFit(x, y[0], CALIB_POINTS, &motorEq[m][0][0], &motorEq[m][0][1], &motorEq[m][0][2]);
 		/* fitting quadratic equation for magnetometer y-axis interference from m-th engine */
-		magmot_qlsmFit(x, y[1], CALIB_POINTS, &magmot_common.motorEq[m][1][0], &magmot_common.motorEq[m][1][1], &magmot_common.motorEq[m][1][2]);
+		magmot_qlsmFit(x, y[1], CALIB_POINTS, &motorEq[m][1][0], &motorEq[m][1][1], &motorEq[m][1][2]);
 		/* fitting quadratic equation for magnetometer z-axis interference from m-th engine */
-		magmot_qlsmFit(x, y[2], CALIB_POINTS, &magmot_common.motorEq[m][2][0], &magmot_common.motorEq[m][2][1], &magmot_common.motorEq[m][2][2]);
+		magmot_qlsmFit(x, y[2], CALIB_POINTS, &motorEq[m][2][0], &motorEq[m][2][1], &motorEq[m][2][2]);
 	}
 	mctl_disarm();
 

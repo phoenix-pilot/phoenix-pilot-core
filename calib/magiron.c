@@ -24,21 +24,7 @@
 #include "calibtool.h"
 
 
-#define SOFTCAL_ROWSPAN 3
-#define SOFTCAL_COLSPAN 3
-#define HARDCAL_ROWSPAN 3
-#define HARDCAL_COLSPAN 1
-
-
 struct {
-	/* Calibration parameters */
-	matrix_t softCal;
-	matrix_t hardCal;
-
-	/* Utility variables */
-	float softCalBuf[SOFTCAL_ROWSPAN * SOFTCAL_COLSPAN];
-	float hardCalBuf[HARDCAL_ROWSPAN * HARDCAL_COLSPAN];
-
 	calib_t params;
 } magiron_common;
 
