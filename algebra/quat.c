@@ -80,7 +80,7 @@ void quat_cjg(quat_t *A)
 
 void quat_sandwich(const quat_t *A, const quat_t *B, quat_t *C)
 {
-	const quat_t Acjg = { .a = A->i, .i = -A->i, .j = -A->j, .k = -A->k };
+	const quat_t Acjg = { .a = A->a, .i = -A->i, .j = -A->j, .k = -A->k };
 	quat_t AB;
 
 	quat_mlt(A, B, &AB);
