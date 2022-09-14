@@ -109,7 +109,7 @@ int corr_init(const char *path)
 		c = (calib_t *)hmap_next(corr_common.corrs, &i);
 	}
 
-	/* if error occured, deinit all corrections up to the failed one */
+	/* if error occurred, deinit all corrections up to the failed one */
 	if (err) {
 		i = 0;
 		while (init > 0) {

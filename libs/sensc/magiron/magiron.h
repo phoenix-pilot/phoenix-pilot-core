@@ -41,7 +41,7 @@ struct {
 const char *magiron_help(void);
 
 
-/* Configuration file line interpretter */
+/* Configuration file line interpreter */
 int magiron_interpret(const char *name, float val);
 
 

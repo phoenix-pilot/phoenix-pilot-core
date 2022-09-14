@@ -53,7 +53,7 @@ struct {
 const char *magmot_help(void);
 
 
-/* Configuration file line interpretter */
+/* Configuration file line interpreter */
 int magmot_interpret(const char *valName, float val);
 
 

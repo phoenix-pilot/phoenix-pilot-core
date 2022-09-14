@@ -88,7 +88,7 @@ int sensc_init(const char *path, sensc_corrMode_t mode)
 			break;
 		}
 	}
-	/* if error occured during opening, close all succesfully opened files */
+	/* if error occurred during opening, close all succesfully opened files */
 	if (err != 0) {
 		while (i >= 0) {
 			close(sensc_common.fd[i]);

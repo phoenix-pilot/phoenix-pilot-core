@@ -41,7 +41,7 @@ static int magmot_init(void)
 	}
 
 	if (err) {
-		/* if error occured close all previously opened files */
+		/* if error occurred close all previously opened files */
 		while (--i >= 0) {
 			fclose(magmot_common.pwmFiles[i]);
 		}

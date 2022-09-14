@@ -24,9 +24,9 @@
 #include <hmap.h>
 
 
-#define SENSOR_PATH "/dev/sensors"   /* path to sensor manager device */
-#define CALIB_FILE "/etc/calib.conf" /* Path to calibration parameters file */
-#define CALIBS_SIZE 16               /* Maximum number of calibrations available. Can be freely increased */
+#define SENSOR_PATH "/dev/sensors"    /* path to sensor manager device */
+#define CALIB_FILE  "/etc/calib.conf" /* Path to calibration parameters file */
+#define CALIBS_SIZE 16                /* Maximum number of calibrations available. Can be freely increased */
 
 typedef struct {
 	char name[16]; /* alias of this calibration */
