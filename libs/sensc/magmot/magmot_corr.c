@@ -1,3 +1,18 @@
+/*
+ * Phoenix-Pilot
+ *
+ * Drone magnetometer calibration module
+ * Calibration of magnetometer against motor interference
+ * Correction submodule
+ *
+ * Copyright 2022 Phoenix Systems
+ * Author: Mateusz Niewiadomski
+ *
+ * This file is part of Phoenix-Pilot software
+ *
+ * %LICENSE%
+ */
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <errno.h>

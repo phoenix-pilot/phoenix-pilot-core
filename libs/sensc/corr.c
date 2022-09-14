@@ -208,10 +208,9 @@ void corr_magSens(sensor_event_t *magEvt)
 	static calib_t *magiron = NULL;
 
 
-
 	/* 1) correct the soft/hard iron interferences */
 	if (magiron == NULL) {
-		magiron = (calib_t*)hmap_get(corr_common.corrs, "magiron"); 
+		magiron = (calib_t *)hmap_get(corr_common.corrs, "magiron");
 	}
 	else {
 		magiron->proc.corr.perform(magEvt);
@@ -219,7 +218,7 @@ void corr_magSens(sensor_event_t *magEvt)
 
 	/* 2) correct against motor interferences */
 	if (magmot == NULL) {
-		magmot = (calib_t*)hmap_get(corr_common.corrs, "magmot"); 
+		magmot = (calib_t *)hmap_get(corr_common.corrs, "magmot");
 	}
 	else {
 		magmot->proc.corr.perform(magEvt);

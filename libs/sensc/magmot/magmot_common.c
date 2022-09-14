@@ -3,6 +3,7 @@
  *
  * Drone magnetometer calibration module
  * Calibration of magnetometer against motor interference
+ * Common submodule
  *
  * Copyright 2022 Phoenix Systems
  * Author: Mateusz Niewiadomski

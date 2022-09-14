@@ -1,7 +1,7 @@
 /*
  * Phoenix-Pilot
  *
- * main.c: Drone calibration library
+ * Drone calibration module.
  *
  * Copyright 2022 Phoenix Systems
  * Author: Mateusz Niewiadomski

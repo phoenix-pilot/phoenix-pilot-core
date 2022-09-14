@@ -1,3 +1,17 @@
+/*
+ * Phoenix-Pilot
+ *
+ * Drone magnetometer calibration module
+ * Calibration of magnetometer against motor interference
+ * Module header file
+ *
+ * Copyright 2022 Phoenix Systems
+ * Author: Mateusz Niewiadomski
+ *
+ * This file is part of Phoenix-Pilot software
+ *
+ * %LICENSE%
+ */
 
 #ifndef _LIBCALIB_MAGMOT_H_
 #define _LIBCALIB_MAGMOT_H_
@@ -35,15 +49,19 @@ struct {
 } magmot_common;
 
 
+/* Returns pointer to help message about this calibration */
 const char *magmot_help(void);
 
 
+/* Configuration file line interpretter */
 int magmot_interpret(const char *valName, float val);
 
 
+/* Prints all stored parameters to file */
 int magmot_write(FILE *file);
 
 
+/* All constructor initializations of this calibration module */
 void magmot_preinit(void);
 
 #endif

@@ -1,3 +1,16 @@
+/*
+ * Phoenix-Pilot
+ *
+ * Drone calibration module.
+ *
+ * Copyright 2022 Phoenix Systems
+ * Author: Mateusz Niewiadomski
+ *
+ * This file is part of Phoenix-Pilot software
+ *
+ * %LICENSE%
+ */
+
 #ifndef _LIBCALIB_CALIB_H_
 #define _LIBCALIB_CALIB_H_
 

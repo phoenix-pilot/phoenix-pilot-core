@@ -1,3 +1,16 @@
+/*
+ * Phoenix-Pilot
+ *
+ * Calibration core functions.
+ *
+ * Copyright 2022 Phoenix Systems
+ * Author: Mateusz Niewiadomski
+ *
+ * This file is part of Phoenix-Pilot software
+ *
+ * %LICENSE%
+ */
+
 #ifndef _CALIB_CORE_H_
 #define _CALIB_CORE_H_
 

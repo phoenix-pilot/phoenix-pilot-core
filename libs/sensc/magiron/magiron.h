@@ -3,7 +3,7 @@
  *
  * Drone magnetometer calibration module
  * Calibration of magnetometer against hard/soft iron interference
- * Common functions
+ * Module header file
  *
  * Copyright 2022 Phoenix Systems
  * Author: Mateusz Niewiadomski
