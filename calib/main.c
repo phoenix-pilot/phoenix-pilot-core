@@ -76,77 +76,36 @@ static void calib_help(void)
 */
 static int calib_read(const char *path)
 {
-	FILE *file;
-	calibration_t *cal;
-	char *head, *val, *line = NULL;
-	size_t lineSz = 0;
-	unsigned int lineNum = 0;
-	int ret = EOK;
+	calibration_t *c;
+	calib_t *calib;
+	unsigned int i = 0, inited = 0;
+	bool err = false;
 
-	file = fopen(path, "r+");
-	if (file == NULL) {
-		/* it is ok, maybe the file is just missing */
-		fprintf(stderr, "calibtool: %s not found. Continuing...\n", path);
-		return EOK;
-	}
-
-	cal = NULL;
-	while (getline(&line, &lineSz, file) >= 0) {
-		head = strtok(line, " \n");
-
-		/* strange error */
-		if (head == NULL) {
-			fprintf(stderr, "calibtool: error reading %s at line %i:\n", path, lineNum);
-			ret = -ENOENT;
+	c = (calibration_t *)hmap_next(calib_common.calibs, &i);
+	while (c != NULL) {
+		calib = c->calStructGet();
+		if (calib_readFile(path, calib->type, calib) != 0) {
+			err = true;
 			break;
 		}
+		inited++;
 
-		if (head[0] == '\n' || head[0] == '#') {
-			/* line skip conditions */
-			continue;
-		}
-		else if (head[0] == '@') {
-			/* tag condition */
-			cal = hmap_get(calib_common.calibs, &head[1]);
-			if (cal == NULL) {
-				fprintf(stderr, "calibtool: error reading %s at line %i: unknown calib mode %s \n", path, lineNum, head);
-				ret = -ENOENT;
-				break;
-			}
-			if (cal->interpret == NULL) {
-				fprintf(stderr, "calibtool: calibration %s lacks interpreter\n", cal->name);
-			}
-		}
-		else {
-			/* normal line condition */
-			val = strtok(NULL, " \n");
-
-			if (val == NULL || cal == NULL) {
-				fprintf(
-					stderr,
-					"calibtool: error reading %s at line %i:\nno calibmode tag found yet, or lack of value for %s\n",
-					path, lineNum, head);
-				ret = -ENOENT;
-				break;
-			}
-
-			if (cal->interpret(head, atof(val)) != EOK) {
-				fprintf(
-					stderr,
-					"calibtool: error reading %s at line %i:\ncalibmode %s can't interpret name/value pair:%s/%s\n",
-					path, lineNum, cal->name, head, val);
-				ret = -EINVAL;
-				break;
-			}
-		}
-
-		lineNum++;
+		c = (calibration_t *)hmap_next(calib_common.calibs, &i);
 	}
 
-	free(line);
-	fclose(file);
+	/* deinitialize all calibrations up to the failed one */
+	if (err) {
+		i = 0;
+		while (inited > 0) {
+			c = (calibration_t *)hmap_next(calib_common.calibs, &i);
+			calib = c->calStructGet();
+			calib_free(calib);
+			inited--;
+		}
+		return -1;
+	}
 
-	return ret;
+	return 0;
 }
 
 
@@ -242,7 +201,10 @@ int main(int argc, const char **argv)
 	}
 
 	/* Read calibration file */
-	calib_read(CALIB_FILE);
+	if (calib_read(CALIB_FILE) != 0) {
+		fprintf(stderr, "calibtool: error on calibrations initialization\n");
+		return EXIT_FAILURE;
+	}
 
 	/* Perform calibration */
 	if (calib_do(cal, argc, argv) != EOK) {
