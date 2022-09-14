@@ -165,28 +165,6 @@ static void magmot_paramName(unsigned int motorId, unsigned int axisId, unsigned
 }
 
 
-/* Returns pointer to correct parameter variable given name `paramName` */
-static float *magmot_paramSlot(const char *paramName)
-{
-	unsigned int motor, axis, param;
-
-	if (strlen(paramName) != 4) {
-		return NULL;
-	}
-
-	/* variable casting for MISRA compliance */
-	motor = (uint8_t)(paramName[1] - '0'); /* get motor id */
-	axis = (uint8_t)(paramName[2] - 'x');  /* get x/y/z index, knowing that x/y/z are consecutive in ASCII */
-	axis = (uint8_t)(paramName[3] - 'a');  /* get a/b/c index, knowing that a/b/c are consecutive in ASCII */
-
-	if (motor >= NUM_OF_MOTORS || axis >= 3 || param >= 3) {
-		return NULL;
-	}
-
-	return &magmot_common.motorEq[motor][axis][param];
-}
-
-
 static int cal_magmotWrite(FILE *file)
 {
 	unsigned int motor, axis, param;
@@ -201,23 +179,6 @@ static int cal_magmotWrite(FILE *file)
 		}
 	}
 	return 0;
-}
-
-
-int cal_magmotInterpret(const char *valName, float val)
-{
-	float *paramSlot;
-
-	/* get parameter slot for name `valName` */
-	paramSlot = magmot_paramSlot(valName);
-
-	if (paramSlot == NULL) {
-		return -ENOENT;
-	}
-
-	*paramSlot = val;
-
-	return EOK;
 }
 
 
@@ -309,26 +270,15 @@ static int cal_magmotInit(int argc, const char **argv)
 
 __attribute__((constructor(102))) static void cal_magmotRegister(void)
 {
-	unsigned int motor, axis, param;
 	static calibration_t cal = {
-		.name = "magmot",
+		.name = MAGMOT_TAG,
 		.init = cal_magmotInit,
 		.run = cal_magmotRun,
 		.done = cal_magmotDone,
-		.interpret = cal_magmotInterpret,
 		.write = cal_magmotWrite,
 		.help = cal_magmotHelp,
 		.calStructGet = magmot_calibStructGet
 	};
 
 	calib_register(&cal);
-
-	/* set all params to neutral to not disrupt the drone with uninitialized garbage */
-	for (motor = 0; motor < NUM_OF_MOTORS; motor++) {
-		for (axis = 0; axis < 3; axis++) {
-			for (param = 0; param < 3; param++) {
-				magmot_common.motorEq[motor][axis][param] = 0.0;
-			}
-		}
-	}
 }

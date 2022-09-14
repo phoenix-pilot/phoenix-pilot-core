@@ -32,7 +32,6 @@ typedef struct _calib_t {
 
 	/* utility related */
 	const char *(*help)(void);             /* help message description */
-	int (*interpret)(const char *, float); /* calibration file data interpreter */
 	int (*write)(FILE *);                  /* calibration file data write */
 
 	calib_t *(*calStructGet)(void); /* returns internal structure of libcalib:calib_t type */
