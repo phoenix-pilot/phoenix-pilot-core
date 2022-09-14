@@ -1,3 +1,16 @@
+/*
+ * Phoenix-Pilot
+ *
+ * Corrections module
+ *
+ * Copyright 2022 Phoenix Systems
+ * Author: Mateusz Niewiadomski
+ *
+ * This file is part of Phoenix-Pilot software
+ *
+ * %LICENSE%
+ */
+
 #ifndef _LIBCALIB_CORR_H_
 #define _LIBCALIB_CORR_H_
 
@@ -14,6 +27,11 @@ int corr_init(const char *path);
 
 /* deinitializes correction module and stops the thread */
 void corr_done(void);
+
+/* Correction procedures */
+
+/* Magnetometer reading correction */
+void corr_magSens(sensor_event_t *magEvt);
 
 
 #endif

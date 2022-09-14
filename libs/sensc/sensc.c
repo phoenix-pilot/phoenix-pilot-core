@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -32,6 +33,8 @@ struct {
 	sensors_data_t *data;
 	int fd[SENSORHUB_PIPES]; /* each for one sensor type */
 	unsigned char buff[0x400];
+
+	bool corrEnable;
 } sensc_common;
 
 
@@ -63,6 +66,19 @@ int sensc_init(const char *path, sensc_corrMode_t mode)
 	int i = 0;
 	unsigned int err = 0;
 
+	sensc_common.corrEnable = (mode == corrEnable) ? true : false;
+
+	if (sensc_common.corrEnable) {
+		if (corr_init("/etc/calib.conf") < 0) {
+			return -1;
+		}
+
+		if (corr_run() < 0) {
+			corr_done();
+			return -1;
+		}
+	}
+
 	/* open file descriptors for all sensor types */
 	for (i = 0; i < (sizeof(sensc_common.fd) / sizeof(int)); i++) {
 		sensc_common.fd[i] = open(path, O_RDWR);
@@ -77,6 +93,11 @@ int sensc_init(const char *path, sensc_corrMode_t mode)
 		while (i >= 0) {
 			close(sensc_common.fd[i]);
 		}
+
+		if (sensc_common.corrEnable) {
+			corr_done();
+		}
+
 		printf("EKF sensor client: cannot open \"%s\"\n", path);
 		return -1;
 	}
@@ -88,6 +109,10 @@ int sensc_init(const char *path, sensc_corrMode_t mode)
 	err += sensc_setupDscr(fd_gpsId, SENSOR_TYPE_GPS);
 
 	if (err != 0) {
+		if (sensc_common.corrEnable) {
+			corr_done();
+		}
+
 		printf("EKF sensor client: cannot setup sensor descriptors\n");
 		return -1;
 	}
@@ -99,6 +124,8 @@ int sensc_init(const char *path, sensc_corrMode_t mode)
 void sensc_deinit(void)
 {
 	int i;
+
+	corr_done();
 
 	for (i = 0; i < (sizeof(sensc_common.fd) / sizeof(int)); i++) {
 		close(sensc_common.fd[i]);
@@ -139,6 +166,10 @@ int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 			default:
 				break;
 		}
+	}
+
+	if (corrEnable) {
+		corr_magSens(magEvt);
 	}
 
 	return (flag == 0) ? 0 : -1;

@@ -1,7 +1,7 @@
 /*
  * Phoenix-Pilot
  *
- * main.c: Drone corrections library
+ * Corrections module
  *
  * Copyright 2022 Phoenix Systems
  * Author: Mateusz Niewiadomski
@@ -57,8 +57,8 @@ void corr_done(void)
 	unsigned i;
 
 	/* stop recalculation thread */
-	// corr_common.run = false;
-	// threadJoin(0);
+	corr_common.run = false;
+	threadJoin(0);
 
 	i = 0;
 	c = (calib_t *)hmap_next(corr_common.corrs, &i);
@@ -199,6 +199,31 @@ static void corr_thread(void *arg)
 int corr_run(void)
 {
 	return beginthread(corr_thread, 4, corr_common.stack, sizeof(corr_common.stack), NULL);
+}
+
+
+void corr_magSens(sensor_event_t *magEvt)
+{
+	static calib_t *magmot = NULL;
+	static calib_t *magiron = NULL;
+
+
+
+	/* 1) correct the soft/hard iron interferences */
+	if (magiron == NULL) {
+		magiron = (calib_t*)hmap_get(corr_common.corrs, "magiron"); 
+	}
+	else {
+		magiron->proc.corr.perform(magEvt);
+	}
+
+	/* 2) correct against motor interferences */
+	if (magmot == NULL) {
+		magmot = (calib_t*)hmap_get(corr_common.corrs, "magmot"); 
+	}
+	else {
+		magmot->proc.corr.perform(magEvt);
+	}
 }
 
 
