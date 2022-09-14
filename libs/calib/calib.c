@@ -39,9 +39,81 @@ static int calib_file2tag(FILE *file, const char *tag)
 }
 
 
+/* Getline wrapper that reads line to buffer pointed by 'bufptr' and finds parameter 'name' and its value in that buffer */
+static int calib_getline(char **bufptr, size_t *bufSz, FILE *file, char **name, float *val)
+{
+	char *head, *value;
+
+	if (getline(bufptr, bufSz, file) > 0) {
+		head = strtok(*bufptr, " \n");
+		value = strtok(NULL, " \n");
+
+		if (head == NULL || value == NULL) {
+			return -1;
+		}
+
+		*name = head;
+		*val = atof(value);
+
+		return 0;
+	}
+
+	return -1;
+}
+
+
+/* Returns pointer to correct parameter variable given name `paramName` for magmot calibration */
+static float *calib_magmotSlot(const char *paramName, calib_t *cal)
+{
+	unsigned int motor, axis, param;
+
+	if (strlen(paramName) != 4) {
+		return NULL;
+	}
+
+	/* variable casting for MISRA compliance */
+	motor = (uint8_t)(paramName[1] - '0'); /* get motor id */
+	axis = (uint8_t)(paramName[2] - 'x');  /* get x/y/z index, knowing that x/y/z are consecutive in ASCII */
+	axis = (uint8_t)(paramName[3] - 'a');  /* get a/b/c index, knowing that a/b/c are consecutive in ASCII */
+
+	if (motor >= NUM_OF_MOTORS || axis >= 3 || param >= 3) {
+		return NULL;
+	}
+
+	return &cal->params.magmot.motorEq[motor][axis][param];
+}
+
+
+static void calib_magmotDefaults(calib_t *cal)
+{
+	/* set all parameters to 0 */
+	memset(cal->params.magmot.motorEq, 0, sizeof(cal->params.magmot.motorEq));
+}
+
+
 static int calib_magmotRead(FILE *file, calib_t *cal)
 {
+	char *line, *name;
+	size_t lineSz;
+	float value = 0;
+	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
+
+	/* scroll to the `magmot` tag */
 	if (calib_file2tag(file, "magmot") != 0) {
+		return -1;
+	}
+
+	calib_magmotDefaults(cal);
+
+	line = NULL;
+	while (calib_getline(&line, &lineSz, file, &name, &value) != 0) {
+		*calib_magmotSlot(name, cal) = value;
+		params++;
+	}
+	free(line);
+
+	if (params != MAGMOT_PARAMS) {
+		calib_magmotDefaults(cal);
 		return -1;
 	}
 

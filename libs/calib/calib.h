@@ -18,6 +18,7 @@
 
 #define NUM_OF_MOTORS 4
 
+#define MAGMOT_PARAMS 36
 
 typedef enum { typeMagmot = 0, typeMagiron } calibType_t;
 
