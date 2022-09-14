@@ -25,7 +25,7 @@
 #define SQUARE_MAT_SIZE 4
 
 
-static matrix_t M1, M2, M3, M4, M5, Exp, tmp;
+static matrix_t M1, M2, M3, M4, M5, Expected, tmp;
 
 
 /* ##############################################################################
@@ -46,12 +46,12 @@ TEST_SETUP(group_matrix_sandwitch_stdMat)
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M2, buffs_rowsB, buffs_colsB, buffs_B, buffs_colsB * buffs_rowsB));
 
-	/* Exp = A * B * A^T */
+	/* Expected = A * B * A^T */
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
-		algebraTests_createAndFill(&Exp, buffs_rowsAsandB, buffs_colsAsandB, buffs_AsandB, buffs_colsAsandB * buffs_rowsAsandB));
+		algebraTests_createAndFill(&Expected, buffs_rowsAsandB, buffs_colsAsandB, buffs_AsandB, buffs_colsAsandB * buffs_rowsAsandB));
 
 	/* Allocating matrix for results */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, Exp.rows, Exp.cols));
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
 
 	/* Allocating temporary matrix */
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&tmp, M1.rows, M2.cols));
@@ -63,7 +63,7 @@ TEST_TEAR_DOWN(group_matrix_sandwitch_stdMat)
 	matrix_bufFree(&M1);
 	matrix_bufFree(&M2);
 	matrix_bufFree(&M3);
-	matrix_bufFree(&Exp);
+	matrix_bufFree(&Expected);
 	matrix_bufFree(&tmp);
 }
 
@@ -72,7 +72,7 @@ TEST(group_matrix_sandwitch_stdMat, matrix_sandwitch_std)
 {
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -83,7 +83,7 @@ TEST(group_matrix_sandwitch_stdMat, matrix_sandwitch_firstMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -93,7 +93,7 @@ TEST(group_matrix_sandwitch_stdMat, matrix_sandwitch_secondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -104,7 +104,7 @@ TEST(group_matrix_sandwitch_stdMat, matrix_sandwitch_firstAndSecondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -114,7 +114,7 @@ TEST(group_matrix_sandwitch_stdMat, matrix_sandwitch_resultMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -125,7 +125,7 @@ TEST(group_matrix_sandwitch_stdMat, matrix_sandwitch_resultAndFirstMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -136,7 +136,7 @@ TEST(group_matrix_sandwitch_stdMat, matrix_sandwitch_resultAndSecondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -148,7 +148,7 @@ TEST(group_matrix_sandwitch_stdMat, matrix_sandwitch_allMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -165,12 +165,12 @@ TEST_SETUP(group_matrix_sandwitch_bigMat)
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M2, buffs_rowsH, buffs_colsH, buffs_H, buffs_colsH * buffs_rowsH));
 
-	/* Exp = G * H * G^T */
+	/* Expected = G * H * G^T */
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
-		algebraTests_createAndFill(&Exp, buffs_rowsGsandH, buffs_colsGsandH, buffs_GsandH, buffs_colsGsandH * buffs_rowsGsandH));
+		algebraTests_createAndFill(&Expected, buffs_rowsGsandH, buffs_colsGsandH, buffs_GsandH, buffs_colsGsandH * buffs_rowsGsandH));
 
 	/* Allocating matrix for results */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, Exp.rows, Exp.cols));
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
 
 	/* Allocating temporary matrix */
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&tmp, M1.rows, M2.cols));
@@ -187,7 +187,7 @@ TEST_TEAR_DOWN(group_matrix_sandwitch_bigMat)
 	matrix_bufFree(&M3);
 	matrix_bufFree(&M4);
 	matrix_bufFree(&M5);
-	matrix_bufFree(&Exp);
+	matrix_bufFree(&Expected);
 	matrix_bufFree(&tmp);
 }
 
@@ -196,7 +196,7 @@ TEST(group_matrix_sandwitch_bigMat, matrix_sandwitch_bigMatsStd)
 {
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_MATRIX_WITHIN(DELTA, Exp, M3);
+	TEST_ASSERT_MATRIX_WITHIN(DELTA, Expected, M3);
 }
 
 
@@ -206,7 +206,7 @@ TEST(group_matrix_sandwitch_bigMat, matrix_sandwitch_bigMatsFirstMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_MATRIX_WITHIN(DELTA, Exp, M3);
+	TEST_ASSERT_MATRIX_WITHIN(DELTA, Expected, M3);
 }
 
 
@@ -216,7 +216,7 @@ TEST(group_matrix_sandwitch_bigMat, matrix_sandwitch_bigMatsSecondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_MATRIX_WITHIN(DELTA, Exp, M3);
+	TEST_ASSERT_MATRIX_WITHIN(DELTA, Expected, M3);
 }
 
 
@@ -227,7 +227,7 @@ TEST(group_matrix_sandwitch_bigMat, matrix_sandwitch_bigMatsFirstAndSecondMatTrp
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_MATRIX_WITHIN(DELTA, Exp, M3);
+	TEST_ASSERT_MATRIX_WITHIN(DELTA, Expected, M3);
 }
 
 
@@ -237,7 +237,7 @@ TEST(group_matrix_sandwitch_bigMat, matrix_sandwitch_bigMatsResultMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_MATRIX_WITHIN(DELTA, Exp, M3);
+	TEST_ASSERT_MATRIX_WITHIN(DELTA, Expected, M3);
 }
 
 
@@ -248,7 +248,7 @@ TEST(group_matrix_sandwitch_bigMat, matrix_sandwitch_bigMatsResultAndFirstMatTrp
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_MATRIX_WITHIN(DELTA, Exp, M3);
+	TEST_ASSERT_MATRIX_WITHIN(DELTA, Expected, M3);
 }
 
 
@@ -259,7 +259,7 @@ TEST(group_matrix_sandwitch_bigMat, matrix_sandwitch_bigMatsResultAndSecondMatTr
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_MATRIX_WITHIN(DELTA, Exp, M3);
+	TEST_ASSERT_MATRIX_WITHIN(DELTA, Expected, M3);
 }
 
 
@@ -271,7 +271,7 @@ TEST(group_matrix_sandwitch_bigMat, matrix_sandwitch_bigMatsAllMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(SANDWITCH_OK, matrix_sandwitch(&M1, &M2, &M3, &tmp));
 
-	TEST_ASSERT_MATRIX_WITHIN(DELTA, Exp, M3);
+	TEST_ASSERT_MATRIX_WITHIN(DELTA, Expected, M3);
 }
 
 

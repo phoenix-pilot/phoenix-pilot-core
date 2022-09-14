@@ -23,7 +23,7 @@
 #define SQUARE_MAT_SIZE 4
 
 
-static matrix_t M1, M2, M3, M4, M5, Exp;
+static matrix_t M1, M2, M3, M4, M5, Expected;
 
 
 /* ##############################################################################
@@ -44,12 +44,12 @@ TEST_SETUP(group_matrix_prod_stdMat)
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M2, buffs_rowsD, buffs_colsD, buffs_D, buffs_colsD * buffs_rowsD));
 
-	/* Exp = C * D */
+	/* Expected = C * D */
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
-		algebraTests_createAndFill(&Exp, buffs_rowsCtimesD, buffs_colsCtimesD, buffs_CtimesD, buffs_colsCtimesD * buffs_rowsCtimesD));
+		algebraTests_createAndFill(&Expected, buffs_rowsCtimesD, buffs_colsCtimesD, buffs_CtimesD, buffs_colsCtimesD * buffs_rowsCtimesD));
 
 	/* Allocating matrix for results */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, Exp.rows, Exp.cols));
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
 }
 
 
@@ -58,7 +58,7 @@ TEST_TEAR_DOWN(group_matrix_prod_stdMat)
 	matrix_bufFree(&M1);
 	matrix_bufFree(&M2);
 	matrix_bufFree(&M3);
-	matrix_bufFree(&Exp);
+	matrix_bufFree(&Expected);
 }
 
 
@@ -66,7 +66,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_std)
 {
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -77,7 +77,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_firstMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -87,7 +87,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_secondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -98,7 +98,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_firstAndSecondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -108,7 +108,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_resultMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -119,7 +119,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_resultAndFirstMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -130,7 +130,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_resultAndSecondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -142,7 +142,7 @@ TEST(group_matrix_prod_stdMat, matrix_prod_allMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -159,12 +159,12 @@ TEST_SETUP(group_matrix_prod_bigMat)
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M2, buffs_rowsF, buffs_colsF, buffs_F, buffs_colsF * buffs_rowsF));
 
-	/* Exp = E * F */
+	/* Expected = E * F */
 	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
-		algebraTests_createAndFill(&Exp, buffs_rowsEtimesF, buffs_colsEtimesF, buffs_EtimesF, buffs_colsEtimesF * buffs_rowsEtimesF));
+		algebraTests_createAndFill(&Expected, buffs_rowsEtimesF, buffs_colsEtimesF, buffs_EtimesF, buffs_colsEtimesF * buffs_rowsEtimesF));
 
 	/* Allocating matrix for results */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, Exp.rows, Exp.cols));
+	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
 
 	M4.data = NULL;
 	M5.data = NULL;
@@ -178,7 +178,7 @@ TEST_TEAR_DOWN(group_matrix_prod_bigMat)
 	matrix_bufFree(&M3);
 	matrix_bufFree(&M4);
 	matrix_bufFree(&M5);
-	matrix_bufFree(&Exp);
+	matrix_bufFree(&Expected);
 }
 
 
@@ -186,7 +186,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsStd)
 {
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -196,7 +196,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsFirstMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -206,7 +206,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsSecondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -217,7 +217,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsFirstAndSecondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -227,7 +227,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsResultMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -238,7 +238,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsResultAndFirstMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -249,7 +249,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsResultAndSecondMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
@@ -261,7 +261,7 @@ TEST(group_matrix_prod_bigMat, matrix_prod_bigMatsAllMatTrp)
 
 	TEST_ASSERT_EQUAL_INT(PRODUCT_OK, matrix_prod(&M1, &M2, &M3));
 
-	TEST_ASSERT_EQUAL_MATRIX(Exp, M3);
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
 
 
