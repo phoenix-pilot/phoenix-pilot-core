@@ -38,11 +38,18 @@ static const quat_t Q2 = { .a = 3.0f, .i = 0.0f, .j = 6.0f, .k = 1.0f };
 static const quat_t Q3 = { .a = 1.0f, .i = 2.0f, .j = 1.0f, .k = 5.0f };
 
 static const quat_t Q2timesQ3 = { .a = -8.0f, .i = 35.0f, .j = 11.0f, .k = 4.0f };
+static const quat_t Q2sandQ3 = { .a = 46.0f, .i = 118.0f, .j = 116.0f, .k = -190.0f };
 
 static const quat_t Q4 = { .a = 815.23f, .i = -818.07f, .j = -451.47f, .k = -546.79f };
 static const quat_t Q5 = { .a = 334.23f, .i = -822.81f, .j = 349.42f, .k = 548.18f };
 
 static const quat_t Q4timesQ5 = { .a = 56850.1358f, .i = -1000630.3952f, .j = 1032316.741f, .k = -393184.8904f };
+static const quat_t Q4sandQ5 = {
+	.a = 613861170.772044,
+	.i = -27264873.204711974,
+	.j = 1092723638.076936,
+	.k = -1585712993.277524
+};
 
 /* These quaternions are perpendicular do each other (when considered as 4d vectors) */
 static const quat_t Q6 = { .a = 0.0f, .i = 1.0f, .j = 5.0f, .k = 2.0f };
@@ -713,4 +720,49 @@ TEST_GROUP_RUNNER(group_quat_dot)
 	RUN_TEST_CASE(group_quat_dot, quat_dot_biggerValues);
 	RUN_TEST_CASE(group_quat_dot, quat_dot_perpendicular);
 	RUN_TEST_CASE(group_quat_dot, quat_dot_parallel);
+}
+
+
+/* ##############################################################################
+ * ---------------------        quat_sandwich tests       -----------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_sandwich);
+
+
+TEST_SETUP(group_quat_sandwich)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_sandwich)
+{
+}
+
+
+TEST(group_quat_sandwich, quat_sandwich_std)
+{
+	quat_t c;
+
+	quat_sandwich(&Q2, &Q3, &c);
+
+	TEST_ASSERT_EQUAL_QUAT(Q2sandQ3, c);
+}
+
+
+TEST(group_quat_sandwich, quat_sandwich_biggerValues)
+{
+	quat_t c;
+
+	quat_sandwich(&Q4, &Q5, &c);
+
+	TEST_ASSERT_EQUAL_QUAT(Q4sandQ5, c);
+}
+
+
+TEST_GROUP_RUNNER(group_quat_sandwich)
+{
+	RUN_TEST_CASE(group_quat_sandwich, quat_sandwich_std);
+	RUN_TEST_CASE(group_quat_sandwich, quat_sandwich_biggerValues);
 }
