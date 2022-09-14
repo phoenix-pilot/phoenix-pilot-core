@@ -98,12 +98,17 @@ static int calib_magmotRead(FILE *file, calib_t *cal)
 	float value = 0;
 	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
 
+	calib_magmotDefaults(cal);
+
+	if (file == NULL) {
+		fprintf(stderr, "No calibration file. '%s' going default.\n", MAGMOT_TAG);
+		return 0;
+	}
+
 	/* scroll to the `magmot` tag */
 	if (calib_file2tag(file, MAGMOT_TAG) != 0) {
 		return -1;
 	}
-
-	calib_magmotDefaults(cal);
 
 	line = NULL;
 	while (calib_getline(&line, &lineSz, file, &name, &value) != 0) {
@@ -192,11 +197,6 @@ static int calib_magironRead(FILE *file, calib_t *cal)
 	float val = 0, *valuePtr;
 	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
 
-	/* Scroll to 'magiron tag */
-	if (calib_file2tag(file, MAGIRON_TAG) != 0) {
-		return -1;
-	}
-
 	/* allocate matrix buffers */
 	if (matrix_bufAlloc(&cal->params.magiron.hardCal, HARDCAL_ROWSPAN, HARDCAL_COLSPAN) != 0) {
 		return -1;
@@ -207,6 +207,16 @@ static int calib_magironRead(FILE *file, calib_t *cal)
 	}
 
 	calib_magironDefaults(cal);
+
+	if (file == NULL) {
+		fprintf(stderr, "No calibration file. '%s' going default.\n", MAGIRON_TAG);
+		return 0;
+	}
+
+	/* Scroll to 'magiron tag */
+	if (calib_file2tag(file, MAGIRON_TAG) != 0) {
+		return -1;
+	}
 
 	line = NULL;
 	while (calib_getline(&line, &lineSz, file, &name, &val) != 0) {
@@ -221,7 +231,7 @@ static int calib_magironRead(FILE *file, calib_t *cal)
 
 	if (params != MAGIRON_PARAMS) {
 		calib_magmotDefaults(cal);
-		fprintf(stderr, "Failed to read `magiron` calibration. Going default.\n");
+		fprintf(stderr, "Failed to read `%s` calibration. Going default.\n", MAGIRON_TAG);
 	}
 
 	return 0;
@@ -253,10 +263,6 @@ int calib_readFile(const char *path, calibType_t type, calib_t *cal)
 	}
 
 	file = fopen(path, "r");
-	if (file == NULL) {
-		fprintf(stderr, "calib: cannot open calibration file '%s'\n", path);
-		return -1;
-	}
 
 	switch (type) {
 		case typeMagmot:
@@ -271,7 +277,9 @@ int calib_readFile(const char *path, calibType_t type, calib_t *cal)
 			ret = -1;
 	}
 
-	fclose(file);
+	if (file != NULL) {
+		fclose(file);
+	}
 
 	return ret;
 }
