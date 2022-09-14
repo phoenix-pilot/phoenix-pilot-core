@@ -46,6 +46,7 @@ void runner(void)
 	RUN_TEST_GROUP(group_vec_cross);
 	RUN_TEST_GROUP(group_vec_dot);
 	RUN_TEST_GROUP(group_vec_len);
+	RUN_TEST_GROUP(group_vec_normalize);
 
 	/* Quaternions library tests */
 	RUN_TEST_GROUP(group_quat_cmp);

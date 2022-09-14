@@ -33,13 +33,16 @@
 static const vec_t V1 = { .x = 1.0f, .y = 2.0f, .z = 3.0f };
 static const vec_t V2 = { .x = 4.0f, .y = 5.0f, .z = 6.0f };
 
-/* More complicated values */
+/* More complicated values. Length of this vectors must be bigger than 1 */
 static const vec_t V3 = { .x = -261.48f, .y = 731.11f, .z = -919.51f };
 static const vec_t V4 = { .x = 613.36f, .y = -708.58f, .z = -150.27f };
 
 /* This vectors are perpendicular to each other */
 static const vec_t V5 = { .x = 0.0f, .y = 1.0f, .z = 4.0f };
 static const vec_t V6 = { .x = 5.0f, .y = -8.0f, .z = 2.0f };
+
+/* Length of this vector must be smaller than 1 */
+static const vec_t V7 = { .x = 0.25f, .y = 0.5f, .z = 0.5f };
 
 
 /* ##############################################################################
@@ -633,4 +636,78 @@ TEST_GROUP_RUNNER(group_vec_len)
 	RUN_TEST_CASE(group_vec_len, vec_len_std);
 	RUN_TEST_CASE(group_vec_len, vec_len_biggerValues);
 	RUN_TEST_CASE(group_vec_len, vec_len_zeroLen);
+}
+
+
+/* ##############################################################################
+ * ----------------------        vec_normalize tests       ----------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_vec_normalize);
+
+
+TEST_SETUP(group_vec_normalize)
+{
+}
+
+
+TEST_TEAR_DOWN(group_vec_normalize)
+{
+}
+
+
+TEST(group_vec_normalize, vec_normalize_lessThanUnit)
+{
+	vec_t A = V7;
+	float lenA = vec_len(&A);
+	vec_t expected = {
+		.x = A.x / lenA,
+		.y = A.y / lenA,
+		.z = A.z / lenA
+	};
+
+	vec_normalize(&A);
+
+	TEST_ASSERT_EQUAL_VEC(expected, A);
+}
+
+
+TEST(group_vec_normalize, vec_normalize_moreThanUnit)
+{
+	vec_t A = V3;
+	float lenA = vec_len(&A);
+	vec_t expected = {
+		.x = A.x / lenA,
+		.y = A.y / lenA,
+		.z = A.z / lenA
+	};
+
+	vec_normalize(&A);
+
+	TEST_ASSERT_EQUAL_VEC(expected, A);
+}
+
+
+TEST(group_vec_normalize, vec_normalize_equalUnit)
+{
+	vec_t A = { .x = 1.0f, .y = 0.0f, .z = 0.0f };
+	vec_t expected = A;
+
+	vec_normalize(&A);
+
+	TEST_ASSERT_EQUAL_VEC(expected, A);
+
+	A.x = -1;
+	expected = A;
+
+	TEST_ASSERT_EQUAL_VEC(expected, A);
+}
+
+
+TEST_GROUP_RUNNER(group_vec_normalize)
+{
+	RUN_TEST_CASE(group_vec_normalize, vec_normalize_lessThanUnit);
+	RUN_TEST_CASE(group_vec_normalize, vec_normalize_moreThanUnit);
+	RUN_TEST_CASE(group_vec_normalize, vec_normalize_equalUnit);
 }
