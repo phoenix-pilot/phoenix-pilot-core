@@ -21,6 +21,15 @@
 	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).y, (actual).y, "Different `y` part of vectors"); \
 	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).z, (actual).z, "Different `z` part of vectors");
 
+#define TEST_ASSERT_PERPENDICULAR_VEC(delta, vector1, vector2) \
+	TEST_ASSERT_FLOAT_WITHIN_MESSAGE(delta, 0.0, vec_dot(&(vector1), &(vector2)), "Vectors are not perpendicular to each other");
+
+#define TEST_ASSERT_UNIT_VEC(vector) \
+	TEST_ASSERT_EQUAL_FLOAT_MESSAGE(1.0, vec_len(&(vector)), "Length of vector is not equal to 1")
+
+/* Allowed range around expected value used is some tests */
+#define DELTA 5e-6
+
 #define VEC_CMP_OK 0
 
 #define POS_SCALAR 2.5
@@ -28,6 +37,9 @@
 
 
 /* Values used for vectors library tests */
+
+/* Zero vector */
+static const vec_t V0 = { .x = 0.0f, .y = 0.0f, .z = 0.0f };
 
 /* Small values */
 static const vec_t V1 = { .x = 1.0f, .y = 2.0f, .z = 3.0f };
@@ -636,6 +648,136 @@ TEST_GROUP_RUNNER(group_vec_len)
 	RUN_TEST_CASE(group_vec_len, vec_len_std);
 	RUN_TEST_CASE(group_vec_len, vec_len_biggerValues);
 	RUN_TEST_CASE(group_vec_len, vec_len_zeroLen);
+}
+
+
+/* ##############################################################################
+ * ------------------------        vec_normal tests       ------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_vec_normal);
+
+
+TEST_SETUP(group_vec_normal)
+{
+}
+
+
+TEST_TEAR_DOWN(group_vec_normal)
+{
+}
+
+
+TEST(group_vec_normal, vec_normal_std)
+{
+	vec_t a = V1;
+	vec_t b = V2;
+	vec_t c;
+
+	vec_normal(&a, &b, &c);
+
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, a, c);
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, b, c);
+	TEST_ASSERT_UNIT_VEC(c);
+}
+
+
+TEST(group_vec_normal, vec_normal_biggerValues)
+{
+	vec_t a = V3;
+	vec_t b = V4;
+	vec_t c;
+
+	vec_normal(&a, &b, &c);
+
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, a, c);
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, b, c);
+	TEST_ASSERT_UNIT_VEC(c);
+}
+
+
+TEST(group_vec_normal, vec_normal_perpendicular)
+{
+	vec_t a = V5;
+	vec_t b = V6;
+	vec_t c;
+
+	vec_normal(&a, &b, &c);
+
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, a, c);
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, b, c);
+	TEST_ASSERT_UNIT_VEC(c);
+}
+
+
+TEST(group_vec_normal, vec_normal_parallel)
+{
+	vec_t a = V2;
+	vec_t b = a;
+	vec_t c;
+
+	/* Parallel with common direction */
+	vec_times(&b, POS_SCALAR);
+
+	vec_normal(&a, &b, &c);
+
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, a, c);
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, b, c);
+	TEST_ASSERT_UNIT_VEC(c);
+
+	/* Parallel with opposite directions */
+	b = a;
+	vec_times(&b, NEG_SCALAR);
+
+	vec_normal(&b, &a, &c);
+
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, a, c);
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, b, c);
+	TEST_ASSERT_UNIT_VEC(c);
+}
+
+
+/* When one (and only one) argument is zero vector, then function should return vector perpendicular to non zero vector */
+TEST(group_vec_normal, vec_normal_singleZeroVec)
+{
+	vec_t a = V3;
+	vec_t b = V0;
+	vec_t c;
+
+	vec_normal(&a, &b, &c);
+
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, a, c);
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, b, c);
+	TEST_ASSERT_UNIT_VEC(c);
+
+	vec_normal(&b, &a, &c);
+
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, a, c);
+	TEST_ASSERT_PERPENDICULAR_VEC(DELTA, b, c);
+	TEST_ASSERT_UNIT_VEC(c);
+}
+
+
+/* When both arguments are zero vectors, then function should return zero vector */
+TEST(group_vec_normal, vec_normal_bothZeroVectors)
+{
+	vec_t c;
+
+	vec_normal(&V0, &V0, &c);
+
+	TEST_ASSERT_EQUAL_VEC(V0, c);
+}
+
+
+TEST_GROUP_RUNNER(group_vec_normal)
+{
+	RUN_TEST_CASE(group_vec_normal, vec_normal_std);
+	RUN_TEST_CASE(group_vec_normal, vec_normal_biggerValues);
+	RUN_TEST_CASE(group_vec_normal, vec_normal_perpendicular);
+	RUN_TEST_CASE(group_vec_normal, vec_normal_parallel);
+	RUN_TEST_CASE(group_vec_normal, vec_normal_singleZeroVec);
+	RUN_TEST_CASE(group_vec_normal, vec_normal_bothZeroVectors);
 }
 
 
