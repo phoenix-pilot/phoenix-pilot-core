@@ -107,10 +107,10 @@ static void magiron_printIron(FILE *file, char type, matrix_t *mat)
 static int cal_magironWrite(FILE *file)
 {
 	/* Printing hard iron calibration parameters */
-	magiron_printIron(file, CHAR_HARDIRON, &magiron_common.hardCal);
+	magiron_printIron(file, CHAR_HARDIRON, &magiron_common.params.params.magiron.hardCal);
 
 	/* Printing soft iron calibration parameters */
-	magiron_printIron(file, CHAR_SOFTIRON, &magiron_common.softCal);
+	magiron_printIron(file, CHAR_SOFTIRON, &magiron_common.params.params.magiron.softCal);
 
 	return 0;
 }

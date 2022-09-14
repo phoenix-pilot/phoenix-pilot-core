@@ -196,7 +196,7 @@ static int cal_magmotWrite(FILE *file)
 		for (axis = 0; axis < 3; axis++) {
 			for (param = 0; param < 3; param++) {
 				magmot_paramName(motor, axis, param, paramName);
-				fprintf(file, "%s %f\n", paramName, magmot_common.motorEq[motor][axis][param]);
+				fprintf(file, "%s %f\n", paramName, magmot_common.params.params.magmot.motorEq[motor][axis][param]);
 			}
 		}
 	}
