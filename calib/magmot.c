@@ -26,7 +26,7 @@
 #include <vec.h>
 #include <matrix.h>
 
-#include "calib.h"
+#include "calibtool.h"
 
 
 #define AVG_SAMPLES  100
@@ -299,7 +299,7 @@ static int cal_magmotInit(int argc, const char **argv)
 __attribute__((constructor(102))) static void cal_magmotRegister(void)
 {
 	unsigned int motor, axis, param;
-	static calib_t cal = {
+	static calibration_t cal = {
 		.name = "magmot",
 		.init = cal_magmotInit,
 		.run = cal_magmotRun,

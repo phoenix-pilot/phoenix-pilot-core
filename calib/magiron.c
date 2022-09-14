@@ -20,7 +20,7 @@
 #include <matrix.h>
 #include <vec.h>
 
-#include "calib.h"
+#include "calibtool.h"
 
 
 #define CHAR_HARDIRON 'h'
@@ -191,7 +191,7 @@ static void cal_magironPreinit(void)
 
 __attribute__((constructor(102))) static void cal_magironRegister(void)
 {
-	static calib_t cal = {
+	static calibration_t cal = {
 		.name = "magiron",
 		.init = cal_magironInit,
 		.run = cal_magironRun,

@@ -17,6 +17,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include <calib.h>
+
 
 #define SENSOR_PATH "/dev/sensors"
 
@@ -32,10 +34,12 @@ typedef struct _calib_t {
 	const char *(*help)(void);             /* help message description */
 	int (*interpret)(const char *, float); /* calibration file data interpreter */
 	int (*write)(FILE *);                  /* calibration file data write */
-} calib_t;
+
+	calib_t *(*calStructGet)(void); /* returns internal structure of libcalib:calib_t type */
+} calibration_t;
 
 
 /* registering new calibration procedure */
-void calib_register(calib_t *c);
+void calib_register(calibration_t *c);
 
 #endif

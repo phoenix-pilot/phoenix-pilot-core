@@ -10,5 +10,5 @@
 NAME := calibtool
 CALIBS := magmot.c magiron.c
 LOCAL_SRCS := main.c hmap.c $(CALIBS)
-DEP_LIBS := libsensc libmctl libalgeb
+DEP_LIBS := libsensc libmctl libalgeb libcalib
 include $(binary.mk)
