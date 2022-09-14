@@ -121,10 +121,107 @@ static int calib_magmotRead(FILE *file, calib_t *cal)
 }
 
 
+/* returns pointer do data slot named as 'paramName' */
+static float *magiron_paramSlot(const char *paramName, calib_t *cal)
+{
+	matrix_t *mat;
+	unsigned int row, col;
+
+	if (strlen(paramName) != 3) {
+		return NULL;
+	}
+
+	/* variable casting for MISRA compliance */
+	row = (uint8_t)(paramName[1] - '0'); /* convert character to unsigned int digit */
+	col = (uint8_t)(paramName[2] - '0'); /* convert character to unsigned int digit */
+
+
+	/* matrix type get through character check */
+	switch (paramName[0]) {
+		case CHAR_SOFTIRON:
+			if (row > (unsigned int)'9' || col > (unsigned int)'9') {
+				return NULL;
+			}
+			mat = &cal->params.magiron.softCal;
+			break;
+
+		case CHAR_HARDIRON:
+			if (row > (unsigned int)'3' || col > (unsigned int)'3') {
+				return NULL;
+			}
+			mat = &cal->params.magiron.hardCal;
+			break;
+
+		default:
+			return NULL;
+	}
+
+	/* matrix boundary checks performed by matrix_at() */
+	return matrix_at(mat, row, col);
+}
+
+
+static void calib_magironDefaults(calib_t *cal)
+{
+	/* Creating constant aliases of matrices */
+	const matrix_t hardCal = cal->params.magiron.hardCal;
+	const matrix_t softCal = cal->params.magiron.softCal;
+
+	/* hard iron vector matrix */
+	*matrix_at(&hardCal, 0, 0) = 42.47503636;
+	*matrix_at(&hardCal, 1, 0) = 1084.20661751;
+	*matrix_at(&hardCal, 2, 0) = -111.58247011;
+
+	/* soft iron matrix */
+	*matrix_at(&softCal, 0, 0) = 0.9409439;
+	*matrix_at(&softCal, 0, 1) = 0.09766692;
+	*matrix_at(&softCal, 0, 2) = -0.01307758;
+	*matrix_at(&softCal, 1, 0) = 0.09766692;
+	*matrix_at(&softCal, 1, 1) = 1.01364504;
+	*matrix_at(&softCal, 1, 2) = -0.01144832;
+	*matrix_at(&softCal, 2, 0) = -0.01307758;
+	*matrix_at(&softCal, 2, 1) = -0.01144832;
+	*matrix_at(&softCal, 2, 2) = 1.0593312;
+}
+
+
 static int calib_magironRead(FILE *file, calib_t *cal)
 {
+	char *line, *name;
+	size_t lineSz;
+	float val = 0, *valuePtr;
+	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
+
+	/* Scroll to 'magiron tag */
 	if (calib_file2tag(file, "magiron") != 0) {
 		return -1;
+	}
+
+	/* allocate matrix buffers */
+	if (matrix_bufAlloc(&cal->params.magiron.hardCal, HARDCAL_ROWSPAN, HARDCAL_COLSPAN) != 0) {
+		return -1;
+	}
+	if (matrix_bufAlloc(&cal->params.magiron.softCal, SOFTCAL_ROWSPAN, SOFTCAL_COLSPAN) != 0) {
+		matrix_bufFree(&cal->params.magiron.hardCal);
+		return -1;
+	}
+
+	calib_magironDefaults(cal);
+
+	line = NULL;
+	while (calib_getline(&line, &lineSz, file, &name, &val) != 0) {
+		valuePtr = magiron_paramSlot(name, cal);
+		if (valuePtr == NULL) {
+			break;
+		}
+		*valuePtr = val;
+		params++;
+	}
+	free(line);
+
+	if (params != MAGIRON_PARAMS) {
+		calib_magmotDefaults(cal);
+		fprintf(stderr, "Failed to read `magiron` calibration. Going default.\n");
 	}
 
 	return 0;

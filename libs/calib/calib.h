@@ -20,6 +20,14 @@
 
 #define MAGMOT_PARAMS 36
 
+#define MAGIRON_PARAMS  12
+#define CHAR_SOFTIRON   's'
+#define CHAR_HARDIRON   'h'
+#define SOFTCAL_ROWSPAN 3
+#define SOFTCAL_COLSPAN 3
+#define HARDCAL_ROWSPAN 3
+#define HARDCAL_COLSPAN 1
+
 typedef enum { typeMagmot = 0, typeMagiron } calibType_t;
 
 
