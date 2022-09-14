@@ -58,6 +58,7 @@ void runner(void)
 	RUN_TEST_GROUP(group_quat_times);
 	RUN_TEST_GROUP(group_quat_cjg);
 	RUN_TEST_GROUP(group_quat_dot);
+	RUN_TEST_GROUP(group_quat_sandwich);
 }
 
 
