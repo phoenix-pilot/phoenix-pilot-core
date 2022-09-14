@@ -84,7 +84,7 @@ static float *calib_magmotSlot(const char *paramName, calib_t *cal)
 }
 
 
-static void calib_magmotDefaults(calib_t *cal)
+static inline void calib_magmotDefaults(calib_t *cal)
 {
 	/* set all parameters to 0 */
 	memset(cal->params.magmot.motorEq, 0, sizeof(cal->params.magmot.motorEq));
@@ -99,7 +99,7 @@ static int calib_magmotRead(FILE *file, calib_t *cal)
 	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
 
 	/* scroll to the `magmot` tag */
-	if (calib_file2tag(file, "magmot") != 0) {
+	if (calib_file2tag(file, MAGMOT_TAG) != 0) {
 		return -1;
 	}
 
@@ -161,7 +161,7 @@ static float *magiron_paramSlot(const char *paramName, calib_t *cal)
 }
 
 
-static void calib_magironDefaults(calib_t *cal)
+static inline void calib_magironDefaults(calib_t *cal)
 {
 	/* Creating constant aliases of matrices */
 	const matrix_t hardCal = cal->params.magiron.hardCal;
@@ -193,7 +193,7 @@ static int calib_magironRead(FILE *file, calib_t *cal)
 	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
 
 	/* Scroll to 'magiron tag */
-	if (calib_file2tag(file, "magiron") != 0) {
+	if (calib_file2tag(file, MAGIRON_TAG) != 0) {
 		return -1;
 	}
 
@@ -243,11 +243,14 @@ void calib_free(calib_t *cal)
 }
 
 
-/* read calibration file pointed by 'path' searching for calibration named `tag` and saving its content to 'cal' */
 int calib_readFile(const char *path, calibType_t type, calib_t *cal)
 {
 	FILE *file;
 	int ret;
+
+	if (path == NULL || cal == NULL) {
+		return -1;
+	}
 
 	file = fopen(path, "r");
 	if (file == NULL) {
@@ -255,7 +258,6 @@ int calib_readFile(const char *path, calibType_t type, calib_t *cal)
 		return -1;
 	}
 
-	ret = -1;
 	switch (type) {
 		case typeMagmot:
 			ret = calib_magmotRead(file, cal);

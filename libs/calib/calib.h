@@ -18,8 +18,10 @@
 
 #define NUM_OF_MOTORS 4
 
+#define MAGMOT_TAG    "magmot"
 #define MAGMOT_PARAMS 36
 
+#define MAGIRON_TAG     "magiron"
 #define MAGIRON_PARAMS  12
 #define CHAR_SOFTIRON   's'
 #define CHAR_HARDIRON   'h'
