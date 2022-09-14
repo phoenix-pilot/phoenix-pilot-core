@@ -19,6 +19,7 @@
 
 #include <matrix.h>
 #include <vec.h>
+#include <calib.h>
 
 #include "calibtool.h"
 
@@ -40,7 +41,17 @@ struct {
 	/* Utility variables */
 	float softCalBuf[SOFTCAL_ROWSPAN * SOFTCAL_COLSPAN];
 	float hardCalBuf[HARDCAL_ROWSPAN * HARDCAL_COLSPAN];
+
+	calib_t params;
 } magiron_common;
+
+
+/* Returns pointer to internal parameters for read purposes */
+static calib_t *magiron_calibStructGet(void)
+{
+	magiron_common.params.type = typeMagiron;
+	return &magiron_common.params;
+}
 
 
 /* returns pointer do data slot named as 'paramName' */
@@ -198,7 +209,8 @@ __attribute__((constructor(102))) static void cal_magironRegister(void)
 		.done = cal_magironDone,
 		.interpret = cal_magironInterpret,
 		.write = cal_magironWrite,
-		.help = cal_magironHelp
+		.help = cal_magironHelp,
+		.calStructGet = magiron_calibStructGet
 	};
 
 	calib_register(&cal);

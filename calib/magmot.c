@@ -25,6 +25,7 @@
 #include <mctl.h>
 #include <vec.h>
 #include <matrix.h>
+#include <calib.h>
 
 #include "calibtool.h"
 
@@ -46,7 +47,17 @@ static const char *motorFiles[] = {
 struct {
 	/* motorEq[motorId 0/1/2...NUM_OF_MOTORS][axisId x/y/z][equation_param a/b/c] */
 	float motorEq[NUM_OF_MOTORS][3][3];
+
+	calib_t params;
 } magmot_common;
+
+
+/* Returns pointer to internal parameters for read purposes */
+static calib_t *magmot_calibStructGet(void)
+{
+	magmot_common.params.type = typeMagmot;
+	return &magmot_common.params;
+}
 
 
 /*
@@ -306,7 +317,8 @@ __attribute__((constructor(102))) static void cal_magmotRegister(void)
 		.done = cal_magmotDone,
 		.interpret = cal_magmotInterpret,
 		.write = cal_magmotWrite,
-		.help = cal_magmotHelp
+		.help = cal_magmotHelp,
+		.calStructGet = magmot_calibStructGet
 	};
 
 	calib_register(&cal);
