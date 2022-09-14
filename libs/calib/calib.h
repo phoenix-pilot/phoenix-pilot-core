@@ -50,4 +50,8 @@ typedef struct {
 int calib_readFile(const char *path, calibType_t type, calib_t *cal);
 
 
+/* Deallocates all memory used by 'cal' */
+void calib_free(calib_t *cal);
+
+
 #endif

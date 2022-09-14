@@ -228,6 +228,21 @@ static int calib_magironRead(FILE *file, calib_t *cal)
 }
 
 
+void calib_free(calib_t *cal)
+{
+	switch (cal->type) {
+		case typeMagiron:
+			matrix_bufFree(&cal->params.magiron.hardCal);
+			matrix_bufFree(&cal->params.magiron.softCal);
+			break;
+
+		case typeMagmot:
+		default:
+			return;
+	}
+}
+
+
 /* read calibration file pointed by 'path' searching for calibration named `tag` and saving its content to 'cal' */
 int calib_readFile(const char *path, calibType_t type, calib_t *cal)
 {
