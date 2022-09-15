@@ -97,7 +97,7 @@ static int cal_magironInit(int argc, const char **argv)
 
 __attribute__((constructor(102))) static void cal_magironRegister(void)
 {
-	static calibration_t cal = {
+	static calib_ops_t cal = {
 		.name = MAGIRON_TAG,
 		.init = cal_magironInit,
 		.run = cal_magironRun,

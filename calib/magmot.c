@@ -271,7 +271,7 @@ static int cal_magmotInit(int argc, const char **argv)
 
 __attribute__((constructor(102))) static void cal_magmotRegister(void)
 {
-	static calibration_t cal = {
+	static calib_ops_t cal = {
 		.name = MAGMOT_TAG,
 		.init = cal_magmotInit,
 		.run = cal_magmotRun,

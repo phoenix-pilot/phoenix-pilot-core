@@ -22,7 +22,7 @@
 
 #define SENSOR_PATH "/dev/sensors"
 
-typedef struct _calib_t {
+typedef struct {
 	char name[16]; /* alias of this calibration */
 
 	/* process related */
@@ -35,10 +35,10 @@ typedef struct _calib_t {
 	int (*write)(FILE *);                  /* calibration file data write */
 
 	calib_t *(*calStructGet)(void); /* returns internal structure of libcalib:calib_t type */
-} calibration_t;
+} calib_ops_t;
 
 
 /* registering new calibration procedure */
-void calib_register(calibration_t *c);
+void calib_register(calib_ops_t *c);
 
 #endif

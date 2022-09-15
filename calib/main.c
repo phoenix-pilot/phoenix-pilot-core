@@ -33,8 +33,8 @@ struct {
 } calib_common;
 
 
-/* Register new calibration_t procedure. */
-void calib_register(calibration_t *c)
+/* Register new calib_ops_t procedure. */
+void calib_register(calib_ops_t *c)
 {
 	if (hmap_insert(calib_common.calibs, c->name, c) < 0) {
 		fprintf(stderr, "calibtool: ailed to register %s procedure\n", c->name);
@@ -45,7 +45,7 @@ void calib_register(calibration_t *c)
 static void calib_help(void)
 {
 	unsigned int iter;
-	calibration_t *cal;
+	calib_ops_t *cal;
 
 	printf("Usage: calibtool mode [ARGS]\n");
 	printf(
@@ -56,7 +56,7 @@ static void calib_help(void)
 
 	/* iterating over hashmap */
 	iter = 0;
-	cal = (calibration_t *)hmap_next(calib_common.calibs, &iter);
+	cal = (calib_ops_t *)hmap_next(calib_common.calibs, &iter);
 	while (cal != NULL) {
 		if (cal->help == NULL) {
 			fprintf(stderr, "calibtool: calibration %s lacks help function\n", cal->name);
@@ -65,7 +65,7 @@ static void calib_help(void)
 			printf("  %s%s%s:\n  %s\n", COLOR_BOLD, cal->name, COLOR_OFF, cal->help());
 		}
 
-		cal = (calibration_t *)hmap_next(calib_common.calibs, &iter);
+		cal = (calib_ops_t *)hmap_next(calib_common.calibs, &iter);
 	}
 }
 
@@ -76,12 +76,12 @@ static void calib_help(void)
 */
 static int calib_read(const char *path)
 {
-	calibration_t *c;
+	calib_ops_t *c;
 	calib_t *calib;
 	unsigned int i = 0, inited = 0;
 	bool err = false;
 
-	c = (calibration_t *)hmap_next(calib_common.calibs, &i);
+	c = (calib_ops_t *)hmap_next(calib_common.calibs, &i);
 	while (c != NULL) {
 		calib = c->calStructGet();
 		if (calib_readFile(path, calib->type, calib) != 0) {
@@ -90,14 +90,14 @@ static int calib_read(const char *path)
 		}
 		inited++;
 
-		c = (calibration_t *)hmap_next(calib_common.calibs, &i);
+		c = (calib_ops_t *)hmap_next(calib_common.calibs, &i);
 	}
 
 	/* deinitialize all calibrations up to the failed one */
 	if (err) {
 		i = 0;
 		while (inited > 0) {
-			c = (calibration_t *)hmap_next(calib_common.calibs, &i);
+			c = (calib_ops_t *)hmap_next(calib_common.calibs, &i);
 			calib = c->calStructGet();
 			calib_free(calib);
 			inited--;
@@ -118,7 +118,7 @@ static int calib_write(const char *path)
 	int ret = EOK;
 	unsigned int iter;
 	FILE *file;
-	calibration_t *cal;
+	calib_ops_t *cal;
 
 	file = fopen(path, "w");
 	if (file == NULL) {
@@ -130,13 +130,13 @@ static int calib_write(const char *path)
 
 	/* iterating over hashmap */
 	iter = 0;
-	cal = (calibration_t *)hmap_next(calib_common.calibs, &iter);
+	cal = (calib_ops_t *)hmap_next(calib_common.calibs, &iter);
 	while (cal != NULL) {
 		fprintf(file, "@%s\n", cal->name); /* print tag */
 		cal->write(file);                  /* call for data print */
 		fprintf(file, "\n\n");             /* print newlines for separation */
 
-		cal = (calibration_t *)hmap_next(calib_common.calibs, &iter);
+		cal = (calib_ops_t *)hmap_next(calib_common.calibs, &iter);
 	}
 
 	if (file != stdout) {
@@ -148,7 +148,7 @@ static int calib_write(const char *path)
 
 
 /* calibration routine scheme */
-static int calib_do(calibration_t *cal, int argc, const char **argv)
+static int calib_do(calib_ops_t *cal, int argc, const char **argv)
 {
 	int ret;
 
@@ -180,7 +180,7 @@ static int calib_do(calibration_t *cal, int argc, const char **argv)
 
 int main(int argc, const char **argv)
 {
-	calibration_t *cal;
+	calib_ops_t *cal;
 
 	if (argc <= 1) {
 		fprintf(stderr, "calibtool: wrong arguments.\n");
