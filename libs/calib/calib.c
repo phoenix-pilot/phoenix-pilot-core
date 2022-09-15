@@ -20,13 +20,14 @@
 /* Scroll 'file' until 'tag' is reached. Returns 0 on success */
 static int calib_file2tag(FILE *file, const char *tag)
 {
-	char *line = NULL;
+	char *head, *line = NULL;
 	size_t lineSz;
 	int ret = -1;
 
 	while (getline(&line, &lineSz, file) >= 0) {
 		if (line[0] == '@') {
-			if (strcmp(&line[1], tag) == 0) {
+			head = strtok(line, " \n");
+			if (strcmp(&(head[1]), tag) == 0) {
 				/* matching tag */
 				ret = 0;
 				break;
