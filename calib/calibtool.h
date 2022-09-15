@@ -34,7 +34,7 @@ typedef struct {
 	const char *(*help)(void);             /* help message description */
 	int (*write)(FILE *);                  /* calibration file data write */
 
-	calib_data_t *(*calStructGet)(void); /* returns internal structure of libcalib:calib_data_t type */
+	calib_data_t *(*dataGet)(void); /* returns internal structure of libcalib:calib_data_t type */
 } calib_ops_t;
 
 

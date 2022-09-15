@@ -83,7 +83,7 @@ static int calib_read(const char *path)
 
 	c = (calib_ops_t *)hmap_next(calib_common.calibs, &i);
 	while (c != NULL) {
-		calib = c->calStructGet();
+		calib = c->dataGet();
 		if (calib_readFile(path, calib->type, calib) != 0) {
 			err = true;
 			break;
@@ -98,7 +98,7 @@ static int calib_read(const char *path)
 		i = 0;
 		while (inited > 0) {
 			c = (calib_ops_t *)hmap_next(calib_common.calibs, &i);
-			calib = c->calStructGet();
+			calib = c->dataGet();
 			calib_free(calib);
 			inited--;
 		}

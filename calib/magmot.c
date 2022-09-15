@@ -278,7 +278,7 @@ __attribute__((constructor(102))) static void cal_magmotRegister(void)
 		.done = cal_magmotDone,
 		.write = cal_magmotWrite,
 		.help = cal_magmotHelp,
-		.calStructGet = magmot_calibStructGet
+		.dataGet = magmot_calibStructGet
 	};
 
 	calib_register(&cal);

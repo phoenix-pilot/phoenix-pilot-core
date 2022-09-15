@@ -104,7 +104,7 @@ __attribute__((constructor(102))) static void cal_magironRegister(void)
 		.done = cal_magironDone,
 		.write = cal_magironWrite,
 		.help = cal_magironHelp,
-		.calStructGet = magiron_calibStructGet
+		.dataGet = magiron_calibStructGet
 	};
 
 	calib_register(&cal);
