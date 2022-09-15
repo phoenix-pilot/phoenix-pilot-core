@@ -290,7 +290,7 @@ int matrix_sparseSandwitch(matrix_t *A, matrix_t *B, matrix_t *C, matrix_t *temp
 
 	matrix_sparseProd(A, B, tempC);
 	matrix_trp(A);
-	matrix_sparseProd(A, tempC, C);
+	matrix_sparseProd(tempC, A, C);
 	matrix_trp(A);
 	return 0;
 }
