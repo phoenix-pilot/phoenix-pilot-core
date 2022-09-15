@@ -24,7 +24,6 @@
 #include "corr.h"
 
 
-#define CALIB_PATH    "/etc/calib.conf"
 #define NUM_OF_MOTORS 4
 
 #define MAGMOT_MAXPERIOD 80000  /* 80ms */

@@ -16,6 +16,7 @@
 
 #include <matrix.h>
 
+#define CALIB_PATH    "/etc/calib.conf"
 #define NUM_OF_MOTORS 4
 
 #define MAGMOT_TAG    "magmot"
