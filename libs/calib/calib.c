@@ -45,7 +45,7 @@ static int calib_getline(char **bufptr, size_t *bufSz, FILE *file, char **name, 
 {
 	char *head, *value;
 
-	if (getline(bufptr, bufSz, file) > 0) {
+	if (getline(bufptr, bufSz, file) >= 0) {
 		head = strtok(*bufptr, " \n");
 		value = strtok(NULL, " \n");
 
