@@ -1,8 +1,6 @@
 /*
  * Phoenix-Pilot
  *
- * extended kalman filter
- *
  * sensorhub client correction header
  *
  * Copyright 2022 Phoenix Systems
@@ -17,8 +15,6 @@
 #define _SENSC_CORR_H_
 
 #include <calib.h>
-
-#include "corr.h"
 
 
 /* Performs calibration on magnetometer data */

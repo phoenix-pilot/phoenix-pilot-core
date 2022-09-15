@@ -1,8 +1,6 @@
 /*
  * Phoenix-Pilot
  *
- * extended kalman filter
- *
  * sensorhub client correction functions
  *
  * Copyright 2022 Phoenix Systems
@@ -125,7 +123,6 @@ static int corr_magmotRecalc(vec_t *correction)
 		/* strtod fail also fails this check */
 		throttles[motor] -= PWM_PRESCALER;
 		if (throttles[motor] > PWM_PRESCALER || throttles[motor] < 0) {
-
 			return -1;
 		}
 	}

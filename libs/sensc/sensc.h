@@ -1,7 +1,5 @@
 /*
  * Phoenix-Pilot
- *
- * extended kalman filter
  * 
  * sensorhub client functions
  *
@@ -21,7 +19,7 @@
 #include <libsensors.h>
 
 
-/* initializes sensor client that should be accessible under path (e.g /dev/sensors) */
+/* initializes sensor client that should be accessible under path (e.g /dev/sensors) with option to turn on/off corrections module */
 extern int sensc_init(const char *path, bool corrEnable);
 
 /* deinitializes all initialized parts of sensor client */

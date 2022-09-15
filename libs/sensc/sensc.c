@@ -1,7 +1,5 @@
 /*
  * Phoenix-Pilot
- *
- * extended kalman filter
  * 
  * sensorhub client functions implementations
  *
