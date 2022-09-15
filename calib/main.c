@@ -17,11 +17,11 @@
 #include <stdbool.h>
 #include <errno.h>
 
-#include "calib.h"
+#include "calibtool.h"
 #include "hmap.h"
 
-#define CALIB_FILE  "/etc/calib.conf" /* Path to calibration parameters file */
-#define CALIBS_SIZE 16                /* Maximum number of calibrations available. Can be freely increased */
+#define PATH_CALIB_FILE "/etc/calib.conf" /* Path to calibration parameters file */
+#define CALIBS_SIZE     16                /* Maximum number of calibrations available. Can be freely increased */
 
 /* text formatting defined */
 #define COLOR_BOLD "\e[1m"
@@ -33,8 +33,8 @@ struct {
 } calib_common;
 
 
-/* Register new calib_t procedure. */
-void calib_register(calib_t *c)
+/* Register new calib_ops_t procedure. */
+void calib_register(calib_ops_t *c)
 {
 	if (hmap_insert(calib_common.calibs, c->name, c) < 0) {
 		fprintf(stderr, "calibtool: ailed to register %s procedure\n", c->name);
@@ -45,7 +45,7 @@ void calib_register(calib_t *c)
 static void calib_help(void)
 {
 	unsigned int iter;
-	calib_t *cal;
+	calib_ops_t *cal;
 
 	printf("Usage: calibtool mode [ARGS]\n");
 	printf(
@@ -56,7 +56,7 @@ static void calib_help(void)
 
 	/* iterating over hashmap */
 	iter = 0;
-	cal = (calib_t *)hmap_next(calib_common.calibs, &iter);
+	cal = (calib_ops_t *)hmap_next(calib_common.calibs, &iter);
 	while (cal != NULL) {
 		if (cal->help == NULL) {
 			fprintf(stderr, "calibtool: calibration %s lacks help function\n", cal->name);
@@ -65,7 +65,7 @@ static void calib_help(void)
 			printf("  %s%s%s:\n  %s\n", COLOR_BOLD, cal->name, COLOR_OFF, cal->help());
 		}
 
-		cal = (calib_t *)hmap_next(calib_common.calibs, &iter);
+		cal = (calib_ops_t *)hmap_next(calib_common.calibs, &iter);
 	}
 }
 
@@ -76,77 +76,36 @@ static void calib_help(void)
 */
 static int calib_read(const char *path)
 {
-	FILE *file;
-	calib_t *cal;
-	char *head, *val, *line = NULL;
-	size_t lineSz = 0;
-	unsigned int lineNum = 0;
-	int ret = EOK;
+	calib_ops_t *c;
+	calib_data_t *calib;
+	unsigned int i = 0, inited = 0;
+	bool err = false;
 
-	file = fopen(path, "r+");
-	if (file == NULL) {
-		/* it is ok, maybe the file is just missing */
-		fprintf(stderr, "calibtool: %s not found. Continuing...\n", path);
-		return EOK;
-	}
-
-	cal = NULL;
-	while (getline(&line, &lineSz, file) >= 0) {
-		head = strtok(line, " \n");
-
-		/* strange error */
-		if (head == NULL) {
-			fprintf(stderr, "calibtool: error reading %s at line %i:\n", path, lineNum);
-			ret = -ENOENT;
+	c = (calib_ops_t *)hmap_next(calib_common.calibs, &i);
+	while (c != NULL) {
+		calib = c->dataGet();
+		if (calib_readFile(path, calib->type, calib) != 0) {
+			err = true;
 			break;
 		}
+		inited++;
 
-		if (head[0] == '\n' || head[0] == '#') {
-			/* line skip conditions */
-			continue;
-		}
-		else if (head[0] == '@') {
-			/* tag condition */
-			cal = hmap_get(calib_common.calibs, &head[1]);
-			if (cal == NULL) {
-				fprintf(stderr, "calibtool: error reading %s at line %i: unknown calib mode %s \n", path, lineNum, head);
-				ret = -ENOENT;
-				break;
-			}
-			if (cal->interpret == NULL) {
-				fprintf(stderr, "calibtool: calibration %s lacks interpreter\n", cal->name);
-			}
-		}
-		else {
-			/* normal line condition */
-			val = strtok(NULL, " \n");
-
-			if (val == NULL || cal == NULL) {
-				fprintf(
-					stderr,
-					"calibtool: error reading %s at line %i:\nno calibmode tag found yet, or lack of value for %s\n",
-					path, lineNum, head);
-				ret = -ENOENT;
-				break;
-			}
-
-			if (cal->interpret(head, atof(val)) != EOK) {
-				fprintf(
-					stderr,
-					"calibtool: error reading %s at line %i:\ncalibmode %s can't interpret name/value pair:%s/%s\n",
-					path, lineNum, cal->name, head, val);
-				ret = -EINVAL;
-				break;
-			}
-		}
-
-		lineNum++;
+		c = (calib_ops_t *)hmap_next(calib_common.calibs, &i);
 	}
 
-	free(line);
-	fclose(file);
+	/* deinitialize all calibrations up to the failed one */
+	if (err) {
+		i = 0;
+		while (inited > 0) {
+			c = (calib_ops_t *)hmap_next(calib_common.calibs, &i);
+			calib = c->dataGet();
+			calib_free(calib);
+			inited--;
+		}
+		return -1;
+	}
 
-	return ret;
+	return 0;
 }
 
 
@@ -159,7 +118,7 @@ static int calib_write(const char *path)
 	int ret = EOK;
 	unsigned int iter;
 	FILE *file;
-	calib_t *cal;
+	calib_ops_t *cal;
 
 	file = fopen(path, "w");
 	if (file == NULL) {
@@ -171,13 +130,13 @@ static int calib_write(const char *path)
 
 	/* iterating over hashmap */
 	iter = 0;
-	cal = (calib_t *)hmap_next(calib_common.calibs, &iter);
+	cal = (calib_ops_t *)hmap_next(calib_common.calibs, &iter);
 	while (cal != NULL) {
 		fprintf(file, "@%s\n", cal->name); /* print tag */
 		cal->write(file);                  /* call for data print */
 		fprintf(file, "\n\n");             /* print newlines for separation */
 
-		cal = (calib_t *)hmap_next(calib_common.calibs, &iter);
+		cal = (calib_ops_t *)hmap_next(calib_common.calibs, &iter);
 	}
 
 	if (file != stdout) {
@@ -189,7 +148,7 @@ static int calib_write(const char *path)
 
 
 /* calibration routine scheme */
-static int calib_do(calib_t *cal, int argc, const char **argv)
+static int calib_run(calib_ops_t *cal, int argc, const char **argv)
 {
 	int ret;
 
@@ -221,7 +180,7 @@ static int calib_do(calib_t *cal, int argc, const char **argv)
 
 int main(int argc, const char **argv)
 {
-	calib_t *cal;
+	calib_ops_t *cal;
 
 	if (argc <= 1) {
 		fprintf(stderr, "calibtool: wrong arguments.\n");
@@ -242,15 +201,18 @@ int main(int argc, const char **argv)
 	}
 
 	/* Read calibration file */
-	calib_read(CALIB_FILE);
+	if (calib_read(PATH_CALIB_FILE) != 0) {
+		fprintf(stderr, "calibtool: error on calibrations initialization\n");
+		return EXIT_FAILURE;
+	}
 
 	/* Perform calibration */
-	if (calib_do(cal, argc, argv) != EOK) {
+	if (calib_run(cal, argc, argv) != EOK) {
 		return EXIT_FAILURE;
 	}
 
 	/* Write updated calibration parameters to file */
-	if (calib_write(CALIB_FILE) != EOK) {
+	if (calib_write(PATH_CALIB_FILE) != EOK) {
 		return EXIT_FAILURE;
 	}
 

@@ -45,15 +45,18 @@ typedef struct {
 			float motorEq[NUM_OF_MOTORS][3][3]; /* motorEq[motorId 0/1/2...NUM_OF_MOTORS][axisId x/y/z][equation_param a/b/c] */
 		} magmot;
 	} params;
-} calib_t;
+} calib_data_t;
 
 
-/* read calibration file pointed by 'path' searching for calibration named `tag` and saving its content to 'cal' */
-int calib_readFile(const char *path, calibType_t type, calib_t *cal);
+/*
+* Read calibration file pointed by 'path' searching for calibration named `tag` and saving its content to 'cal'.
+* If 'path' does not point to a file default values are written and 0 is returned (success).
+*/
+int calib_readFile(const char *path, calibType_t type, calib_data_t *cal);
 
 
 /* Deallocates all memory used by 'cal' */
-void calib_free(calib_t *cal);
+void calib_free(calib_data_t *cal);
 
 
 #endif

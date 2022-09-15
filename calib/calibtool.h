@@ -17,10 +17,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include <calib.h>
+
 
 #define SENSOR_PATH "/dev/sensors"
 
-typedef struct _calib_t {
+typedef struct {
 	char name[16]; /* alias of this calibration */
 
 	/* process related */
@@ -30,12 +32,13 @@ typedef struct _calib_t {
 
 	/* utility related */
 	const char *(*help)(void);             /* help message description */
-	int (*interpret)(const char *, float); /* calibration file data interpreter */
 	int (*write)(FILE *);                  /* calibration file data write */
-} calib_t;
+
+	calib_data_t *(*dataGet)(void); /* returns internal structure of libcalib:calib_data_t type */
+} calib_ops_t;
 
 
 /* registering new calibration procedure */
-void calib_register(calib_t *c);
+void calib_register(calib_ops_t *c);
 
 #endif

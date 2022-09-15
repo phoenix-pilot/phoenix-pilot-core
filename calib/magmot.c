@@ -25,8 +25,9 @@
 #include <mctl.h>
 #include <vec.h>
 #include <matrix.h>
+#include <calib.h>
 
-#include "calib.h"
+#include "calibtool.h"
 
 
 #define AVG_SAMPLES  100
@@ -44,9 +45,15 @@ static const char *motorFiles[] = {
 };
 
 struct {
-	/* motorEq[motorId 0/1/2...NUM_OF_MOTORS][axisId x/y/z][equation_param a/b/c] */
-	float motorEq[NUM_OF_MOTORS][3][3];
+	calib_data_t data;
 } magmot_common;
+
+
+/* Returns pointer to internal parameters for read purposes */
+static calib_data_t *magmot_dataGet(void)
+{
+	return &magmot_common.data;
+}
 
 
 /*
@@ -154,29 +161,7 @@ static void magmot_paramName(unsigned int motorId, unsigned int axisId, unsigned
 }
 
 
-/* Returns pointer to correct parameter variable given name `paramName` */
-static float *magmot_paramSlot(const char *paramName)
-{
-	unsigned int motor, axis, param;
-
-	if (strlen(paramName) != 4) {
-		return NULL;
-	}
-
-	/* variable casting for MISRA compliance */
-	motor = (uint8_t)(paramName[1] - '0'); /* get motor id */
-	axis = (uint8_t)(paramName[2] - 'x');  /* get x/y/z index, knowing that x/y/z are consecutive in ASCII */
-	axis = (uint8_t)(paramName[3] - 'a');  /* get a/b/c index, knowing that a/b/c are consecutive in ASCII */
-
-	if (motor >= NUM_OF_MOTORS || axis >= 3 || param >= 3) {
-		return NULL;
-	}
-
-	return &magmot_common.motorEq[motor][axis][param];
-}
-
-
-static int cal_magmotWrite(FILE *file)
+static int magmot_write(FILE *file)
 {
 	unsigned int motor, axis, param;
 	char paramName[5];
@@ -185,7 +170,7 @@ static int cal_magmotWrite(FILE *file)
 		for (axis = 0; axis < 3; axis++) {
 			for (param = 0; param < 3; param++) {
 				magmot_paramName(motor, axis, param, paramName);
-				fprintf(file, "%s %f\n", paramName, magmot_common.motorEq[motor][axis][param]);
+				fprintf(file, "%s %f\n", paramName, magmot_common.data.params.magmot.motorEq[motor][axis][param]);
 			}
 		}
 	}
@@ -193,35 +178,19 @@ static int cal_magmotWrite(FILE *file)
 }
 
 
-int cal_magmotInterpret(const char *valName, float val)
-{
-	float *paramSlot;
-
-	/* get parameter slot for name `valName` */
-	paramSlot = magmot_paramSlot(valName);
-
-	if (paramSlot == NULL) {
-		return -ENOENT;
-	}
-
-	*paramSlot = val;
-
-	return EOK;
-}
-
-
-const char *cal_magmotHelp(void)
+const char *magmot_help(void)
 {
 	return "Magnetometer vs engine interference calibration\n";
 }
 
 
-static int cal_magmotRun(void)
+static int magmot_run(void)
 {
 	vec_t magBase, magCurr, magDiff;
 	float thrtl = 0, thrtlStep, startThrtl = 0.3;
 	float x[CALIB_POINTS], y[3][CALIB_POINTS];
 	unsigned int m, pts;
+	float (*motorEq)[3][3];
 
 	/* arm motors in safe mode. Warnings displayed by mctl_arm() */
 	if (mctl_arm(armMode_user) < 0) {
@@ -259,12 +228,15 @@ static int cal_magmotRun(void)
 		}
 		usleep(1000 * 400); /* wait for engine to slow down */
 
+		/* aliasing for better readability */
+		motorEq = magmot_common.data.params.magmot.motorEq;
+
 		/* fitting quadratic equation for magnetometer x-axis interference from m-th engine */
-		magmot_qlsmFit(x, y[0], CALIB_POINTS, &magmot_common.motorEq[m][0][0], &magmot_common.motorEq[m][0][1], &magmot_common.motorEq[m][0][2]);
+		magmot_qlsmFit(x, y[0], CALIB_POINTS, &motorEq[m][0][0], &motorEq[m][0][1], &motorEq[m][0][2]);
 		/* fitting quadratic equation for magnetometer y-axis interference from m-th engine */
-		magmot_qlsmFit(x, y[1], CALIB_POINTS, &magmot_common.motorEq[m][1][0], &magmot_common.motorEq[m][1][1], &magmot_common.motorEq[m][1][2]);
+		magmot_qlsmFit(x, y[1], CALIB_POINTS, &motorEq[m][1][0], &motorEq[m][1][1], &motorEq[m][1][2]);
 		/* fitting quadratic equation for magnetometer z-axis interference from m-th engine */
-		magmot_qlsmFit(x, y[2], CALIB_POINTS, &magmot_common.motorEq[m][2][0], &magmot_common.motorEq[m][2][1], &magmot_common.motorEq[m][2][2]);
+		magmot_qlsmFit(x, y[2], CALIB_POINTS, &motorEq[m][2][0], &motorEq[m][2][1], &motorEq[m][2][2]);
 	}
 	mctl_disarm();
 
@@ -272,7 +244,7 @@ static int cal_magmotRun(void)
 }
 
 
-static int cal_magmotDone(void)
+static int magmot_done(void)
 {
 	sensc_deinit();
 	mctl_deinit();
@@ -281,7 +253,7 @@ static int cal_magmotDone(void)
 }
 
 
-static int cal_magmotInit(int argc, const char **argv)
+static int magmot_init(int argc, const char **argv)
 {
 	if (sensc_init(SENSOR_PATH) < 0) {
 		return -ENXIO;
@@ -296,27 +268,19 @@ static int cal_magmotInit(int argc, const char **argv)
 }
 
 
-__attribute__((constructor(102))) static void cal_magmotRegister(void)
+__attribute__((constructor(102))) static void magmot_register(void)
 {
-	unsigned int motor, axis, param;
-	static calib_t cal = {
-		.name = "magmot",
-		.init = cal_magmotInit,
-		.run = cal_magmotRun,
-		.done = cal_magmotDone,
-		.interpret = cal_magmotInterpret,
-		.write = cal_magmotWrite,
-		.help = cal_magmotHelp
+	static calib_ops_t cal = {
+		.name = MAGMOT_TAG,
+		.init = magmot_init,
+		.run = magmot_run,
+		.done = magmot_done,
+		.write = magmot_write,
+		.help = magmot_help,
+		.dataGet = magmot_dataGet
 	};
 
 	calib_register(&cal);
 
-	/* set all params to neutral to not disrupt the drone with uninitialized garbage */
-	for (motor = 0; motor < NUM_OF_MOTORS; motor++) {
-		for (axis = 0; axis < 3; axis++) {
-			for (param = 0; param < 3; param++) {
-				magmot_common.motorEq[motor][axis][param] = 0.0;
-			}
-		}
-	}
+	magmot_common.data.type = typeMagmot;
 }

@@ -63,7 +63,7 @@ static int calib_getline(char **bufptr, size_t *bufSz, FILE *file, char **name, 
 
 
 /* Returns pointer to correct parameter variable given name `paramName` for magmot calibration */
-static float *calib_magmotSlot(const char *paramName, calib_t *cal)
+static float *calib_magmotSlot(const char *paramName, calib_data_t *cal)
 {
 	unsigned int motor, axis, param;
 
@@ -84,26 +84,31 @@ static float *calib_magmotSlot(const char *paramName, calib_t *cal)
 }
 
 
-static inline void calib_magmotDefaults(calib_t *cal)
+static inline void calib_magmotDefaults(calib_data_t *cal)
 {
 	/* set all parameters to 0 */
 	memset(cal->params.magmot.motorEq, 0, sizeof(cal->params.magmot.motorEq));
 }
 
 
-static int calib_magmotRead(FILE *file, calib_t *cal)
+static int calib_magmotRead(FILE *file, calib_data_t *cal)
 {
 	char *line, *name;
 	size_t lineSz;
 	float value = 0;
 	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
 
+	calib_magmotDefaults(cal);
+
+	if (file == NULL) {
+		fprintf(stderr, "No calibration file. '%s' going default.\n", MAGMOT_TAG);
+		return 0;
+	}
+
 	/* scroll to the `magmot` tag */
 	if (calib_file2tag(file, MAGMOT_TAG) != 0) {
 		return -1;
 	}
-
-	calib_magmotDefaults(cal);
 
 	line = NULL;
 	while (calib_getline(&line, &lineSz, file, &name, &value) != 0) {
@@ -114,7 +119,7 @@ static int calib_magmotRead(FILE *file, calib_t *cal)
 
 	if (params != MAGMOT_PARAMS) {
 		calib_magmotDefaults(cal);
-		return -1;
+		fprintf(stderr, "Failed to read `%s` calibration. Going default.\n", MAGIRON_TAG);
 	}
 
 	return 0;
@@ -122,7 +127,7 @@ static int calib_magmotRead(FILE *file, calib_t *cal)
 
 
 /* returns pointer do data slot named as 'paramName' */
-static float *magiron_paramSlot(const char *paramName, calib_t *cal)
+static float *magiron_paramSlot(const char *paramName, calib_data_t *cal)
 {
 	matrix_t *mat;
 	unsigned int row, col;
@@ -161,7 +166,7 @@ static float *magiron_paramSlot(const char *paramName, calib_t *cal)
 }
 
 
-static inline void calib_magironDefaults(calib_t *cal)
+static inline void calib_magironDefaults(calib_data_t *cal)
 {
 	/* Creating constant aliases of matrices */
 	const matrix_t hardCal = cal->params.magiron.hardCal;
@@ -185,17 +190,12 @@ static inline void calib_magironDefaults(calib_t *cal)
 }
 
 
-static int calib_magironRead(FILE *file, calib_t *cal)
+static int calib_magironRead(FILE *file, calib_data_t *cal)
 {
 	char *line, *name;
 	size_t lineSz;
 	float val = 0, *valuePtr;
 	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
-
-	/* Scroll to 'magiron tag */
-	if (calib_file2tag(file, MAGIRON_TAG) != 0) {
-		return -1;
-	}
 
 	/* allocate matrix buffers */
 	if (matrix_bufAlloc(&cal->params.magiron.hardCal, HARDCAL_ROWSPAN, HARDCAL_COLSPAN) != 0) {
@@ -207,6 +207,16 @@ static int calib_magironRead(FILE *file, calib_t *cal)
 	}
 
 	calib_magironDefaults(cal);
+
+	if (file == NULL) {
+		fprintf(stderr, "No calibration file. '%s' going default.\n", MAGIRON_TAG);
+		return 0;
+	}
+
+	/* Scroll to 'magiron tag */
+	if (calib_file2tag(file, MAGIRON_TAG) != 0) {
+		return -1;
+	}
 
 	line = NULL;
 	while (calib_getline(&line, &lineSz, file, &name, &val) != 0) {
@@ -221,14 +231,14 @@ static int calib_magironRead(FILE *file, calib_t *cal)
 
 	if (params != MAGIRON_PARAMS) {
 		calib_magmotDefaults(cal);
-		fprintf(stderr, "Failed to read `magiron` calibration. Going default.\n");
+		fprintf(stderr, "Failed to read `%s` calibration. Going default.\n", MAGIRON_TAG);
 	}
 
 	return 0;
 }
 
 
-void calib_free(calib_t *cal)
+void calib_free(calib_data_t *cal)
 {
 	switch (cal->type) {
 		case typeMagiron:
@@ -243,7 +253,7 @@ void calib_free(calib_t *cal)
 }
 
 
-int calib_readFile(const char *path, calibType_t type, calib_t *cal)
+int calib_readFile(const char *path, calibType_t type, calib_data_t *cal)
 {
 	FILE *file;
 	int ret;
@@ -253,10 +263,6 @@ int calib_readFile(const char *path, calibType_t type, calib_t *cal)
 	}
 
 	file = fopen(path, "r");
-	if (file == NULL) {
-		fprintf(stderr, "calib: cannot open calibration file '%s'\n", path);
-		return -1;
-	}
 
 	switch (type) {
 		case typeMagmot:
@@ -271,7 +277,9 @@ int calib_readFile(const char *path, calibType_t type, calib_t *cal)
 			ret = -1;
 	}
 
-	fclose(file);
+	if (file != NULL) {
+		fclose(file);
+	}
 
 	return ret;
 }
