@@ -51,6 +51,9 @@
 #define ADD_OK   0
 #define ADD_FAIL -1
 
+#define SUB_OK   0
+#define SUB_FAIL -1
+
 #define WRITE_SUBMAT_OK   0
 #define WRITE_SUBMAT_FAIL -1
 
