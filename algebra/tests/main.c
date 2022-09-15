@@ -31,6 +31,7 @@ void runner(void)
 	RUN_TEST_GROUP(group_matrix_prod);
 	RUN_TEST_GROUP(group_matrix_sparseProd);
 	RUN_TEST_GROUP(group_matrix_sandwitch);
+	RUN_TEST_GROUP(group_matrix_sparseSandwitch);
 	RUN_TEST_GROUP(group_matrix_add);
 	RUN_TEST_GROUP(group_matrix_sub);
 	RUN_TEST_GROUP(group_matrix_writeSubmatrix);
