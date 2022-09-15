@@ -18,6 +18,8 @@
 #include "corr.h"
 
 
+#define CALIB_PATH "/etc/calib.conf"
+
 struct {
 	calib_data_t magmot;
 	calib_data_t magiron;
@@ -26,16 +28,29 @@ struct {
 
 void corr_done(void)
 {
-    return;
+	calib_free(&corr_common.magiron);
+	calib_free(&corr_common.magmot);
 }
 
 
 int corr_init(void)
 {
+	int magironRet, magmotRet;
 
-    calib_readFile("/etc/calib.conf", typeMagiron, &corr_common.magiron);
+	magironRet = calib_readFile(CALIB_PATH, typeMagiron, &corr_common.magiron);
+	magmotRet = calib_readFile(CALIB_PATH, typeMagmot, &corr_common.magmot);
 
-    calib_readFile("/etc/calib.conf", typeMagmot, &corr_common.magmot);
+	/* error checking */
+	if (magironRet != 0 || magmotRet != 0) {
+		if (magmotRet == 0) {
+			calib_free(&corr_common.magmot);
+		}
+		if (magironRet == 0) {
+			calib_free(&corr_common.magiron);
+		}
 
-    return 0;
+		return -1;
+	}
+
+	return 0;
 }

@@ -22,6 +22,7 @@
 #include <libsensors.h>
 
 #include "sensc.h"
+#include "corr.h"
 
 #define SENSORHUB_PIPES 3 /* number of connections with sensorhub */
 
@@ -62,6 +63,11 @@ int sensc_init(const char *path)
 	int i = 0;
 	unsigned int err = 0;
 
+	if (corr_init() != 0) {
+		printf("Cannot setup correction module\n");
+		return -1;
+	}
+
 	/* open file descriptors for all sensor types */
 	for (i = 0; i < (sizeof(sensc_common.fd) / sizeof(int)); i++) {
 		sensc_common.fd[i] = open(path, O_RDWR);
@@ -77,6 +83,7 @@ int sensc_init(const char *path)
 			close(sensc_common.fd[i]);
 		}
 		printf("EKF sensor client: cannot open \"%s\"\n", path);
+		corr_done();
 		return -1;
 	}
 
@@ -88,6 +95,7 @@ int sensc_init(const char *path)
 
 	if (err != 0) {
 		printf("EKF sensor client: cannot setup sensor descriptors\n");
+		corr_done();
 		return -1;
 	}
 
@@ -102,6 +110,8 @@ void sensc_deinit(void)
 	for (i = 0; i < (sizeof(sensc_common.fd) / sizeof(int)); i++) {
 		close(sensc_common.fd[i]);
 	}
+
+	corr_done();
 }
 
 
