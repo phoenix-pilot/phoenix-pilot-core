@@ -119,7 +119,7 @@ static int calib_magmotRead(FILE *file, calib_data_t *cal)
 
 	if (params != MAGMOT_PARAMS) {
 		calib_magmotDefaults(cal);
-		return -1;
+		fprintf(stderr, "Failed to read `%s` calibration. Going default.\n", MAGIRON_TAG);
 	}
 
 	return 0;

@@ -48,7 +48,10 @@ typedef struct {
 } calib_data_t;
 
 
-/* read calibration file pointed by 'path' searching for calibration named `tag` and saving its content to 'cal' */
+/*
+* Read calibration file pointed by 'path' searching for calibration named `tag` and saving its content to 'cal'.
+* If 'path' does not point to a file default values are written and 0 is returned (success).
+*/
 int calib_readFile(const char *path, calibType_t type, calib_data_t *cal);
 
 
