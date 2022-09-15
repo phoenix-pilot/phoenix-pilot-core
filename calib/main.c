@@ -148,7 +148,7 @@ static int calib_write(const char *path)
 
 
 /* calibration routine scheme */
-static int calib_do(calib_ops_t *cal, int argc, const char **argv)
+static int calib_run(calib_ops_t *cal, int argc, const char **argv)
 {
 	int ret;
 
@@ -207,7 +207,7 @@ int main(int argc, const char **argv)
 	}
 
 	/* Perform calibration */
-	if (calib_do(cal, argc, argv) != EOK) {
+	if (calib_run(cal, argc, argv) != EOK) {
 		return EXIT_FAILURE;
 	}
 
