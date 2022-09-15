@@ -64,7 +64,7 @@ int sensc_init(const char *path)
 	unsigned int err = 0;
 
 	if (corr_init() != 0) {
-		printf("Cannot setup correction module\n");
+		fprintf(stderr, "Cannot setup correction module\n");
 		return -1;
 	}
 
@@ -79,11 +79,14 @@ int sensc_init(const char *path)
 	}
 	/* if error occured during opening, close all succesfully opened files */
 	if (err != 0) {
+		fprintf(stderr, "sensc: cannot open \"%s\"\n", path);
+
+		corr_done();
 		while (i >= 0) {
 			close(sensc_common.fd[i]);
+			i--;
 		}
-		printf("EKF sensor client: cannot open \"%s\"\n", path);
-		corr_done();
+
 		return -1;
 	}
 
@@ -94,8 +97,13 @@ int sensc_init(const char *path)
 	err += sensc_setupDscr(fd_gpsId, SENSOR_TYPE_GPS);
 
 	if (err != 0) {
-		printf("EKF sensor client: cannot setup sensor descriptors\n");
+		fprintf(stderr, "sensc: cannot setup sensor descriptors\n");
+
 		corr_done();
+		for (i = 0; i < (sizeof(sensc_common.fd) / sizeof(int)); i++) {
+			close(sensc_common.fd[i]);
+		}
+
 		return -1;
 	}
 
