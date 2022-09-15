@@ -52,15 +52,6 @@ float acc_calib1[12] = {
 	-0.00315447, 0.00175213, 0.9965838
 };
 
-/* magnetometer calibration data */
-float mag_calib1[12] = {
-	/* sphere offset in 10^-7 T (milligauss)*/
-	42.47503636, 1084.20661751, -111.58247011,
-	/* sphere deformation */
-	0.9409439, 0.09766692, -0.01307758,
-	0.09766692, 1.01364504, -0.01144832,
-	-0.01307758, -0.01144832, 1.0593312
-};
 
 vec_t geo2ecef(float lat, float lon, float h)
 {
@@ -228,7 +219,6 @@ void meas_imuCalib(void)
 			meas_mag2si(&magEvt, &mag);
 
 			meas_ellipCompensate(&acc, acc_calib1);
-			meas_ellipCompensate(&mag, mag_calib1);
 
 			vec_add(&accAvg, &acc);
 			vec_add(&gyrAvg, &gyr);
@@ -295,7 +285,6 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 	meas_mag2si(&magEvt, mags);   /* only magnitude matters from geomagnetism */
 
 	meas_ellipCompensate(accels, acc_calib1);
-	meas_ellipCompensate(mags, mag_calib1);
 
 	/* gyro niveling */
 	vec_sub(gyros, &meas_common.calib.gyr_nivel);
