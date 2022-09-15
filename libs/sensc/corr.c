@@ -70,6 +70,7 @@ int corr_init(void)
 		corr_common.pwmFiles[i] = fopen(motorFiles[i], "r");
 		if (corr_common.pwmFiles[i] == NULL) {
 			err = true;
+			fprintf(stderr, "corr: cannot access %s pwm file\n", motorFiles[i]);
 			break;
 		}
 	}
@@ -89,9 +90,11 @@ int corr_init(void)
 	/* error checking */
 	if (magironRet != 0 || magmotRet != 0) {
 		if (magmotRet == 0) {
+			fprintf(stderr, "corr: failed at magmot init\n");
 			calib_free(&corr_common.magiron);
 		}
 		if (magironRet == 0) {
+			fprintf(stderr, "corr: failed at magiron init\n");
 			calib_free(&corr_common.magiron);
 		}
 

@@ -274,6 +274,7 @@ int calib_readFile(const char *path, calibType_t type, calib_data_t *cal)
 			break;
 
 		default:
+			fprintf(stderr, "calib: unknown calibration type\n");
 			ret = -1;
 	}
 
