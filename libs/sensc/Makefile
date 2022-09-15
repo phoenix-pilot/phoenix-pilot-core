@@ -8,6 +8,7 @@
 
 # Sensorhub client library
 NAME := libsensc
-LOCAL_SRCS := sensc.c
+LOCAL_SRCS := sensc.c corr.c
 LOCAL_HEADERS := sensc.h
+DEPS := libalgeb libcalib
 include $(static-lib.mk)
