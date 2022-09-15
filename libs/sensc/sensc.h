@@ -16,11 +16,13 @@
 #ifndef __SENSORS_CLIENT_H__
 #define __SENSORS_CLIENT_H__
 
+#include <stdbool.h>
+
 #include <libsensors.h>
 
 
 /* initializes sensor client that should be accessible under path (e.g /dev/sensors) */
-extern int sensc_init(const char *path);
+extern int sensc_init(const char *path, bool corrEnable);
 
 /* deinitializes all initialized parts of sensor client */
 extern void sensc_deinit(void);

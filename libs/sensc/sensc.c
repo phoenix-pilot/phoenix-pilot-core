@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -32,6 +33,8 @@ struct {
 	sensors_data_t *data;
 	int fd[SENSORHUB_PIPES]; /* each for one sensor type */
 	unsigned char buff[0x400];
+
+	bool corrEnable;
 } sensc_common;
 
 
@@ -58,14 +61,17 @@ static int sensc_setupDscr(fd_id_t type, int typeFlag)
 }
 
 
-int sensc_init(const char *path)
+int sensc_init(const char *path, bool corrEnable)
 {
 	int i = 0;
 	unsigned int err = 0;
 
-	if (corr_init() != 0) {
-		fprintf(stderr, "Cannot setup correction module\n");
-		return -1;
+	sensc_common.corrEnable = corrEnable;
+	if (sensc_common.corrEnable) {
+		if (corr_init() != 0) {
+			fprintf(stderr, "Cannot setup correction module\n");
+			return -1;
+		}
 	}
 
 	/* open file descriptors for all sensor types */
@@ -81,7 +87,9 @@ int sensc_init(const char *path)
 	if (err != 0) {
 		fprintf(stderr, "sensc: cannot open \"%s\"\n", path);
 
-		corr_done();
+		if (sensc_common.corrEnable) {
+			corr_done();
+		}
 		while (i >= 0) {
 			close(sensc_common.fd[i]);
 			i--;
@@ -99,7 +107,9 @@ int sensc_init(const char *path)
 	if (err != 0) {
 		fprintf(stderr, "sensc: cannot setup sensor descriptors\n");
 
-		corr_done();
+		if (sensc_common.corrEnable) {
+			corr_done();
+		}
 		for (i = 0; i < (sizeof(sensc_common.fd) / sizeof(int)); i++) {
 			close(sensc_common.fd[i]);
 		}
@@ -119,7 +129,9 @@ void sensc_deinit(void)
 		close(sensc_common.fd[i]);
 	}
 
-	corr_done();
+	if (sensc_common.corrEnable) {
+		corr_done();
+	}
 }
 
 

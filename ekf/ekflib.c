@@ -12,6 +12,7 @@
  */
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
 #include <unistd.h>
 #include <math.h>
@@ -59,7 +60,7 @@ int ekf_init(void)
 	}
 
 	ekf_common.run = 0;
-	if (sensc_init("/dev/sensors") < 0) {
+	if (sensc_init("/dev/sensors", true) < 0) {
 		return -1;
 	}
 

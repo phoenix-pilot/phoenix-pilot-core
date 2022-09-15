@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 
@@ -255,7 +256,7 @@ static int magmot_done(void)
 
 static int magmot_init(int argc, const char **argv)
 {
-	if (sensc_init(SENSOR_PATH) < 0) {
+	if (sensc_init(SENSOR_PATH, false) < 0) {
 		return -ENXIO;
 	}
 
