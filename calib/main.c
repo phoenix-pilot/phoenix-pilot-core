@@ -20,8 +20,8 @@
 #include "calibtool.h"
 #include "hmap.h"
 
-#define CALIB_FILE  "/etc/calib.conf" /* Path to calibration parameters file */
-#define CALIBS_SIZE 16                /* Maximum number of calibrations available. Can be freely increased */
+#define PATH_CALIB_FILE "/etc/calib.conf" /* Path to calibration parameters file */
+#define CALIBS_SIZE     16                /* Maximum number of calibrations available. Can be freely increased */
 
 /* text formatting defined */
 #define COLOR_BOLD "\e[1m"
@@ -201,7 +201,7 @@ int main(int argc, const char **argv)
 	}
 
 	/* Read calibration file */
-	if (calib_read(CALIB_FILE) != 0) {
+	if (calib_read(PATH_CALIB_FILE) != 0) {
 		fprintf(stderr, "calibtool: error on calibrations initialization\n");
 		return EXIT_FAILURE;
 	}
@@ -212,7 +212,7 @@ int main(int argc, const char **argv)
 	}
 
 	/* Write updated calibration parameters to file */
-	if (calib_write(CALIB_FILE) != EOK) {
+	if (calib_write(PATH_CALIB_FILE) != EOK) {
 		return EXIT_FAILURE;
 	}
 

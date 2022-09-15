@@ -25,15 +25,15 @@
 
 
 struct {
-	calib_data_t params;
+	calib_data_t data;
 } magiron_common;
 
 
 /* Returns pointer to internal parameters for read purposes */
 static calib_data_t *magiron_calibStructGet(void)
 {
-	magiron_common.params.type = typeMagiron;
-	return &magiron_common.params;
+	magiron_common.data.type = typeMagiron;
+	return &magiron_common.data;
 }
 
 
@@ -56,10 +56,10 @@ static void magiron_printIron(FILE *file, char type, matrix_t *mat)
 static int cal_magironWrite(FILE *file)
 {
 	/* Printing hard iron calibration parameters */
-	magiron_printIron(file, CHAR_HARDIRON, &magiron_common.params.params.magiron.hardCal);
+	magiron_printIron(file, CHAR_HARDIRON, &magiron_common.data.params.magiron.hardCal);
 
 	/* Printing soft iron calibration parameters */
-	magiron_printIron(file, CHAR_SOFTIRON, &magiron_common.params.params.magiron.softCal);
+	magiron_printIron(file, CHAR_SOFTIRON, &magiron_common.data.params.magiron.softCal);
 
 	return 0;
 }

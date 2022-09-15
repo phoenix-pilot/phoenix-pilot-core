@@ -45,15 +45,14 @@ static const char *motorFiles[] = {
 };
 
 struct {
-	calib_data_t params;
+	calib_data_t data;
 } magmot_common;
 
 
 /* Returns pointer to internal parameters for read purposes */
 static calib_data_t *magmot_calibStructGet(void)
 {
-	magmot_common.params.type = typeMagmot;
-	return &magmot_common.params;
+	return &magmot_common.data;
 }
 
 
@@ -171,7 +170,7 @@ static int cal_magmotWrite(FILE *file)
 		for (axis = 0; axis < 3; axis++) {
 			for (param = 0; param < 3; param++) {
 				magmot_paramName(motor, axis, param, paramName);
-				fprintf(file, "%s %f\n", paramName, magmot_common.params.params.magmot.motorEq[motor][axis][param]);
+				fprintf(file, "%s %f\n", paramName, magmot_common.data.params.magmot.motorEq[motor][axis][param]);
 			}
 		}
 	}
@@ -230,7 +229,7 @@ static int cal_magmotRun(void)
 		usleep(1000 * 400); /* wait for engine to slow down */
 
 		/* aliasing for better readability */
-		motorEq = magmot_common.params.params.magmot.motorEq;
+		motorEq = magmot_common.data.params.magmot.motorEq;
 
 		/* fitting quadratic equation for magnetometer x-axis interference from m-th engine */
 		magmot_qlsmFit(x, y[0], CALIB_POINTS, &motorEq[m][0][0], &motorEq[m][0][1], &motorEq[m][0][2]);
@@ -282,4 +281,6 @@ __attribute__((constructor(102))) static void cal_magmotRegister(void)
 	};
 
 	calib_register(&cal);
+
+	magmot_common.data.type = typeMagmot;
 }
