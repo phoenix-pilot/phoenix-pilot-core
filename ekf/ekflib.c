@@ -61,6 +61,7 @@ int ekf_init(void)
 
 	ekf_common.run = 0;
 	if (sensc_init("/dev/sensors", true) < 0) {
+		resourceDestroy(ekf_common.lock);
 		return -1;
 	}
 
@@ -68,6 +69,7 @@ int ekf_init(void)
 	meas_baroCalib();
 
 	if (kmn_predInit(&ekf_common.stateEngine, meas_calibGet()) < 0) {
+		resourceDestroy(ekf_common.lock);
 		printf("failed to initialize prediction matrices\n");
 		return -1;
 	}
