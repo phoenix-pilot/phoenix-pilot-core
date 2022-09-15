@@ -96,7 +96,7 @@ static int calib_magmotRead(FILE *file, calib_data_t *cal)
 {
 	char *line, *name;
 	size_t lineSz;
-	float value = 0;
+	float value = 0, *valuePtr;
 	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
 
 	calib_magmotDefaults(cal);
@@ -112,15 +112,18 @@ static int calib_magmotRead(FILE *file, calib_data_t *cal)
 	}
 
 	line = NULL;
-	while (calib_getline(&line, &lineSz, file, &name, &value) != 0) {
-		*calib_magmotSlot(name, cal) = value;
+	while (calib_getline(&line, &lineSz, file, &name, &value) == 0) {
+		valuePtr = calib_magmotSlot(name, cal);
+		if (valuePtr == NULL) {
+			break;
+		}
 		params++;
 	}
 	free(line);
 
 	if (params != MAGMOT_PARAMS) {
 		calib_magmotDefaults(cal);
-		fprintf(stderr, "Failed to read `%s` calibration. Going default.\n", MAGIRON_TAG);
+		fprintf(stderr, "Failed to read `%s` calibration. Going default.\n", MAGMOT_TAG);
 	}
 
 	return 0;
@@ -220,7 +223,7 @@ static int calib_magironRead(FILE *file, calib_data_t *cal)
 	}
 
 	line = NULL;
-	while (calib_getline(&line, &lineSz, file, &name, &val) != 0) {
+	while (calib_getline(&line, &lineSz, file, &name, &val) == 0) {
 		valuePtr = magiron_paramSlot(name, cal);
 		if (valuePtr == NULL) {
 			break;
