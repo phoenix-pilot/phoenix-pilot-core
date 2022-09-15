@@ -16,6 +16,7 @@
 #include <board_config.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/threads.h>
@@ -151,7 +152,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (sensc_init("/dev/sensors") < 0) {
+	if (sensc_init("/dev/sensors", false) < 0) {
 		printf("cannot initialize sensor client\n");
 		return EXIT_FAILURE;
 	}

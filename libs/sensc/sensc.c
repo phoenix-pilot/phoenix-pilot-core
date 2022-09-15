@@ -1,7 +1,5 @@
 /*
  * Phoenix-Pilot
- *
- * extended kalman filter
  * 
  * sensorhub client functions implementations
  *
@@ -15,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -22,6 +21,7 @@
 #include <libsensors.h>
 
 #include "sensc.h"
+#include "corr.h"
 
 #define SENSORHUB_PIPES 3 /* number of connections with sensorhub */
 
@@ -31,6 +31,8 @@ struct {
 	sensors_data_t *data;
 	int fd[SENSORHUB_PIPES]; /* each for one sensor type */
 	unsigned char buff[0x400];
+
+	bool corrEnable;
 } sensc_common;
 
 
@@ -57,10 +59,18 @@ static int sensc_setupDscr(fd_id_t type, int typeFlag)
 }
 
 
-int sensc_init(const char *path)
+int sensc_init(const char *path, bool corrEnable)
 {
 	int i = 0;
 	unsigned int err = 0;
+
+	sensc_common.corrEnable = corrEnable;
+	if (sensc_common.corrEnable) {
+		if (corr_init() != 0) {
+			fprintf(stderr, "Cannot setup correction module\n");
+			return -1;
+		}
+	}
 
 	/* open file descriptors for all sensor types */
 	for (i = 0; i < (sizeof(sensc_common.fd) / sizeof(int)); i++) {
@@ -73,10 +83,16 @@ int sensc_init(const char *path)
 	}
 	/* if error occured during opening, close all succesfully opened files */
 	if (err != 0) {
+		fprintf(stderr, "sensc: cannot open \"%s\"\n", path);
+
+		if (sensc_common.corrEnable) {
+			corr_done();
+		}
 		while (i >= 0) {
 			close(sensc_common.fd[i]);
+			i--;
 		}
-		printf("EKF sensor client: cannot open \"%s\"\n", path);
+
 		return -1;
 	}
 
@@ -87,7 +103,15 @@ int sensc_init(const char *path)
 	err += sensc_setupDscr(fd_gpsId, SENSOR_TYPE_GPS);
 
 	if (err != 0) {
-		printf("EKF sensor client: cannot setup sensor descriptors\n");
+		fprintf(stderr, "sensc: cannot setup sensor descriptors\n");
+
+		if (sensc_common.corrEnable) {
+			corr_done();
+		}
+		for (i = 0; i < (sizeof(sensc_common.fd) / sizeof(int)); i++) {
+			close(sensc_common.fd[i]);
+		}
+
 		return -1;
 	}
 
@@ -101,6 +125,10 @@ void sensc_deinit(void)
 
 	for (i = 0; i < (sizeof(sensc_common.fd) / sizeof(int)); i++) {
 		close(sensc_common.fd[i]);
+	}
+
+	if (sensc_common.corrEnable) {
+		corr_done();
 	}
 }
 
@@ -138,6 +166,10 @@ int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 			default:
 				break;
 		}
+	}
+
+	if (sensc_common.corrEnable) {
+		corr_mag(magEvt);
 	}
 
 	return (flag == 0) ? 0 : -1;

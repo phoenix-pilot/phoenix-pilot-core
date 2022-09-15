@@ -20,13 +20,14 @@
 /* Scroll 'file' until 'tag' is reached. Returns 0 on success */
 static int calib_file2tag(FILE *file, const char *tag)
 {
-	char *line = NULL;
+	char *head, *line = NULL;
 	size_t lineSz;
 	int ret = -1;
 
 	while (getline(&line, &lineSz, file) >= 0) {
 		if (line[0] == '@') {
-			if (strcmp(&line[1], tag) == 0) {
+			head = strtok(line, " \n");
+			if (strcmp(&(head[1]), tag) == 0) {
 				/* matching tag */
 				ret = 0;
 				break;
@@ -44,7 +45,7 @@ static int calib_getline(char **bufptr, size_t *bufSz, FILE *file, char **name, 
 {
 	char *head, *value;
 
-	if (getline(bufptr, bufSz, file) > 0) {
+	if (getline(bufptr, bufSz, file) >= 0) {
 		head = strtok(*bufptr, " \n");
 		value = strtok(NULL, " \n");
 
@@ -74,7 +75,7 @@ static float *calib_magmotSlot(const char *paramName, calib_data_t *cal)
 	/* variable casting for MISRA compliance */
 	motor = (uint8_t)(paramName[1] - '0'); /* get motor id */
 	axis = (uint8_t)(paramName[2] - 'x');  /* get x/y/z index, knowing that x/y/z are consecutive in ASCII */
-	axis = (uint8_t)(paramName[3] - 'a');  /* get a/b/c index, knowing that a/b/c are consecutive in ASCII */
+	param = (uint8_t)(paramName[3] - 'a'); /* get a/b/c index, knowing that a/b/c are consecutive in ASCII */
 
 	if (motor >= NUM_OF_MOTORS || axis >= 3 || param >= 3) {
 		return NULL;
@@ -95,7 +96,7 @@ static int calib_magmotRead(FILE *file, calib_data_t *cal)
 {
 	char *line, *name;
 	size_t lineSz;
-	float value = 0;
+	float value = 0, *valuePtr;
 	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
 
 	calib_magmotDefaults(cal);
@@ -111,15 +112,18 @@ static int calib_magmotRead(FILE *file, calib_data_t *cal)
 	}
 
 	line = NULL;
-	while (calib_getline(&line, &lineSz, file, &name, &value) != 0) {
-		*calib_magmotSlot(name, cal) = value;
+	while (calib_getline(&line, &lineSz, file, &name, &value) == 0) {
+		valuePtr = calib_magmotSlot(name, cal);
+		if (valuePtr == NULL) {
+			break;
+		}
 		params++;
 	}
 	free(line);
 
 	if (params != MAGMOT_PARAMS) {
 		calib_magmotDefaults(cal);
-		fprintf(stderr, "Failed to read `%s` calibration. Going default.\n", MAGIRON_TAG);
+		fprintf(stderr, "Failed to read `%s` calibration. Going default.\n", MAGMOT_TAG);
 	}
 
 	return 0;
@@ -219,7 +223,7 @@ static int calib_magironRead(FILE *file, calib_data_t *cal)
 	}
 
 	line = NULL;
-	while (calib_getline(&line, &lineSz, file, &name, &val) != 0) {
+	while (calib_getline(&line, &lineSz, file, &name, &val) == 0) {
 		valuePtr = magiron_paramSlot(name, cal);
 		if (valuePtr == NULL) {
 			break;
@@ -274,6 +278,7 @@ int calib_readFile(const char *path, calibType_t type, calib_data_t *cal)
 			break;
 
 		default:
+			fprintf(stderr, "calib: unknown calibration type\n");
 			ret = -1;
 	}
 
