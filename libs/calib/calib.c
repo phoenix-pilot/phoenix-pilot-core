@@ -75,7 +75,7 @@ static float *calib_magmotSlot(const char *paramName, calib_data_t *cal)
 	/* variable casting for MISRA compliance */
 	motor = (uint8_t)(paramName[1] - '0'); /* get motor id */
 	axis = (uint8_t)(paramName[2] - 'x');  /* get x/y/z index, knowing that x/y/z are consecutive in ASCII */
-	axis = (uint8_t)(paramName[3] - 'a');  /* get a/b/c index, knowing that a/b/c are consecutive in ASCII */
+	param = (uint8_t)(paramName[3] - 'a'); /* get a/b/c index, knowing that a/b/c are consecutive in ASCII */
 
 	if (motor >= NUM_OF_MOTORS || axis >= 3 || param >= 3) {
 		return NULL;
