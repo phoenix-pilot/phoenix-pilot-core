@@ -25,12 +25,12 @@
 
 
 struct {
-	calib_t params;
+	calib_data_t params;
 } magiron_common;
 
 
 /* Returns pointer to internal parameters for read purposes */
-static calib_t *magiron_calibStructGet(void)
+static calib_data_t *magiron_calibStructGet(void)
 {
 	magiron_common.params.type = typeMagiron;
 	return &magiron_common.params;

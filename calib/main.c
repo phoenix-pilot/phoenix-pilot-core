@@ -77,7 +77,7 @@ static void calib_help(void)
 static int calib_read(const char *path)
 {
 	calib_ops_t *c;
-	calib_t *calib;
+	calib_data_t *calib;
 	unsigned int i = 0, inited = 0;
 	bool err = false;
 

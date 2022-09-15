@@ -45,12 +45,12 @@ static const char *motorFiles[] = {
 };
 
 struct {
-	calib_t params;
+	calib_data_t params;
 } magmot_common;
 
 
 /* Returns pointer to internal parameters for read purposes */
-static calib_t *magmot_calibStructGet(void)
+static calib_data_t *magmot_calibStructGet(void)
 {
 	magmot_common.params.type = typeMagmot;
 	return &magmot_common.params;

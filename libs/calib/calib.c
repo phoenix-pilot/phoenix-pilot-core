@@ -63,7 +63,7 @@ static int calib_getline(char **bufptr, size_t *bufSz, FILE *file, char **name, 
 
 
 /* Returns pointer to correct parameter variable given name `paramName` for magmot calibration */
-static float *calib_magmotSlot(const char *paramName, calib_t *cal)
+static float *calib_magmotSlot(const char *paramName, calib_data_t *cal)
 {
 	unsigned int motor, axis, param;
 
@@ -84,14 +84,14 @@ static float *calib_magmotSlot(const char *paramName, calib_t *cal)
 }
 
 
-static inline void calib_magmotDefaults(calib_t *cal)
+static inline void calib_magmotDefaults(calib_data_t *cal)
 {
 	/* set all parameters to 0 */
 	memset(cal->params.magmot.motorEq, 0, sizeof(cal->params.magmot.motorEq));
 }
 
 
-static int calib_magmotRead(FILE *file, calib_t *cal)
+static int calib_magmotRead(FILE *file, calib_data_t *cal)
 {
 	char *line, *name;
 	size_t lineSz;
@@ -127,7 +127,7 @@ static int calib_magmotRead(FILE *file, calib_t *cal)
 
 
 /* returns pointer do data slot named as 'paramName' */
-static float *magiron_paramSlot(const char *paramName, calib_t *cal)
+static float *magiron_paramSlot(const char *paramName, calib_data_t *cal)
 {
 	matrix_t *mat;
 	unsigned int row, col;
@@ -166,7 +166,7 @@ static float *magiron_paramSlot(const char *paramName, calib_t *cal)
 }
 
 
-static inline void calib_magironDefaults(calib_t *cal)
+static inline void calib_magironDefaults(calib_data_t *cal)
 {
 	/* Creating constant aliases of matrices */
 	const matrix_t hardCal = cal->params.magiron.hardCal;
@@ -190,7 +190,7 @@ static inline void calib_magironDefaults(calib_t *cal)
 }
 
 
-static int calib_magironRead(FILE *file, calib_t *cal)
+static int calib_magironRead(FILE *file, calib_data_t *cal)
 {
 	char *line, *name;
 	size_t lineSz;
@@ -238,7 +238,7 @@ static int calib_magironRead(FILE *file, calib_t *cal)
 }
 
 
-void calib_free(calib_t *cal)
+void calib_free(calib_data_t *cal)
 {
 	switch (cal->type) {
 		case typeMagiron:
@@ -253,7 +253,7 @@ void calib_free(calib_t *cal)
 }
 
 
-int calib_readFile(const char *path, calibType_t type, calib_t *cal)
+int calib_readFile(const char *path, calibType_t type, calib_data_t *cal)
 {
 	FILE *file;
 	int ret;
