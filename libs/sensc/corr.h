@@ -21,6 +21,10 @@
 #include "corr.h"
 
 
+/* Performs calibration on magnetometer data */
+void corr_mag(sensor_event_t *magEvt);
+
+
 /* deinitializes correction procedures */
 void corr_done(void);
 

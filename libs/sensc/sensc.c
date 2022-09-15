@@ -170,6 +170,10 @@ int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 		}
 	}
 
+	if (sensc_common.corrEnable) {
+		corr_mag(magEvt);
+	}
+
 	return (flag == 0) ? 0 : -1;
 }
 
