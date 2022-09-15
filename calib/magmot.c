@@ -50,7 +50,7 @@ struct {
 
 
 /* Returns pointer to internal parameters for read purposes */
-static calib_data_t *magmot_calibStructGet(void)
+static calib_data_t *magmot_dataGet(void)
 {
 	return &magmot_common.data;
 }
@@ -161,7 +161,7 @@ static void magmot_paramName(unsigned int motorId, unsigned int axisId, unsigned
 }
 
 
-static int cal_magmotWrite(FILE *file)
+static int magmot_write(FILE *file)
 {
 	unsigned int motor, axis, param;
 	char paramName[5];
@@ -178,13 +178,13 @@ static int cal_magmotWrite(FILE *file)
 }
 
 
-const char *cal_magmotHelp(void)
+const char *magmot_help(void)
 {
 	return "Magnetometer vs engine interference calibration\n";
 }
 
 
-static int cal_magmotRun(void)
+static int magmot_run(void)
 {
 	vec_t magBase, magCurr, magDiff;
 	float thrtl = 0, thrtlStep, startThrtl = 0.3;
@@ -244,7 +244,7 @@ static int cal_magmotRun(void)
 }
 
 
-static int cal_magmotDone(void)
+static int magmot_done(void)
 {
 	sensc_deinit();
 	mctl_deinit();
@@ -253,7 +253,7 @@ static int cal_magmotDone(void)
 }
 
 
-static int cal_magmotInit(int argc, const char **argv)
+static int magmot_init(int argc, const char **argv)
 {
 	if (sensc_init(SENSOR_PATH) < 0) {
 		return -ENXIO;
@@ -268,16 +268,16 @@ static int cal_magmotInit(int argc, const char **argv)
 }
 
 
-__attribute__((constructor(102))) static void cal_magmotRegister(void)
+__attribute__((constructor(102))) static void magmot_register(void)
 {
 	static calib_ops_t cal = {
 		.name = MAGMOT_TAG,
-		.init = cal_magmotInit,
-		.run = cal_magmotRun,
-		.done = cal_magmotDone,
-		.write = cal_magmotWrite,
-		.help = cal_magmotHelp,
-		.dataGet = magmot_calibStructGet
+		.init = magmot_init,
+		.run = magmot_run,
+		.done = magmot_done,
+		.write = magmot_write,
+		.help = magmot_help,
+		.dataGet = magmot_dataGet
 	};
 
 	calib_register(&cal);

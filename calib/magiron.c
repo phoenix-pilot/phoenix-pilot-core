@@ -30,9 +30,8 @@ struct {
 
 
 /* Returns pointer to internal parameters for read purposes */
-static calib_data_t *magiron_calibStructGet(void)
+static calib_data_t *magiron_dataGet(void)
 {
-	magiron_common.data.type = typeMagiron;
 	return &magiron_common.data;
 }
 
@@ -53,7 +52,7 @@ static void magiron_printIron(FILE *file, char type, matrix_t *mat)
 }
 
 
-static int cal_magironWrite(FILE *file)
+static int magiron_write(FILE *file)
 {
 	/* Printing hard iron calibration parameters */
 	magiron_printIron(file, CHAR_HARDIRON, &magiron_common.data.params.magiron.hardCal);
@@ -65,20 +64,20 @@ static int cal_magironWrite(FILE *file)
 }
 
 
-static const char *cal_magironHelp(void)
+static const char *magiron_help(void)
 {
 	return "Magnetometer calibration against soft/hard iron interference.\n";
 }
 
 
-static int cal_magironDone(void)
+static int magiron_done(void)
 {
 	/* Stub implementation. Calibration procedure returns precompiled data */
 	return EOK;
 }
 
 
-static int cal_magironRun(void)
+static int magiron_run(void)
 {
 	printf("This calibration procedure is not implemented and it returns precalculated values!\n Press enter to continue...\n");
 	getchar();
@@ -88,24 +87,26 @@ static int cal_magironRun(void)
 }
 
 
-static int cal_magironInit(int argc, const char **argv)
+static int magiron_init(int argc, const char **argv)
 {
 	/* Stub implementation. Calibration procedure returns precompiled data */
 	return EOK;
 }
 
 
-__attribute__((constructor(102))) static void cal_magironRegister(void)
+__attribute__((constructor(102))) static void magiron_register(void)
 {
 	static calib_ops_t cal = {
 		.name = MAGIRON_TAG,
-		.init = cal_magironInit,
-		.run = cal_magironRun,
-		.done = cal_magironDone,
-		.write = cal_magironWrite,
-		.help = cal_magironHelp,
-		.dataGet = magiron_calibStructGet
+		.init = magiron_init,
+		.run = magiron_run,
+		.done = magiron_done,
+		.write = magiron_write,
+		.help = magiron_help,
+		.dataGet = magiron_dataGet
 	};
 
 	calib_register(&cal);
+
+	magiron_common.data.type = typeMagiron;
 }
