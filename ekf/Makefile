@@ -30,5 +30,5 @@ include $(binary.mk)
 
 NAME := altlog
 LOCAL_SRCS := tests/altlog.c
-DEP_LIBS := libekf libalgeb libsensc
+DEP_LIBS := libekf libalgeb libsensc libcalib
 include $(binary.mk)

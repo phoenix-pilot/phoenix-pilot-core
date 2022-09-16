@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <sys/time.h>
 
@@ -68,7 +69,7 @@ int main(int argc, char **argv)
 	}
 	fprintf(stdout, "Logging for %.1f seconds with %llims step\n", tmax, step / 1000);
 
-	if (sensc_init("/dev/sensors") < 0) {
+	if (sensc_init("/dev/sensors", true) < 0) {
 		fprintf(stderr, "Cannot initialize sensor client\n");
 		return EXIT_FAILURE;
 	}
