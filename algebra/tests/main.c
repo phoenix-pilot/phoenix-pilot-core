@@ -63,6 +63,7 @@ void runner(void)
 	RUN_TEST_GROUP(group_quat_dot);
 	RUN_TEST_GROUP(group_quat_sandwich);
 	RUN_TEST_GROUP(group_quat_normalize);
+	RUN_TEST_GROUP(group_quat_quat2euler);
 }
 
 
