@@ -15,6 +15,8 @@
 
 #include <quat.h>
 
+#include <math.h>
+
 
 #define TEST_ASSERT_EQUAL_QUAT(expected, actual) \
 	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).a, (actual).a, "Different real part of quaternion"); \
@@ -22,6 +24,7 @@
 	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).i, (actual).i, "Different `j` part of quaternion"); \
 	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).i, (actual).i, "Different `k` part of quaternion");
 
+#define DELTA 1e-15
 
 #define QUAT_CMP_OK 0
 
@@ -34,14 +37,25 @@
 /* Matrix without zero and one */
 static const quat_t Q1 = { .a = 2.0f, .i = 2.0f, .j = 2.0f, .k = 2.0f };
 
+/* Q3 must be not normalized */
 static const quat_t Q2 = { .a = 3.0f, .i = 0.0f, .j = 6.0f, .k = 1.0f };
 static const quat_t Q3 = { .a = 1.0f, .i = 2.0f, .j = 1.0f, .k = 5.0f };
+
+/* Correct euler angels corresponding to quaternion Q3 (normalized) */
+static const float Q3roll = 0.5880026;
+static const float Q3pitch = -0.6195209;
+static const float Q3yaw = 2.5535901;
 
 static const quat_t Q2timesQ3 = { .a = -8.0f, .i = 35.0f, .j = 11.0f, .k = 4.0f };
 static const quat_t Q2sandQ3 = { .a = 46.0f, .i = 118.0f, .j = 116.0f, .k = -190.0f };
 
 static const quat_t Q4 = { .a = 815.23f, .i = -818.07f, .j = -451.47f, .k = -546.79f };
 static const quat_t Q5 = { .a = 334.23f, .i = -822.81f, .j = 349.42f, .k = 548.18f };
+
+/* Correct euler angels corresponding to quaternion Q5 (normalized) */
+static const float Q5roll = -2.7342767;
+static const float Q5pitch = 1.2155062;
+static const float Q5yaw = -0.5178249;
 
 static const quat_t Q4timesQ5 = { .a = 56850.1358f, .i = -1000630.3952f, .j = 1032316.741f, .k = -393184.8904f };
 static const quat_t Q4sandQ5 = {
@@ -814,4 +828,107 @@ TEST_GROUP_RUNNER(group_quat_normalize)
 {
 	RUN_TEST_CASE(group_quat_normalize, quat_normalize_std);
 	RUN_TEST_CASE(group_quat_normalize, quat_normalize_biggerValues);
+}
+
+
+/* ##############################################################################
+ * --------------------        quat_quat2euler tests       ----------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_quat2euler);
+
+
+TEST_SETUP(group_quat_quat2euler)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_quat2euler)
+{
+}
+
+
+TEST(group_quat_quat2euler, quat_quat2euler_baseQuaternions)
+{
+	quat_t qA = { .a = 1.0, .i = 0.0, .j = 0.0, .k = 0.0 };
+	quat_t qI = { .a = 0.0, .i = 1.0, .j = 0.0, .k = 0.0 };
+	quat_t qJ = { .a = 0.0, .i = 0.0, .j = 1.0, .k = 0.0 };
+	quat_t qK = { .a = 0.0, .i = 0.0, .j = 0.0, .k = 1.0 };
+
+	float roll, pitch, yaw;
+
+	/* quat(1,0,0,0) should give (yaw=0, roll=0, pitch=0) */
+	quat_quat2euler(&qA, &roll, &pitch, &yaw);
+
+	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, roll);
+	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, pitch);
+	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, yaw);
+
+	/* quat(0,1,0,0) should give (yaw=0, roll=PI, pitch=0) */
+	quat_quat2euler(&qI, &roll, &pitch, &yaw);
+
+	TEST_ASSERT_FLOAT_WITHIN(DELTA, M_PI, roll);
+	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, pitch);
+	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, yaw);
+
+	/* quat(0,0,1,0) should give (yaw=PI, roll=0, pitch=PI) */
+	quat_quat2euler(&qJ, &roll, &pitch, &yaw);
+
+	TEST_ASSERT_FLOAT_WITHIN(DELTA, M_PI, roll);
+	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, pitch);
+	TEST_ASSERT_FLOAT_WITHIN(DELTA, M_PI, yaw);
+
+	/* quat(0,0,0,1) should give (yaw=PI, roll=0, pitch=0) */
+	quat_quat2euler(&qK, &roll, &pitch, &yaw);
+
+	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, roll);
+	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, pitch);
+	TEST_ASSERT_FLOAT_WITHIN(DELTA, M_PI, yaw);
+}
+
+
+TEST(group_quat_quat2euler, quat_quat2euler_notUnitQuat)
+{
+	float roll, pitch, yaw;
+	quat_t a = Q3;
+
+	quat_quat2euler(&a, &roll, &pitch, &yaw);
+
+	TEST_ASSERT_EQUAL_FLOAT(Q3roll, roll);
+	TEST_ASSERT_EQUAL_FLOAT(Q3pitch, pitch);
+	TEST_ASSERT_EQUAL_FLOAT(Q3yaw, yaw);
+}
+
+
+TEST(group_quat_quat2euler, quat_quat2euler_notUnitBiggerValues)
+{
+	float roll, pitch, yaw;
+	quat_t a = Q5;
+
+	quat_quat2euler(&a, &roll, &pitch, &yaw);
+
+	TEST_ASSERT_EQUAL_FLOAT(Q5roll, roll);
+	TEST_ASSERT_EQUAL_FLOAT(Q5pitch, pitch);
+	TEST_ASSERT_EQUAL_FLOAT(Q5yaw, yaw);
+}
+
+
+TEST(group_quat_quat2euler, quat_quat2euler_sourceRetain)
+{
+	float roll, pitch, yaw;
+	quat_t a = Q5;
+
+	quat_quat2euler(&a, &roll, &pitch, &yaw);
+
+	TEST_ASSERT_EQUAL_QUAT(Q5, a);
+}
+
+
+TEST_GROUP_RUNNER(group_quat_quat2euler)
+{
+	RUN_TEST_CASE(group_quat_quat2euler, quat_quat2euler_baseQuaternions);
+	RUN_TEST_CASE(group_quat_quat2euler, quat_quat2euler_notUnitQuat);
+	RUN_TEST_CASE(group_quat_quat2euler, quat_quat2euler_notUnitBiggerValues);
+	RUN_TEST_CASE(group_quat_quat2euler, quat_quat2euler_sourceRetain);
 }
