@@ -91,8 +91,8 @@ extern void quat_sandwichFast(const quat_t *A, const quat_t *B, quat_t *C);
 extern void quat_times(quat_t *A, float x);
 
 
-/* calculates rotation euler angles from rotation quaternion */
-extern void quat_quat2euler(quat_t *q, float *roll, float *pitch, float *yaw);
+/* Calculates rotation euler angles from rotation quaternion. Hierarchy of angels are yaw, pitch, roll (ZYX) */
+extern void quat_quat2euler(const quat_t *q, float *roll, float *pitch, float *yaw);
 
 
 /* calculate quaternion q that rotates v1 into v2, assumed len(v1) == len(v2) */

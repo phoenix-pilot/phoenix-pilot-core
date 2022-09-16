@@ -65,7 +65,7 @@ void quat_mlt(const quat_t *A, const quat_t *B, quat_t *C)
 
 float quat_dot(const quat_t *A, const quat_t *B)
 {
-	return A->a * B->a + A->i * B->i + A->j * B->j + A->k * B->k; 
+	return A->a * B->a + A->i * B->i + A->j * B->j + A->k * B->k;
 }
 
 
@@ -74,7 +74,7 @@ void quat_cjg(quat_t *A)
 	A->i = -A->i;
 	A->j = -A->j;
 	A->k = -A->k;
-	//return (quat_t){.a = A->a, .i = -A->i, .j = -A->j, .k = -A->k};
+	// return (quat_t){.a = A->a, .i = -A->i, .j = -A->j, .k = -A->k};
 }
 
 
@@ -128,13 +128,15 @@ void quat_times(quat_t *A, float x)
 }
 
 
-void quat_quat2euler(quat_t *q, float *roll, float *pitch, float *yaw)
+void quat_quat2euler(const quat_t *q, float *roll, float *pitch, float *yaw)
 {
+	quat_t tmp = *q;
+
 	/* FIXME: is this normalization needed? */
-	quat_normalize(q);
-	*roll = atan2(2 * (q->a * q->i + q->j * q->k), 1 - 2 * (q->i * q->i + q->j * q->j));
-	*pitch = asin(2 * (q->a * q->j - q->k * q->i));
-	*yaw = atan2(2 * (q->a * q->k + q->i * q->j), 1 - 2 * (q->j * q->j + q->k * q->k));
+	quat_normalize(&tmp);
+	*roll = atan2(2 * (tmp.a * tmp.i + tmp.j * tmp.k), 1 - 2 * (tmp.i * tmp.i + tmp.j * tmp.j));
+	*pitch = asin(2 * (tmp.a * tmp.j - tmp.k * tmp.i));
+	*yaw = atan2(2 * (tmp.a * tmp.k + tmp.i * tmp.j), 1 - 2 * (tmp.j * tmp.j + tmp.k * tmp.k));
 }
 
 
@@ -169,10 +171,10 @@ void quat_uvec2uvec(const vec_t *v1, const vec_t *v2, quat_t *q)
 
 void quat_vecRot(vec_t *vec, const quat_t *qRot)
 {
-	quat_t * v; 
+	quat_t *v;
 
 	/* cast vector as quaternion */
-	v = (quat_t*)vec;
+	v = (quat_t *)vec;
 	v->a = 0;
 
 	quat_sandwichFast(qRot, v, v);
