@@ -766,3 +766,52 @@ TEST_GROUP_RUNNER(group_quat_sandwich)
 	RUN_TEST_CASE(group_quat_sandwich, quat_sandwich_std);
 	RUN_TEST_CASE(group_quat_sandwich, quat_sandwich_biggerValues);
 }
+
+
+/* ##############################################################################
+ * ---------------------        quat_normalize tests       ----------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_normalize);
+
+
+TEST_SETUP(group_quat_normalize)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_normalize)
+{
+}
+
+
+TEST(group_quat_normalize, quat_normalize_std)
+{
+	quat_t a = Q2;
+	float len = sqrt(a.a * a.a + a.i * a.i + a.j * a.j + a.k * a.k);
+	quat_t expected = { .a = a.a / len, .i = a.i / len, .j = a.j / len, .k = a.k / len };
+
+	quat_normalize(&a);
+
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
+}
+
+
+TEST(group_quat_normalize, quat_normalize_biggerValues)
+{
+	quat_t a = Q4;
+	float len = sqrt(a.a * a.a + a.i * a.i + a.j * a.j + a.k * a.k);
+	quat_t expected = { .a = a.a / len, .i = a.i / len, .j = a.j / len, .k = a.k / len };
+
+	quat_normalize(&a);
+
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
+}
+
+
+TEST_GROUP_RUNNER(group_quat_normalize)
+{
+	RUN_TEST_CASE(group_quat_normalize, quat_normalize_std);
+	RUN_TEST_CASE(group_quat_normalize, quat_normalize_biggerValues);
+}
