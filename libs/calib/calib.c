@@ -63,13 +63,13 @@ static int calib_getline(char **bufptr, size_t *bufSz, FILE *file, char **name, 
 }
 
 
-/* Returns pointer to correct parameter variable given name `paramName` for magmot calibration */
-static float *calib_magmotSlot(const char *paramName, calib_data_t *cal)
+/* Returns 0 if new value `val` was successfully saved to `cal` as `paramName` parameter. -1 otherwise */
+static int calib_magmotEnter(const char *paramName, calib_data_t *cal, float val)
 {
 	unsigned int motor, axis, param;
 
 	if (strlen(paramName) != 4) {
-		return NULL;
+		return -1;
 	}
 
 	/* variable casting for MISRA compliance */
@@ -78,10 +78,12 @@ static float *calib_magmotSlot(const char *paramName, calib_data_t *cal)
 	param = (uint8_t)(paramName[3] - 'a'); /* get a/b/c index, knowing that a/b/c are consecutive in ASCII */
 
 	if (motor >= NUM_OF_MOTORS || axis >= 3 || param >= 3) {
-		return NULL;
+		return -1;
 	}
 
-	return &cal->params.magmot.motorEq[motor][axis][param];
+	cal->params.magmot.motorEq[motor][axis][param] = val;
+
+	return 0;
 }
 
 
@@ -96,7 +98,7 @@ static int calib_magmotRead(FILE *file, calib_data_t *cal)
 {
 	char *line, *name;
 	size_t lineSz;
-	float value = 0, *valuePtr;
+	float value = 0;
 	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
 
 	calib_magmotDefaults(cal);
@@ -113,11 +115,9 @@ static int calib_magmotRead(FILE *file, calib_data_t *cal)
 
 	line = NULL;
 	while (calib_getline(&line, &lineSz, file, &name, &value) == 0) {
-		valuePtr = calib_magmotSlot(name, cal);
-		if (valuePtr == NULL) {
+		if (calib_magmotEnter(name, cal, value) != 0) {
 			break;
 		}
-		*valuePtr = value;
 		params++;
 	}
 	free(line);
@@ -131,7 +131,7 @@ static int calib_magmotRead(FILE *file, calib_data_t *cal)
 }
 
 
-/* Returns 0 if new value `val` was succesfully saved to `cal` as `paramName` parameter. -1 otherwise */
+/* Returns 0 if new value `val` was successfully saved to `cal` as `paramName` parameter. -1 otherwise */
 static int calib_magironEnter(const char *paramName, calib_data_t *cal, float val)
 {
 	matrix_t *mat;
