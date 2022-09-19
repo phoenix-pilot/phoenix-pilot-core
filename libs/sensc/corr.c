@@ -148,15 +148,13 @@ static int corr_magmotRecalc(vec_t *correction)
 		*  - x is throttle (scalar),
 		*  - a/b/c are parameters (vectors),
 		*  - y is impact of current motor on magnetometer reading (vector)
-		*
-		* Minuses in equation make it a correction, not an error. Correction should be added to measurement.
 		*/
 		vec_times(&axisImpact[0], throttle * throttle);
 		vec_times(&axisImpact[1], throttle);
 
-		vec_sub(&impact, &axisImpact[0]);
-		vec_sub(&impact, &axisImpact[1]);
-		vec_sub(&impact, &axisImpact[2]);
+		vec_add(&impact, &axisImpact[0]);
+		vec_add(&impact, &axisImpact[1]);
+		vec_add(&impact, &axisImpact[2]);
 	}
 
 	*correction = impact;
