@@ -131,14 +131,15 @@ static int calib_magmotRead(FILE *file, calib_data_t *cal)
 }
 
 
-/* returns pointer do data slot named as 'paramName' */
-static float *magiron_paramSlot(const char *paramName, calib_data_t *cal)
+/* Returns 0 if new value `val` was succesfully saved to `cal` as `paramName` parameter. -1 otherwise */
+static int calib_magironEnter(const char *paramName, calib_data_t *cal, float val)
 {
 	matrix_t *mat;
 	unsigned int row, col;
+	float *slot;
 
 	if (strlen(paramName) != 3) {
-		return NULL;
+		return -1;
 	}
 
 	/* variable casting for MISRA compliance */
@@ -150,24 +151,32 @@ static float *magiron_paramSlot(const char *paramName, calib_data_t *cal)
 	switch (paramName[0]) {
 		case CHAR_SOFTIRON:
 			if (row > (unsigned int)'9' || col > (unsigned int)'9') {
-				return NULL;
+				return -1;
 			}
 			mat = &cal->params.magiron.softCal;
 			break;
 
 		case CHAR_HARDIRON:
 			if (row > (unsigned int)'3' || col > (unsigned int)'3') {
-				return NULL;
+				return -1;
 			}
 			mat = &cal->params.magiron.hardCal;
 			break;
 
 		default:
-			return NULL;
+			return -1;
 	}
 
 	/* matrix boundary checks performed by matrix_at() */
-	return matrix_at(mat, row, col);
+	slot = matrix_at(mat, row, col);
+
+	if (slot == NULL) {
+		return -1;
+	}
+
+	*slot = val;
+
+	return 0;
 }
 
 
@@ -199,7 +208,7 @@ static int calib_magironRead(FILE *file, calib_data_t *cal)
 {
 	char *line, *name;
 	size_t lineSz;
-	float val = 0, *valuePtr;
+	float val = 0;
 	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
 
 	/* allocate matrix buffers */
@@ -225,11 +234,9 @@ static int calib_magironRead(FILE *file, calib_data_t *cal)
 
 	line = NULL;
 	while (calib_getline(&line, &lineSz, file, &name, &val) == 0) {
-		valuePtr = magiron_paramSlot(name, cal);
-		if (valuePtr == NULL) {
+		if (calib_magironEnter(name, cal, val) != 0) {
 			break;
 		}
-		*valuePtr = val;
 		params++;
 	}
 	free(line);
