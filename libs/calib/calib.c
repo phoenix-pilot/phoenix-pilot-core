@@ -117,6 +117,7 @@ static int calib_magmotRead(FILE *file, calib_data_t *cal)
 		if (valuePtr == NULL) {
 			break;
 		}
+		*valuePtr = value;
 		params++;
 	}
 	free(line);
