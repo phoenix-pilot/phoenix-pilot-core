@@ -182,6 +182,26 @@ void quat_vecRot(vec_t *vec, const quat_t *qRot)
 }
 
 
+void quat_rotQuat(const vec_t *axis, float angle, quat_t *q)
+{
+	float coeff, len;
+
+	len = vec_len(axis);
+
+	if (len == 0) {
+		quat_idenWrite(q);
+		return;
+	}
+
+	coeff = sinf(angle / 2) / len;
+
+	q->a = cosf(angle / 2);
+	q->i = axis->x * coeff;
+	q->j = axis->y * coeff;
+	q->k = axis->z * coeff;
+}
+
+
 void quat_frameRot(const vec_t *v1, const vec_t *v2, const vec_t *w1, const vec_t *w2, quat_t *res, const quat_t *help_q)
 {
 	vec_t n, p;
