@@ -46,6 +46,39 @@ struct {
 } corr_common;
 
 
+static inline void corr_motorImpact(vec_t *result, int motor, float throttle)
+{
+	unsigned int param;
+	vec_t axisImpact[3];
+	vec_t impact = { 0 };
+
+	/*
+	* Write parameters into vectors.
+	* Each 'axisImpact' stores different quadratic formula parameters so later they can be used as 3d dimensional parameters
+	*/
+	for (param = 0; param < 3; param++) {
+		axisImpact[param].x = corr_common.magmot.params.magmot.motorEq[motor][0][param];
+		axisImpact[param].y = corr_common.magmot.params.magmot.motorEq[motor][1][param];
+		axisImpact[param].z = corr_common.magmot.params.magmot.motorEq[motor][2][param];
+	}
+
+	/*
+	* Perform (y = - ax^2 - bx - c) where:
+	*  - x is throttle (scalar),
+	*  - a/b/c are parameters (vectors),
+	*  - y is impact of current motor on magnetometer reading (vector)
+	*/
+	vec_times(&axisImpact[0], throttle * throttle);
+	vec_times(&axisImpact[1], throttle);
+
+	vec_add(&impact, &axisImpact[0]);
+	vec_add(&impact, &axisImpact[1]);
+	vec_add(&impact, &axisImpact[2]);
+
+	*result = impact;
+}
+
+
 void corr_done(void)
 {
 	int i;
@@ -114,7 +147,7 @@ static int corr_magmotRecalc(vec_t *correction)
 	char buff[16];
 	int motor, param;
 	float throttle;
-	vec_t axisImpact[3], impact = { 0 };
+	vec_t impact, impactSum = { 0 };
 
 	/* Read current throttles from pwmFiles */
 	for (motor = 0; motor < NUM_OF_MOTORS; motor++) {
@@ -134,31 +167,20 @@ static int corr_magmotRecalc(vec_t *correction)
 	for (motor = 0; motor < NUM_OF_MOTORS; motor++) {
 		throttle = (float)throttles[motor] / PWM_PRESCALER;
 
+		corr_motorImpact(&impact, motor, throttle);
+
 		/*
-		* Write parameters into vectors.
-		* Each 'axisImpact' stores different quadratic formula parameters so later they can be used as 3d dimensional parameters
+		* Calibration is done on throttles between (cutoff, 1).
+		* Artifacts may appear below cutoff. Scaling them down with throttle value.
 		*/
-		for (param = 0; param < 3; param++) {
-			axisImpact[param].x = corr_common.magmot.params.magmot.motorEq[motor][0][param];
-			axisImpact[param].y = corr_common.magmot.params.magmot.motorEq[motor][1][param];
-			axisImpact[param].z = corr_common.magmot.params.magmot.motorEq[motor][2][param];
+		if (throttle < MAGMOT_CUTOFF_THROTTLE) {
+			vec_times(&impact, throttle / MAGMOT_CUTOFF_THROTTLE);
 		}
 
-		/*
-		* Perform (y = - ax^2 - bx - c) where:
-		*  - x is throttle (scalar),
-		*  - a/b/c are parameters (vectors),
-		*  - y is impact of current motor on magnetometer reading (vector)
-		*/
-		vec_times(&axisImpact[0], throttle * throttle);
-		vec_times(&axisImpact[1], throttle);
-
-		vec_add(&impact, &axisImpact[0]);
-		vec_add(&impact, &axisImpact[1]);
-		vec_add(&impact, &axisImpact[2]);
+		vec_add(&impactSum, &impact);
 	}
 
-	*correction = impact;
+	*correction = impactSum;
 
 	return 0;
 }
