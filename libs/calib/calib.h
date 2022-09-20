@@ -19,8 +19,9 @@
 #define CALIB_PATH    "/etc/calib.conf"
 #define NUM_OF_MOTORS 4
 
-#define MAGMOT_TAG    "magmot"
-#define MAGMOT_PARAMS 36
+#define MAGMOT_TAG             "magmot"
+#define MAGMOT_PARAMS          36
+#define MAGMOT_CUTOFF_THROTTLE 0.3 /* minimal throttle value calibration is made with */
 
 #define MAGIRON_TAG     "magiron"
 #define MAGIRON_PARAMS  12

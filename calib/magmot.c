@@ -188,7 +188,7 @@ const char *magmot_help(void)
 static int magmot_run(void)
 {
 	vec_t magBase, magCurr, magDiff;
-	float thrtl = 0, thrtlStep, startThrtl = 0.3;
+	float thrtl = 0, thrtlStep, startThrtl = MAGMOT_CUTOFF_THROTTLE;
 	float x[CALIB_POINTS], y[3][CALIB_POINTS];
 	unsigned int m, pts;
 	float (*motorEq)[3][3];
