@@ -24,12 +24,18 @@
 	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).i, (actual).i, "Different `j` part of quaternion"); \
 	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).i, (actual).i, "Different `k` part of quaternion");
 
+#define TEST_ASSERT_QUAT_WITHIN(delta, expected, actual) \
+	TEST_ASSERT_FLOAT_WITHIN_MESSAGE((delta), (expected).a, (actual).a, "Different real part of quaternion"); \
+	TEST_ASSERT_FLOAT_WITHIN_MESSAGE((delta), (expected).i, (actual).i, "Different `i` part of quaternion"); \
+	TEST_ASSERT_FLOAT_WITHIN_MESSAGE((delta), (expected).i, (actual).i, "Different `j` part of quaternion"); \
+	TEST_ASSERT_FLOAT_WITHIN_MESSAGE((delta), (expected).i, (actual).i, "Different `k` part of quaternion");
+
 #define TEST_ASSERT_EQUAL_VEC(expected, actual) \
 	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).x, (actual).x, "Different `x` part of vectors"); \
 	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).y, (actual).y, "Different `y` part of vectors"); \
 	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).z, (actual).z, "Different `z` part of vectors");
 
-#define DELTA 1e-15
+#define DELTA 1e-7
 
 #define QUAT_CMP_OK 0
 
@@ -87,6 +93,15 @@ static const quat_t Q8 = { .a = 0.1825742f, .i = 0.3651484f, .j = 0.5477226f, .k
 /* Vectors after rotation using Q8 */
 static const vec_t V1rotQ8 = { .x = 1.8f, .y = 2.0f, .z = 2.6f };
 static const vec_t V2rotQ8 = { .x = -402.5060f, .y = -1031.03f, .z = 472.6079f };
+
+/* Data used in `quat_rotQuat` function */
+static const vec_t V3 = { .x = 5.0f, .y = 2.0f, .z = 3.0f };
+
+/* Angle in radians */
+static const float Angle = 1;
+
+/* Quaternion of rotation about `Angle` and along `V3` axis */
+static const quat_t Q9 = { .a = 0.8775826f, .i = 0.3888655f, .j = 0.155546f, .k = 0.2333193f };
 
 /* ##############################################################################
  * ------------------------        quat_cmp tests       -------------------------
@@ -1052,4 +1067,81 @@ TEST_GROUP_RUNNER(group_quat_vecRot)
 	RUN_TEST_CASE(group_quat_vecRot, quat_vecRot_std);
 	RUN_TEST_CASE(group_quat_vecRot, quat_vecRot_biggerValues);
 	RUN_TEST_CASE(group_quat_vecRot, quat_vecRot_zeroVector);
+}
+
+
+/* ##############################################################################
+ * ------------------        quat_rotQuat tests       --------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_rotQuat);
+
+
+TEST_SETUP(group_quat_rotQuat)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_rotQuat)
+{
+}
+
+
+TEST(group_quat_rotQuat, quat_rotQuat_baseQuaternions)
+{
+	quat_t q, qA, qI, qJ, qK, qZero = { 0 };
+	const vec_t versX = { .x = 1.0f, .y = 0.0f, .z = 0.0f };
+	const vec_t versY = { .x = 0.0f, .y = 1.0f, .z = 0.0f };
+	const vec_t versZ = { .x = 0.0f, .y = 0.0f, .z = 1.0f };
+
+	qA = qI = qJ = qK = qZero;
+	qA.a = qI.i = qJ.j = qK.k = 1.0f;
+
+	/* Rotation about 0 angle - quaternion qA */
+	quat_rotQuat(&versX, 0.0, &q);
+	TEST_ASSERT_QUAT_WITHIN(DELTA, qA, q);
+
+	/* Rotation about 180 degrees along x-axis - quaternion qI */
+	quat_rotQuat(&versX, M_PI, &q);
+	TEST_ASSERT_QUAT_WITHIN(DELTA, qI, q);
+
+	/* Rotation about 180 degrees along y-axis - quaternion qJ */
+	quat_rotQuat(&versY, M_PI, &q);
+	TEST_ASSERT_QUAT_WITHIN(DELTA, qJ, q);
+
+	/* Rotation about 180 degrees along z-axis - quaternion qK */
+	quat_rotQuat(&versZ, M_PI, &q);
+	TEST_ASSERT_QUAT_WITHIN(DELTA, qK, q);
+}
+
+
+TEST(group_quat_rotQuat, quat_rotQuat_std)
+{
+	quat_t q, expected = Q9;
+
+	quat_rotQuat(&V3, Angle, &q);
+
+	TEST_ASSERT_EQUAL_QUAT(expected, q);
+}
+
+
+TEST(group_quat_rotQuat, quat_rotQuat_zeroVector)
+{
+	vec_t zeroVec = { .x = 0.0f, .y = 0.0f, .z = 0.0f };
+	quat_t q, expected;
+
+	quat_idenWrite(&expected);
+
+	quat_rotQuat(&zeroVec, Angle, &q);
+
+	TEST_ASSERT_EQUAL_QUAT(expected, q);
+}
+
+
+TEST_GROUP_RUNNER(group_quat_rotQuat)
+{
+	RUN_TEST_CASE(group_quat_rotQuat, quat_rotQuat_baseQuaternions);
+	RUN_TEST_CASE(group_quat_rotQuat, quat_rotQuat_std);
+	RUN_TEST_CASE(group_quat_rotQuat, quat_rotQuat_zeroVector);
 }
