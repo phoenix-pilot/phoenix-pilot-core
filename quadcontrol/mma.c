@@ -25,6 +25,7 @@
 #include <board_config.h>
 
 #include <mctl.h>
+#include <calib.h>
 
 
 #define NUMBER_MOTORS 4
@@ -41,7 +42,15 @@ static const char *motorPaths[] = {
 struct {
 	handle_t lock;
 	quad_coeffs_t coeffs;
+
+	calib_data_t calib;
 } mma_common;
+
+
+static inline void mma_calib(float *val, int motor)
+{
+	*val = *val * mma_common.calib.params.motlin.motorEq[motor][0] + mma_common.calib.params.motlin.motorEq[motor][1];
+}
 
 
 int mma_control(float palt, float proll, float ppitch, float pyaw)
@@ -63,7 +72,15 @@ int mma_control(float palt, float proll, float ppitch, float pyaw)
 		return -1;
 	}
 
+	/*
+	* Printing PWM before per-motor calibration
+	* We want information about pid impact on control step, not hardware step
+	*/
+	DEBUG_LOG("PWM: %f, %f, %f, %f\n", pwm[0], pwm[1], pwm[2], pwm[3]);
+
 	for (i = 0; i < NUMBER_MOTORS; ++i) {
+		mma_calib(&pwm[i], i);
+
 		if (pwm[i] > 1.0f) {
 			pwm[i] = 1.0f;
 		}
@@ -77,8 +94,6 @@ int mma_control(float palt, float proll, float ppitch, float pyaw)
 	}
 
 	mutexUnlock(mma_common.lock);
-
-	DEBUG_LOG("PWM: %f, %f, %f, %f\n", pwm[0], pwm[1], pwm[2], pwm[3]);
 
 	return 0;
 }
@@ -107,6 +122,7 @@ void mma_done(void)
 	mutexUnlock(mma_common.lock);
 
 	resourceDestroy(mma_common.lock);
+	calib_free(&mma_common.calib);
 }
 
 
@@ -114,15 +130,22 @@ int mma_init(const quad_coeffs_t *coeffs)
 {
 	int err;
 
+	if (calib_readFile(CALIB_PATH, typeMotlin, &mma_common.calib) != 0) {
+		printf("mma: cannot initialize motlin calibration\n");
+		return -1;
+	}
+
 	err = mutexCreate(&mma_common.lock);
 	if (err < 0) {
 		printf("mma: cannot initialize mutex\n");
+		calib_free(&mma_common.calib);
 		return err;
 	}
 
 	if (mctl_init(NUMBER_MOTORS, motorPaths) < 0) {
 		printf("mma: cannot initialize motors\n");
 		resourceDestroy(mma_common.lock);
+		calib_free(&mma_common.calib);
 		return EXIT_FAILURE;
 	}
 
