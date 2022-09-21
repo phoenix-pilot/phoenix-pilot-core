@@ -32,9 +32,9 @@ typedef struct {
 
 	/* utility related */
 	const char *(*help)(void);             /* help message description */
-	int (*write)(FILE *);                  /* calibration file data write */
+	int (*write)(FILE *);                  /* calibration file data write, NULL if unnecessary */
 
-	calib_data_t *(*dataGet)(void); /* returns internal structure of libcalib:calib_data_t type */
+	calib_data_t *(*dataGet)(void); /* returns internal structure of libcalib:calib_data_t type, NULL there is none for calibration process */
 } calib_ops_t;
 
 
