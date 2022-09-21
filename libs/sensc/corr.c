@@ -145,7 +145,7 @@ static int corr_magmotRecalc(vec_t *correction)
 {
 	long throttles[NUM_OF_MOTORS];
 	char buff[16];
-	int motor, param;
+	int motor;
 	float throttle;
 	vec_t impact, impactSum = { 0 };
 
