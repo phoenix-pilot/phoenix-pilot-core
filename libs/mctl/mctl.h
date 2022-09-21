@@ -52,5 +52,4 @@ void mctl_deinit(void);
 /* Initialize engines module WITH 'motors' engines under 'motFiles' paths */
 int mctl_init(unsigned int motors, const char **motFiles);
 
-
 #endif

@@ -87,6 +87,20 @@ static inline int mctl_motOff(unsigned int id)
 	return 0;
 }
 
+static int mctl_charChoice(char expected)
+{
+	char c;
+
+	c = getchar();
+	fflush(stdin);
+
+	if (c != expected) {
+		return -1;
+	}
+
+	return 0;
+}
+
 
 static inline void mctl_printRed(const char *msg)
 {
@@ -165,7 +179,6 @@ int mctl_disarm(void)
 int mctl_arm(enum armMode mode)
 {
 	unsigned int i;
-	char choice;
 
 	if (mctl_common.armed) {
 		return 0;
@@ -176,10 +189,7 @@ int mctl_arm(enum armMode mode)
 		mctl_printRed("Engines are about to be armed!\nEnsure safety! Keep distance from engines!\n");
 
 		fprintf(stdout, "Type [y] to continue, or any other key to abort...\n");
-		choice = getchar();
-		fflush(stdin); /* clear buffer from [enter] if any key was passed */
-
-		if (choice != 'y') {
+		if (mctl_charChoice('y') != 0) {
 			fprintf(stdout, "Aborting\n");
 			return -1;
 		}
