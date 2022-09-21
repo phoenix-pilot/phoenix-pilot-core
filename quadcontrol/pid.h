@@ -25,10 +25,10 @@ typedef struct {
 	float kd; /* derivative gain */
 
 	/* PID limits */
-	float max;      /* Maximum allowed PID value */
-	float min;      /* Minimum allowed PID value */
-	float maxInteg; /* Maximum integral value */
-	float minInteg; /* Minimum integral value */
+	float max;      /* Maximum allowed P+D value */
+	float min;      /* Minimum allowed P+D value */
+	float maxInteg; /* Maximum I value */
+	float minInteg; /* Minimum I value */
 
 	float integral; /* Accumulate for integral term */
 	float prevErr;  /* Previous error */
