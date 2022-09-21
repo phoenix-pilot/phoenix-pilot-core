@@ -61,7 +61,7 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, ti
 	}
 
 	/* PID */
-	out = p + i + d;
+	out = p + d;
 	if (out > pid->max) {
 		out = pid->max;
 	}
@@ -70,6 +70,7 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, ti
 		out = pid->min;
 	}
 
+	out += i;
 	pid->integral = i;
 	pid->prevErr = err;
 	pid->lastPid = out;
