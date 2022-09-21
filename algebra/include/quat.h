@@ -95,7 +95,7 @@ extern void quat_times(quat_t *A, float x);
 extern void quat_quat2euler(const quat_t *q, float *roll, float *pitch, float *yaw);
 
 
-/* calculate quaternion q that rotates v1 into v2, assumed len(v1) == len(v2) */
+/* calculate quaternion q that rotates v1 into v2. `v1` and `v2` need to be unit vectors */
 extern void quat_uvec2uvec(const vec_t *v1, const vec_t *v2, quat_t *q);
 
 
