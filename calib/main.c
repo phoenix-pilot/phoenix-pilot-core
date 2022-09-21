@@ -83,10 +83,12 @@ static int calib_read(const char *path)
 
 	c = (calib_ops_t *)hmap_next(calib_common.calibs, &i);
 	while (c != NULL) {
-		calib = c->dataGet();
-		if (calib_readFile(path, calib->type, calib) != 0) {
-			err = true;
-			break;
+		if (c->dataGet != NULL) {
+			calib = c->dataGet();
+			if (calib_readFile(path, calib->type, calib) != 0) {
+				err = true;
+				break;
+			}
 		}
 		inited++;
 
@@ -98,8 +100,10 @@ static int calib_read(const char *path)
 		i = 0;
 		while (inited > 0) {
 			c = (calib_ops_t *)hmap_next(calib_common.calibs, &i);
-			calib = c->dataGet();
-			calib_free(calib);
+			if (c->dataGet != NULL) {
+				calib = c->dataGet();
+				calib_free(calib);
+			}
 			inited--;
 		}
 		return -1;
@@ -132,10 +136,11 @@ static int calib_write(const char *path)
 	iter = 0;
 	cal = (calib_ops_t *)hmap_next(calib_common.calibs, &iter);
 	while (cal != NULL) {
-		fprintf(file, "@%s\n", cal->name); /* print tag */
-		cal->write(file);                  /* call for data print */
-		fprintf(file, "\n\n");             /* print newlines for separation */
-
+		if (cal->write != NULL) {
+			fprintf(file, "@%s\n", cal->name); /* print tag */
+			cal->write(file);                  /* call for data print */
+			fprintf(file, "\n\n");             /* print newlines for separation */
+		}
 		cal = (calib_ops_t *)hmap_next(calib_common.calibs, &iter);
 	}
 
