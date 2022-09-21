@@ -103,6 +103,13 @@ static const float Angle = 1;
 /* Quaternion of rotation about `Angle` and along `V3` axis */
 static const quat_t Q9 = { .a = 0.8775826f, .i = 0.3888655f, .j = 0.155546f, .k = 0.2333193f };
 
+/* Vector nearly antiparallel to V3 */
+static const vec_t V4 = { .x = -4.52f, .y = -1.44f, .z = -3.0f };
+
+/* Vector nearly parallel to V3 */
+static const vec_t V5 = { .x = 7.68f, .y = 2.26f, .z = 5.0f };
+
+
 /* ##############################################################################
  * ------------------------        quat_cmp tests       -------------------------
  * ############################################################################## */
@@ -1144,4 +1151,132 @@ TEST_GROUP_RUNNER(group_quat_rotQuat)
 	RUN_TEST_CASE(group_quat_rotQuat, quat_rotQuat_baseQuaternions);
 	RUN_TEST_CASE(group_quat_rotQuat, quat_rotQuat_std);
 	RUN_TEST_CASE(group_quat_rotQuat, quat_rotQuat_zeroVector);
+}
+
+
+/* ##############################################################################
+ * ---------------------        quat_uvec2uvec tests       ----------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_uvec2uvec);
+
+
+TEST_SETUP(group_quat_uvec2uvec)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_uvec2uvec)
+{
+}
+
+
+TEST(group_quat_uvec2uvec, quat_uvec2uvec_std)
+{
+	quat_t q;
+	vec_t v1 = V1;
+	vec_t v2 = V1rotQ8;
+
+	vec_normalize(&v1);
+	vec_normalize(&v2);
+
+	quat_uvec2uvec(&v1, &v2, &q);
+
+	/* We are not comparing `q` to `Q8`, because there is infinite number of correct quaternions, which rotates `v1` to `v2` */
+	quat_vecRot(&v1, &q);
+	TEST_ASSERT_EQUAL_VEC(v2, v1);
+}
+
+
+TEST(group_quat_uvec2uvec, quat_uvec2uvec_biggerValues)
+{
+	quat_t q;
+	vec_t v1 = V2;
+	vec_t v2 = V2rotQ8;
+
+	vec_normalize(&v1);
+	vec_normalize(&v2);
+
+	quat_uvec2uvec(&v1, &v2, &q);
+
+	quat_vecRot(&v1, &q);
+	TEST_ASSERT_EQUAL_VEC(v2, v1);
+}
+
+
+TEST(group_quat_uvec2uvec, quat_uvec2uvec_parallel)
+{
+	quat_t q, expected;
+	vec_t v1 = V2, v2;
+
+	quat_idenWrite(&expected);
+
+	/* Making `v1` and `v2` unitary and parallel */
+	vec_normalize(&v1);
+	v2 = v1;
+
+	quat_uvec2uvec(&v1, &v2, &q);
+
+	TEST_ASSERT_EQUAL_QUAT(expected, q);
+}
+
+
+TEST(group_quat_uvec2uvec, quat_uvec2uvec_antiparallel)
+{
+	quat_t q;
+	vec_t v1 = V2, v2;
+
+	/* Making `v1` and `v2` unitary and antiparallel */
+	vec_normalize(&v1);
+	v2 = v1;
+	vec_times(&v2, -1);
+
+	quat_uvec2uvec(&v1, &v2, &q);
+
+	quat_vecRot(&v1, &q);
+	TEST_ASSERT_EQUAL_VEC(v2, v1);
+}
+
+
+TEST(group_quat_uvec2uvec, quat_uvec2uvec_nearlyAntiparallel)
+{
+	quat_t q;
+	vec_t v1 = V3, v2 = V4;
+
+	vec_normalize(&v1);
+	vec_normalize(&v2);
+
+	quat_uvec2uvec(&v1, &v2, &q);
+
+	/* `v1` and `v2` are nearly antiparallel, but not enough for `quat_uvec2uvec` to be perceived as antiparallel */
+	quat_vecRot(&v1, &q);
+	TEST_ASSERT_EQUAL_VEC(v2, v1);
+}
+
+
+TEST(group_quat_uvec2uvec, quat_uvec2uvec_nearlyParallel)
+{
+	quat_t q;
+	vec_t v1 = V3, v2 = V5;
+
+	vec_normalize(&v1);
+	vec_normalize(&v2);
+
+	quat_uvec2uvec(&v1, &v2, &q);
+
+	/* `v1` and `v2` are nearly antiparallel, but not enough for `quat_uvec2uvec` to be perceived as antiparallel */
+	quat_vecRot(&v1, &q);
+	TEST_ASSERT_EQUAL_VEC(v2, v1);
+}
+
+
+TEST_GROUP_RUNNER(group_quat_uvec2uvec)
+{
+	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_std);
+	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_biggerValues);
+	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_parallel);
+	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_antiparallel);
+	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_nearlyAntiparallel);
+	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_nearlyParallel);
 }
