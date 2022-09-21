@@ -144,15 +144,18 @@ void quat_uvec2uvec(const vec_t *v1, const vec_t *v2, quat_t *q)
 {
 	float a = vec_dot(v1, v2);
 	quat_t qv1, qv2;
+	/*vec_t tmp;*/
 
-	if (a > 0.99999999) {
+	if (a > 0.999999f) {
 		/* if vectors are close to parallel */
 		quat_idenWrite(q);
 		return;
 	}
-	if (a < -0.99999999) {
+	if (a < -0.999999f) {
 		/* if vectors are close to antiparallel */
-		quat_piWrite(q);
+		/* calculating quaternion, which rotates 180 degrees along axis perpendicular to `v1` and `v2` */
+		vec_normal(v1, v2, (vec_t *)q);
+		q->a = 0;
 		return;
 	}
 
