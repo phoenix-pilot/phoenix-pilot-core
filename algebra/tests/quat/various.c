@@ -80,7 +80,6 @@ static const quat_t Q4sandQ5 = {
 static const quat_t Q6 = { .a = 0.0f, .i = 1.0f, .j = 5.0f, .k = 2.0f };
 static const quat_t Q7 = { .a = 8.0f, .i = 4.0f, .j = 1.0f, .k = -4.5f };
 
-
 /* Values used for rotations */
 
 /* Small values */
@@ -108,6 +107,39 @@ static const vec_t V4 = { .x = -4.52f, .y = -1.44f, .z = -3.0f };
 
 /* Vector nearly parallel to V3 */
 static const vec_t V5 = { .x = 7.68f, .y = 2.26f, .z = 5.0f };
+
+/* Vectors for `quat_frameRot` tests */
+
+/* First frame of reference */
+
+typedef struct {
+	vec_t v1; /* first frame of reference */
+	vec_t v2;
+	vec_t w1; /* second frame of reference */
+	vec_t w2;
+	quat_t q1; /* quaternions, which rotates first frame of reference to second one */
+	quat_t q2;
+	quat_t q1Closer; /* quaternion, which is closer to one quaternion than the other one.  */
+	quat_t q2Closer;
+} frameRotData_t;
+
+static const frameRotData_t RotExample1 = {
+	.v1 = { .x = 0.5883484054145521f, .y = -0.19611613513818404f, .z = 0.7844645405527362f }, /* Normalized (3, -1, 4) vector */
+	.v2 = { .x = 0.0f, .y = 0.9701425001453319f, .z = 0.24253562503633297f },                 /* Normalized (0, 4, 1) vector */
+	.w1 = { .x = -0.2407717061715384f, .y = 0.1203858530857692f, .z = 0.9630868246861536f },  /* Normalized (-2, 1, 8) vector */
+	.w2 = { .x = 0.7043607250604991f, .y = 0.7043607250604991f, .z = 0.08804509063256238f }   /* Normalized (8, 8, 1) vector */
+};
+
+static const frameRotData_t RotExample2 = {
+	.v1 = { .x = 0.2672612419124244f, .y = 0.5345224838248488f, .z = 0.8017837257372732f },     /* Normalized (1, 2, 3) vector */
+	.v2 = { .x = -0.24077170617153842f, .y = 0.8427009716003844f, .z = -0.48154341234307685f }, /* Normalized (-0.8, 2.8, -1.6) vector */
+	.w1 = { .x = 0.48107023544236394f, .y = 0.5345224838248488f, .z = 0.6948792289723035f },    /* Normalized (1.8, 2, 2.6) vector */
+	.w2 = { .x = 0.24077170617153842f, .y = -0.8427009716003844f, .z = 0.48154341234307685f },  /* Normalized (0.8, -2.8, 1.6) vector */
+	.q1 = { .a = 0.0f, .i = 0.3768674f, .j = 0.538382f, .k = 0.753735f },
+	.q2 = { .a = -0.0f, .i = -0.3768674f, .j = -0.538382f, .k = -0.753735f },
+	.q1Closer = { .a = 0.0f, .i = 0.0f, .j = 1.0f, .k = 0.0f },
+	.q2Closer = { .a = 0.0f, .i = 0.0f, .j = -1.0f, .k = 0.0f }
+};
 
 
 /* ##############################################################################
@@ -1279,4 +1311,132 @@ TEST_GROUP_RUNNER(group_quat_uvec2uvec)
 	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_antiparallel);
 	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_nearlyAntiparallel);
 	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_nearlyParallel);
+}
+
+
+/* ##############################################################################
+ * ---------------------        quat_frameRot tests       -----------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_frameRot);
+
+
+TEST_SETUP(group_quat_frameRot)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_frameRot)
+{
+}
+
+
+TEST(group_quat_frameRot, quat_frameRot_baseRot)
+{
+	const vec_t versX = { .x = 1.0f, .y = 0.0f, .z = 0.0f };
+	const vec_t versY = { .x = 0.0f, .y = 1.0f, .z = 0.0f };
+	const vec_t versZ = { .x = 0.0f, .y = 0.0f, .z = 1.0f };
+	const vec_t negVersY = { .x = 0.0f, .y = -1.0f, .z = 0.0f };
+	quat_t q, expected, helpQ;
+
+	/* Rotating frame of reference 90 degrees along x-axis */
+	quat_rotQuat(&versX, M_PI_2, &expected);
+	quat_rotQuat(&versX, M_PI_4, &helpQ);
+
+	quat_frameRot(&versX, &versY, &versX, &versZ, &q, &helpQ);
+
+	TEST_ASSERT_EQUAL_QUAT(expected, q);
+
+	/* Rotating frame of reference 90 degrees along y-axis */
+	quat_rotQuat(&versY, M_PI_2, &expected);
+	quat_rotQuat(&versY, M_PI_4, &helpQ);
+
+	quat_frameRot(&versX, &versY, &versZ, &versY, &q, &helpQ);
+
+	TEST_ASSERT_EQUAL_QUAT(expected, q);
+
+	/* Rotating frame of reference 90 degrees along z-axis */
+	quat_rotQuat(&versZ, M_PI_2, &expected);
+	quat_rotQuat(&versZ, M_PI_4, &helpQ);
+
+	quat_frameRot(&versX, &versY, &negVersY, &versX, &q, &helpQ);
+
+	TEST_ASSERT_EQUAL_QUAT(expected, q);
+}
+
+
+TEST(group_quat_frameRot, quat_frameRot_std)
+{
+	quat_t q;
+	frameRotData_t rot = RotExample1;
+
+	quat_frameRot(&rot.v1, &rot.v2, &rot.w1, &rot.w2, &q, NULL);
+
+	/* There are two possible quaternions in this test we don't know which we get, so we cannot compare with expected answer */
+	quat_vecRot(&rot.v1, &q);
+	quat_vecRot(&rot.v2, &q);
+
+	TEST_ASSERT_EQUAL_VEC(rot.w1, rot.v1);
+	TEST_ASSERT_EQUAL_VEC(rot.w2, rot.v2);
+}
+
+
+/*
+ * If you combine two rotations - one which rotates `v1` to `w1` and second which rotates `v2` to `w2`,
+ * the second rotation have to be along axis parallel to `w1`.
+ * In other case the second rotation can break the first one.
+ * It can be tricky to calculate this axis when in the second rotation vectors are parallel, but points in opposite directions,
+ * because you cannot use cross product to calculate it.
+ */
+TEST(group_quat_frameRot, quat_frameRot_oneVecAntiparallel)
+{
+	quat_t q;
+	frameRotData_t rot = RotExample2;
+
+	quat_frameRot(&rot.v1, &rot.v2, &rot.w1, &rot.w2, &q, NULL);
+
+	quat_vecRot(&rot.v1, &q);
+	quat_vecRot(&rot.v2, &q);
+
+	TEST_ASSERT_EQUAL_VEC(rot.w1, rot.v1);
+	TEST_ASSERT_EQUAL_VEC(rot.w2, rot.v2);
+
+	rot.v1 = RotExample2.v1;
+	rot.v2 = RotExample2.v2;
+
+	quat_frameRot(&rot.v2, &rot.v1, &rot.w2, &rot.w1, &q, NULL);
+
+	/* There are two possible quaternions in this test we don't know which we get, so we cannot compare with expected answer */
+	quat_vecRot(&rot.v1, &q);
+	quat_vecRot(&rot.v2, &q);
+
+	TEST_ASSERT_EQUAL_VEC(rot.w1, rot.v1);
+	TEST_ASSERT_EQUAL_VEC(rot.w2, rot.v2);
+}
+
+
+/* There are always two quaternions which rotates one frame of reference to another. */
+/* We can choose which quaternion we want by passing with quaternion as `help_q` */
+TEST(group_quat_frameRot, quat_frameRot_choosingWantedQuat)
+{
+	quat_t q;
+	frameRotData_t rot = RotExample2;
+
+	/* We want first quaternion */
+	quat_frameRot(&rot.v1, &rot.v2, &rot.w1, &rot.w2, &q, &rot.q1Closer);
+	TEST_ASSERT_QUAT_WITHIN(DELTA, rot.q1, q);
+
+	/* We want second quaternion */
+	quat_frameRot(&rot.v1, &rot.v2, &rot.w1, &rot.w2, &q, &rot.q2Closer);
+	TEST_ASSERT_QUAT_WITHIN(DELTA, rot.q2, q);
+}
+
+
+TEST_GROUP_RUNNER(group_quat_frameRot)
+{
+	RUN_TEST_CASE(group_quat_frameRot, quat_frameRot_baseRot);
+	RUN_TEST_CASE(group_quat_frameRot, quat_frameRot_std);
+	RUN_TEST_CASE(group_quat_frameRot, quat_frameRot_oneVecAntiparallel);
+	RUN_TEST_CASE(group_quat_frameRot, quat_frameRot_choosingWantedQuat);
 }
