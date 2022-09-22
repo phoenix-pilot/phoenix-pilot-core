@@ -68,6 +68,7 @@ void runner(void)
 	RUN_TEST_GROUP(group_quat_vecRot);
 	RUN_TEST_GROUP(group_quat_rotQuat);
 	RUN_TEST_GROUP(group_quat_uvec2uvec);
+	RUN_TEST_GROUP(group_quat_frameRot);
 }
 
 
