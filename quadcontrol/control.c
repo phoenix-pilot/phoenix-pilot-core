@@ -68,9 +68,13 @@ enum { pwm_alt = 0, pwm_roll, pwm_pitch, pwm_yaw, pwm_max };
    TODO: move data to the configuration file placed in a rootfs */
 #if TEST_ATTITUDE
 static const flight_mode_t scenario[] = {
-	{ .type = flight_takeoff, .takeoff = { .alt = 2000 } },
-	{ .type = flight_hover, .hover = { .alt = 2000, .time = 10000 } },
-	/*{ .type = flight_landing }, TODO: activate when yaw measurement is enabled */
+	{ .type = flight_takeoff, .takeoff = { .alt = 5000 } },
+	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
+	{ .type = flight_hover, .hover = { .alt = 0, .time = 6000 } },
+	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
+	{ .type = flight_hover, .hover = { .alt = 0, .time = 6000 } },
+	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
+	{ .type = flight_landing },
 	{ .type = flight_end },
 };
 #else
@@ -127,16 +131,12 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 		yaw = measure.yaw * 1000;
 	}
 
-#if TEST_ATTITUDE
-	alt = measure.enuZ * 1000;
-#endif
-
 	DEBUG_LOG("EKFQ: %lld, %f, %f, %f, %f\n", now, measure.q0, measure.q1, measure.q2, measure.q3);
 	DEBUG_LOG("EKFE: %lld, %f, %f, %f\n", now, measure.yaw * RAD2DEG, measure.pitch * RAD2DEG, measure.roll * RAD2DEG);
 	DEBUG_LOG("EKFX: %lld, %f\n", now, measure.enuZ);
 
 	DEBUG_LOG("PID: %lld, ", now);
-	palt = pid_calc(&quad_common.pids[pwm_alt], alt, measure.enuZ * 1000, 0, dt);
+	palt = pid_calc(&quad_common.pids[pwm_alt], alt / 1000.f, measure.enuZ, 0, dt);
 	proll = pid_calc(&quad_common.pids[pwm_roll], roll / 1000.f, measure.roll, measure.rollDot, dt);
 	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch / 1000.f, measure.pitch, measure.pitchDot, dt);
 	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw / 1000.f, measure.yaw, measure.yawDot, dt);
@@ -182,7 +182,7 @@ static int quad_hover(const flight_mode_t *mode)
 	now = quad_timeMsGet();
 
 #if TEST_ATTITUDE
-	while (quad_timeMsGet() < now + quad_common.duration) {
+	while (quad_timeMsGet() < now + mode->hover.time) {
 		if (quad_motorsCtrl(quad_common.throttle.max, mode->hover.alt, quad_common.targetAtt.roll, quad_common.targetAtt.pitch, quad_common.targetAtt.yaw) < 0) {
 			return -1;
 		}
