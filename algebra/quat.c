@@ -144,7 +144,6 @@ void quat_uvec2uvec(const vec_t *v1, const vec_t *v2, quat_t *q)
 {
 	float a = vec_dot(v1, v2);
 	quat_t qv1, qv2;
-	/*vec_t tmp;*/
 
 	if (a > 0.999999f) {
 		/* if vectors are close to parallel */
@@ -216,8 +215,27 @@ void quat_frameRot(const vec_t *v1, const vec_t *v2, const vec_t *w1, const vec_
 	vec_normalize(&p);
 
 	quat_uvec2uvec(v1, w1, &q1);
+
 	quat_vecRot(&n, &q1);
-	quat_uvec2uvec(&n, &p, &q2);
+
+	/*
+	 * We need rotation along axis parallel to `w1`, which rotates `n` to `p`.
+	 * `quat_uvec2uvec` finds rotation quaternion along axis perpendicular to both vectors.
+	 * 1) If `n` and `p` are parallel then the axis does not matter, as rotation is 0 angled.
+	 * 2) If `n` and `p` are antiparallel there is infinite number of axis perpendicular to `n` and `p`, so it is not guaranteed that our axis is perpendicular to 'w1'
+	 * 3) In all other cases `quat_uvec2uvec` finds rotation along axis parallel to `w1`.
+	 * 
+	 * In case of antiparallelity we take w1 as granted axis, and make it into PI angled rotation quaternion.
+	 */
+
+	if (vec_dot(&n, &p) < -0.999999f) {
+		q2 = *(quat_t *)w1;
+		q2.a = 0;
+	}
+	else {
+		quat_uvec2uvec(&n, &p, &q2);
+	}
+
 	quat_mlt(&q2, &q1, res);
 	quat_normalize(res); /* FIXME: is this normalization necessary? */
 
