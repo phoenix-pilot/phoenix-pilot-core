@@ -80,7 +80,7 @@ float vec_len(const vec_t *A)
 void vec_normal(const vec_t *A, const vec_t *B, vec_t *C)
 {
 	float lenSquared;
-	vec_t v = { .x = 1.0f, .y = 0.0f, .y = 0.0f, .z = 0.0f };
+	vec_t v = { .x = 1.0f, .y = 0.0f, .z = 0.0f };
 	const vec_t *longerV;
 
 	vec_cross(A, B, C);
@@ -91,7 +91,6 @@ void vec_normal(const vec_t *A, const vec_t *B, vec_t *C)
 		return;
 	}
 	/* First `vec_cross` returned zero vector. `A` and `B` are parallel, or there is at least one zero vector. */
-
 	longerV = (vec_dot(A, A) > vec_dot(B, B)) ? A : B;
 
 	vec_cross(longerV, &v, C);
@@ -102,7 +101,6 @@ void vec_normal(const vec_t *A, const vec_t *B, vec_t *C)
 		return;
 	}
 	/* Second `vec_cross` returned zero vector. Longer of `A` and `B` must be parallel to `v` or be a zero vector. */
-
 	v.z = 1;
 
 	vec_cross(longerV, &v, C);
@@ -123,7 +121,7 @@ void vec_normal(const vec_t *A, const vec_t *B, vec_t *C)
 void vec_normalize(vec_t *A)
 {
 	float len = A->x * A->x + A->y * A->y + A->z * A->z;
-	len = sqrt(len); /* FIXME: fast iverse square needed here! */
+	len = sqrt(len); /* FIXME: fast inverse square needed here! */
 
 	A->x /= len;
 	A->y /= len;
