@@ -49,7 +49,7 @@ class lpgui:
 
         # Prepare roll/pitch plot
         self.eulerData = [[] for _ in range(3)]
-        self.rollPitchPlot = self.win.addPlot(title="Roll & Pitch", colspan=2)
+        self.rollPitchPlot = self.win.addPlot(title="Roll & Pitch", colspan=1)
         self.rollPitchPlot.addLegend()
         # Prepare yaw plot
         self.yawPlot = self.win.addPlot(title="Yaw", colspan=1)
@@ -58,6 +58,12 @@ class lpgui:
             self.yawPlot.plot(pen="red", name="yaw"),
             self.rollPitchPlot.plot(pen="green", name="pitch"),
             self.rollPitchPlot.plot(pen="blue", name="roll")]
+
+        # Prepare position plot (only height currently)
+        self.enuzData = []
+        self.enuzPlot = self.win.addPlot(title="Height", colspan=1)
+        self.enuzPlot.addLegend()
+        self.enuzDatalines = self.enuzPlot.plot(pen="yellow", name="enuz")
 
         self.win.nextRow()
 
@@ -104,6 +110,12 @@ class lpgui:
                     self.eulerData[i].pop(0)
                 self.eulerData[i].append(float(ls[i+2]))
                 self.eulerDatalines[i].setData(self.eulerData[i])
+        # EKFX - position related logging
+        if ls[0] == "EKFX":
+            if len(self.enuzData) > self.plotcut:
+                self.enuzData.pop(0)
+            self.enuzData.append(float(ls[2]))
+            self.enuzDatalines.setData(self.enuzData)
         # PID - logs of pid values from pid controllers
         if ls[0] == "PID":
             # iterate over roll/pitch/yaw plots
@@ -135,7 +147,7 @@ class lpgui:
         # flush and dummy read
         self.ser.flushInput()
         processLine(self.ser.readline().decode("utf-8"))
-        for i in range(4):
+        for i in range(5):
             l = processLine(self.ser.readline().decode("utf-8"))
             try:
                 self.digestIntoData(l)
