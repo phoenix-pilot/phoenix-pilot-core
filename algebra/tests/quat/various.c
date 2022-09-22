@@ -221,11 +221,11 @@ TEST(group_quat_idenWrite, quat_idenWrite_std)
 {
 	/* Initialising quaternion with non zero and non one values */
 	quat_t A = Q1;
-	quat_t Exp = { .a = 1.0f, .i = 0.0f, .j = 0.0f, .k = 0.0f };
+	quat_t expected = { .a = 1.0f, .i = 0.0f, .j = 0.0f, .k = 0.0f };
 
 	quat_idenWrite(&A);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, A);
 }
 
 
@@ -257,11 +257,11 @@ TEST(group_quat_piWrite, quat_piWrite_std)
 {
 	/* Initialising quaternion with non zero and non one values */
 	quat_t A = Q1;
-	quat_t Exp = { .a = 0.0f, .i = 1.0f, .j = 0.0f, .k = 0.0f };
+	quat_t expected = { .a = 0.0f, .i = 1.0f, .j = 0.0f, .k = 0.0f };
 
 	quat_piWrite(&A);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, A);
 }
 
 
@@ -293,11 +293,11 @@ TEST(group_quat_add, quat_add_std)
 {
 	quat_t A = Q2;
 	quat_t B = Q3;
-	quat_t Exp = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
+	quat_t expected = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
 
 	quat_add(&A, &B);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, A);
 }
 
 
@@ -305,11 +305,11 @@ TEST(group_quat_add, quat_add_biggerValues)
 {
 	quat_t A = Q4;
 	quat_t B = Q5;
-	quat_t Exp = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
+	quat_t expected = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
 
 	quat_add(&A, &B);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, A);
 }
 
 
@@ -343,11 +343,11 @@ TEST(group_quat_sum, quat_sum_std)
 	quat_t A = Q2;
 	quat_t B = Q3;
 	quat_t C;
-	quat_t Exp = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
+	quat_t expected = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
 
 	quat_sum(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, C);
+	TEST_ASSERT_EQUAL_QUAT(expected, C);
 }
 
 
@@ -356,11 +356,11 @@ TEST(group_quat_sum, quat_sum_biggerValues)
 	quat_t A = Q4;
 	quat_t B = Q5;
 	quat_t C;
-	quat_t Exp = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
+	quat_t expected = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
 
 	quat_sum(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, C);
+	TEST_ASSERT_EQUAL_QUAT(expected, C);
 }
 
 
@@ -393,11 +393,11 @@ TEST(group_quat_sub, quat_sub_std)
 {
 	quat_t A = Q2;
 	quat_t B = Q3;
-	quat_t Exp = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
+	quat_t expected = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
 
 	quat_sub(&A, &B);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, A);
 }
 
 
@@ -405,11 +405,11 @@ TEST(group_quat_sub, quat_sub_biggerValues)
 {
 	quat_t A = Q4;
 	quat_t B = Q5;
-	quat_t Exp = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
+	quat_t expected = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
 
 	quat_sub(&A, &B);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, A);
 }
 
 
@@ -443,11 +443,11 @@ TEST(group_quat_dif, quat_dif_std)
 	quat_t A = Q2;
 	quat_t B = Q3;
 	quat_t C;
-	quat_t Exp = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
+	quat_t expected = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
 
 	quat_dif(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, C);
+	TEST_ASSERT_EQUAL_QUAT(expected, C);
 }
 
 
@@ -456,11 +456,11 @@ TEST(group_quat_dif, quat_dif_biggerValues)
 	quat_t A = Q4;
 	quat_t B = Q5;
 	quat_t C;
-	quat_t Exp = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
+	quat_t expected = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
 
 	quat_dif(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, C);
+	TEST_ASSERT_EQUAL_QUAT(expected, C);
 }
 
 
@@ -617,7 +617,7 @@ TEST_TEAR_DOWN(group_quat_times)
 TEST(group_quat_times, quat_times_std)
 {
 	quat_t A = Q5;
-	quat_t Exp = {
+	quat_t expected = {
 		.a = A.a * POS_SCALAR,
 		.i = A.i * POS_SCALAR,
 		.j = A.j * POS_SCALAR,
@@ -626,24 +626,24 @@ TEST(group_quat_times, quat_times_std)
 
 	quat_times(&A, POS_SCALAR);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, A);
 
 	A = Q5;
-	Exp.a = A.a * NEG_SCALAR;
-	Exp.i = A.i * NEG_SCALAR;
-	Exp.j = A.j * NEG_SCALAR;
-	Exp.k = A.k * NEG_SCALAR;
+	expected.a = A.a * NEG_SCALAR;
+	expected.i = A.i * NEG_SCALAR;
+	expected.j = A.j * NEG_SCALAR;
+	expected.k = A.k * NEG_SCALAR;
 
 	quat_times(&A, NEG_SCALAR);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, A);
 }
 
 
 TEST(group_quat_times, quat_times_infs)
 {
 	quat_t A = Q5;
-	quat_t Exp = {
+	quat_t expected = {
 		.a = A.a * INFINITY,
 		.i = A.i * INFINITY,
 		.j = A.j * INFINITY,
@@ -652,28 +652,28 @@ TEST(group_quat_times, quat_times_infs)
 
 	quat_times(&A, INFINITY);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, A);
 
 	A = Q5;
-	Exp.a = A.a * -INFINITY;
-	Exp.i = A.i * -INFINITY;
-	Exp.j = A.j * -INFINITY;
-	Exp.k = A.k * -INFINITY;
+	expected.a = A.a * -INFINITY;
+	expected.i = A.i * -INFINITY;
+	expected.j = A.j * -INFINITY;
+	expected.k = A.k * -INFINITY;
 
 	quat_times(&A, -INFINITY);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, A);
 }
 
 
 TEST(group_quat_times, quat_times_nan)
 {
 	quat_t A = Q5;
-	quat_t Exp = { .a = A.a * NAN, .i = A.i * NAN, .j = A.j * NAN, .k = A.k * NAN };
+	quat_t expected = { .a = A.a * NAN, .i = A.i * NAN, .j = A.j * NAN, .k = A.k * NAN };
 
 	quat_times(&A, NAN);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, A);
 }
 
 
@@ -706,22 +706,22 @@ TEST_TEAR_DOWN(group_quat_cjg)
 TEST(group_quat_cjg, quat_cjg_std)
 {
 	quat_t A = Q2;
-	quat_t Exp = { .a = A.a, .i = -A.i, .j = -A.j, .k = -A.k };
+	quat_t expected = { .a = A.a, .i = -A.i, .j = -A.j, .k = -A.k };
 
 	quat_cjg(&A);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, A);
 }
 
 
 TEST(group_quat_cjg, quat_cjg_biggerValues)
 {
 	quat_t A = Q4;
-	quat_t Exp = { .a = A.a, .i = -A.i, .j = -A.j, .k = -A.k };
+	quat_t expected = { .a = A.a, .i = -A.i, .j = -A.j, .k = -A.k };
 
 	quat_cjg(&A);
 
-	TEST_ASSERT_EQUAL_QUAT(Exp, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, A);
 }
 
 

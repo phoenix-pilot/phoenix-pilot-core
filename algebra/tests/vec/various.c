@@ -143,11 +143,11 @@ TEST(group_vec_sum, vec_sum_std)
 	vec_t A = V1;
 	vec_t B = V2;
 	vec_t C;
-	vec_t Exp = { .x = A.x + B.x, .y = A.y + B.y, .z = A.z + B.z };
+	vec_t expected = { .x = A.x + B.x, .y = A.y + B.y, .z = A.z + B.z };
 
 	vec_sum(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, C);
+	TEST_ASSERT_EQUAL_VEC(expected, C);
 }
 
 
@@ -156,11 +156,11 @@ TEST(group_vec_sum, vec_sum_biggerValues)
 	vec_t A = V3;
 	vec_t B = V4;
 	vec_t C;
-	vec_t Exp = { .x = A.x + B.x, .y = A.y + B.y, .z = A.z + B.z };
+	vec_t expected = { .x = A.x + B.x, .y = A.y + B.y, .z = A.z + B.z };
 
 	vec_sum(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, C);
+	TEST_ASSERT_EQUAL_VEC(expected, C);
 }
 
 
@@ -193,11 +193,11 @@ TEST(group_vec_add, vec_add_std)
 {
 	vec_t A = V1;
 	vec_t B = V2;
-	vec_t Exp = { .x = A.x + B.x, .y = A.y + B.y, .z = A.z + B.z };
+	vec_t expected = { .x = A.x + B.x, .y = A.y + B.y, .z = A.z + B.z };
 
 	vec_add(&A, &B);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, A);
+	TEST_ASSERT_EQUAL_VEC(expected, A);
 }
 
 
@@ -205,11 +205,11 @@ TEST(group_vec_add, vec_add_biggerValues)
 {
 	vec_t A = V3;
 	vec_t B = V4;
-	vec_t Exp = { .x = A.x + B.x, .y = A.y + B.y, .z = A.z + B.z };
+	vec_t expected = { .x = A.x + B.x, .y = A.y + B.y, .z = A.z + B.z };
 
 	vec_add(&A, &B);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, A);
+	TEST_ASSERT_EQUAL_VEC(expected, A);
 }
 
 
@@ -243,11 +243,11 @@ TEST(group_vec_dif, vec_dif_std)
 	vec_t A = V1;
 	vec_t B = V2;
 	vec_t C;
-	vec_t Exp = { .x = A.x - B.x, .y = A.y - B.y, .z = A.z - B.z };
+	vec_t expected = { .x = A.x - B.x, .y = A.y - B.y, .z = A.z - B.z };
 
 	vec_dif(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, C);
+	TEST_ASSERT_EQUAL_VEC(expected, C);
 }
 
 
@@ -256,11 +256,11 @@ TEST(group_vec_dif, vec_dif_biggerValues)
 	vec_t A = V3;
 	vec_t B = V4;
 	vec_t C;
-	vec_t Exp = { .x = A.x - B.x, .y = A.y - B.y, .z = A.z - B.z };
+	vec_t expected = { .x = A.x - B.x, .y = A.y - B.y, .z = A.z - B.z };
 
 	vec_dif(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, C);
+	TEST_ASSERT_EQUAL_VEC(expected, C);
 }
 
 
@@ -293,11 +293,11 @@ TEST(group_vec_sub, vec_sub_std)
 {
 	vec_t A = V1;
 	vec_t B = V2;
-	vec_t Exp = { .x = A.x - B.x, .y = A.y - B.y, .z = A.z - B.z };
+	vec_t expected = { .x = A.x - B.x, .y = A.y - B.y, .z = A.z - B.z };
 
 	vec_sub(&A, &B);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, A);
+	TEST_ASSERT_EQUAL_VEC(expected, A);
 }
 
 
@@ -305,11 +305,11 @@ TEST(group_vec_sub, vec_sub_biggerValues)
 {
 	vec_t A = V3;
 	vec_t B = V4;
-	vec_t Exp = { .x = A.x - B.x, .y = A.y - B.y, .z = A.z - B.z };
+	vec_t expected = { .x = A.x - B.x, .y = A.y - B.y, .z = A.z - B.z };
 
 	vec_sub(&A, &B);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, A);
+	TEST_ASSERT_EQUAL_VEC(expected, A);
 }
 
 
@@ -341,7 +341,7 @@ TEST_TEAR_DOWN(group_vec_times)
 TEST(group_vec_times, vec_times_std)
 {
 	vec_t A = V3;
-	vec_t Exp = {
+	vec_t expected = {
 		.x = A.x * POS_SCALAR,
 		.y = A.y * POS_SCALAR,
 		.z = A.z * POS_SCALAR
@@ -349,23 +349,23 @@ TEST(group_vec_times, vec_times_std)
 
 	vec_times(&A, POS_SCALAR);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, A);
+	TEST_ASSERT_EQUAL_VEC(expected, A);
 
 	A = V3;
-	Exp.x = A.x * NEG_SCALAR;
-	Exp.y = A.y * NEG_SCALAR;
-	Exp.z = A.z * NEG_SCALAR;
+	expected.x = A.x * NEG_SCALAR;
+	expected.y = A.y * NEG_SCALAR;
+	expected.z = A.z * NEG_SCALAR;
 
 	vec_times(&A, NEG_SCALAR);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, A);
+	TEST_ASSERT_EQUAL_VEC(expected, A);
 }
 
 
 TEST(group_vec_times, vec_times_infs)
 {
 	vec_t A = V3;
-	vec_t Exp = {
+	vec_t expected = {
 		.x = A.x * INFINITY,
 		.y = A.y * INFINITY,
 		.z = A.z * INFINITY
@@ -373,23 +373,23 @@ TEST(group_vec_times, vec_times_infs)
 
 	vec_times(&A, INFINITY);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, A)
+	TEST_ASSERT_EQUAL_VEC(expected, A)
 
 	A = V3;
-	Exp.x = A.x * -INFINITY;
-	Exp.y = A.y * -INFINITY;
-	Exp.z = A.z * -INFINITY;
+	expected.x = A.x * -INFINITY;
+	expected.y = A.y * -INFINITY;
+	expected.z = A.z * -INFINITY;
 
 	vec_times(&A, -INFINITY);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, A);
+	TEST_ASSERT_EQUAL_VEC(expected, A);
 }
 
 
 TEST(group_vec_times, vec_times_nan)
 {
 	vec_t A = V3;
-	vec_t Exp = {
+	vec_t expected = {
 		.x = A.x * NAN,
 		.y = A.y * NAN,
 		.z = A.z * NAN
@@ -397,7 +397,7 @@ TEST(group_vec_times, vec_times_nan)
 
 	vec_times(&A, NAN);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, A);
+	TEST_ASSERT_EQUAL_VEC(expected, A);
 }
 
 
@@ -432,7 +432,7 @@ TEST(group_vec_cross, vec_cross_std)
 	vec_t A = V1;
 	vec_t B = V2;
 	vec_t C;
-	vec_t Exp = {
+	vec_t expected = {
 		.x = A.y * B.z - A.z * B.y,
 		.y = A.z * B.x - A.x * B.z,
 		.z = A.x * B.y - A.y * B.x
@@ -440,7 +440,7 @@ TEST(group_vec_cross, vec_cross_std)
 
 	vec_cross(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, C);
+	TEST_ASSERT_EQUAL_VEC(expected, C);
 }
 
 
@@ -449,7 +449,7 @@ TEST(group_vec_cross, vec_cross_biggerValues)
 	vec_t A = V3;
 	vec_t B = V4;
 	vec_t C;
-	vec_t Exp = {
+	vec_t expected = {
 		.x = A.y * B.z - A.z * B.y,
 		.y = A.z * B.x - A.x * B.z,
 		.z = A.x * B.y - A.y * B.x
@@ -457,7 +457,7 @@ TEST(group_vec_cross, vec_cross_biggerValues)
 
 	vec_cross(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, C);
+	TEST_ASSERT_EQUAL_VEC(expected, C);
 }
 
 
@@ -466,7 +466,7 @@ TEST(group_vec_cross, vec_cross_perpendicular)
 	vec_t A = V5;
 	vec_t B = V6;
 	vec_t C;
-	vec_t Exp = {
+	vec_t expected = {
 		.x = A.y * B.z - A.z * B.y,
 		.y = A.z * B.x - A.x * B.z,
 		.z = A.x * B.y - A.y * B.x
@@ -474,15 +474,15 @@ TEST(group_vec_cross, vec_cross_perpendicular)
 
 	vec_cross(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, C);
+	TEST_ASSERT_EQUAL_VEC(expected, C);
 
-	Exp.x = B.y * A.z - B.z * A.y;
-	Exp.y = B.z * A.x - B.x * A.z;
-	Exp.z = B.x * A.y - B.y * A.x;
+	expected.x = B.y * A.z - B.z * A.y;
+	expected.y = B.z * A.x - B.x * A.z;
+	expected.z = B.x * A.y - B.y * A.x;
 
 	vec_cross(&B, &A, &C);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, C);
+	TEST_ASSERT_EQUAL_VEC(expected, C);
 }
 
 
@@ -491,14 +491,14 @@ TEST(group_vec_cross, vec_cross_parallel)
 	vec_t A = V2;
 	vec_t B = A;
 	vec_t C;
-	vec_t Exp = { .x = 0.0, .y = 0.0, .z = 0.0 };
+	vec_t expected = { .x = 0.0, .y = 0.0, .z = 0.0 };
 
 	/* Parallel with common direction */
 	vec_times(&B, POS_SCALAR);
 
 	vec_cross(&A, &B, &C);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, C);
+	TEST_ASSERT_EQUAL_VEC(expected, C);
 
 	/* Parallel with opposite directions */
 	B = A;
@@ -506,7 +506,7 @@ TEST(group_vec_cross, vec_cross_parallel)
 
 	vec_cross(&B, &A, &C);
 
-	TEST_ASSERT_EQUAL_VEC(Exp, C);
+	TEST_ASSERT_EQUAL_VEC(expected, C);
 }
 
 
