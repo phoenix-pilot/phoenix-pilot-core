@@ -83,13 +83,24 @@ class lpgui:
 
         # Prepare PWM plots
         self.pwmData = [[] for _ in range(4)]
-        self.pwmPlots = self.win.addPlot(title="Engine PWMs", colspan=3)
+        self.pwmPlots = self.win.addPlot(title="Engine PWMs", colspan=2)
         self.pwmPlots.addLegend()
         self.pwmlines = [
             self.pwmPlots.plot(pen="white", name="M1"),
             self.pwmPlots.plot(pen="red", name="M2"),
             self.pwmPlots.plot(pen="green", name="M3"),
             self.pwmPlots.plot(pen="blue", name="M4")]
+
+        # Prepare position plot (only height currently)
+        self.hpidData = [[] for _ in range(4)]
+        self.hpidPlot = self.win.addPlot(title="Height pid", colspan=1)
+        self.hpidPlot.addLegend()
+        self.hpidDatalines = [
+            self.hpidPlot.plot(pen="red", name="P"),
+            self.hpidPlot.plot(pen="green", name="I"),
+            self.hpidPlot.plot(pen="blue", name="D"),
+            self.hpidPlot.plot(pen="orange", name="Σ")
+        ]
 
         # Quadrocontrol has maximum frequency of 100Hz (with calculation time excluded) so with 10ms wait we should catch all data
         self.timer = QtCore.QTimer()
@@ -129,6 +140,16 @@ class lpgui:
                     if -100 < v < 100:
                         self.pidData[p][l].append(v)
                     self.pidLines[p][l].setData(self.pidData[p][l])
+            # append to height pid plot
+            for l in range(len(self.hpidData)):
+                if len(self.hpidData[l]) > self.plotcut:
+                    self.hpidData[l].pop(0)
+                v = float(ls[2 + l])
+                # There happens to be some huge values at the start so crop them
+                if -100 < v < 100:
+                    self.hpidData[l].append(v)
+                self.hpidDatalines[l].setData(self.hpidData[l])
+
         # PWM - percent of throttle on each engine
         if ls[0] == "PWM":
             for i in range(0, 4):
