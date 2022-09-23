@@ -110,7 +110,8 @@ static int calib_magmotRead(FILE *file, calib_data_t *cal)
 
 	/* scroll to the `magmot` tag */
 	if (calib_file2tag(file, MAGMOT_TAG) != 0) {
-		return -1;
+		fprintf(stderr, "Calibration not done yet. '%s' going default.\n", MAGMOT_TAG);
+		return 0;
 	}
 
 	line = NULL;
@@ -227,9 +228,10 @@ static int calib_magironRead(FILE *file, calib_data_t *cal)
 		return 0;
 	}
 
-	/* Scroll to 'magiron tag */
+	/* Scroll to 'magiron' tag */
 	if (calib_file2tag(file, MAGIRON_TAG) != 0) {
-		return -1;
+		fprintf(stderr, "Calibration not done yet. '%s' going default.\n", MAGIRON_TAG);
+		return 0;
 	}
 
 	line = NULL;
@@ -305,9 +307,10 @@ static int calib_motlinRead(FILE *file, calib_data_t *cal)
 		return 0;
 	}
 
-	/* Scroll to 'motorlin' tag */
+	/* Scroll to 'motlin' tag */
 	if (calib_file2tag(file, MOTLIN_TAG) != 0) {
-		return -1;
+		fprintf(stderr, "Calibration not done yet. '%s' going default.\n", MOTLIN_TAG);
+		return 0;
 	}
 
 	line = NULL;
