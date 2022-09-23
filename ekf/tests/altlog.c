@@ -25,11 +25,17 @@
 
 /* TODO: this tool should be placed outside ekf directory */
 
+struct {
+	float tmax;
+	time_t step;
+} altlog_common;
+
+
 static void altlog_help(const char *progname)
 {
-	printf("Usage: %s dur [tstep]\n", progname);
-	printf("  dur - logging time in full seconds\n");
-	printf("  tstep - interval between samples in milliseconds, 1000 default\n");
+	printf("Usage: %s [options]\n options:\n", progname);
+	printf("  -t,\tlogging time in full seconds\n");
+	printf("  -s,\tsampling interval in milliseconds\n");
 }
 
 
@@ -43,31 +49,66 @@ static inline float altlog_timeSec(void)
 }
 
 
+/*
+* Parsing arguments Returns:
+*  0: no error,
+*  1: no error but program should halt,
+* -1: error occurred.
+*/
+static int altlog_parseArgs(int argc, char **argv)
+{
+	int c, ret = 0;
+
+	if (argc < 2) {
+		altlog_help(argv[0]);
+		return -1;
+	}
+
+	while ((c = getopt(argc, argv, "ht:s:")) != -1 && ret == 0) {
+		switch (c) {
+			case 'h': /* help message */
+				altlog_help(argv[0]);
+				ret = 1;
+				break;
+
+			case 't': /* time set */
+				altlog_common.tmax = atof(optarg);
+				ret = (altlog_common.tmax == 0) ? -1 : 0;
+				break;
+
+			case 's': /* samppling interval set */
+				altlog_common.step = atoi(optarg);
+				ret = (altlog_common.step == 0) ? -1 : 0;
+				break;
+
+			default: /* any other case is an error */
+				altlog_help(argv[0]);
+				ret = -1;
+		}
+	}
+
+	/* make it microseconds for usleep */
+	altlog_common.step *= 1000;
+
+	return ret;
+}
+
+
 int main(int argc, char **argv)
 {
 	ekf_state_t uavState = { 0 };
 	FILE *file;
-	time_t step;
 	sensor_event_t baroEvt;
 	char buf[128];
-	float delta, t0, tmax;
+	float delta, t0;
+	int parse;
 
-	step = 1000 * 1000;
-	switch (argc) {
-		case 3:
-			step = atoi(argv[2]) * 1000;
-		case 2:
-			if (strcmp("-h", argv[1]) == 0) {
-				altlog_help(argv[0]);
-				return EXIT_SUCCESS;
-			}
-			tmax = (float)atoi(argv[1]);
-			break;
-		default:
-			altlog_help(argv[0]);
-			return EXIT_FAILURE;
+	parse = altlog_parseArgs(argc, argv);
+	if (parse != 0) {
+		return (parse > 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 	}
-	fprintf(stdout, "Logging for %.1f seconds with %llims step\n", tmax, step / 1000);
+
+	fprintf(stdout, "Logging for %.1f seconds with %llims step\n", altlog_common.tmax, altlog_common.step / 1000);
 
 	if (sensc_init("/dev/sensors", true) < 0) {
 		fprintf(stderr, "Cannot initialize sensor client\n");
@@ -90,6 +131,7 @@ int main(int argc, char **argv)
 	ekf_run();
 
 	t0 = altlog_timeSec();
+	/* Main logging loop */
 	do {
 		ekf_stateGet(&uavState);
 		sensc_baroGet(&baroEvt);
@@ -100,8 +142,8 @@ int main(int argc, char **argv)
 		fprintf(file, "%s", buf);
 		fprintf(stdout, "%s", buf);
 
-		usleep(step);
-	} while (delta < tmax);
+		usleep(altlog_common.step);
+	} while (delta < altlog_common.tmax);
 
 	fclose(file);
 	ekf_done();
