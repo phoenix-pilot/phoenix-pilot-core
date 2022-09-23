@@ -23,22 +23,23 @@
 #include <ekflib.h>
 #include <sensc.h>
 
+/* TODO: this tool should be placed outside ekf directory */
 
-static void altlog_help(void)
+static void altlog_help(const char *progname)
 {
-	printf("Usage: altlog dur [tstep]\n");
+	printf("Usage: %s dur [tstep]\n", progname);
 	printf("  dur - logging time in full seconds\n");
 	printf("  tstep - interval between samples in milliseconds, 1000 default\n");
 }
 
 
-static float altlog_timeSec(void)
+static inline float altlog_timeSec(void)
 {
 	time_t now;
 
 	gettime(&now, NULL);
 
-	return (float)now / 1000000;
+	return (float)now / 1000000.0;
 }
 
 
@@ -46,7 +47,7 @@ int main(int argc, char **argv)
 {
 	ekf_state_t uavState = { 0 };
 	FILE *file;
-	time_t now, step;
+	time_t step;
 	sensor_event_t baroEvt;
 	char buf[128];
 	float delta, t0, tmax;
@@ -57,15 +58,14 @@ int main(int argc, char **argv)
 			step = atoi(argv[2]) * 1000;
 		case 2:
 			if (strcmp("-h", argv[1]) == 0) {
-				altlog_help();
+				altlog_help(argv[0]);
 				return EXIT_SUCCESS;
 			}
 			tmax = (float)atoi(argv[1]);
 			break;
 		default:
-			altlog_help();
+			altlog_help(argv[0]);
 			return EXIT_FAILURE;
-			break;
 	}
 	fprintf(stdout, "Logging for %.1f seconds with %llims step\n", tmax, step / 1000);
 
@@ -83,6 +83,8 @@ int main(int argc, char **argv)
 
 	if (ekf_init() != 0) {
 		fprintf(stderr, "Cannot initialize ekf!\n");
+		sensc_deinit();
+		fclose(file);
 		return EXIT_FAILURE;
 	}
 	ekf_run();
@@ -92,7 +94,6 @@ int main(int argc, char **argv)
 		ekf_stateGet(&uavState);
 		sensc_baroGet(&baroEvt);
 
-		gettime(&now, NULL);
 		delta = altlog_timeSec() - t0;
 
 		sprintf(buf, "%.3f %f %i\n", delta, uavState.enuZ, baroEvt.baro.pressure);
