@@ -250,6 +250,84 @@ static int calib_magironRead(FILE *file, calib_data_t *cal)
 }
 
 
+static void calib_motlinDefaults(calib_data_t *cal)
+{
+	cal->params.motlin.motorEq[0][0] = 0.968600;
+	cal->params.motlin.motorEq[0][1] = 0.034796;
+
+	cal->params.motlin.motorEq[1][0] = 1.031400;
+	cal->params.motlin.motorEq[1][1] = 0.085204;
+
+	cal->params.motlin.motorEq[2][0] = 1.003427;
+	cal->params.motlin.motorEq[2][1] = 0.142546;
+
+	cal->params.motlin.motorEq[3][0] = 0.996573;
+	cal->params.motlin.motorEq[3][1] = 0.137454;
+}
+
+
+static int calib_motlinEnter(const char *paramName, calib_data_t *cal, float val)
+{
+	int motor, param;
+
+	if (strlen(paramName) != 4) {
+		return -1;
+	}
+
+	motor = (int8_t)(paramName[2] - '0'); /* convert character to unsigned int digit */
+	param = (int8_t)(paramName[3] - 'a'); /* convert character to unsigned int digit, expected range [a, b] -> [0, 1] */
+
+
+	if (motor >= NUM_OF_MOTORS || motor < 0) {
+		return -1;
+	}
+	if (param < 0 || param > 1) {
+		return -1;
+	}
+
+	cal->params.motlin.motorEq[motor][param] = val;
+
+	return 0;
+}
+
+
+static int calib_motlinRead(FILE *file, calib_data_t *cal)
+{
+	char *line, *name;
+	size_t lineSz;
+	float val = 0;
+	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
+
+	calib_motlinDefaults(cal);
+
+	if (file == NULL) {
+		fprintf(stderr, "No calibration file. '%s' going default.\n", MOTLIN_TAG);
+		return 0;
+	}
+
+	/* Scroll to 'motorlin' tag */
+	if (calib_file2tag(file, MOTLIN_TAG) != 0) {
+		return -1;
+	}
+
+	line = NULL;
+	while (calib_getline(&line, &lineSz, file, &name, &val) == 0) {
+		if (calib_motlinEnter(name, cal, val) != 0) {
+			break;
+		}
+		params++;
+	}
+	free(line);
+
+	if (params != MOTLIN_PARAMS) {
+		calib_magmotDefaults(cal);
+		fprintf(stderr, "Failed to read `%s` calibration. Going default.\n", MOTLIN_TAG);
+	}
+
+	return 0;
+}
+
+
 void calib_free(calib_data_t *cal)
 {
 	switch (cal->type) {
@@ -259,6 +337,7 @@ void calib_free(calib_data_t *cal)
 			break;
 
 		case typeMagmot:
+		case typeMotlin:
 		default:
 			return;
 	}
@@ -285,9 +364,14 @@ int calib_readFile(const char *path, calibType_t type, calib_data_t *cal)
 			ret = calib_magironRead(file, cal);
 			break;
 
+		case typeMotlin:
+			ret = calib_motlinRead(file, cal);
+			break;
+
 		default:
 			fprintf(stderr, "calib: unknown calibration type\n");
 			ret = -1;
+			break;
 	}
 
 	if (file != NULL) {

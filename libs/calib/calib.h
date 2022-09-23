@@ -32,7 +32,11 @@
 #define HARDCAL_ROWSPAN 3
 #define HARDCAL_COLSPAN 1
 
-typedef enum { typeMagmot = 0, typeMagiron } calibType_t;
+#define MOTLIN_TAG    "motlin"
+#define MOTLIN_PARAMS 8
+
+
+typedef enum { typeMagmot = 0, typeMagiron, typeMotlin } calibType_t;
 
 
 typedef struct {
@@ -46,6 +50,10 @@ typedef struct {
 		struct {
 			float motorEq[NUM_OF_MOTORS][3][3]; /* motorEq[motorId 0/1/2...NUM_OF_MOTORS][axisId x/y/z][equation_param a/b/c] */
 		} magmot;
+
+		struct {
+			float motorEq[NUM_OF_MOTORS][2]; /* motorEq[motorId 0/1/2...NUM_OF_MOTORS][equation_parameter a/b] */
+		} motlin;
 	} params;
 } calib_data_t;
 
