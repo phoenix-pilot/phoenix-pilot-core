@@ -41,7 +41,7 @@ kalman_init_t init_values = {
 	.P_qijkerr = 10 * DEG2RAD, /* 10 degrees */
 	.P_pxerr = 0.01,           /* 10 hPa */
 
-	.R_acov = 0.1,
+	.R_acov = 0.001,
 	.R_wcov = 0.01,
 	.R_mcov = 10,
 	.R_qcov = 0.1,
