@@ -26,6 +26,10 @@ int matrix_bufAlloc(matrix_t *matrix, unsigned int rows, unsigned int cols)
 {
 	float *data;
 
+	if (rows == 0 || cols == 0) {
+		return -1;
+	}
+
 	/* check for calloc 'nitems' overflow */
 	if (SIZE_MAX / rows < cols) {
 		return -1;
