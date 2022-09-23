@@ -28,6 +28,7 @@
 struct {
 	float tmax;
 	time_t step;
+	bool init;
 } altlog_common;
 
 
@@ -49,48 +50,48 @@ static inline float altlog_timeSec(void)
 }
 
 
-/*
-* Parsing arguments Returns:
-*  0: no error,
-*  1: no error but program should halt,
-* -1: error occurred.
-*/
+/* Parsing arguments Returns 0 on success, -1 when parsing failed */
 static int altlog_parseArgs(int argc, char **argv)
 {
-	int c, ret = 0;
+	int c;
+
+	altlog_common.step = 0;
+	altlog_common.tmax = 0;
+	altlog_common.init = false;
 
 	if (argc < 2) {
 		altlog_help(argv[0]);
 		return -1;
 	}
 
-	while ((c = getopt(argc, argv, "ht:s:")) != -1 && ret == 0) {
+	while ((c = getopt(argc, argv, "ht:s:")) != -1) {
 		switch (c) {
 			case 'h': /* help message */
 				altlog_help(argv[0]);
-				ret = 1;
-				break;
+				return 0;
 
 			case 't': /* time set */
 				altlog_common.tmax = atof(optarg);
-				ret = (altlog_common.tmax == 0) ? -1 : 0;
 				break;
 
 			case 's': /* samppling interval set */
 				altlog_common.step = atoi(optarg);
-				ret = (altlog_common.step == 0) ? -1 : 0;
 				break;
 
 			default: /* any other case is an error */
 				altlog_help(argv[0]);
-				ret = -1;
+				return -1;
 		}
 	}
 
-	/* make it microseconds for usleep */
-	altlog_common.step *= 1000;
+	if (altlog_common.step == 0 || altlog_common.tmax == 0) {
+		return -1;
+	}
 
-	return ret;
+	altlog_common.step *= 1000; /* make it microseconds for usleep */
+	altlog_common.init = true;
+
+	return 0;
 }
 
 
@@ -104,8 +105,9 @@ int main(int argc, char **argv)
 	int parse;
 
 	parse = altlog_parseArgs(argc, argv);
-	if (parse != 0) {
-		return (parse > 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+	if (!altlog_common.init) {
+		/* Check if parsing failed, or only help was printed */
+		return (parse == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 	}
 
 	fprintf(stdout, "Logging for %.1f seconds with %llims step\n", altlog_common.tmax, altlog_common.step / 1000);
