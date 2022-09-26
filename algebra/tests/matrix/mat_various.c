@@ -254,7 +254,7 @@ TEST_TEAR_DOWN(group_matrix_times)
 TEST(group_matrix_times, matrix_times_std)
 {
 	int i;
-	float scalar = -123.45;
+	float scalar = POS_SCALAR;
 
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsA, buffs_colsA, buffs_A, buffs_colsA * buffs_rowsA));
@@ -276,7 +276,7 @@ TEST(group_matrix_times, matrix_times_std)
 TEST(group_matrix_times, matrix_times_stdTrp)
 {
 	int i;
-	float scalar = -98.76;
+	float scalar = POS_SCALAR;
 
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsA, buffs_colsA, buffs_A, buffs_colsA * buffs_rowsA));
@@ -299,7 +299,7 @@ TEST(group_matrix_times, matrix_times_stdTrp)
 TEST(group_matrix_times, matrix_times_bigMat)
 {
 	int i;
-	float scalar = 123.45;
+	float scalar = NEG_SCALAR;
 
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
@@ -321,7 +321,7 @@ TEST(group_matrix_times, matrix_times_bigMat)
 TEST(group_matrix_times, matrix_times_bigMatTrp)
 {
 	int i;
-	float scalar = -98.76;
+	float scalar = NEG_SCALAR;
 
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
