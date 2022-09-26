@@ -15,46 +15,12 @@
 
 #include <vec.h>
 
+#include "../buffs.h"
+#include "../tools.h"
 
-#define TEST_ASSERT_EQUAL_VEC(expected, actual) \
-	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).x, (actual).x, "Different `x` part of vectors"); \
-	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).y, (actual).y, "Different `y` part of vectors"); \
-	TEST_ASSERT_EQUAL_FLOAT_MESSAGE((expected).z, (actual).z, "Different `z` part of vectors");
-
-#define TEST_ASSERT_PERPENDICULAR_VEC(delta, vector1, vector2) \
-	TEST_ASSERT_FLOAT_WITHIN_MESSAGE(delta, 0.0, vec_dot(&(vector1), &(vector2)), "Vectors are not perpendicular to each other");
-
-#define TEST_ASSERT_UNIT_VEC(vector) \
-	TEST_ASSERT_EQUAL_FLOAT_MESSAGE(1.0, vec_len(&(vector)), "Length of vector is not equal to 1")
 
 /* Allowed range around expected value used is some tests */
 #define DELTA 5e-6
-
-#define VEC_CMP_OK 0
-
-#define POS_SCALAR 2.5
-#define NEG_SCALAR -3.75
-
-
-/* Values used for vectors library tests */
-
-/* Zero vector */
-static const vec_t V0 = { .x = 0.0f, .y = 0.0f, .z = 0.0f };
-
-/* Small values */
-static const vec_t V1 = { .x = 1.0f, .y = 2.0f, .z = 3.0f };
-static const vec_t V2 = { .x = 4.0f, .y = 5.0f, .z = 6.0f };
-
-/* More complicated values. Length of this vectors must be bigger than 1 */
-static const vec_t V3 = { .x = -261.48f, .y = 731.11f, .z = -919.51f };
-static const vec_t V4 = { .x = 613.36f, .y = -708.58f, .z = -150.27f };
-
-/* This vectors are perpendicular to each other */
-static const vec_t V5 = { .x = 0.0f, .y = 1.0f, .z = 4.0f };
-static const vec_t V6 = { .x = 5.0f, .y = -8.0f, .z = 2.0f };
-
-/* Length of this vector must be smaller than 1 */
-static const vec_t V7 = { .x = 0.25f, .y = 0.5f, .z = 0.5f };
 
 
 /* ##############################################################################

@@ -15,8 +15,8 @@
 
 #include <matrix.h>
 
-#include "tools.h"
-#include "buffs.h"
+#include "../tools.h"
+#include "../buffs.h"
 
 
 /* Have to be bigger than 1 */
@@ -39,15 +39,15 @@ TEST_SETUP(group_matrix_add_stdMat)
 	int row, col;
 
 	/* M1 = A */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsA, buffs_colsA, buffs_A, buffs_colsA * buffs_rowsA));
 
 	/* M2 = B */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M2, buffs_rowsB, buffs_colsB, buffs_B, buffs_colsB * buffs_rowsB));
 
 	/* Expected = A + B */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&Expected, M1.rows, M1.cols));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&Expected, M1.rows, M1.cols));
 
 	/* Calculating expected result */
 	for (row = 0; row < matrix_rowsGet(&Expected); row++) {
@@ -57,7 +57,7 @@ TEST_SETUP(group_matrix_add_stdMat)
 	}
 
 	/* Allocating matrix for results */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
 }
 
 
@@ -72,7 +72,7 @@ TEST_TEAR_DOWN(group_matrix_add_stdMat)
 
 TEST(group_matrix_add_stdMat, matrix_add_std)
 {
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -81,12 +81,12 @@ TEST(group_matrix_add_stdMat, matrix_add_std)
 TEST(group_matrix_add_stdMat, matrix_add_firstMatTrp)
 {
 	/* Matrix is changed in such way that logically it is the same but .transposed is true */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -94,9 +94,9 @@ TEST(group_matrix_add_stdMat, matrix_add_firstMatTrp)
 
 TEST(group_matrix_add_stdMat, matrix_add_secondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -104,13 +104,13 @@ TEST(group_matrix_add_stdMat, matrix_add_secondMatTrp)
 
 TEST(group_matrix_add_stdMat, matrix_add_firstAndSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -118,9 +118,9 @@ TEST(group_matrix_add_stdMat, matrix_add_firstAndSecondMatTrp)
 
 TEST(group_matrix_add_stdMat, matrix_add_resultMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_realTrp(&M3));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -128,13 +128,13 @@ TEST(group_matrix_add_stdMat, matrix_add_resultMatTrp)
 
 TEST(group_matrix_add_stdMat, matrix_add_resultAndFirstMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -142,10 +142,10 @@ TEST(group_matrix_add_stdMat, matrix_add_resultAndFirstMatTrp)
 
 TEST(group_matrix_add_stdMat, matrix_add_resultAndSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -153,14 +153,14 @@ TEST(group_matrix_add_stdMat, matrix_add_resultAndSecondMatTrp)
 
 TEST(group_matrix_add_stdMat, matrix_add_allMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -168,7 +168,7 @@ TEST(group_matrix_add_stdMat, matrix_add_allMatTrp)
 
 TEST(group_matrix_add_stdMat, matrix_add_selfAddStd)
 {
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -177,12 +177,12 @@ TEST(group_matrix_add_stdMat, matrix_add_selfAddStd)
 TEST(group_matrix_add_stdMat, matrix_add_selfAddFirstMatTrp)
 {
 	/* Matrix is changed in such way that logically it is the same but .transposed is true */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -190,9 +190,9 @@ TEST(group_matrix_add_stdMat, matrix_add_selfAddFirstMatTrp)
 
 TEST(group_matrix_add_stdMat, matrix_add_selfAddSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -200,13 +200,13 @@ TEST(group_matrix_add_stdMat, matrix_add_selfAddSecondMatTrp)
 
 TEST(group_matrix_add_stdMat, matrix_add_selfAddAllMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -220,15 +220,15 @@ TEST_SETUP(group_matrix_add_bigMat)
 	int row, col;
 
 	/* M1 = E */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
 
 	/* M2 = I */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M2, buffs_rowsI, buffs_colsI, buffs_I, buffs_colsI * buffs_rowsI));
 
 	/* Expected = E + I */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&Expected, M1.rows, M1.cols));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&Expected, M1.rows, M1.cols));
 
 	/* Calculating expected result */
 	for (row = 0; row < matrix_rowsGet(&Expected); row++) {
@@ -238,7 +238,7 @@ TEST_SETUP(group_matrix_add_bigMat)
 	}
 
 	/* Allocating matrix for results */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
 
 	M4.data = NULL;
 	M5.data = NULL;
@@ -258,7 +258,7 @@ TEST_TEAR_DOWN(group_matrix_add_bigMat)
 
 TEST(group_matrix_add_bigMat, matrix_add_bigMatsStd)
 {
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -266,12 +266,12 @@ TEST(group_matrix_add_bigMat, matrix_add_bigMatsStd)
 
 TEST(group_matrix_add_bigMat, matrix_add_bigMatsFirstMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -279,9 +279,9 @@ TEST(group_matrix_add_bigMat, matrix_add_bigMatsFirstMatTrp)
 
 TEST(group_matrix_add_bigMat, matrix_add_bigMatsSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -289,13 +289,13 @@ TEST(group_matrix_add_bigMat, matrix_add_bigMatsSecondMatTrp)
 
 TEST(group_matrix_add_bigMat, matrix_add_bigMatsFirstAndSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -303,9 +303,9 @@ TEST(group_matrix_add_bigMat, matrix_add_bigMatsFirstAndSecondMatTrp)
 
 TEST(group_matrix_add_bigMat, matrix_add_bigMatsResultMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -313,13 +313,13 @@ TEST(group_matrix_add_bigMat, matrix_add_bigMatsResultMatTrp)
 
 TEST(group_matrix_add_bigMat, matrix_add_bigMatsResultAndFirstMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -327,10 +327,10 @@ TEST(group_matrix_add_bigMat, matrix_add_bigMatsResultAndFirstMatTrp)
 
 TEST(group_matrix_add_bigMat, matrix_add_bigMatsResultAndSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -338,14 +338,14 @@ TEST(group_matrix_add_bigMat, matrix_add_bigMatsResultAndSecondMatTrp)
 
 TEST(group_matrix_add_bigMat, matrix_add_bigMatsAllMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -354,10 +354,10 @@ TEST(group_matrix_add_bigMat, matrix_add_bigMatsAllMatTrp)
 /* This tests checks if function changes source matrices after success */
 TEST(group_matrix_add_bigMat, matrix_add_sourceRetain)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M5, &M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M5, &M2));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(M4, M1);
 	TEST_ASSERT_EQUAL_MATRIX(M5, M2);
@@ -366,7 +366,7 @@ TEST(group_matrix_add_bigMat, matrix_add_sourceRetain)
 
 TEST(group_matrix_add_bigMat, matrix_add_selfAddBigMatsStd)
 {
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -374,12 +374,12 @@ TEST(group_matrix_add_bigMat, matrix_add_selfAddBigMatsStd)
 
 TEST(group_matrix_add_bigMat, matrix_add_selfAddBigMatsFirstMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -387,9 +387,9 @@ TEST(group_matrix_add_bigMat, matrix_add_selfAddBigMatsFirstMatTrp)
 
 TEST(group_matrix_add_bigMat, matrix_add_selfAddBigMatsSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -397,13 +397,13 @@ TEST(group_matrix_add_bigMat, matrix_add_selfAddBigMatsSecondMatTrp)
 
 TEST(group_matrix_add_bigMat, matrix_add_selfAddBigMatsAllMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -412,9 +412,9 @@ TEST(group_matrix_add_bigMat, matrix_add_selfAddBigMatsAllMatTrp)
 /* This tests checks if function changes source matrices after success */
 TEST(group_matrix_add_bigMat, matrix_add_selfAddSourceRetain)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M2));
 
-	TEST_ASSERT_EQUAL_INT(ADD_OK, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_OK, matrix_add(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(M4, M2);
 }
@@ -426,9 +426,9 @@ TEST_GROUP(group_matrix_add_badMats);
 TEST_SETUP(group_matrix_add_badMats)
 {
 	/* These matrix sizes are correct, but will be changed in tests */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M1, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M2, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, M1.rows, M2.cols));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M2, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, M1.rows, M2.cols));
 	M4.data = NULL;
 }
 
@@ -448,23 +448,23 @@ TEST(group_matrix_add_badMats, matrix_add_badInputMats)
 	M2.cols--;
 
 	/* No matrix is transposed */
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, &M3));
 
 	/* First matrix is transposed */
 	matrix_trp(&M1);
 
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, &M3));
 
 	/* Second matrix is transposed */
 	matrix_trp(&M1);
 	matrix_trp(&M2);
 
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, &M3));
 
 	/* First and second transposed */
 	matrix_trp(&M1);
 
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, &M3));
 }
 
 
@@ -473,21 +473,21 @@ TEST(group_matrix_add_badMats, matrix_add_badResMat)
 	/* Incorrect rows number */
 	M3.rows--;
 
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, &M3));
 
 	matrix_trp(&M3);
 
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, &M3));
 
 	/* Incorrect cols number */
 	M3.rows++;
 	M3.cols--;
 
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, &M3));
 
 	matrix_trp(&M3);
 
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, &M3));
 }
 
 
@@ -497,9 +497,9 @@ TEST(group_matrix_add_badMats, matrix_add_failureRetain)
 	M2.rows--;
 	M2.cols--;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M3));
 
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(M4, M3);
 }
@@ -511,23 +511,23 @@ TEST(group_matrix_add_badMats, matrix_add_selfAddBadInputMats)
 	M2.cols--;
 
 	/* No matrix is transposed */
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, NULL));
 
 	/* First matrix is transposed */
 	matrix_trp(&M1);
 
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, NULL));
 
 	/* Second matrix is transposed */
 	matrix_trp(&M1);
 	matrix_trp(&M2);
 
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, NULL));
 
 	/* First and second transposed */
 	matrix_trp(&M1);
 
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, NULL));
 }
 
 
@@ -537,9 +537,9 @@ TEST(group_matrix_add_badMats, matrix_add_selfAddFailureRetain)
 	M2.rows--;
 	M2.cols--;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M1));
 
-	TEST_ASSERT_EQUAL_INT(ADD_FAIL, matrix_add(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_ADD_FAIL, matrix_add(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(M4, M1);
 }
@@ -598,15 +598,15 @@ TEST_SETUP(group_matrix_sub_stdMat)
 	int row, col;
 
 	/* M1 = A */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsA, buffs_colsA, buffs_A, buffs_colsA * buffs_rowsA));
 
 	/* M2 = B */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M2, buffs_rowsB, buffs_colsB, buffs_B, buffs_colsB * buffs_rowsB));
 
 	/* Expected = A - B */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&Expected, M1.rows, M1.cols));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&Expected, M1.rows, M1.cols));
 
 	/* Calculating expected result */
 	for (row = 0; row < matrix_rowsGet(&Expected); row++) {
@@ -616,7 +616,7 @@ TEST_SETUP(group_matrix_sub_stdMat)
 	}
 
 	/* Allocating matrix for results */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
 }
 
 
@@ -631,7 +631,7 @@ TEST_TEAR_DOWN(group_matrix_sub_stdMat)
 
 TEST(group_matrix_sub_stdMat, matrix_sub_std)
 {
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -640,12 +640,12 @@ TEST(group_matrix_sub_stdMat, matrix_sub_std)
 TEST(group_matrix_sub_stdMat, matrix_sub_firstMatTrp)
 {
 	/* Matrix is changed in such way that logically it is the same but .transposed is true */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -653,9 +653,9 @@ TEST(group_matrix_sub_stdMat, matrix_sub_firstMatTrp)
 
 TEST(group_matrix_sub_stdMat, matrix_sub_secondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -663,13 +663,13 @@ TEST(group_matrix_sub_stdMat, matrix_sub_secondMatTrp)
 
 TEST(group_matrix_sub_stdMat, matrix_sub_firstAndSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -677,9 +677,9 @@ TEST(group_matrix_sub_stdMat, matrix_sub_firstAndSecondMatTrp)
 
 TEST(group_matrix_sub_stdMat, matrix_sub_resultMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_realTrp(&M3));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -687,13 +687,13 @@ TEST(group_matrix_sub_stdMat, matrix_sub_resultMatTrp)
 
 TEST(group_matrix_sub_stdMat, matrix_sub_resultAndFirstMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -701,10 +701,10 @@ TEST(group_matrix_sub_stdMat, matrix_sub_resultAndFirstMatTrp)
 
 TEST(group_matrix_sub_stdMat, matrix_sub_resultAndSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -712,14 +712,14 @@ TEST(group_matrix_sub_stdMat, matrix_sub_resultAndSecondMatTrp)
 
 TEST(group_matrix_sub_stdMat, matrix_sub_allMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -727,7 +727,7 @@ TEST(group_matrix_sub_stdMat, matrix_sub_allMatTrp)
 
 TEST(group_matrix_sub_stdMat, matrix_sub_selfSubStd)
 {
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -736,12 +736,12 @@ TEST(group_matrix_sub_stdMat, matrix_sub_selfSubStd)
 TEST(group_matrix_sub_stdMat, matrix_sub_selfSubFirstMatTrp)
 {
 	/* Matrix is changed in such way that logically it is the same but .transposed is true */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -749,9 +749,9 @@ TEST(group_matrix_sub_stdMat, matrix_sub_selfSubFirstMatTrp)
 
 TEST(group_matrix_sub_stdMat, matrix_sub_selfSubSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -759,13 +759,13 @@ TEST(group_matrix_sub_stdMat, matrix_sub_selfSubSecondMatTrp)
 
 TEST(group_matrix_sub_stdMat, matrix_sub_selfSubAllMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -779,15 +779,15 @@ TEST_SETUP(group_matrix_sub_bigMat)
 	int row, col;
 
 	/* M1 = E */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
 
 	/* M2 = I */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M2, buffs_rowsI, buffs_colsI, buffs_I, buffs_colsI * buffs_rowsI));
 
 	/* Expected = E - I */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&Expected, M1.rows, M1.cols));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&Expected, M1.rows, M1.cols));
 
 	/* Calculating expected result */
 	for (row = 0; row < matrix_rowsGet(&Expected); row++) {
@@ -797,7 +797,7 @@ TEST_SETUP(group_matrix_sub_bigMat)
 	}
 
 	/* Allocating matrix for results */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
 
 	M4.data = NULL;
 	M5.data = NULL;
@@ -817,7 +817,7 @@ TEST_TEAR_DOWN(group_matrix_sub_bigMat)
 
 TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsStd)
 {
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -825,12 +825,12 @@ TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsStd)
 
 TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsFirstMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -838,9 +838,9 @@ TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsFirstMatTrp)
 
 TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -848,13 +848,13 @@ TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsSecondMatTrp)
 
 TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsFirstAndSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -862,9 +862,9 @@ TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsFirstAndSecondMatTrp)
 
 TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsResultMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -872,13 +872,13 @@ TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsResultMatTrp)
 
 TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsResultAndFirstMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -886,10 +886,10 @@ TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsResultAndFirstMatTrp)
 
 TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsResultAndSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -897,14 +897,14 @@ TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsResultAndSecondMatTrp)
 
 TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsAllMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M3));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M3);
 }
@@ -912,7 +912,7 @@ TEST(group_matrix_sub_bigMat, matrix_sub_bigMatsAllMatTrp)
 
 TEST(group_matrix_sub_bigMat, matrix_sub_selfSubBigMatsStd)
 {
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -920,12 +920,12 @@ TEST(group_matrix_sub_bigMat, matrix_sub_selfSubBigMatsStd)
 
 TEST(group_matrix_sub_bigMat, matrix_sub_selfSubBigMatsFirstMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -933,9 +933,9 @@ TEST(group_matrix_sub_bigMat, matrix_sub_selfSubBigMatsFirstMatTrp)
 
 TEST(group_matrix_sub_bigMat, matrix_sub_selfSubBigMatsSecondMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -943,13 +943,13 @@ TEST(group_matrix_sub_bigMat, matrix_sub_selfSubBigMatsSecondMatTrp)
 
 TEST(group_matrix_sub_bigMat, matrix_sub_selfSubBigAllMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&M2));
 
 	/* Result matrix have transposition flag equal to first matrix */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_transposeSwap(&Expected));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(Expected, M1);
 }
@@ -958,9 +958,9 @@ TEST(group_matrix_sub_bigMat, matrix_sub_selfSubBigAllMatTrp)
 /* This tests checks if function changes source matrices after success */
 TEST(group_matrix_sub_bigMat, matrix_sub_selfSubSourceRetain)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M2));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(M4, M2);
 }
@@ -969,10 +969,10 @@ TEST(group_matrix_sub_bigMat, matrix_sub_selfSubSourceRetain)
 /* This tests checks if function changes source matrices after success */
 TEST(group_matrix_sub_bigMat, matrix_sub_sourceRetain)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M5, &M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M5, &M2));
 
-	TEST_ASSERT_EQUAL_INT(SUB_OK, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_OK, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(M4, M1);
 	TEST_ASSERT_EQUAL_MATRIX(M5, M2);
@@ -985,9 +985,9 @@ TEST_GROUP(group_matrix_sub_badMats);
 TEST_SETUP(group_matrix_sub_badMats)
 {
 	/* These matrix sizes are correct, but will be changed in tests */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M1, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M2, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M3, M1.rows, M2.cols));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M2, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, M1.rows, M2.cols));
 	M4.data = NULL;
 }
 
@@ -1007,23 +1007,23 @@ TEST(group_matrix_sub_badMats, matrix_sub_badInputMats)
 	M2.cols--;
 
 	/* No matrix is transposed */
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, &M3));
 
 	/* First matrix is transposed */
 	matrix_trp(&M1);
 
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, &M3));
 
 	/* Second matrix is transposed */
 	matrix_trp(&M1);
 	matrix_trp(&M2);
 
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, &M3));
 
 	/* First and second transposed */
 	matrix_trp(&M1);
 
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, &M3));
 }
 
 
@@ -1032,21 +1032,21 @@ TEST(group_matrix_sub_badMats, matrix_sub_badResMat)
 	/* Incorrect rows number */
 	M3.rows--;
 
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, &M3));
 
 	matrix_trp(&M3);
 
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, &M3));
 
 	/* Incorrect cols number */
 	M3.rows++;
 	M3.cols--;
 
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, &M3));
 
 	matrix_trp(&M3);
 
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, &M3));
 }
 
 
@@ -1056,9 +1056,9 @@ TEST(group_matrix_sub_badMats, matrix_sub_failureRetain)
 	M2.rows--;
 	M2.cols--;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M3));
 
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, &M3));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, &M3));
 
 	TEST_ASSERT_EQUAL_MATRIX(M4, M3);
 }
@@ -1070,23 +1070,23 @@ TEST(group_matrix_add_badMats, matrix_add_selfSubBadInputMats)
 	M2.cols--;
 
 	/* No matrix is transposed */
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, NULL));
 
 	/* First matrix is transposed */
 	matrix_trp(&M1);
 
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, NULL));
 
 	/* Second matrix is transposed */
 	matrix_trp(&M1);
 	matrix_trp(&M2);
 
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, NULL));
 
 	/* First and second transposed */
 	matrix_trp(&M1);
 
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, NULL));
 }
 
 
@@ -1096,9 +1096,9 @@ TEST(group_matrix_add_badMats, matrix_add_selfSubFailureRetain)
 	M2.rows--;
 	M2.cols--;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M4, &M1));
 
-	TEST_ASSERT_EQUAL_INT(SUB_FAIL, matrix_sub(&M1, &M2, NULL));
+	TEST_ASSERT_EQUAL_INT(MAT_SUB_FAIL, matrix_sub(&M1, &M2, NULL));
 
 	TEST_ASSERT_EQUAL_MATRIX(M4, M1);
 }

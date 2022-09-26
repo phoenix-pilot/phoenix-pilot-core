@@ -15,8 +15,8 @@
 
 #include <matrix.h>
 
-#include "tools.h"
-#include "buffs.h"
+#include "../tools.h"
+#include "../buffs.h"
 
 
 static matrix_t M1, M2, M3;
@@ -46,11 +46,11 @@ TEST_TEAR_DOWN(group_algebraTests_realTrp)
 
 TEST(group_algebraTests_realTrp, algebraTests_realTrp_squareMat)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsA, buffs_colsA, buffs_A, buffs_colsA * buffs_rowsA));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_realTrp(&M1));
 
 	TEST_ASSERT_EQUAL_UINT(M2.transposed, M1.transposed);
 
@@ -60,14 +60,14 @@ TEST(group_algebraTests_realTrp, algebraTests_realTrp_squareMat)
 
 TEST(group_algebraTests_realTrp, algebraTests_realTrp_squareMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsA, buffs_colsA, buffs_A, buffs_colsA * buffs_rowsA));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
 	matrix_trp(&M1);
 	matrix_trp(&M2);
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_realTrp(&M1));
 
 	TEST_ASSERT_EQUAL_UINT(M2.transposed, M1.transposed);
 	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_dataTrpCheck(&M1, &M2));
@@ -76,11 +76,11 @@ TEST(group_algebraTests_realTrp, algebraTests_realTrp_squareMatTrp)
 
 TEST(group_algebraTests_realTrp, algebraTests_realTrp_notSquareMat)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsF, buffs_colsF, buffs_F, buffs_colsF * buffs_rowsF));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_realTrp(&M1));
 
 	TEST_ASSERT_EQUAL_UINT(M2.transposed, M1.transposed);
 	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_dataTrpCheck(&M1, &M2));
@@ -89,14 +89,14 @@ TEST(group_algebraTests_realTrp, algebraTests_realTrp_notSquareMat)
 
 TEST(group_algebraTests_realTrp, algebraTests_realTrp_notSquareMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsF, buffs_colsF, buffs_F, buffs_colsF * buffs_rowsF));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
 	matrix_trp(&M1);
 	matrix_trp(&M2);
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_realTrp(&M1));
 
 	TEST_ASSERT_EQUAL_UINT(M2.transposed, M1.transposed);
 	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_dataTrpCheck(&M1, &M2));
@@ -105,15 +105,15 @@ TEST(group_algebraTests_realTrp, algebraTests_realTrp_notSquareMatTrp)
 
 TEST(group_algebraTests_realTrp, algebraTests_realTrp_trpTwoTimes)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsF, buffs_colsF, buffs_F, buffs_colsF * buffs_rowsF));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
 	matrix_trp(&M1);
 	matrix_trp(&M2);
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_realTrp(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_realTrp(&M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_realTrp(&M1));
 
 	TEST_ASSERT_EQUAL_MATRIX(M1, M2);
 }
@@ -159,9 +159,9 @@ TEST_SETUP(group_algebraTests_submatCheck)
 		7.0, 8.0, 9.0
 	};
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_createAndFill(&M1, rowsM1, colsM1, dataM1, rowsM1 * colsM1));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_createAndFill(&M2, rowsM2, colsM2, dataM2, rowsM2 * colsM2));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_createAndFill(&M3, rowsM3, colsM3, dataM3, rowsM3 * colsM3));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_createAndFill(&M1, rowsM1, colsM1, dataM1, rowsM1 * colsM1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_createAndFill(&M2, rowsM2, colsM2, dataM2, rowsM2 * colsM2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_createAndFill(&M3, rowsM3, colsM3, dataM3, rowsM3 * colsM3));
 }
 
 
