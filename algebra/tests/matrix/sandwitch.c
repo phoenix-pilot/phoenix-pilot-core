@@ -310,6 +310,7 @@ TEST_TEAR_DOWN(group_matrix_sandwitch_badMats)
 	matrix_bufFree(&M3);
 	matrix_bufFree(&M4);
 	matrix_bufFree(&M5);
+	matrix_bufFree(&tmp);
 }
 
 
@@ -714,6 +715,7 @@ TEST_TEAR_DOWN(group_matrix_sparseSandwitch_badMats)
 	matrix_bufFree(&M3);
 	matrix_bufFree(&M4);
 	matrix_bufFree(&M5);
+	matrix_bufFree(&tmp);
 }
 
 
