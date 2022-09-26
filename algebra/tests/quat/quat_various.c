@@ -21,9 +21,6 @@
 #include "../tools.h"
 
 
-#define DELTA 1e-7
-
-
 /* ##############################################################################
  * ------------------------        quat_cmp tests       -------------------------
  * ############################################################################## */
@@ -101,11 +98,10 @@ TEST(group_quat_idenWrite, quat_idenWrite_std)
 {
 	/* Initialising quaternion with non zero and non one values */
 	quat_t A = Q1;
-	quat_t expected = { .a = 1.0f, .i = 0.0f, .j = 0.0f, .k = 0.0f };
 
 	quat_idenWrite(&A);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, A);
+	TEST_ASSERT_EQUAL_QUAT(QA, A);
 }
 
 
@@ -137,11 +133,10 @@ TEST(group_quat_piWrite, quat_piWrite_std)
 {
 	/* Initialising quaternion with non zero and non one values */
 	quat_t A = Q1;
-	quat_t expected = { .a = 0.0f, .i = 1.0f, .j = 0.0f, .k = 0.0f };
 
 	quat_piWrite(&A);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, A);
+	TEST_ASSERT_EQUAL_QUAT(QI, A);
 }
 
 
@@ -371,75 +366,74 @@ TEST_TEAR_DOWN(group_quat_mlt)
 
 TEST(group_quat_mlt, quat_mlt_quatMltTable)
 {
-	quat_t qA, qI, qJ, qK, nqA, nqI, nqJ, nqK;
-	quat_t Res, qZero = { 0 };
+	quat_t nqA, nqI, nqJ, nqK;
+	quat_t Res;
 
-	qA = qI = qJ = qK = nqA = nqI = nqJ = nqK = qZero; /* zero all quaternions */
-	qA.a = qI.i = qJ.j = qK.k = 1.0f;                  /* set all positive unitary quaternions */
-	nqA.a = nqI.i = nqJ.j = nqK.k = -1.0f;             /* set all negative unitary quaternions */
+	nqA = nqI = nqJ = nqK = Q0;            /* zero all quaternions */
+	nqA.a = nqI.i = nqJ.j = nqK.k = -1.0f; /* set all negative unitary quaternions */
 
 	/* Checking if 1 * 1 is equal to 1 */
-	quat_mlt(&qA, &qA, &Res);
-	TEST_ASSERT_EQUAL_QUAT(qA, Res);
+	quat_mlt(&QA, &QA, &Res);
+	TEST_ASSERT_EQUAL_QUAT(QA, Res);
 
 	/* Checking if 1 * i is equal to i */
-	quat_mlt(&qA, &qI, &Res);
-	TEST_ASSERT_EQUAL_QUAT(qI, Res);
+	quat_mlt(&QA, &QI, &Res);
+	TEST_ASSERT_EQUAL_QUAT(QI, Res);
 
 	/* Checking if 1 * j is equal to j */
-	quat_mlt(&qA, &qJ, &Res);
-	TEST_ASSERT_EQUAL_QUAT(qJ, Res);
+	quat_mlt(&QA, &QJ, &Res);
+	TEST_ASSERT_EQUAL_QUAT(QJ, Res);
 
 	/* Checking if 1 * k is equal to k */
-	quat_mlt(&qA, &qK, &Res);
-	TEST_ASSERT_EQUAL_QUAT(qK, Res);
+	quat_mlt(&QA, &QK, &Res);
+	TEST_ASSERT_EQUAL_QUAT(QK, Res);
 
 	/* Checking if i * 1 is equal to i */
-	quat_mlt(&qI, &qA, &Res);
-	TEST_ASSERT_EQUAL_QUAT(qI, Res);
+	quat_mlt(&QI, &QA, &Res);
+	TEST_ASSERT_EQUAL_QUAT(QI, Res);
 
 	/* Checking if i * i is equal to -1 */
-	quat_mlt(&qI, &qI, &Res);
+	quat_mlt(&QI, &QI, &Res);
 	TEST_ASSERT_EQUAL_QUAT(nqA, Res);
 
 	/* Checking if i * j is equal to k */
-	quat_mlt(&qI, &qJ, &Res);
-	TEST_ASSERT_EQUAL_QUAT(qK, Res);
+	quat_mlt(&QI, &QJ, &Res);
+	TEST_ASSERT_EQUAL_QUAT(QK, Res);
 
 	/* Checking if i * k is equal to -j */
-	quat_mlt(&qI, &qK, &Res);
+	quat_mlt(&QI, &QK, &Res);
 	TEST_ASSERT_EQUAL_QUAT(nqJ, Res);
 
 	/* Checking if j * 1 is equal to j */
-	quat_mlt(&qJ, &qA, &Res);
-	TEST_ASSERT_EQUAL_QUAT(qJ, Res);
+	quat_mlt(&QJ, &QA, &Res);
+	TEST_ASSERT_EQUAL_QUAT(QJ, Res);
 
 	/* Checking if j * i is equal to -k */
-	quat_mlt(&qJ, &qI, &Res);
+	quat_mlt(&QJ, &QI, &Res);
 	TEST_ASSERT_EQUAL_QUAT(nqK, Res);
 
 	/* Checking if j * j is equal to -1 */
-	quat_mlt(&qJ, &qJ, &Res);
+	quat_mlt(&QJ, &QJ, &Res);
 	TEST_ASSERT_EQUAL_QUAT(nqA, Res);
 
 	/* Checking if j * k is equal to i */
-	quat_mlt(&qJ, &qK, &Res);
-	TEST_ASSERT_EQUAL_QUAT(qI, Res);
+	quat_mlt(&QJ, &QK, &Res);
+	TEST_ASSERT_EQUAL_QUAT(QI, Res);
 
 	/* Checking if k * 1 is equal to k */
-	quat_mlt(&qK, &qA, &Res);
-	TEST_ASSERT_EQUAL_QUAT(qK, Res);
+	quat_mlt(&QK, &QA, &Res);
+	TEST_ASSERT_EQUAL_QUAT(QK, Res);
 
 	/* Checking if k * i is equal to j */
-	quat_mlt(&qK, &qI, &Res);
-	TEST_ASSERT_EQUAL_QUAT(qJ, Res);
+	quat_mlt(&QK, &QI, &Res);
+	TEST_ASSERT_EQUAL_QUAT(QJ, Res);
 
 	/* Checking if k * j is equal to -i */
-	quat_mlt(&qK, &qJ, &Res);
+	quat_mlt(&QK, &QJ, &Res);
 	TEST_ASSERT_EQUAL_QUAT(nqI, Res);
 
 	/* Checking if k * k is equal to -1 */
-	quat_mlt(&qK, &qK, &Res);
+	quat_mlt(&QK, &QK, &Res);
 	TEST_ASSERT_EQUAL_QUAT(nqA, Res);
 }
 
@@ -806,543 +800,4 @@ TEST_GROUP_RUNNER(group_quat_normalize)
 	RUN_TEST_CASE(group_quat_normalize, quat_normalize_std);
 	RUN_TEST_CASE(group_quat_normalize, quat_normalize_biggerValues);
 	RUN_TEST_CASE(group_quat_normalize, quat_normalize_zeroQuat);
-}
-
-
-/* ##############################################################################
- * --------------------        quat_quat2euler tests       ----------------------
- * ############################################################################## */
-
-
-TEST_GROUP(group_quat_quat2euler);
-
-
-TEST_SETUP(group_quat_quat2euler)
-{
-}
-
-
-TEST_TEAR_DOWN(group_quat_quat2euler)
-{
-}
-
-
-TEST(group_quat_quat2euler, quat_quat2euler_baseQuaternions)
-{
-	quat_t qA = { .a = 1.0, .i = 0.0, .j = 0.0, .k = 0.0 };
-	quat_t qI = { .a = 0.0, .i = 1.0, .j = 0.0, .k = 0.0 };
-	quat_t qJ = { .a = 0.0, .i = 0.0, .j = 1.0, .k = 0.0 };
-	quat_t qK = { .a = 0.0, .i = 0.0, .j = 0.0, .k = 1.0 };
-
-	float roll, pitch, yaw;
-
-	/* quat(1,0,0,0) should give (yaw=0, roll=0, pitch=0) */
-	quat_quat2euler(&qA, &roll, &pitch, &yaw);
-
-	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, roll);
-	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, pitch);
-	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, yaw);
-
-	/* quat(0,1,0,0) should give (yaw=0, roll=PI, pitch=0) */
-	quat_quat2euler(&qI, &roll, &pitch, &yaw);
-
-	TEST_ASSERT_FLOAT_WITHIN(DELTA, M_PI, roll);
-	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, pitch);
-	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, yaw);
-
-	/* quat(0,0,1,0) should give (yaw=PI, roll=0, pitch=PI) */
-	quat_quat2euler(&qJ, &roll, &pitch, &yaw);
-
-	TEST_ASSERT_FLOAT_WITHIN(DELTA, M_PI, roll);
-	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, pitch);
-	TEST_ASSERT_FLOAT_WITHIN(DELTA, M_PI, yaw);
-
-	/* quat(0,0,0,1) should give (yaw=PI, roll=0, pitch=0) */
-	quat_quat2euler(&qK, &roll, &pitch, &yaw);
-
-	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, roll);
-	TEST_ASSERT_FLOAT_WITHIN(DELTA, 0.0, pitch);
-	TEST_ASSERT_FLOAT_WITHIN(DELTA, M_PI, yaw);
-}
-
-
-TEST(group_quat_quat2euler, quat_quat2euler_notUnitQuat)
-{
-	float roll, pitch, yaw;
-	quat_t a = Q3;
-
-	quat_quat2euler(&a, &roll, &pitch, &yaw);
-
-	TEST_ASSERT_EQUAL_FLOAT(Q3roll, roll);
-	TEST_ASSERT_EQUAL_FLOAT(Q3pitch, pitch);
-	TEST_ASSERT_EQUAL_FLOAT(Q3yaw, yaw);
-}
-
-
-TEST(group_quat_quat2euler, quat_quat2euler_notUnitBiggerValues)
-{
-	float roll, pitch, yaw;
-	quat_t a = Q5;
-
-	quat_quat2euler(&a, &roll, &pitch, &yaw);
-
-	TEST_ASSERT_EQUAL_FLOAT(Q5roll, roll);
-	TEST_ASSERT_EQUAL_FLOAT(Q5pitch, pitch);
-	TEST_ASSERT_EQUAL_FLOAT(Q5yaw, yaw);
-}
-
-
-TEST(group_quat_quat2euler, quat_quat2euler_sourceRetain)
-{
-	float roll, pitch, yaw;
-	quat_t a = Q5;
-
-	quat_quat2euler(&a, &roll, &pitch, &yaw);
-
-	TEST_ASSERT_EQUAL_QUAT(Q5, a);
-}
-
-
-TEST_GROUP_RUNNER(group_quat_quat2euler)
-{
-	RUN_TEST_CASE(group_quat_quat2euler, quat_quat2euler_baseQuaternions);
-	RUN_TEST_CASE(group_quat_quat2euler, quat_quat2euler_notUnitQuat);
-	RUN_TEST_CASE(group_quat_quat2euler, quat_quat2euler_notUnitBiggerValues);
-	RUN_TEST_CASE(group_quat_quat2euler, quat_quat2euler_sourceRetain);
-}
-
-
-/* ##############################################################################
- * -----------------------        quat_vecRot tests       -----------------------
- * ############################################################################## */
-
-
-TEST_GROUP(group_quat_vecRot);
-
-
-TEST_SETUP(group_quat_vecRot)
-{
-}
-
-
-TEST_TEAR_DOWN(group_quat_vecRot)
-{
-}
-
-
-TEST(group_quat_vecRot, quat_vecRot_baseQuaternions)
-{
-	quat_t qA, qI, qJ, qK, qZero = { 0 };
-	vec_t v1 = { .x = 1.0f, .y = 0.0f, .z = 0.0f };
-	vec_t v2 = { .x = -1.0f, .y = 0.0f, .z = 0.0f };
-	vec_t v, expected;
-
-	qA = qI = qJ = qK = qZero;
-	qA.a = qI.i = qJ.j = qK.k = 1.0f;
-
-	/* Rotation using qA quaternion. Nothing should change */
-	v = v1;
-	expected = v1;
-
-	quat_vecRot(&v, &qA);
-
-	TEST_ASSERT_EQUAL_VEC(expected, v);
-
-	/* Rotation using qI quaternion should be equal to rotation about 180 degrees along x-axis. Nothing should change */
-	v = v1;
-	expected = v1;
-
-	quat_vecRot(&v, &qI);
-
-	TEST_ASSERT_EQUAL_VEC(expected, v);
-
-	/* Rotation using qJ quaternion should be equal to rotation about 180 degrees along y-axis. */
-	v = v1;
-	expected = v2;
-
-	quat_vecRot(&v, &qJ);
-
-	TEST_ASSERT_EQUAL_VEC(expected, v);
-
-	/* Rotation using qK quaternion should be equal to rotation about 180 degrees along z-axis. */
-	v = v1;
-	expected = v2;
-
-	quat_vecRot(&v, &qK);
-
-	TEST_ASSERT_EQUAL_VEC(expected, v);
-}
-
-
-TEST(group_quat_vecRot, quat_vecRot_std)
-{
-	vec_t v = V8;
-
-	quat_vecRot(&v, &Q8);
-
-	TEST_ASSERT_EQUAL_VEC(V8rotQ8, v);
-}
-
-
-TEST(group_quat_vecRot, quat_vecRot_biggerValues)
-{
-	vec_t v = V9;
-
-	quat_vecRot(&v, &Q8);
-
-	TEST_ASSERT_EQUAL_VEC(V9rotQ8, v);
-}
-
-
-TEST(group_quat_vecRot, quat_vecRot_zeroVector)
-{
-	vec_t v1, zeroVec = { .x = 0.0f, .y = 0.0f, .z = 0.0f };
-
-	v1 = zeroVec;
-
-	quat_vecRot(&v1, &Q8);
-
-	TEST_ASSERT_EQUAL_VEC(zeroVec, v1);
-}
-
-
-TEST_GROUP_RUNNER(group_quat_vecRot)
-{
-	RUN_TEST_CASE(group_quat_vecRot, quat_vecRot_baseQuaternions);
-	RUN_TEST_CASE(group_quat_vecRot, quat_vecRot_std);
-	RUN_TEST_CASE(group_quat_vecRot, quat_vecRot_biggerValues);
-	RUN_TEST_CASE(group_quat_vecRot, quat_vecRot_zeroVector);
-}
-
-
-/* ##############################################################################
- * ------------------        quat_rotQuat tests       --------------------
- * ############################################################################## */
-
-
-TEST_GROUP(group_quat_rotQuat);
-
-
-TEST_SETUP(group_quat_rotQuat)
-{
-}
-
-
-TEST_TEAR_DOWN(group_quat_rotQuat)
-{
-}
-
-
-TEST(group_quat_rotQuat, quat_rotQuat_baseQuaternions)
-{
-	quat_t q, qA, qI, qJ, qK, qZero = { 0 };
-	const vec_t versX = { .x = 1.0f, .y = 0.0f, .z = 0.0f };
-	const vec_t versY = { .x = 0.0f, .y = 1.0f, .z = 0.0f };
-	const vec_t versZ = { .x = 0.0f, .y = 0.0f, .z = 1.0f };
-
-	qA = qI = qJ = qK = qZero;
-	qA.a = qI.i = qJ.j = qK.k = 1.0f;
-
-	/* Rotation about 0 angle - quaternion qA */
-	quat_rotQuat(&versX, 0.0, &q);
-	TEST_ASSERT_QUAT_WITHIN(DELTA, qA, q);
-
-	/* Rotation about 180 degrees along x-axis - quaternion qI */
-	quat_rotQuat(&versX, M_PI, &q);
-	TEST_ASSERT_QUAT_WITHIN(DELTA, qI, q);
-
-	/* Rotation about 180 degrees along y-axis - quaternion qJ */
-	quat_rotQuat(&versY, M_PI, &q);
-	TEST_ASSERT_QUAT_WITHIN(DELTA, qJ, q);
-
-	/* Rotation about 180 degrees along z-axis - quaternion qK */
-	quat_rotQuat(&versZ, M_PI, &q);
-	TEST_ASSERT_QUAT_WITHIN(DELTA, qK, q);
-}
-
-
-TEST(group_quat_rotQuat, quat_rotQuat_std)
-{
-	quat_t q, expected = Q9;
-
-	quat_rotQuat(&V10, Angle, &q);
-
-	TEST_ASSERT_EQUAL_QUAT(expected, q);
-}
-
-
-TEST(group_quat_rotQuat, quat_rotQuat_zeroVector)
-{
-	vec_t zeroVec = { .x = 0.0f, .y = 0.0f, .z = 0.0f };
-	quat_t q, expected;
-
-	quat_idenWrite(&expected);
-
-	quat_rotQuat(&zeroVec, Angle, &q);
-
-	TEST_ASSERT_EQUAL_QUAT(expected, q);
-}
-
-
-TEST_GROUP_RUNNER(group_quat_rotQuat)
-{
-	RUN_TEST_CASE(group_quat_rotQuat, quat_rotQuat_baseQuaternions);
-	RUN_TEST_CASE(group_quat_rotQuat, quat_rotQuat_std);
-	RUN_TEST_CASE(group_quat_rotQuat, quat_rotQuat_zeroVector);
-}
-
-
-/* ##############################################################################
- * ---------------------        quat_uvec2uvec tests       ----------------------
- * ############################################################################## */
-
-
-TEST_GROUP(group_quat_uvec2uvec);
-
-
-TEST_SETUP(group_quat_uvec2uvec)
-{
-}
-
-
-TEST_TEAR_DOWN(group_quat_uvec2uvec)
-{
-}
-
-
-TEST(group_quat_uvec2uvec, quat_uvec2uvec_std)
-{
-	quat_t q;
-	vec_t v1 = V8;
-	vec_t v2 = V8rotQ8;
-
-	vec_normalize(&v1);
-	vec_normalize(&v2);
-
-	quat_uvec2uvec(&v1, &v2, &q);
-
-	/* We are not comparing `q` to `Q8`, because there is infinite number of correct quaternions, which rotates `v1` to `v2` */
-	quat_vecRot(&v1, &q);
-	TEST_ASSERT_EQUAL_VEC(v2, v1);
-}
-
-
-TEST(group_quat_uvec2uvec, quat_uvec2uvec_biggerValues)
-{
-	quat_t q;
-	vec_t v1 = V9;
-	vec_t v2 = V9rotQ8;
-
-	vec_normalize(&v1);
-	vec_normalize(&v2);
-
-	quat_uvec2uvec(&v1, &v2, &q);
-
-	quat_vecRot(&v1, &q);
-	TEST_ASSERT_EQUAL_VEC(v2, v1);
-}
-
-
-TEST(group_quat_uvec2uvec, quat_uvec2uvec_parallel)
-{
-	quat_t q, expected;
-	vec_t v1 = V9, v2;
-
-	quat_idenWrite(&expected);
-
-	/* Making `v1` and `v2` unitary and parallel */
-	vec_normalize(&v1);
-	v2 = v1;
-
-	quat_uvec2uvec(&v1, &v2, &q);
-
-	TEST_ASSERT_EQUAL_QUAT(expected, q);
-}
-
-
-TEST(group_quat_uvec2uvec, quat_uvec2uvec_antiparallel)
-{
-	quat_t q;
-	vec_t v1 = V9, v2;
-
-	/* Making `v1` and `v2` unitary and antiparallel */
-	vec_normalize(&v1);
-	v2 = v1;
-	vec_times(&v2, -1);
-
-	quat_uvec2uvec(&v1, &v2, &q);
-
-	quat_vecRot(&v1, &q);
-	TEST_ASSERT_EQUAL_VEC(v2, v1);
-}
-
-
-TEST(group_quat_uvec2uvec, quat_uvec2uvec_nearlyAntiparallel)
-{
-	quat_t q;
-	vec_t v1 = V10, v2 = V11;
-
-	vec_normalize(&v1);
-	vec_normalize(&v2);
-
-	quat_uvec2uvec(&v1, &v2, &q);
-
-	/* `v1` and `v2` are nearly antiparallel, but not enough for `quat_uvec2uvec` to be perceived as antiparallel */
-	quat_vecRot(&v1, &q);
-	TEST_ASSERT_EQUAL_VEC(v2, v1);
-}
-
-
-TEST(group_quat_uvec2uvec, quat_uvec2uvec_nearlyParallel)
-{
-	quat_t q;
-	vec_t v1 = V10, v2 = V12;
-
-	vec_normalize(&v1);
-	vec_normalize(&v2);
-
-	quat_uvec2uvec(&v1, &v2, &q);
-
-	/* `v1` and `v2` are nearly antiparallel, but not enough for `quat_uvec2uvec` to be perceived as antiparallel */
-	quat_vecRot(&v1, &q);
-	TEST_ASSERT_EQUAL_VEC(v2, v1);
-}
-
-
-TEST_GROUP_RUNNER(group_quat_uvec2uvec)
-{
-	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_std);
-	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_biggerValues);
-	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_parallel);
-	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_antiparallel);
-	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_nearlyAntiparallel);
-	RUN_TEST_CASE(group_quat_uvec2uvec, quat_uvec2uvec_nearlyParallel);
-}
-
-
-/* ##############################################################################
- * ---------------------        quat_frameRot tests       -----------------------
- * ############################################################################## */
-
-
-TEST_GROUP(group_quat_frameRot);
-
-
-TEST_SETUP(group_quat_frameRot)
-{
-}
-
-
-TEST_TEAR_DOWN(group_quat_frameRot)
-{
-}
-
-
-TEST(group_quat_frameRot, quat_frameRot_baseRot)
-{
-	const vec_t versX = { .x = 1.0f, .y = 0.0f, .z = 0.0f };
-	const vec_t versY = { .x = 0.0f, .y = 1.0f, .z = 0.0f };
-	const vec_t versZ = { .x = 0.0f, .y = 0.0f, .z = 1.0f };
-	const vec_t negVersY = { .x = 0.0f, .y = -1.0f, .z = 0.0f };
-	quat_t q, expected, helpQ;
-
-	/* Rotating frame of reference 90 degrees along x-axis */
-	quat_rotQuat(&versX, M_PI_2, &expected);
-	quat_rotQuat(&versX, M_PI_4, &helpQ);
-
-	quat_frameRot(&versX, &versY, &versX, &versZ, &q, &helpQ);
-
-	TEST_ASSERT_EQUAL_QUAT(expected, q);
-
-	/* Rotating frame of reference 90 degrees along y-axis */
-	quat_rotQuat(&versY, M_PI_2, &expected);
-	quat_rotQuat(&versY, M_PI_4, &helpQ);
-
-	quat_frameRot(&versX, &versY, &versZ, &versY, &q, &helpQ);
-
-	TEST_ASSERT_EQUAL_QUAT(expected, q);
-
-	/* Rotating frame of reference 90 degrees along z-axis */
-	quat_rotQuat(&versZ, M_PI_2, &expected);
-	quat_rotQuat(&versZ, M_PI_4, &helpQ);
-
-	quat_frameRot(&versX, &versY, &negVersY, &versX, &q, &helpQ);
-
-	TEST_ASSERT_EQUAL_QUAT(expected, q);
-}
-
-
-TEST(group_quat_frameRot, quat_frameRot_std)
-{
-	quat_t q;
-	frameRotData_t rot = RotExample1;
-
-	quat_frameRot(&rot.v1, &rot.v2, &rot.w1, &rot.w2, &q, NULL);
-
-	/* There are two possible quaternions in this test we don't know which we get, so we cannot compare with expected answer */
-	quat_vecRot(&rot.v1, &q);
-	quat_vecRot(&rot.v2, &q);
-
-	TEST_ASSERT_EQUAL_VEC(rot.w1, rot.v1);
-	TEST_ASSERT_EQUAL_VEC(rot.w2, rot.v2);
-}
-
-
-/*
- * If you combine two rotations - one which rotates `v1` to `w1` and second which rotates `v2` to `w2`,
- * the second rotation have to be along axis parallel to `w1`.
- * In other case the second rotation can break the first one.
- * It can be tricky to calculate this axis when in the second rotation vectors are parallel, but points in opposite directions,
- * because you cannot use cross product to calculate it.
- */
-TEST(group_quat_frameRot, quat_frameRot_oneVecAntiparallel)
-{
-	quat_t q;
-	frameRotData_t rot = RotExample2;
-
-	quat_frameRot(&rot.v1, &rot.v2, &rot.w1, &rot.w2, &q, NULL);
-
-	quat_vecRot(&rot.v1, &q);
-	quat_vecRot(&rot.v2, &q);
-
-	TEST_ASSERT_EQUAL_VEC(rot.w1, rot.v1);
-	TEST_ASSERT_EQUAL_VEC(rot.w2, rot.v2);
-
-	rot.v1 = RotExample2.v1;
-	rot.v2 = RotExample2.v2;
-
-	quat_frameRot(&rot.v2, &rot.v1, &rot.w2, &rot.w1, &q, NULL);
-
-	/* There are two possible quaternions in this test we don't know which we get, so we cannot compare with expected answer */
-	quat_vecRot(&rot.v1, &q);
-	quat_vecRot(&rot.v2, &q);
-
-	TEST_ASSERT_EQUAL_VEC(rot.w1, rot.v1);
-	TEST_ASSERT_EQUAL_VEC(rot.w2, rot.v2);
-}
-
-
-/* There are always two quaternions which rotates one frame of reference to another. */
-/* We can choose which quaternion we want by passing with quaternion as `help_q` */
-TEST(group_quat_frameRot, quat_frameRot_choosingWantedQuat)
-{
-	quat_t q;
-	frameRotData_t rot = RotExample2;
-
-	/* We want first quaternion */
-	quat_frameRot(&rot.v1, &rot.v2, &rot.w1, &rot.w2, &q, &rot.q1Closer);
-	TEST_ASSERT_QUAT_WITHIN(DELTA, rot.q1, q);
-
-	/* We want second quaternion */
-	quat_frameRot(&rot.v1, &rot.v2, &rot.w1, &rot.w2, &q, &rot.q2Closer);
-	TEST_ASSERT_QUAT_WITHIN(DELTA, rot.q2, q);
-}
-
-
-TEST_GROUP_RUNNER(group_quat_frameRot)
-{
-	RUN_TEST_CASE(group_quat_frameRot, quat_frameRot_baseRot);
-	RUN_TEST_CASE(group_quat_frameRot, quat_frameRot_std);
-	RUN_TEST_CASE(group_quat_frameRot, quat_frameRot_oneVecAntiparallel);
-	RUN_TEST_CASE(group_quat_frameRot, quat_frameRot_choosingWantedQuat);
 }
