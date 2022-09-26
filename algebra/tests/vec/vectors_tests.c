@@ -602,7 +602,7 @@ TEST(group_vec_len, vec_len_biggerValues)
 
 TEST(group_vec_len, vec_len_zeroLen)
 {
-	vec_t A = { .x = 0.0f, .y = 0.0f, .z = 0.0f };
+	vec_t A = V0;
 	float expected = 0;
 
 	TEST_ASSERT_EQUAL_FLOAT(expected, vec_len(&A));
