@@ -13,6 +13,7 @@
 
 #include "pid.h"
 #include "control.h"
+#include "log.h"
 
 #include <errno.h>
 #include <stdlib.h>
@@ -75,7 +76,7 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, ti
 	pid->prevErr = err;
 	pid->lastPid = out;
 
-	DEBUG_LOG("%.4f %.4f %.4f %.4f ", p, i, d, out);
+	log_print("%.4f %.4f %.4f %.4f ", p, i, d, out);
 
 	return out;
 }
