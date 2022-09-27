@@ -132,9 +132,9 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 		yaw = measure.yaw * 1000;
 	}
 
-	DEBUG_LOG("EKFQ: %lld, %f, %f, %f, %f\n", now, measure.q0, measure.q1, measure.q2, measure.q3);
-	DEBUG_LOG("EKFE: %lld, %f, %f, %f\n", now, measure.yaw * RAD2DEG, measure.pitch * RAD2DEG, measure.roll * RAD2DEG);
-	DEBUG_LOG("EKFX: %lld, %f\n", now, measure.enuZ);
+	DEBUG_LOG("EKFE: %lld %.1f %.1f %.1f\n", now, measure.yaw * RAD2DEG, measure.pitch * RAD2DEG, measure.roll * RAD2DEG);
+	DEBUG_LOG("EKFX: %.2f\n", measure.enuZ);
+	DEBUG_LOG("PID: ");
 
 	DEBUG_LOG("PID: %lld, ", now);
 	palt = pid_calc(&quad_common.pids[pwm_alt], alt / 1000.f, measure.enuZ, 0, dt);
