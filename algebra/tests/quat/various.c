@@ -723,10 +723,22 @@ TEST(group_quat_cjg, quat_cjg_biggerValues)
 }
 
 
+TEST(group_quat_cjg, quat_cjg_zeroQuat)
+{
+	quat_t a = Q0;
+	quat_t expected = Q0;
+
+	quat_cjg(&a);
+
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
+}
+
+
 TEST_GROUP_RUNNER(group_quat_cjg)
 {
 	RUN_TEST_CASE(group_quat_cjg, quat_cjg_std);
 	RUN_TEST_CASE(group_quat_cjg, quat_cjg_biggerValues);
+	RUN_TEST_CASE(group_quat_cjg, quat_cjg_zeroQuat);
 }
 
 
