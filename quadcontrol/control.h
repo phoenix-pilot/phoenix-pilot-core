@@ -27,6 +27,7 @@ typedef enum { flight_takeoff = 0, flight_pos, flight_hover, flight_landing, fli
 
 typedef struct {
 	int32_t alt; /* altitude in 1E-3 [m] (millimetres) above MSL */
+	float time;  /* time of engine spool up in milliseconds */
 } flight_takeoff_t;
 
 
