@@ -38,6 +38,8 @@
 
 #define DEG2RAD 0.0174532925
 
+#define BARO_UPDATE_PERIOD 50000 /* time in microseconds between barometer update procedure */
+
 /* abbreviation of IndexMeasurement(valuename) */
 
 /* imu measurements */
