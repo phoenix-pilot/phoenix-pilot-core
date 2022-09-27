@@ -47,25 +47,25 @@ TEST(group_quat_cmp, quat_cmp_stdPass)
 
 TEST(group_quat_cmp, quat_cmp_different)
 {
-	quat_t A, I, J, K, Q;
+	quat_t a, i, j, k, q;
 
-	A = I = J = K = Q = Q2;
+	a = i = j = k = q = Q2;
 
-	A.a++;
-	I.i++;
-	J.j++;
-	K.k++;
+	a.a++;
+	i.i++;
+	j.j++;
+	k.k++;
 
-	Q.a++;
-	Q.i++;
-	Q.j++;
-	Q.k++;
+	q.a++;
+	q.i++;
+	q.j++;
+	q.k++;
 
-	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &A));
-	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &I));
-	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &J));
-	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &K));
-	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &Q));
+	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &a));
+	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &i));
+	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &j));
+	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &k));
+	TEST_ASSERT_NOT_EQUAL_INT(QUAT_CMP_OK, quat_cmp(&Q2, &q));
 }
 
 
@@ -97,11 +97,11 @@ TEST_TEAR_DOWN(group_quat_idenWrite)
 TEST(group_quat_idenWrite, quat_idenWrite_std)
 {
 	/* Initialising quaternion with non zero and non one values */
-	quat_t A = Q1;
+	quat_t a = Q1;
 
-	quat_idenWrite(&A);
+	quat_idenWrite(&a);
 
-	TEST_ASSERT_EQUAL_QUAT(QA, A);
+	TEST_ASSERT_EQUAL_QUAT(QA, a);
 }
 
 
@@ -132,11 +132,11 @@ TEST_TEAR_DOWN(group_quat_piWrite)
 TEST(group_quat_piWrite, quat_piWrite_std)
 {
 	/* Initialising quaternion with non zero and non one values */
-	quat_t A = Q1;
+	quat_t a = Q1;
 
-	quat_piWrite(&A);
+	quat_piWrite(&a);
 
-	TEST_ASSERT_EQUAL_QUAT(QI, A);
+	TEST_ASSERT_EQUAL_QUAT(QI, a);
 }
 
 
@@ -166,25 +166,25 @@ TEST_TEAR_DOWN(group_quat_add)
 
 TEST(group_quat_add, quat_add_std)
 {
-	quat_t A = Q2;
-	quat_t B = Q3;
-	quat_t expected = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
+	quat_t a = Q2;
+	quat_t b = Q3;
+	quat_t expected = { .a = a.a + b.a, .i = a.i + b.i, .j = a.j + b.j, .k = a.k + b.k };
 
-	quat_add(&A, &B);
+	quat_add(&a, &b);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
 }
 
 
 TEST(group_quat_add, quat_add_biggerValues)
 {
-	quat_t A = Q4;
-	quat_t B = Q5;
-	quat_t expected = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
+	quat_t a = Q4;
+	quat_t b = Q5;
+	quat_t expected = { .a = a.a + b.a, .i = a.i + b.i, .j = a.j + b.j, .k = a.k + b.k };
 
-	quat_add(&A, &B);
+	quat_add(&a, &b);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
 }
 
 
@@ -215,27 +215,27 @@ TEST_TEAR_DOWN(group_quat_sum)
 
 TEST(group_quat_sum, quat_sum_std)
 {
-	quat_t A = Q2;
-	quat_t B = Q3;
-	quat_t C;
-	quat_t expected = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
+	quat_t a = Q2;
+	quat_t b = Q3;
+	quat_t c;
+	quat_t expected = { .a = a.a + b.a, .i = a.i + b.i, .j = a.j + b.j, .k = a.k + b.k };
 
-	quat_sum(&A, &B, &C);
+	quat_sum(&a, &b, &c);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, C);
+	TEST_ASSERT_EQUAL_QUAT(expected, c);
 }
 
 
 TEST(group_quat_sum, quat_sum_biggerValues)
 {
-	quat_t A = Q4;
-	quat_t B = Q5;
-	quat_t C;
-	quat_t expected = { .a = A.a + B.a, .i = A.i + B.i, .j = A.j + B.j, .k = A.k + B.k };
+	quat_t a = Q4;
+	quat_t b = Q5;
+	quat_t c;
+	quat_t expected = { .a = a.a + b.a, .i = a.i + b.i, .j = a.j + b.j, .k = a.k + b.k };
 
-	quat_sum(&A, &B, &C);
+	quat_sum(&a, &b, &c);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, C);
+	TEST_ASSERT_EQUAL_QUAT(expected, c);
 }
 
 
@@ -266,25 +266,25 @@ TEST_TEAR_DOWN(group_quat_sub)
 
 TEST(group_quat_sub, quat_sub_std)
 {
-	quat_t A = Q2;
-	quat_t B = Q3;
-	quat_t expected = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
+	quat_t a = Q2;
+	quat_t b = Q3;
+	quat_t expected = { .a = a.a - b.a, .i = a.i - b.i, .j = a.j - b.j, .k = a.k - b.k };
 
-	quat_sub(&A, &B);
+	quat_sub(&a, &b);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
 }
 
 
 TEST(group_quat_sub, quat_sub_biggerValues)
 {
-	quat_t A = Q4;
-	quat_t B = Q5;
-	quat_t expected = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
+	quat_t a = Q4;
+	quat_t b = Q5;
+	quat_t expected = { .a = a.a - b.a, .i = a.i - b.i, .j = a.j - b.j, .k = a.k - b.k };
 
-	quat_sub(&A, &B);
+	quat_sub(&a, &b);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
 }
 
 
@@ -315,27 +315,27 @@ TEST_TEAR_DOWN(group_quat_dif)
 
 TEST(group_quat_dif, quat_dif_std)
 {
-	quat_t A = Q2;
-	quat_t B = Q3;
-	quat_t C;
-	quat_t expected = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
+	quat_t a = Q2;
+	quat_t b = Q3;
+	quat_t c;
+	quat_t expected = { .a = a.a - b.a, .i = a.i - b.i, .j = a.j - b.j, .k = a.k - b.k };
 
-	quat_dif(&A, &B, &C);
+	quat_dif(&a, &b, &c);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, C);
+	TEST_ASSERT_EQUAL_QUAT(expected, c);
 }
 
 
 TEST(group_quat_dif, quat_dif_biggerValues)
 {
-	quat_t A = Q4;
-	quat_t B = Q5;
-	quat_t C;
-	quat_t expected = { .a = A.a - B.a, .i = A.i - B.i, .j = A.j - B.j, .k = A.k - B.k };
+	quat_t a = Q4;
+	quat_t b = Q5;
+	quat_t c;
+	quat_t expected = { .a = a.a - b.a, .i = a.i - b.i, .j = a.j - b.j, .k = a.k - b.k };
 
-	quat_dif(&A, &B, &C);
+	quat_dif(&a, &b, &c);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, C);
+	TEST_ASSERT_EQUAL_QUAT(expected, c);
 }
 
 
@@ -367,98 +367,98 @@ TEST_TEAR_DOWN(group_quat_mlt)
 TEST(group_quat_mlt, quat_mlt_quatMltTable)
 {
 	quat_t nqA, nqI, nqJ, nqK;
-	quat_t Res;
+	quat_t res;
 
 	nqA = nqI = nqJ = nqK = Q0;            /* zero all quaternions */
 	nqA.a = nqI.i = nqJ.j = nqK.k = -1.0f; /* set all negative unitary quaternions */
 
 	/* Checking if 1 * 1 is equal to 1 */
-	quat_mlt(&QA, &QA, &Res);
-	TEST_ASSERT_EQUAL_QUAT(QA, Res);
+	quat_mlt(&QA, &QA, &res);
+	TEST_ASSERT_EQUAL_QUAT(QA, res);
 
 	/* Checking if 1 * i is equal to i */
-	quat_mlt(&QA, &QI, &Res);
-	TEST_ASSERT_EQUAL_QUAT(QI, Res);
+	quat_mlt(&QA, &QI, &res);
+	TEST_ASSERT_EQUAL_QUAT(QI, res);
 
 	/* Checking if 1 * j is equal to j */
-	quat_mlt(&QA, &QJ, &Res);
-	TEST_ASSERT_EQUAL_QUAT(QJ, Res);
+	quat_mlt(&QA, &QJ, &res);
+	TEST_ASSERT_EQUAL_QUAT(QJ, res);
 
 	/* Checking if 1 * k is equal to k */
-	quat_mlt(&QA, &QK, &Res);
-	TEST_ASSERT_EQUAL_QUAT(QK, Res);
+	quat_mlt(&QA, &QK, &res);
+	TEST_ASSERT_EQUAL_QUAT(QK, res);
 
 	/* Checking if i * 1 is equal to i */
-	quat_mlt(&QI, &QA, &Res);
-	TEST_ASSERT_EQUAL_QUAT(QI, Res);
+	quat_mlt(&QI, &QA, &res);
+	TEST_ASSERT_EQUAL_QUAT(QI, res);
 
 	/* Checking if i * i is equal to -1 */
-	quat_mlt(&QI, &QI, &Res);
-	TEST_ASSERT_EQUAL_QUAT(nqA, Res);
+	quat_mlt(&QI, &QI, &res);
+	TEST_ASSERT_EQUAL_QUAT(nqA, res);
 
 	/* Checking if i * j is equal to k */
-	quat_mlt(&QI, &QJ, &Res);
-	TEST_ASSERT_EQUAL_QUAT(QK, Res);
+	quat_mlt(&QI, &QJ, &res);
+	TEST_ASSERT_EQUAL_QUAT(QK, res);
 
 	/* Checking if i * k is equal to -j */
-	quat_mlt(&QI, &QK, &Res);
-	TEST_ASSERT_EQUAL_QUAT(nqJ, Res);
+	quat_mlt(&QI, &QK, &res);
+	TEST_ASSERT_EQUAL_QUAT(nqJ, res);
 
 	/* Checking if j * 1 is equal to j */
-	quat_mlt(&QJ, &QA, &Res);
-	TEST_ASSERT_EQUAL_QUAT(QJ, Res);
+	quat_mlt(&QJ, &QA, &res);
+	TEST_ASSERT_EQUAL_QUAT(QJ, res);
 
 	/* Checking if j * i is equal to -k */
-	quat_mlt(&QJ, &QI, &Res);
-	TEST_ASSERT_EQUAL_QUAT(nqK, Res);
+	quat_mlt(&QJ, &QI, &res);
+	TEST_ASSERT_EQUAL_QUAT(nqK, res);
 
 	/* Checking if j * j is equal to -1 */
-	quat_mlt(&QJ, &QJ, &Res);
-	TEST_ASSERT_EQUAL_QUAT(nqA, Res);
+	quat_mlt(&QJ, &QJ, &res);
+	TEST_ASSERT_EQUAL_QUAT(nqA, res);
 
 	/* Checking if j * k is equal to i */
-	quat_mlt(&QJ, &QK, &Res);
-	TEST_ASSERT_EQUAL_QUAT(QI, Res);
+	quat_mlt(&QJ, &QK, &res);
+	TEST_ASSERT_EQUAL_QUAT(QI, res);
 
 	/* Checking if k * 1 is equal to k */
-	quat_mlt(&QK, &QA, &Res);
-	TEST_ASSERT_EQUAL_QUAT(QK, Res);
+	quat_mlt(&QK, &QA, &res);
+	TEST_ASSERT_EQUAL_QUAT(QK, res);
 
 	/* Checking if k * i is equal to j */
-	quat_mlt(&QK, &QI, &Res);
-	TEST_ASSERT_EQUAL_QUAT(QJ, Res);
+	quat_mlt(&QK, &QI, &res);
+	TEST_ASSERT_EQUAL_QUAT(QJ, res);
 
 	/* Checking if k * j is equal to -i */
-	quat_mlt(&QK, &QJ, &Res);
-	TEST_ASSERT_EQUAL_QUAT(nqI, Res);
+	quat_mlt(&QK, &QJ, &res);
+	TEST_ASSERT_EQUAL_QUAT(nqI, res);
 
 	/* Checking if k * k is equal to -1 */
-	quat_mlt(&QK, &QK, &Res);
-	TEST_ASSERT_EQUAL_QUAT(nqA, Res);
+	quat_mlt(&QK, &QK, &res);
+	TEST_ASSERT_EQUAL_QUAT(nqA, res);
 }
 
 
 TEST(group_quat_mlt, quat_mlt_std)
 {
-	quat_t A = Q2;
-	quat_t B = Q3;
-	quat_t C;
+	quat_t a = Q2;
+	quat_t b = Q3;
+	quat_t c;
 
-	quat_mlt(&A, &B, &C);
+	quat_mlt(&a, &b, &c);
 
-	TEST_ASSERT_EQUAL_QUAT(Q2timesQ3, C);
+	TEST_ASSERT_EQUAL_QUAT(Q2timesQ3, c);
 }
 
 
 TEST(group_quat_mlt, quat_mlt_biggerValues)
 {
-	quat_t A = Q4;
-	quat_t B = Q5;
-	quat_t C;
+	quat_t a = Q4;
+	quat_t b = Q5;
+	quat_t c;
 
-	quat_mlt(&A, &B, &C);
+	quat_mlt(&a, &b, &c);
 
-	TEST_ASSERT_EQUAL_QUAT(Q4timesQ5, C);
+	TEST_ASSERT_EQUAL_QUAT(Q4timesQ5, c);
 }
 
 
@@ -490,64 +490,64 @@ TEST_TEAR_DOWN(group_quat_times)
 
 TEST(group_quat_times, quat_times_std)
 {
-	quat_t A = Q5;
+	quat_t a = Q5;
 	quat_t expected = {
-		.a = A.a * POS_SCALAR,
-		.i = A.i * POS_SCALAR,
-		.j = A.j * POS_SCALAR,
-		.k = A.k * POS_SCALAR
+		.a = a.a * POS_SCALAR,
+		.i = a.i * POS_SCALAR,
+		.j = a.j * POS_SCALAR,
+		.k = a.k * POS_SCALAR
 	};
 
-	quat_times(&A, POS_SCALAR);
+	quat_times(&a, POS_SCALAR);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
 
-	A = Q5;
-	expected.a = A.a * NEG_SCALAR;
-	expected.i = A.i * NEG_SCALAR;
-	expected.j = A.j * NEG_SCALAR;
-	expected.k = A.k * NEG_SCALAR;
+	a = Q5;
+	expected.a = a.a * NEG_SCALAR;
+	expected.i = a.i * NEG_SCALAR;
+	expected.j = a.j * NEG_SCALAR;
+	expected.k = a.k * NEG_SCALAR;
 
-	quat_times(&A, NEG_SCALAR);
+	quat_times(&a, NEG_SCALAR);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
 }
 
 
 TEST(group_quat_times, quat_times_infs)
 {
-	quat_t A = Q5;
+	quat_t a = Q5;
 	quat_t expected = {
-		.a = A.a * INFINITY,
-		.i = A.i * INFINITY,
-		.j = A.j * INFINITY,
-		.k = A.k * INFINITY
+		.a = a.a * INFINITY,
+		.i = a.i * INFINITY,
+		.j = a.j * INFINITY,
+		.k = a.k * INFINITY
 	};
 
-	quat_times(&A, INFINITY);
+	quat_times(&a, INFINITY);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
 
-	A = Q5;
-	expected.a = A.a * -INFINITY;
-	expected.i = A.i * -INFINITY;
-	expected.j = A.j * -INFINITY;
-	expected.k = A.k * -INFINITY;
+	a = Q5;
+	expected.a = a.a * -INFINITY;
+	expected.i = a.i * -INFINITY;
+	expected.j = a.j * -INFINITY;
+	expected.k = a.k * -INFINITY;
 
-	quat_times(&A, -INFINITY);
+	quat_times(&a, -INFINITY);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
 }
 
 
 TEST(group_quat_times, quat_times_nan)
 {
-	quat_t A = Q5;
-	quat_t expected = { .a = A.a * NAN, .i = A.i * NAN, .j = A.j * NAN, .k = A.k * NAN };
+	quat_t a = Q5;
+	quat_t expected = { .a = a.a * NAN, .i = a.i * NAN, .j = a.j * NAN, .k = a.k * NAN };
 
-	quat_times(&A, NAN);
+	quat_times(&a, NAN);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
 }
 
 
@@ -579,23 +579,23 @@ TEST_TEAR_DOWN(group_quat_cjg)
 
 TEST(group_quat_cjg, quat_cjg_std)
 {
-	quat_t A = Q2;
-	quat_t expected = { .a = A.a, .i = -A.i, .j = -A.j, .k = -A.k };
+	quat_t a = Q2;
+	quat_t expected = { .a = a.a, .i = -a.i, .j = -a.j, .k = -a.k };
 
-	quat_cjg(&A);
+	quat_cjg(&a);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
 }
 
 
 TEST(group_quat_cjg, quat_cjg_biggerValues)
 {
-	quat_t A = Q4;
-	quat_t expected = { .a = A.a, .i = -A.i, .j = -A.j, .k = -A.k };
+	quat_t a = Q4;
+	quat_t expected = { .a = a.a, .i = -a.i, .j = -a.j, .k = -a.k };
 
-	quat_cjg(&A);
+	quat_cjg(&a);
 
-	TEST_ASSERT_EQUAL_QUAT(expected, A);
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
 }
 
 
@@ -638,53 +638,53 @@ TEST_TEAR_DOWN(group_quat_dot)
 
 TEST(group_quat_dot, quat_dot_std)
 {
-	quat_t A = Q2;
-	quat_t B = Q3;
-	float expected = A.a * B.a + A.i * B.i + A.j * B.j + A.k * B.k;
+	quat_t a = Q2;
+	quat_t b = Q3;
+	float expected = a.a * b.a + a.i * b.i + a.j * b.j + a.k * b.k;
 
-	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&A, &B));
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&a, &b));
 }
 
 
 TEST(group_quat_dot, quat_dot_biggerValues)
 {
-	quat_t A = Q4;
-	quat_t B = Q5;
-	float expected = A.a * B.a + A.i * B.i + A.j * B.j + A.k * B.k;
+	quat_t a = Q4;
+	quat_t b = Q5;
+	float expected = a.a * b.a + a.i * b.i + a.j * b.j + a.k * b.k;
 
-	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&A, &B));
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&a, &b));
 }
 
 
 TEST(group_quat_dot, quat_dot_perpendicular)
 {
-	quat_t A = Q6;
-	quat_t B = Q7;
+	quat_t a = Q6;
+	quat_t b = Q7;
 	float expected = 0;
 
-	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&A, &B));
-	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&B, &A));
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&a, &b));
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&b, &a));
 }
 
 
 TEST(group_quat_dot, quat_dot_parallel)
 {
-	quat_t A = Q2;
-	quat_t B = A;
+	quat_t a = Q2;
+	quat_t b = a;
 	float expected;
 
 	/* Parallel with common direction */
-	quat_times(&B, POS_SCALAR);
-	expected = A.a * B.a + A.i * B.i + A.j * B.j + A.k * B.k;
+	quat_times(&b, POS_SCALAR);
+	expected = a.a * b.a + a.i * b.i + a.j * b.j + a.k * b.k;
 
-	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&A, &B));
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&a, &b));
 
 	/* Parallel with opposite directions */
-	B = A;
-	quat_times(&B, NEG_SCALAR);
-	expected = A.a * B.a + A.i * B.i + A.j * B.j + A.k * B.k;
+	b = a;
+	quat_times(&b, NEG_SCALAR);
+	expected = a.a * b.a + a.i * b.i + a.j * b.j + a.k * b.k;
 
-	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&A, &B));
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_dot(&a, &b));
 }
 
 
