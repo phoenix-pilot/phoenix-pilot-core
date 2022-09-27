@@ -68,7 +68,18 @@ enum { pwm_alt = 0, pwm_roll, pwm_pitch, pwm_yaw, pwm_max };
    TODO: move data to the configuration file placed in a rootfs */
 #if TEST_ATTITUDE
 static const flight_mode_t scenario[] = {
-	{ .type = flight_takeoff, .takeoff = { .alt = 5000 } },
+	{ .type = flight_takeoff, .takeoff = { .alt = 5000, .time = 6000 } },
+	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
+	{ .type = flight_hover, .hover = { .alt = -2000, .time = 6000 } },
+	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
+	{ .type = flight_hover, .hover = { .alt = -2000, .time = 6000 } },
+	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
+	{ .type = flight_landing },
+	{ .type = flight_end },
+};
+#else
+static const flight_mode_t scenario[] = {
+	{ .type = flight_takeoff, .takeoff = { .alt = 5000, .time = 2000 } },
 	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
 	{ .type = flight_hover, .hover = { .alt = 0, .time = 6000 } },
 	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
@@ -76,16 +87,6 @@ static const flight_mode_t scenario[] = {
 	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
 	{ .type = flight_landing },
 	{ .type = flight_end },
-};
-#else
-static const flight_mode_t scenario[] = {
-	{ .type = flight_takeoff, .takeoff = { .alt = 4000 } },
-	{ .type = flight_hover, .hover = { .alt = 9000, .time = 4000 } },
-	{ .type = flight_hover, .hover = { .alt = 12000, .time = 3000 } },
-	{ .type = flight_hover, .hover = { .alt = 8000, .time = 3000 } },
-	{ .type = flight_hover, .hover = { .alt = 12000, .time = 3000 } },
-	{ .type = flight_hover, .hover = { .alt = 8000, .time = 3000 } },
-	{ .type = flight_landing },
 };
 #endif
 
@@ -154,13 +155,21 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 
 static int quad_takeoff(const flight_mode_t *mode)
 {
-	float throttle;
+	float throttle, coeff;
+	time_t spoolStart, spoolEnd, now;
 
 	DEBUG_LOG("TAKEOFF - alt: %d\n", mode->hover.alt);
 
-	/* Soft motors start */
-	for (throttle = 0.0; throttle < quad_common.throttle.max; throttle += 0.01f) {
-		if (quad_motorsCtrl(throttle, mode->hover.alt, 0, 0, ANGLE_HOLD) < 0) {
+	spoolStart = now = quad_timeMsGet();
+	spoolEnd = spoolStart + mode->takeoff.time;
+
+	while (now < spoolEnd) {
+		now = quad_timeMsGet();
+
+		coeff = (float)(now - spoolStart) / mode->takeoff.time;
+		throttle = coeff * quad_common.throttle.max;
+
+		if (quad_motorsCtrl(throttle, mode->takeoff.alt, 0, 0, ANGLE_HOLD) < 0) {
 			return -1;
 		}
 		usleep(1000 * 100);
