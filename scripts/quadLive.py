@@ -125,7 +125,7 @@ class lpgui:
         if ls[0] == "EKFX":
             if len(self.enuzData) > self.plotcut:
                 self.enuzData.pop(0)
-            self.enuzData.append(float(ls[2]))
+            self.enuzData.append(float(ls[1]))
             self.enuzDatalines.setData(self.enuzData)
         # PID - logs of pid values from pid controllers
         if ls[0] == "PID":
@@ -135,7 +135,7 @@ class lpgui:
                 for l in range(len(self.pidData[p])):
                     if len(self.pidData[p][l]) > self.plotcut:
                         self.pidData[p][l].pop(0)
-                    v = float(ls[2 + (p + 1) * 4 + l])
+                    v = float(ls[1 + (p + 1) * 4 + l])
                     # There happens to be some huge values at the start so crop them
                     if -100 < v < 100:
                         self.pidData[p][l].append(v)
@@ -144,7 +144,7 @@ class lpgui:
             for l in range(len(self.hpidData)):
                 if len(self.hpidData[l]) > self.plotcut:
                     self.hpidData[l].pop(0)
-                v = float(ls[2 + l])
+                v = float(ls[1 + l])
                 # There happens to be some huge values at the start so crop them
                 if -100 < v < 100:
                     self.hpidData[l].append(v)
