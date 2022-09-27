@@ -847,9 +847,21 @@ TEST(group_vec_normalize, vec_normalize_equalUnit)
 }
 
 
+TEST(group_vec_normalize, vec_normalize_zeroVec)
+{
+	vec_t a = V0;
+	vec_t expected = V0;
+
+	vec_normalize(&a);
+
+	TEST_ASSERT_EQUAL_VEC(expected, a);
+}
+
+
 TEST_GROUP_RUNNER(group_vec_normalize)
 {
 	RUN_TEST_CASE(group_vec_normalize, vec_normalize_lessThanUnit);
 	RUN_TEST_CASE(group_vec_normalize, vec_normalize_moreThanUnit);
 	RUN_TEST_CASE(group_vec_normalize, vec_normalize_equalUnit);
+	RUN_TEST_CASE(group_vec_normalize, vec_normalize_zeroVec);
 }
