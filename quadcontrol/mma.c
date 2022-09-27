@@ -12,6 +12,7 @@
  */
 
 #include "mma.h"
+#include "log.h"
 
 #include <errno.h>
 #include <string.h>
@@ -76,7 +77,7 @@ int mma_control(float palt, float proll, float ppitch, float pyaw)
 	* Printing PWM before per-motor calibration
 	* We want information about pid impact on control step, not hardware step
 	*/
-	DEBUG_LOG("PWM: %f, %f, %f, %f\n", pwm[0], pwm[1], pwm[2], pwm[3]);
+	log_print("PWM: %.3f %.3f %.3f %.3f\n", pwm[0], pwm[1], pwm[2], pwm[3]);
 
 	for (i = 0; i < NUMBER_MOTORS; ++i) {
 		mma_calib(&pwm[i], i);

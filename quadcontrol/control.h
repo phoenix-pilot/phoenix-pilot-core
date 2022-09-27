@@ -17,7 +17,6 @@
 #include <time.h>
 #include <stdint.h>
 
-#define DEBUG_LOG(str_, ...) do { if (1) printf(str_ , ##__VA_ARGS__); } while (0)
 
 /* Flight Modes Definitions */
 

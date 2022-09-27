@@ -14,6 +14,7 @@
 #include "control.h"
 #include "mma.h"
 #include "pid.h"
+#include "log.h"
 
 #include <ekflib.h>
 
@@ -43,6 +44,8 @@
 #define RAD2DEG         ((float)180.0 / M_PI)
 #define DEG2RAD         0.0174532925f
 #define ANGLE_HOLD      INT32_MAX
+
+#define LOG_PERIOD 50 /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
 
 
 struct {
@@ -132,16 +135,17 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 		yaw = measure.yaw * 1000;
 	}
 
-	DEBUG_LOG("EKFE: %lld %.1f %.1f %.1f\n", now, measure.yaw * RAD2DEG, measure.pitch * RAD2DEG, measure.roll * RAD2DEG);
-	DEBUG_LOG("EKFX: %.2f\n", measure.enuZ);
-	DEBUG_LOG("PID: ");
 
-	DEBUG_LOG("PID: %lld, ", now);
+	log_print("EKFE: %lld %.1f %.1f %.1f\n", now, measure.yaw * RAD2DEG, measure.pitch * RAD2DEG, measure.roll * RAD2DEG);
+	log_print("EKFX: %.2f\n", measure.enuZ);
+	log_print("PID: ");
+
+
 	palt = pid_calc(&quad_common.pids[pwm_alt], alt / 1000.f, measure.enuZ, 0, dt);
 	proll = pid_calc(&quad_common.pids[pwm_roll], roll / 1000.f, measure.roll, measure.rollDot, dt);
 	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch / 1000.f, measure.pitch, measure.pitchDot, dt);
 	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw / 1000.f, measure.yaw, measure.yawDot, dt);
-	DEBUG_LOG("\n");
+	log_print("\n");
 
 	if (mma_control(throttle + palt, proll, ppitch, pyaw) < 0) {
 		return -1;
@@ -158,7 +162,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 	float throttle, coeff;
 	time_t spoolStart, spoolEnd, now;
 
-	DEBUG_LOG("TAKEOFF - alt: %d\n", mode->hover.alt);
+	log_print("TAKEOFF - alt: %d\n", mode->hover.alt);
 
 	spoolStart = now = quad_timeMsGet();
 	spoolEnd = spoolStart + mode->takeoff.time;
@@ -172,7 +176,6 @@ static int quad_takeoff(const flight_mode_t *mode)
 		if (quad_motorsCtrl(throttle, mode->takeoff.alt, 0, 0, ANGLE_HOLD) < 0) {
 			return -1;
 		}
-		usleep(1000 * 100);
 	}
 
 	/* TBD */
@@ -183,18 +186,32 @@ static int quad_takeoff(const flight_mode_t *mode)
 
 static int quad_hover(const flight_mode_t *mode)
 {
-	time_t now;
+	time_t now, end, lastLog;
 	ekf_state_t state;
 
-	DEBUG_LOG("HOVER - alt: %d, time: %lld\n", mode->hover.alt, mode->hover.time);
+	log_enable();
+	log_print("HOVER - alt: %d, time: %lld\n", mode->hover.alt, mode->hover.time);
 
 	now = quad_timeMsGet();
+	end = now + mode->hover.time;
+	lastLog = 0;
 
 #if TEST_ATTITUDE
-	while (quad_timeMsGet() < now + mode->hover.time) {
+	while (now < end) {
+		/* Enable logging once per 'LOG_PERIOD' milliseconds */
+		if (now - lastLog > LOG_PERIOD) {
+			lastLog = now;
+			log_enable();
+		}
+		else {
+			log_disable();
+		}
+
 		if (quad_motorsCtrl(quad_common.throttle.max, mode->hover.alt, quad_common.targetAtt.roll, quad_common.targetAtt.pitch, quad_common.targetAtt.yaw) < 0) {
 			return -1;
 		}
+
+		now = quad_timeMsGet();
 	}
 #else
 	ekf_stateGet(&state);
@@ -213,7 +230,7 @@ static int quad_hover(const flight_mode_t *mode)
 static int quad_landing(const flight_mode_t *mode)
 {
 	float coeff;
-	DEBUG_LOG("LANDING\n");
+	log_print("LANDING\n");
 
 	/* Soft landing */
 	for (coeff = 1.0; coeff > 0.00001; coeff -= 0.02f) {
@@ -254,7 +271,7 @@ static int quad_run(void)
 				break;
 
 			case flight_end:
-				DEBUG_LOG("end of the scenario\n");
+				log_print("end of the scenario\n");
 				/* Disarm motors */
 				mma_stop();
 				break;
@@ -503,6 +520,9 @@ static void quad_done(void)
 static int quad_init(void)
 {
 	unsigned int i = 0;
+
+	/* Enabling logging by default */
+	log_enable();
 
 	/* PID initialization alt, roll, pitch, yaw */
 	if (quad_configRead() < 0) {
