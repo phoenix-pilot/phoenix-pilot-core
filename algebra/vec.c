@@ -121,6 +121,15 @@ void vec_normal(const vec_t *A, const vec_t *B, vec_t *C)
 void vec_normalize(vec_t *A)
 {
 	float len = A->x * A->x + A->y * A->y + A->z * A->z;
+
+	if (len == 0) {
+		A->x = 0;
+		A->y = 0;
+		A->z = 0;
+
+		return;
+	}
+
 	len = sqrt(len); /* FIXME: fast inverse square needed here! */
 
 	A->x /= len;
