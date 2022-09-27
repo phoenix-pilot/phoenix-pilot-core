@@ -94,7 +94,7 @@ static time_t ekf_dtGet(void)
 
 static void ekf_thread(void *arg)
 {
-	time_t timeStep;
+	time_t timeStep, lastBaro;
 
 	printf("ekf: starting ekf thread\n");
 
@@ -102,16 +102,24 @@ static void ekf_thread(void *arg)
 
 	/* Kalman loop */
 	gettime(&ekf_common.lastTime, NULL);
+	lastBaro = ekf_common.lastTime;
+
 	while (ekf_common.run == 1) {
 		usleep(1000);
 		timeStep = ekf_dtGet();
 
 		/* state prediction procedure */
 		kalmanPredictionStep(&ekf_common.stateEngine, timeStep, 0);
+
 		/* TODO: make critical section smaller and only on accesses to state and cov matrices */
 		mutexLock(ekf_common.lock);
-		if (kalmanUpdateStep(timeStep, 0, &ekf_common.baroEngine, &ekf_common.stateEngine) < 0) { /* barometer measurements update procedure */
-			kalmanUpdateStep(timeStep, 0, &ekf_common.imuEngine, &ekf_common.stateEngine);        /* imu measurements update procedure */
+		if (ekf_common.currTime - lastBaro > BARO_UPDATE_PERIOD) {
+			/* Perform barometer update step if 'BARO_UPDATE_PERIOD' time has passed since last such update */
+			kalmanUpdateStep(timeStep, 0, &ekf_common.baroEngine, &ekf_common.stateEngine);
+			lastBaro = ekf_common.currTime;
+		}
+		else {
+			kalmanUpdateStep(timeStep, 0, &ekf_common.imuEngine, &ekf_common.stateEngine); /* imu measurements update procedure */
 		}
 		mutexUnlock(ekf_common.lock);
 	}
