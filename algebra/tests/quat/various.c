@@ -45,6 +45,8 @@
 
 /* Quaternions used for tests */
 
+static const quat_t Q0 = { .a = 0.0f, .i = 0.0f, .j = 0.0f, .k = 0.0f };
+
 /* Matrix without zero and one */
 static const quat_t Q1 = { .a = 2.0f, .i = 2.0f, .j = 2.0f, .k = 2.0f };
 
@@ -896,10 +898,22 @@ TEST(group_quat_normalize, quat_normalize_biggerValues)
 }
 
 
+TEST(group_quat_normalize, quat_normalize_zeroQuat)
+{
+	quat_t a = Q0;
+	quat_t expected = Q0;
+
+	quat_normalize(&a);
+
+	TEST_ASSERT_EQUAL_QUAT(expected, a);
+}
+
+
 TEST_GROUP_RUNNER(group_quat_normalize)
 {
 	RUN_TEST_CASE(group_quat_normalize, quat_normalize_std);
 	RUN_TEST_CASE(group_quat_normalize, quat_normalize_biggerValues);
+	RUN_TEST_CASE(group_quat_normalize, quat_normalize_zeroQuat);
 }
 
 
