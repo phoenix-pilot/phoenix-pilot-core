@@ -112,7 +112,19 @@ void quat_print(const quat_t *A)
 
 void quat_normalize(quat_t *A)
 {
-	float norm = 1 / sqrt(A->a * A->a + A->i * A->i + A->j * A->j + A->k * A->k); /* FIXME: fast iverse square needed here! */
+	float lenSquared = A->a * A->a + A->i * A->i + A->j * A->j + A->k * A->k;
+	float norm;
+
+	if (lenSquared == 0) {
+		A->a = 0;
+		A->i = 0;
+		A->j = 0;
+		A->k = 0;
+
+		return;
+	}
+
+	norm = 1 / sqrt(lenSquared); /* FIXME: fast inverse square needed here! */
 	A->a *= norm;
 	A->i *= norm;
 	A->j *= norm;
