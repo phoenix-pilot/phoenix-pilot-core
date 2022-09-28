@@ -17,7 +17,7 @@
 
 #include <math.h>
 
-#include "../buffs.h"
+#include "buffs.h"
 #include "../tools.h"
 
 

@@ -15,8 +15,10 @@
 
 #include <matrix.h>
 
-#include "../tools.h"
-#include "../buffs.h"
+#include "tools.h"
+
+/* Using data from matrix tests */
+#include "matrix/buffs.h"
 
 
 static matrix_t M1, M2, M3;

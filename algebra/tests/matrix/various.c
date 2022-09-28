@@ -19,7 +19,7 @@
 #include <matrix.h>
 
 #include "../tools.h"
-#include "../buffs.h"
+#include "buffs.h"
 
 
 /* Creating matrices for testing */

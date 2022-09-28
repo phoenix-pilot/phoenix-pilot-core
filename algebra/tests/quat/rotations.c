@@ -15,7 +15,7 @@
 
 #include <quat.h>
 
-#include "../buffs.h"
+#include "buffs.h"
 #include "../tools.h"
 
 
@@ -180,21 +180,21 @@ TEST(group_quat_vecRot, quat_vecRot_baseQuaternions)
 
 TEST(group_quat_vecRot, quat_vecRot_std)
 {
-	vec_t v = V8;
+	vec_t v = V1;
 
 	quat_vecRot(&v, &Q8);
 
-	TEST_ASSERT_EQUAL_VEC(V8rotQ8, v);
+	TEST_ASSERT_EQUAL_VEC(V1rotQ8, v);
 }
 
 
 TEST(group_quat_vecRot, quat_vecRot_biggerValues)
 {
-	vec_t v = V9;
+	vec_t v = V2;
 
 	quat_vecRot(&v, &Q8);
 
-	TEST_ASSERT_EQUAL_VEC(V9rotQ8, v);
+	TEST_ASSERT_EQUAL_VEC(V2rotQ8, v);
 }
 
 
@@ -261,7 +261,7 @@ TEST(group_quat_rotQuat, quat_rotQuat_std)
 {
 	quat_t q, expected = Q9;
 
-	quat_rotQuat(&V10, Angle, &q);
+	quat_rotQuat(&V3, Angle, &q);
 
 	TEST_ASSERT_EQUAL_QUAT(expected, q);
 }
@@ -307,8 +307,8 @@ TEST_TEAR_DOWN(group_quat_uvec2uvec)
 TEST(group_quat_uvec2uvec, quat_uvec2uvec_std)
 {
 	quat_t q;
-	vec_t v1 = V8;
-	vec_t v2 = V8rotQ8;
+	vec_t v1 = V1;
+	vec_t v2 = V1rotQ8;
 
 	vec_normalize(&v1);
 	vec_normalize(&v2);
@@ -324,8 +324,8 @@ TEST(group_quat_uvec2uvec, quat_uvec2uvec_std)
 TEST(group_quat_uvec2uvec, quat_uvec2uvec_biggerValues)
 {
 	quat_t q;
-	vec_t v1 = V9;
-	vec_t v2 = V9rotQ8;
+	vec_t v1 = V2;
+	vec_t v2 = V2rotQ8;
 
 	vec_normalize(&v1);
 	vec_normalize(&v2);
@@ -340,7 +340,7 @@ TEST(group_quat_uvec2uvec, quat_uvec2uvec_biggerValues)
 TEST(group_quat_uvec2uvec, quat_uvec2uvec_parallel)
 {
 	quat_t q, expected;
-	vec_t v1 = V9, v2;
+	vec_t v1 = V2, v2;
 
 	quat_idenWrite(&expected);
 
@@ -357,7 +357,7 @@ TEST(group_quat_uvec2uvec, quat_uvec2uvec_parallel)
 TEST(group_quat_uvec2uvec, quat_uvec2uvec_antiparallel)
 {
 	quat_t q;
-	vec_t v1 = V9, v2;
+	vec_t v1 = V2, v2;
 
 	/* Making `v1` and `v2` unitary and antiparallel */
 	vec_normalize(&v1);
@@ -374,7 +374,7 @@ TEST(group_quat_uvec2uvec, quat_uvec2uvec_antiparallel)
 TEST(group_quat_uvec2uvec, quat_uvec2uvec_nearlyAntiparallel)
 {
 	quat_t q;
-	vec_t v1 = V10, v2 = V11;
+	vec_t v1 = V3, v2 = V4;
 
 	vec_normalize(&v1);
 	vec_normalize(&v2);
@@ -390,7 +390,7 @@ TEST(group_quat_uvec2uvec, quat_uvec2uvec_nearlyAntiparallel)
 TEST(group_quat_uvec2uvec, quat_uvec2uvec_nearlyParallel)
 {
 	quat_t q;
-	vec_t v1 = V10, v2 = V12;
+	vec_t v1 = V3, v2 = V5;
 
 	vec_normalize(&v1);
 	vec_normalize(&v2);

@@ -16,7 +16,7 @@
 #include <matrix.h>
 
 #include "../tools.h"
-#include "../buffs.h"
+#include "buffs.h"
 
 
 /* Have to be bigger than 1 */

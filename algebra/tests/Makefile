@@ -15,6 +15,7 @@ DEP_LIBS := libalgeb
 SRCS += $(wildcard $(LOCAL_DIR)matrix/*.c)
 SRCS += $(wildcard $(LOCAL_DIR)vec/*.c)
 SRCS += $(wildcard $(LOCAL_DIR)quat/*.c)
+SRCS += $(LOCAL_DIR)tools_tests.c
 SRCS += $(LOCAL_DIR)tools.c
 
 LIBS := unity

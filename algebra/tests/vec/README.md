@@ -2,7 +2,8 @@
 
 ## File structure
 
-- `vectors_tests.c` contains unit tests of all functions from `vec.h` library:
+- `buffs.h` - contains data used in tests
+- `tests.c` contains unit tests of all functions from `vec.h` library:
     - `vec_cmp`
     - `vec_sum`
     - `vec_add`
