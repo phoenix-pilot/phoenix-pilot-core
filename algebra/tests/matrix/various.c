@@ -18,7 +18,7 @@
 
 #include <matrix.h>
 
-#include "tools.h"
+#include "../tools.h"
 #include "buffs.h"
 
 
@@ -103,7 +103,7 @@ TEST_TEAR_DOWN(group_matrix_zeroes)
 
 TEST(group_matrix_zeroes, matrix_zeroes_std)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M1, ROWS, COLS));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, ROWS, COLS));
 	algebraTests_buffFill(&M1, initVal, initValLen);
 
 	matrix_zeroes(&M1);
@@ -118,7 +118,7 @@ TEST(group_matrix_zeroes, matrix_zeroes_std)
 
 TEST(group_matrix_zeroes, matrix_zeroes_stdTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M1, ROWS, COLS));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, ROWS, COLS));
 	algebraTests_buffFill(&M1, initVal, initValLen);
 	matrix_trp(&M1);
 
@@ -176,7 +176,7 @@ TEST_TEAR_DOWN(group_matrix_diag)
 
 TEST(group_matrix_diag, matrix_diag_squareMat)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M1, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
 	algebraTests_buffFill(&M1, initVal, initValLen);
 
 	matrix_diag(&M1);
@@ -187,7 +187,7 @@ TEST(group_matrix_diag, matrix_diag_squareMat)
 
 TEST(group_matrix_diag, matrix_diag_squareMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M1, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
 	matrix_trp(&M1);
 	algebraTests_buffFill(&M1, initVal, initValLen);
 
@@ -199,7 +199,7 @@ TEST(group_matrix_diag, matrix_diag_squareMatTrp)
 
 TEST(group_matrix_diag, matrix_diag_notSquareMat)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M1, ROWS, COLS));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, ROWS, COLS));
 	algebraTests_buffFill(&M1, initVal, initValLen);
 
 	matrix_diag(&M1);
@@ -210,7 +210,7 @@ TEST(group_matrix_diag, matrix_diag_notSquareMat)
 
 TEST(group_matrix_diag, matrix_diag_notSquareMatTrp)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&M1, ROWS, COLS));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, ROWS, COLS));
 	matrix_trp(&M1);
 	algebraTests_buffFill(&M1, initVal, initValLen);
 
@@ -254,12 +254,12 @@ TEST_TEAR_DOWN(group_matrix_times)
 TEST(group_matrix_times, matrix_times_std)
 {
 	int i;
-	float scalar = -123.45;
+	float scalar = POS_SCALAR;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsA, buffs_colsA, buffs_A, buffs_colsA * buffs_rowsA));
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
 	matrix_times(&M1, scalar);
 
@@ -276,13 +276,13 @@ TEST(group_matrix_times, matrix_times_std)
 TEST(group_matrix_times, matrix_times_stdTrp)
 {
 	int i;
-	float scalar = -98.76;
+	float scalar = POS_SCALAR;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsA, buffs_colsA, buffs_A, buffs_colsA * buffs_rowsA));
 	matrix_trp(&M1);
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
 	matrix_times(&M1, scalar);
 
@@ -299,12 +299,12 @@ TEST(group_matrix_times, matrix_times_stdTrp)
 TEST(group_matrix_times, matrix_times_bigMat)
 {
 	int i;
-	float scalar = 123.45;
+	float scalar = NEG_SCALAR;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
 	matrix_times(&M1, scalar);
 
@@ -321,13 +321,13 @@ TEST(group_matrix_times, matrix_times_bigMat)
 TEST(group_matrix_times, matrix_times_bigMatTrp)
 {
 	int i;
-	float scalar = -98.76;
+	float scalar = NEG_SCALAR;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
 	matrix_trp(&M1);
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
 	matrix_times(&M1, scalar);
 
@@ -345,10 +345,10 @@ TEST(group_matrix_times, matrix_times_inf)
 {
 	int i;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
 	matrix_times(&M1, INFINITY);
 
@@ -366,11 +366,11 @@ TEST(group_matrix_times, matrix_times_infTrp)
 {
 	int i;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
 	matrix_trp(&M1);
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
 	matrix_times(&M1, INFINITY);
 
@@ -388,10 +388,10 @@ TEST(group_matrix_times, matrix_times_minusInf)
 {
 	int i;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
 	matrix_times(&M1, -INFINITY);
 
@@ -409,11 +409,11 @@ TEST(group_matrix_times, matrix_times_minusInfTrp)
 {
 	int i;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
 	matrix_trp(&M1);
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
 	matrix_times(&M1, -INFINITY);
 
@@ -431,10 +431,10 @@ TEST(group_matrix_times, matrix_times_nan)
 {
 	int i;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
 	matrix_times(&M1, NAN);
 
@@ -452,11 +452,11 @@ TEST(group_matrix_times, matrix_times_nanTrp)
 {
 	int i;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
 	matrix_trp(&M1);
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
 	matrix_times(&M1, NAN);
 
@@ -496,15 +496,15 @@ TEST_GROUP(group_matrix_writeSubmatrix);
 TEST_SETUP(group_matrix_writeSubmatrix)
 {
 	/* M1 = F */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsF, buffs_colsF, buffs_F, buffs_colsF * buffs_rowsF));
 
 	/* M2 = B */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M2, buffs_rowsB, buffs_colsB, buffs_B, buffs_colsB * buffs_rowsB));
 
 	/* M3 = M1 */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M3, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M3, &M1));
 }
 
 
@@ -518,7 +518,7 @@ TEST_TEAR_DOWN(group_matrix_writeSubmatrix)
 
 TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_onStart)
 {
-	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, 0, 0, &M2));
+	TEST_ASSERT_EQUAL_INT(MAT_WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, 0, 0, &M2));
 
 	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_submatCheck(&M3, 0, 0, &M2, &M1));
 }
@@ -531,7 +531,7 @@ TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_inMiddle)
 	row = matrix_rowsGet(&M1) - matrix_rowsGet(&M2);
 	col = matrix_colsGet(&M1) - matrix_colsGet(&M2);
 
-	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, row, col, &M2));
+	TEST_ASSERT_EQUAL_INT(MAT_WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, row, col, &M2));
 
 	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_submatCheck(&M3, row, col, &M2, &M1));
 }
@@ -542,9 +542,9 @@ TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_sourceRetain)
 {
 	/* store copy of M2 in M3 */
 	matrix_bufFree(&M3);
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M3, &M2));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M3, &M2));
 
-	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, 0, 0, &M2));
+	TEST_ASSERT_EQUAL_INT(MAT_WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, 0, 0, &M2));
 
 	/* M2 and M3 should be the same */
 	TEST_ASSERT_EQUAL_MATRIX(M3, M2);
@@ -555,9 +555,9 @@ TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_fullWrite)
 {
 	/* store copy of M1 in M2 */
 	matrix_bufFree(&M2);
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 
-	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, 0, 0, &M2));
+	TEST_ASSERT_EQUAL_INT(MAT_WRITE_SUBMAT_OK, matrix_writeSubmatrix(&M1, 0, 0, &M2));
 
 	/* Matrix A and B have the same sizes, so after witeSubmatrix M1 should be equal to M2 */
 	TEST_ASSERT_EQUAL_MATRIX(M1, M2);
@@ -573,7 +573,7 @@ TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_tooFewCols)
 
 	/* It is impossible to write M2 to M1 into this position */
 	/* M1 has too few columns */
-	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_FAIL, matrix_writeSubmatrix(&M1, row, col, &M2));
+	TEST_ASSERT_EQUAL_INT(MAT_WRITE_SUBMAT_FAIL, matrix_writeSubmatrix(&M1, row, col, &M2));
 }
 
 
@@ -586,14 +586,14 @@ TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_tooFewRows)
 
 	/* It is impossible to write M2 to M1 into this position */
 	/* M1 has too few rows */
-	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_FAIL, matrix_writeSubmatrix(&M1, row, col, &M2));
+	TEST_ASSERT_EQUAL_INT(MAT_WRITE_SUBMAT_FAIL, matrix_writeSubmatrix(&M1, row, col, &M2));
 }
 
 
 TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_tooBigMat)
 {
 	/* M1 is bigger than M2 */
-	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_FAIL, matrix_writeSubmatrix(&M2, 0, 0, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_WRITE_SUBMAT_FAIL, matrix_writeSubmatrix(&M2, 0, 0, &M1));
 }
 
 
@@ -607,10 +607,10 @@ TEST(group_matrix_writeSubmatrix, matrix_writeSubmatrix_failureRetain)
 
 	/* Copying matrix M1 to M3 */
 	matrix_bufFree(&M3);
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M3, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M3, &M1));
 
 	/* It is impossible to write M2 to M1 into this position */
-	TEST_ASSERT_EQUAL_INT(WRITE_SUBMAT_FAIL, matrix_writeSubmatrix(&M1, row, col, &M2));
+	TEST_ASSERT_EQUAL_INT(MAT_WRITE_SUBMAT_FAIL, matrix_writeSubmatrix(&M1, row, col, &M2));
 
 	/* M1 should not change after fail */
 	TEST_ASSERT_EQUAL_MATRIX(M3, M1);
@@ -642,11 +642,11 @@ TEST_GROUP(group_matrix_cmp);
 TEST_SETUP(group_matrix_cmp)
 {
 	/* M1 = E */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK,
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsE, buffs_colsE, buffs_E, buffs_colsE * buffs_rowsE));
 
 	/* M2 = E */
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, algebraTests_matrixCopy(&M2, &M1));
 }
 
 

@@ -18,7 +18,7 @@
 
 #include <matrix.h>
 
-#include "tools.h"
+#include "../tools.h"
 
 
 /* Creating matrices for testing */
@@ -349,7 +349,7 @@ TEST(group_matrix_bufAlloc, matrix_bufAlloc_structElems)
 	dynMat.cols = 0;
 	dynMat.transposed = 1;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
 
 	TEST_ASSERT_EQUAL_INT(ROWS, dynMat.rows);
 	TEST_ASSERT_EQUAL_INT(COLS, dynMat.cols);
@@ -362,7 +362,7 @@ TEST(group_matrix_bufAlloc, matrix_bufAlloc_validSeek)
 {
 	int row, col;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
 
 	for (row = 0; row < ROWS; row++) {
 		for (col = 0; col < COLS; col++) {
@@ -374,7 +374,7 @@ TEST(group_matrix_bufAlloc, matrix_bufAlloc_validSeek)
 
 TEST(group_matrix_bufAlloc, matrix_bufAlloc_invalidSeek)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
 
 	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_invalidSeekCheck(&stMat));
 }
@@ -382,7 +382,7 @@ TEST(group_matrix_bufAlloc, matrix_bufAlloc_invalidSeek)
 
 TEST(group_matrix_bufAlloc, matrix_bufAlloc_initVal)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
 
 	TEST_ASSERT_EQUAL_INT(CHECK_OK, algebraTests_matrixZeroesCheck(&dynMat));
 }
@@ -392,7 +392,7 @@ TEST(group_matrix_bufAlloc, matrix_bufAlloc_readAndWrite)
 {
 	int row, col, i;
 
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
 
 	/* Assigning different value to every matrix element */
 	i = 0;
@@ -416,11 +416,11 @@ TEST(group_matrix_bufAlloc, matrix_bufAlloc_readAndWrite)
 
 TEST(group_matrix_bufAlloc, matrix_bufAlloc_invalidArgs)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, 0, COLS));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, ROWS, 0));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, sqrt(UINT_MAX), sqrt(UINT_MAX)));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, UINT_MAX, UINT_MAX));
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, 0, 0));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, 0, COLS));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, ROWS, 0));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, sqrt(UINT_MAX), sqrt(UINT_MAX)));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, UINT_MAX, UINT_MAX));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, 0, 0));
 }
 
 
@@ -457,7 +457,7 @@ TEST_TEAR_DOWN(group_matrix_bufFree)
 
 TEST(group_matrix_bufFree, matrix_bufFree_std)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
 
 	matrix_bufFree(&dynMat);
 
@@ -467,7 +467,7 @@ TEST(group_matrix_bufFree, matrix_bufFree_std)
 
 TEST(group_matrix_bufFree, matrix_bufFree_doubleFreeSafe)
 {
-	TEST_ASSERT_EQUAL_INT(BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
+	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&dynMat, ROWS, COLS));
 
 	matrix_bufFree(&dynMat);
 	TEST_ASSERT_NULL(dynMat.data);
