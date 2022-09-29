@@ -197,7 +197,6 @@ static int quad_takeoff(const flight_mode_t *mode)
 static int quad_hover(const flight_mode_t *mode)
 {
 	time_t now, end, lastLog;
-	ekf_state_t state;
 
 	log_enable();
 	log_print("HOVER - alt: %d, time: %lld\n", mode->hover.alt, mode->hover.time);
@@ -206,7 +205,6 @@ static int quad_hover(const flight_mode_t *mode)
 	end = now + mode->hover.time;
 	lastLog = 0;
 
-#if TEST_ATTITUDE
 	while (now < end) {
 		/* Enable logging once per 'LOG_PERIOD' milliseconds */
 		if (now - lastLog > LOG_PERIOD) {
@@ -223,15 +221,6 @@ static int quad_hover(const flight_mode_t *mode)
 
 		now = quad_timeMsGet();
 	}
-#else
-	ekf_stateGet(&state);
-	while ((quad_timeMsGet() < now + mode->hover.time) || DELTA(state.enuZ, mode->hover.alt) > ALTITUDE_TOLERANCE) {
-		if (quad_motorsCtrl(quad_common.throttle.max, mode->hover.alt, 0, 0, 0) < 0) {
-			return -1;
-		}
-		ekf_stateGet(&state);
-	}
-#endif
 
 	return 0;
 }

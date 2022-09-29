@@ -60,7 +60,8 @@ static float baroMemoryAt(int index, enum baroDimension dimension)
 	}
 }
 
-
+#if 0
+/* Commented out as it will be used for vertical speed estimation when necessary, but is unused now and causes warnings */
 static float filterBaroSpeed(void)
 {
 	int i, filterSpan = sizeof(baroMemory[0]) / sizeof(float);
@@ -86,6 +87,7 @@ static float filterBaroSpeed(void)
 		return 0;
 	}
 }
+#endif
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
