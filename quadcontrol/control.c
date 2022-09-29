@@ -160,8 +160,9 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 static int quad_takeoff(const flight_mode_t *mode)
 {
 	float throttle, coeff;
-	time_t spoolStart, spoolEnd, now;
+	time_t spoolStart, spoolEnd, now, lastLog = 0;
 
+	log_enable();
 	log_print("TAKEOFF - alt: %d\n", mode->hover.alt);
 
 	spoolStart = now = quad_timeMsGet();
@@ -169,6 +170,14 @@ static int quad_takeoff(const flight_mode_t *mode)
 
 	while (now < spoolEnd) {
 		now = quad_timeMsGet();
+
+		/* Enable logging once per 'LOG_PERIOD' milliseconds */
+		if (now - lastLog > LOG_PERIOD) {
+			lastLog = now;
+			log_enable();
+		} else {
+			log_disable();
+		}
 
 		coeff = (float)(now - spoolStart) / mode->takeoff.time;
 		throttle = coeff * quad_common.throttle.max;
