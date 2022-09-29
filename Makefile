@@ -14,8 +14,13 @@ CFLAGS += -I$(PROJECT_PATH)/
 # default path for the programs to be installed in rootfs
 DEFAULT_INSTALL_PATH := /usr/bin
 
+ifeq ("$(TARGET)","host-generic-pilot")
+	ALL_MAKES := $(shell find algebra -name Makefile)
+else
+	ALL_MAKES := $(shell find . -mindepth 2 -name Makefile)
+endif
+
 # read out all components
-ALL_MAKES := $(shell find . -mindepth 2 -name Makefile)
 include $(ALL_MAKES)
 
 # create generic targets
