@@ -10,4 +10,5 @@
 NAME := libcalib
 LOCAL_SRCS := calib.c
 LOCAL_HEADERS := calib.h
+DEPS := libalgeb
 include $(static-lib.mk)
