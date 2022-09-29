@@ -77,7 +77,7 @@ static const flight_mode_t scenario[] = {
 	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
 	{ .type = flight_hover, .hover = { .alt = -2000, .time = 6000 } },
 	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
-	{ .type = flight_landing },
+	{ .type = flight_landing, .landing = { .time = 6000 } },
 	{ .type = flight_end },
 };
 #else
@@ -175,7 +175,8 @@ static int quad_takeoff(const flight_mode_t *mode)
 		if (now - lastLog > LOG_PERIOD) {
 			lastLog = now;
 			log_enable();
-		} else {
+		}
+		else {
 			log_disable();
 		}
 
@@ -238,18 +239,33 @@ static int quad_hover(const flight_mode_t *mode)
 
 static int quad_landing(const flight_mode_t *mode)
 {
-	float coeff;
+	float throttle, coeff;
+	time_t spoolStart, spoolEnd, now, lastLog = 0;
+
+	log_enable();
 	log_print("LANDING\n");
 
-	/* Soft landing */
-	for (coeff = 1.0; coeff > 0.00001; coeff -= 0.02f) {
-#if TEST_ATTITUDE
-		if (quad_motorsCtrl(coeff * quad_common.throttle.max, 0, 0, 0, ANGLE_HOLD) < 0) {
+	spoolStart = now = quad_timeMsGet();
+	spoolEnd = spoolStart + mode->landing.time;
+
+	while (now < spoolEnd) {
+		now = quad_timeMsGet();
+
+		/* Enable logging once per 'LOG_PERIOD' milliseconds */
+		if (now - lastLog > LOG_PERIOD) {
+			lastLog = now;
+			log_enable();
+		}
+		else {
+			log_disable();
+		}
+
+		coeff = (float)(now - spoolStart) / mode->landing.time;
+		throttle = (1.f - coeff) * quad_common.throttle.max;
+
+		if (quad_motorsCtrl(throttle, 0, 0, 0, ANGLE_HOLD) < 0) {
 			return -1;
 		}
-#endif
-		/* TODO: do not change throttle value, decrease gradually altitude to change throttle */
-		usleep(1000 * 100);
 	}
 
 	return 0;

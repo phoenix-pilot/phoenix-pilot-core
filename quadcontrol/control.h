@@ -51,12 +51,18 @@ typedef struct {
 
 
 typedef struct {
+	time_t time; /* time of engine spool down in milliseconds */
+} flight_landing_t;
+
+
+typedef struct {
 	flight_type_t type;
 
 	union {
 		flight_takeoff_t takeoff;
 		flight_position_t pos;
 		flight_hover_t hover;
+		flight_landing_t landing;
 	};
 } flight_mode_t;
 
