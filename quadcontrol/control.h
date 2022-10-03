@@ -21,7 +21,8 @@
 /* Flight Modes Definitions */
 
 /* Basic quadcopter flight modes */
-typedef enum { flight_takeoff = 0, flight_pos, flight_hover, flight_landing, flight_end } flight_type_t;
+typedef enum { /* Auto modes:   */ flight_idle = 0, flight_takeoff, flight_pos, flight_hover, flight_landing, flight_end,
+               /* Manual modes: */ flight_manual, flight_manualArm, flight_manualDisarm, flight_manualAbort } flight_type_t;
 
 
 typedef struct {
