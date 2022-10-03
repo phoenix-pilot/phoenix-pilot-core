@@ -17,6 +17,7 @@
 #include "log.h"
 
 #include <ekflib.h>
+#include <rcbus.h>
 
 #include <math.h>
 #include <errno.h>
@@ -29,6 +30,8 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/threads.h>
+
+#include <board_config.h>
 
 
 /* Flag enable hackish code for initial tests which ignore altitude and yaw */
@@ -50,6 +53,10 @@
 
 struct {
 	pid_ctx_t pids[PID_NUMBERS];
+
+	handle_t rcbusLock;
+	uint16_t rcChannels[RC_CHANNELS_CNT];
+	volatile flight_type_t currFlight;
 
 	time_t lastTime;
 #if TEST_ATTITUDE
@@ -157,6 +164,8 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 }
 
 
+/* Handling flight modes */
+
 static int quad_takeoff(const flight_mode_t *mode)
 {
 	float throttle, coeff;
@@ -168,7 +177,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 	spoolStart = now = quad_timeMsGet();
 	spoolEnd = spoolStart + mode->takeoff.time;
 
-	while (now < spoolEnd) {
+	while (now < spoolEnd && quad_common.currFlight < flight_manual) {
 		now = quad_timeMsGet();
 
 		/* Enable logging once per 'LOG_PERIOD' milliseconds */
@@ -205,7 +214,7 @@ static int quad_hover(const flight_mode_t *mode)
 	end = now + mode->hover.time;
 	lastLog = 0;
 
-	while (now < end) {
+	while (now < end && quad_common.currFlight < flight_manual) {
 		/* Enable logging once per 'LOG_PERIOD' milliseconds */
 		if (now - lastLog > LOG_PERIOD) {
 			lastLog = now;
@@ -237,7 +246,7 @@ static int quad_landing(const flight_mode_t *mode)
 	spoolStart = now = quad_timeMsGet();
 	spoolEnd = spoolStart + mode->landing.time;
 
-	while (now < spoolEnd) {
+	while (now < spoolEnd && quad_common.currFlight < flight_manual) {
 		now = quad_timeMsGet();
 
 		/* Enable logging once per 'LOG_PERIOD' milliseconds */
@@ -261,33 +270,107 @@ static int quad_landing(const flight_mode_t *mode)
 }
 
 
+static int quad_manual(void)
+{
+	float throttle;
+	time_t now, lastLog = 0;
+	int32_t alt, roll, pitch, yaw;
+
+	log_enable();
+	log_print("RC Control\n");
+
+	now = quad_timeMsGet();
+	while (quad_common.currFlight == flight_manual) {
+		now = quad_timeMsGet();
+
+		/* Enable logging once per 'LOG_PERIOD' milliseconds */
+		if (now - lastLog > LOG_PERIOD) {
+			lastLog = now;
+			log_enable();
+		}
+		else {
+			log_disable();
+		}
+
+		mutexLock(quad_common.rcbusLock);
+		/* TODO: calculate control values based on rc data from quad_common.rcChannels[] */
+		throttle = 0;
+		alt = 0;
+		roll = 0;
+		pitch = 0;
+		yaw = 0;
+		mutexUnlock(quad_common.rcbusLock);
+
+		if (quad_motorsCtrl(throttle, alt, roll, pitch, yaw) < 0) {
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+
 static int quad_run(void)
 {
-	int err = 0;
-	unsigned int i;
+	int err = 0, armed = 0;
+	unsigned int i = 0, run = 1;
 
 	quad_common.lastTime = quad_timeMsGet();
 
-	for (i = 0; i < sizeof(scenario) / sizeof(scenario[0]); ++i) {
-		switch (scenario[i].type) {
+	while (i < sizeof(scenario) / sizeof(scenario[0]) && run == 1) {
+
+		if (quad_common.currFlight < flight_manual) {
+			quad_common.currFlight = scenario[i].type;
+		}
+
+		log_enable();
+		switch (quad_common.currFlight) {
+			/* Handling auto modes: */
 			case flight_takeoff:
-				/* Arm motors */
+				armed = 1;
 				mma_start();
-				err = quad_takeoff(&scenario[i]);
+				err = quad_takeoff(&scenario[i++]);
 				break;
 
 			case flight_hover:
-				err = quad_hover(&scenario[i]);
+				err = quad_hover(&scenario[i++]);
 				break;
 
 			case flight_landing:
-				err = quad_landing(&scenario[i]);
+				err = quad_landing(&scenario[i++]);
 				break;
 
 			case flight_end:
 				log_print("end of the scenario\n");
-				/* Disarm motors */
+				armed = 0;
 				mma_stop();
+				break;
+
+			/* Handling manual modes: */
+			case flight_manual:
+				err = quad_manual();
+				break;
+
+			case flight_manualArm:
+				if (armed == 0) {
+					log_print("Manual arming\n");
+					mma_start();
+					armed = 1;
+				}
+				break;
+
+			case flight_manualDisarm:
+				if (armed == 1) {
+					log_print("Manual disarming\n");
+					mma_stop();
+					armed = 0;
+					run = 0;
+				}
+				break;
+
+			case flight_manualAbort:
+				log_print("Mission abort\n");
+				err = -1;
 				break;
 
 			default:
@@ -295,11 +378,52 @@ static int quad_run(void)
 		}
 
 		if (err < 0) {
+			/* Disarm motors */
+			mma_stop();
 			break;
 		}
 	}
 
 	return err;
+}
+
+
+static void quad_rcbusHandler(const rcbus_msg_t *msg)
+{
+	const static uint16_t maxTriggerVal = MIN_CHANNEL_VALUE + ((95 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) / 100);
+	const static uint16_t minTriggerVal = MIN_CHANNEL_VALUE + ((5 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) / 100);
+
+	if (msg->channelsCnt < RC_CHANNELS_CNT) {
+		fprintf(stderr, "quad-control: rcbus supports insufficient number of channels\n");
+		return;
+	}
+
+	/* Manual Arm: SWA == MAX, SWB == MIN and Throttle == 0 and scenario cannot be launched */
+	if (msg->channels[RC_SWA_CH] >= maxTriggerVal && msg->channels[RC_SWB_CH] <= minTriggerVal
+			&& msg->channels[RC_LEFT_VSTICK_CH] <= minTriggerVal && quad_common.currFlight < flight_takeoff) {
+		quad_common.currFlight = flight_manualArm;
+	}
+	/* Emergency abort: SWA == MAX, SWB == MAX, SWC == MAX, SWD == MAX */
+	else if (msg->channels[RC_SWA_CH] >= maxTriggerVal && msg->channels[RC_SWB_CH] >= maxTriggerVal
+			&& msg->channels[RC_SWC_CH] >= maxTriggerVal && msg->channels[RC_SWD_CH] >= maxTriggerVal) {
+		quad_common.currFlight = flight_manualAbort;
+	}
+	/* Manual Mode: SWA == MAX, SWB == MAX */
+	else if (msg->channels[RC_SWA_CH] >= maxTriggerVal && msg->channels[RC_SWB_CH] >= maxTriggerVal) {
+		quad_common.currFlight = flight_manual;
+	}
+	/* Manual Disarm: SWA == MIN, SWB == MIN */
+	else if (msg->channels[RC_SWA_CH] <= minTriggerVal && msg->channels[RC_SWB_CH] <= minTriggerVal
+			&& quad_common.currFlight >= flight_manual) {
+		quad_common.currFlight = flight_manualDisarm;
+	}
+
+
+	if (quad_common.currFlight == flight_manual) {
+		mutexLock(quad_common.rcbusLock);
+		memcpy(quad_common.rcChannels, msg->channels, sizeof(quad_common.rcChannels));
+		mutexUnlock(quad_common.rcbusLock);
+	}
 }
 
 
@@ -320,6 +444,7 @@ static inline int quad_divLine(char **line, char **var, float *val)
 
 	return EOK;
 }
+
 
 #if TEST_ATTITUDE
 static int quad_attParse(FILE *file)
@@ -365,6 +490,7 @@ static int quad_attParse(FILE *file)
 	return err;
 }
 #endif
+
 
 static int quad_pidParse(FILE *file, unsigned int i)
 {
@@ -528,19 +654,32 @@ static void quad_done(void)
 {
 	mma_done();
 	ekf_done();
+	rcbus_done();
+
+	resourceDestroy(quad_common.rcbusLock);
 }
 
 
 static int quad_init(void)
 {
+	int res;
 	unsigned int i = 0;
 
 	/* Enabling logging by default */
 	log_enable();
 
+	/* Set idle flight mode */
+	quad_common.currFlight = flight_idle;
+
+	res = mutexCreate(&quad_common.rcbusLock);
+	if (res < 0) {
+		return res;
+	}
+
 	/* PID initialization alt, roll, pitch, yaw */
 	if (quad_configRead() < 0) {
 		fprintf(stderr, "quadcontrol: cannot parse %s\n", PATH_PIDS_CONFIG);
+		resourceDestroy(quad_common.rcbusLock);
 		return -1;
 	}
 
@@ -548,6 +687,7 @@ static int quad_init(void)
 	for (i = 0; i < PID_NUMBERS; ++i) {
 		if (pid_init(&quad_common.pids[i]) < 0) {
 			fprintf(stderr, "quadcontrol: cannot initialize PID %d\n", i);
+			resourceDestroy(quad_common.rcbusLock);
 			return -1;
 		}
 	}
@@ -557,19 +697,39 @@ static int quad_init(void)
 	/* MMA initialization */
 	if (mma_init(&quadCoeffs) < 0) {
 		fprintf(stderr, "quadcontrol: cannot initialize mma module\n");
+		resourceDestroy(quad_common.rcbusLock);
 		return -1;
 	}
+
+
+	/* RC bus initialization */
+	if (rcbus_init(PATH_DEV_RC_BUS, rc_typeIbus) < 0) {
+		fprintf(stderr, "quadcontrol: cannot initialize rcbus using %s\n", PATH_DEV_RC_BUS);
+		resourceDestroy(quad_common.rcbusLock);
+		return -1;
+	}
+
+	if (rcbus_run(quad_rcbusHandler, 500) < 0) {
+		fprintf(stderr, "quadcontrol: cannot run rcbus\n");
+		resourceDestroy(quad_common.rcbusLock);
+		return -1;
+	}
+
 
 	/* EKF initialization */
 	if (ekf_init() < 0) {
 		fprintf(stderr, "quadcontrol: cannot initialize ekf\n");
+		resourceDestroy(quad_common.rcbusLock);
 		return -1;
 	}
 
+
 	if (ekf_run() < 0) {
 		fprintf(stderr, "quadcontrol: cannot run ekf\n");
+		resourceDestroy(quad_common.rcbusLock);
 		return -1;
 	}
+
 
 	/* EKF needs time to calibrate itself */
 	sleep(10);
