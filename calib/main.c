@@ -17,8 +17,9 @@
 #include <stdbool.h>
 #include <errno.h>
 
+#include <hmap.h>
+
 #include "calibtool.h"
-#include "hmap.h"
 
 #define PATH_CALIB_FILE "/etc/calib.conf" /* Path to calibration parameters file */
 #define CALIBS_SIZE     16                /* Maximum number of calibrations available. Can be freely increased */
