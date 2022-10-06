@@ -158,7 +158,7 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 		return -1;
 	}
 
-	usleep(1000 * 2);
+	usleep(1000);
 
 	return 0;
 }
