@@ -38,10 +38,6 @@ static matrix_t stMat = { .data = buf, .cols = COLS, .rows = ROWS, .transposed =
 static matrix_t M1, M2, M3;
 
 
-/* Must be different than zero and one */
-static float initVal[] = { 2.0 };
-static int initValLen = 1;
-
 /* ##############################################################################
  * -----------------------        matrix_trp tests       ------------------------
  * ############################################################################## */
