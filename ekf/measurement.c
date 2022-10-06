@@ -201,7 +201,7 @@ static void meas_mag2si(sensor_event_t *evt, vec_t *vec)
 void meas_imuCalib(void)
 {
 	int i, avg = IMU_CALIB_AVG;
-	vec_t gvec = { .x = 0, .y = 0, .z = 1 }, versorX = { .x = 1, .y = 0, .z = 0 }, n;
+	vec_t gvec = { .x = 0, .y = 0, .z = -1 }, versorX = { .x = -1, .y = 0, .z = 0 }, n;
 	vec_t acc, gyr, mag, accAvg, gyrAvg, magAvg;
 	quat_t idenQuat;
 	sensor_event_t accEvt, gyrEvt, magEvt;
@@ -240,7 +240,7 @@ void meas_imuCalib(void)
 	/* calculate initial rotation */
 	vec_normalize(&accAvg);
 	vec_normalize(&magAvg);
-	vec_cross(&accAvg, &magAvg, &n);
+	vec_cross(&magAvg, &accAvg, &n);
 	quat_frameRot(&accAvg, &n, &gvec, &versorX, &meas_common.calib.init_q, &idenQuat);
 }
 
