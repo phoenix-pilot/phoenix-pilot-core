@@ -50,8 +50,9 @@ TEST_SETUP(group_matrix_sandwitch_stdMat)
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&Expected, buffs_rowsAsandB, buffs_colsAsandB, buffs_AsandB, buffs_colsAsandB * buffs_rowsAsandB));
 
-	/* Allocating matrix for results */
+	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
+	algebraTests_buffFill(&M3, initVal, initValLen);
 
 	/* Allocating temporary matrix */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&tmp, M1.rows, M2.cols));
@@ -169,8 +170,9 @@ TEST_SETUP(group_matrix_sandwitch_bigMat)
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&Expected, buffs_rowsGsandH, buffs_colsGsandH, buffs_GsandH, buffs_colsGsandH * buffs_rowsGsandH));
 
-	/* Allocating matrix for results */
+	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
+	algebraTests_buffFill(&M3, initVal, initValLen);
 
 	/* Allocating temporary matrix */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&tmp, M1.rows, M2.cols));
@@ -456,8 +458,9 @@ TEST_SETUP(group_matrix_sparseSandwitch_stdMat)
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&Expected, buffs_rowsAsandB, buffs_colsAsandB, buffs_AsandB, buffs_colsAsandB * buffs_rowsAsandB));
 
-	/* Allocating matrix for results */
+	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
+	algebraTests_buffFill(&M3, initVal, initValLen);
 
 	/* Allocating temporary matrix */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&tmp, M1.rows, M2.cols));
@@ -574,8 +577,9 @@ TEST_SETUP(group_matrix_sparseSandwitch_bigMat)
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&Expected, buffs_rowsGsandH, buffs_colsGsandH, buffs_GsandH, buffs_colsGsandH * buffs_rowsGsandH));
 
-	/* Allocating matrix for results */
+	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
+	algebraTests_buffFill(&M3, initVal, initValLen);
 
 	/* Allocating temporary matrix */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&tmp, M1.rows, M2.cols));
