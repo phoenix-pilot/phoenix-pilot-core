@@ -34,8 +34,8 @@ DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, IMUMEAS_ROWS)
 extern kalman_init_t init_values;
 
 /* constants */
-static vec_t true_g = { .x = 0, .y = 0, .z = 1 };
-static vec_t x_versor = { .x = 1, .y = 0, .z = 0 };
+static vec_t true_g = { .x = 0, .y = 0, .z = -1 };
+static vec_t x_versor = { .x = -1, .y = 0, .z = 0 };
 
 vec_t imu_memory[5];
 int imu_mem_entry = 0;
