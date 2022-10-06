@@ -164,6 +164,10 @@ extern int algebraTests_transposeSwap(matrix_t *M);
  * ############################################################################## */
 
 
+/* Function checks if it should be possible to allocate such a matrix. Function checks if there is no overflow while calculating `rows` *` cols` and if there is enough memory. */
+extern int algebraTests_matrixAllocable(unsigned int rows, unsigned int cols);
+
+
 /* Function checks if every matrix element is zero */
 extern int algebraTests_matrixZeroesCheck(matrix_t *A);
 

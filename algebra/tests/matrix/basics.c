@@ -13,6 +13,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include <unity_fixture.h>
 
@@ -416,10 +417,21 @@ TEST(group_matrix_bufAlloc, matrix_bufAlloc_readAndWrite)
 
 TEST(group_matrix_bufAlloc, matrix_bufAlloc_invalidArgs)
 {
+	unsigned int rows, cols;
+	rows = cols = sqrt(UINT_MAX);
+
+	if (algebraTests_matrixAllocable(rows, cols) == CHECK_FAIL) {
+		TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, rows, cols));
+	}
+
+	rows = cols = UINT_MAX;
+
+	if (algebraTests_matrixAllocable(rows, cols) == CHECK_FAIL) {
+		TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, rows, cols));
+	}
+
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, 0, COLS));
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, ROWS, 0));
-	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, sqrt(UINT_MAX), sqrt(UINT_MAX)));
-	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, UINT_MAX, UINT_MAX));
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_FAIL, matrix_bufAlloc(&dynMat, 0, 0));
 }
 
