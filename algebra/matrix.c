@@ -197,6 +197,7 @@ int matrix_sparseProd(matrix_t *A, matrix_t *B, matrix_t *C)
 			if (A->rows != B->cols || tmp.cols != B->rows || tmp.rows != A->cols) {
 				return -1;
 			}
+			memset(tmp.data, 0, tmp.cols * tmp.rows * sizeof(float));
 
 			for (row = 0; row < A->cols; row++) {
 				for (col = 0; col < A->rows; col++) {
@@ -214,6 +215,7 @@ int matrix_sparseProd(matrix_t *A, matrix_t *B, matrix_t *C)
 			if (A->rows != B->rows || tmp.cols != B->cols || tmp.rows != A->cols) {
 				return -1;
 			}
+			memset(tmp.data, 0, tmp.cols * tmp.rows * sizeof(float));
 
 			for (row = 0; row < A->cols; row++) {
 				for (col = 0; col < A->rows; col++) {
@@ -233,6 +235,7 @@ int matrix_sparseProd(matrix_t *A, matrix_t *B, matrix_t *C)
 			if (A->cols != B->cols || tmp.cols != B->rows || tmp.rows != A->rows) {
 				return -1;
 			}
+			memset(tmp.data, 0, tmp.cols * tmp.rows * sizeof(float));
 
 			for (row = 0; row < A->rows; row++) {
 				for (col = 0; col < A->cols; col++) {
@@ -251,6 +254,7 @@ int matrix_sparseProd(matrix_t *A, matrix_t *B, matrix_t *C)
 			if (A->cols != B->rows || tmp.cols != B->cols || tmp.rows != A->rows) {
 				return -1;
 			}
+			memset(tmp.data, 0, tmp.cols * tmp.rows * sizeof(float));
 
 			for (row = 0; row < A->rows; row++) {
 				for (col = 0; col < A->cols; col++) {
