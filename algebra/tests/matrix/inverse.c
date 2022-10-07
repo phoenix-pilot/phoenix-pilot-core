@@ -48,8 +48,9 @@ TEST_SETUP(group_matrix_inv_stdMat)
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&Expected, buffs_rowsInvA, buffs_colsInvA, buffs_invA, buffs_colsInvA * buffs_rowsInvA));
 
-	/* Allocating result matrix */
+	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M2, Expected.rows, Expected.cols));
+	algebraTests_buffFill(&M2, initVal, initValLen);
 
 	bufLen = M1.rows * M1.cols * 2;
 	buf = malloc(sizeof(float) * bufLen);
@@ -149,8 +150,9 @@ TEST_SETUP(group_matrix_inv_bigMat)
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsJ, buffs_colsJ, buffs_J, buffs_colsJ * buffs_rowsJ));
 
-	/* Allocating result matrix */
+	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M2, M1.rows, M1.cols));
+	algebraTests_buffFill(&M2, initVal, initValLen);
 
 	/* Allocating temporary matrix */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, M1.rows, M1.cols));
@@ -268,8 +270,9 @@ TEST(group_matrix_inv_otherMats, matrix_inv_zeroOnDiag)
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&Expected, buffs_rowsInvK, buffs_colsInvK, buffs_invK, buffs_colsInvK * buffs_rowsInvK));
 
-	/* Allocating result matrix */
+	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M2, Expected.rows, Expected.cols));
+	algebraTests_buffFill(&M2, initVal, initValLen);
 
 	bufLen = M1.rows * M1.cols * 2;
 	buf = malloc(sizeof(float) * bufLen);
@@ -299,8 +302,9 @@ TEST_SETUP(group_matrix_inv_badMat)
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&M1, buffs_rowsJ, buffs_colsJ, buffs_J, buffs_colsJ * buffs_rowsJ));
 
-	/* Allocating result matrix */
+	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M2, M1.rows, M1.cols));
+	algebraTests_buffFill(&M2, initVal, initValLen);
 
 	bufLen = M1.rows * M1.cols * 2;
 	buf = malloc(sizeof(float) * bufLen);

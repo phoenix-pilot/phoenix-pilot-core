@@ -48,8 +48,9 @@ TEST_SETUP(group_matrix_prod_stdMat)
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&Expected, buffs_rowsCtimesD, buffs_colsCtimesD, buffs_CtimesD, buffs_colsCtimesD * buffs_rowsCtimesD));
 
-	/* Allocating matrix for results */
+	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
+	algebraTests_buffFill(&M3, initVal, initValLen);
 }
 
 
@@ -163,8 +164,9 @@ TEST_SETUP(group_matrix_prod_bigMat)
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&Expected, buffs_rowsEtimesF, buffs_colsEtimesF, buffs_EtimesF, buffs_colsEtimesF * buffs_rowsEtimesF));
 
-	/* Allocating matrix for results */
+	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
+	algebraTests_buffFill(&M3, initVal, initValLen);
 
 	M4.data = NULL;
 	M5.data = NULL;
@@ -416,8 +418,9 @@ TEST_SETUP(group_matrix_sparseProd_stdMat)
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&Expected, buffs_rowsCtimesD, buffs_colsCtimesD, buffs_CtimesD, buffs_colsCtimesD * buffs_rowsCtimesD));
 
-	/* Allocating matrix for results */
+	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
+	algebraTests_buffFill(&M3, initVal, initValLen);
 }
 
 
@@ -531,8 +534,9 @@ TEST_SETUP(group_matrix_sparseProd_bigMat)
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK,
 		algebraTests_createAndFill(&Expected, buffs_rowsEtimesF, buffs_colsEtimesF, buffs_EtimesF, buffs_colsEtimesF * buffs_rowsEtimesF));
 
-	/* Allocating matrix for results */
+	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
+	algebraTests_buffFill(&M3, initVal, initValLen);
 
 	M4.data = NULL;
 	M5.data = NULL;
