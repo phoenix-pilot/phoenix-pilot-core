@@ -94,6 +94,7 @@ void *hmap_get(const hmap_t *hm, const char *key)
 int hmap_insert(hmap_t *hm, const char *key, void *val)
 {
 	unsigned long i, hash;
+	char *keyCpy;
 
 	if (hm == NULL || key == NULL || val == NULL) {
 		errno = EINVAL;
@@ -121,9 +122,15 @@ int hmap_insert(hmap_t *hm, const char *key, void *val)
 		} while (hm->arr[i].value != NULL);
 	}
 
+	keyCpy = malloc(strlen(key) + 1);
+	if (keyCpy == NULL) {
+		return -1;
+	}
+	strcpy(keyCpy, key);
+
 	/* fill empty entry */
 	hm->arr[i].value = val;
-	hm->arr[i].key = key;
+	hm->arr[i].key = keyCpy;
 	hm->arr[i].hash = hash;
 
 	hm->size++;
@@ -138,6 +145,9 @@ void hmap_clear(hmap_t *hm)
 
 	if (hm != NULL) {
 		for (i = 0; i < hm->capacity; i++) {
+			if (hm->arr[i].value != NULL) {
+				free(hm->arr[i].key);
+			}
 			hm->arr[i].value = NULL;
 		}
 
@@ -148,7 +158,15 @@ void hmap_clear(hmap_t *hm)
 
 void hmap_free(hmap_t *hm)
 {
+	int i;
+
 	if (hm != NULL) {
+		for (i = 0; i < hm->capacity; i++) {
+			if (hm->arr[i].value != NULL) {
+				free(hm->arr[i].key);
+			}
+		}
+
 		free(hm->arr);
 		free(hm);
 	}
