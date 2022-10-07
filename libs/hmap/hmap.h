@@ -13,6 +13,10 @@
  * %LICENSE%
  */
 
+#ifndef HMAP_H
+#define HMAP_H
+
+
 #include <stdlib.h>
 
 /* Hashmap entry representing key/value pair */
@@ -56,3 +60,6 @@ void hmap_free(hmap_t *hm);
 
 /* Allocates a hashmap of `capacity` capacity */
 hmap_t *hmap_init(size_t capacity);
+
+
+#endif
