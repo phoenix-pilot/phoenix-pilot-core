@@ -17,7 +17,7 @@
 
 /* Hashmap entry representing key/value pair */
 typedef struct _hmap_entry_t {
-	const char *key;    /* key of a hashmap entry */
+	char *key;          /* key of a hashmap entry */
 	void *value;        /* value referenced by 'key' */
 	unsigned long hash; /* (hashed key) mod (hasmap capacity) */
 } hmap_entry_t;
