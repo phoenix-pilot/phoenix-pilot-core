@@ -7,7 +7,7 @@
 #
 
 # Hash map library
-NAME := hmap
+NAME := libhmap
 LOCAL_SRCS := hmap.c
 LOCAL_HEADERS := hmap.h
 include $(static-lib.mk)
