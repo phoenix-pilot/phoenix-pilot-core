@@ -43,6 +43,10 @@ static inline int quat_cmp(const quat_t *A, const quat_t *B)
 }
 
 
+/* Calculates length of quaternion A */
+extern float quat_len(const quat_t *A);
+
+
 /* C = A + B; stores sum of A and B into C */
 extern void quat_sum(const quat_t *A, const quat_t *B, quat_t *C);
 

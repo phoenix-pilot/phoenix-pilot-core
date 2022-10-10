@@ -77,6 +77,12 @@ void quat_cjg(quat_t *A)
 	// return (quat_t){.a = A->a, .i = -A->i, .j = -A->j, .k = -A->k};
 }
 
+/* Calculates length of quaternion A */
+float quat_len(const quat_t *A)
+{
+	return sqrt(A->a * A->a + A->i * A->i + A->j * A->j + A->k * A->k);
+}
+
 
 void quat_sandwich(const quat_t *A, const quat_t *B, quat_t *C)
 {
