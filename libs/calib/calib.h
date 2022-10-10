@@ -15,6 +15,7 @@
 #define _LIBCALIB_CALIB_H_
 
 #include <matrix.h>
+#include <quat.h>
 
 #define CALIB_PATH    "/etc/calib.conf"
 #define NUM_OF_MOTORS 4
@@ -35,8 +36,12 @@
 #define MOTLIN_TAG    "motlin"
 #define MOTLIN_PARAMS 8
 
+#define ACCROT_TAG      "accrot"
+#define ACCROT_PARAMS   4
+#define ACCROT_QUAT_ERR 0.001f
 
-typedef enum { typeMagmot = 0, typeMagiron, typeMotlin } calibType_t;
+
+typedef enum { typeMagmot = 0, typeMagiron, typeMotlin, typeAccrot } calibType_t;
 
 
 typedef struct {
@@ -54,6 +59,10 @@ typedef struct {
 		struct {
 			float motorEq[NUM_OF_MOTORS][2]; /* motorEq[motorId 0/1/2...NUM_OF_MOTORS][equation_parameter a/b] */
 		} motlin;
+
+		struct {
+			quat_t frameQ; /* initial rotation quaternion of accelerometer in relation to body frame */
+		} accrot;
 	} params;
 } calib_data_t;
 
