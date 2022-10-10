@@ -65,7 +65,7 @@ int sensc_init(const char *path, bool corrEnable)
 	unsigned int err = 0;
 
 	sensc_common.corrEnable = corrEnable;
-	if (sensc_common.corrEnable) {
+	if (sensc_common.corrEnable == true) {
 		if (corr_init() != 0) {
 			fprintf(stderr, "Cannot setup correction module\n");
 			return -1;
@@ -85,7 +85,7 @@ int sensc_init(const char *path, bool corrEnable)
 	if (err != 0) {
 		fprintf(stderr, "sensc: cannot open \"%s\"\n", path);
 
-		if (sensc_common.corrEnable) {
+		if (sensc_common.corrEnable == true) {
 			corr_done();
 		}
 		while (i >= 0) {
@@ -105,7 +105,7 @@ int sensc_init(const char *path, bool corrEnable)
 	if (err != 0) {
 		fprintf(stderr, "sensc: cannot setup sensor descriptors\n");
 
-		if (sensc_common.corrEnable) {
+		if (sensc_common.corrEnable == true) {
 			corr_done();
 		}
 		for (i = 0; i < (sizeof(sensc_common.fd) / sizeof(int)); i++) {
@@ -127,7 +127,7 @@ void sensc_deinit(void)
 		close(sensc_common.fd[i]);
 	}
 
-	if (sensc_common.corrEnable) {
+	if (sensc_common.corrEnable == true) {
 		corr_done();
 	}
 }
@@ -168,8 +168,11 @@ int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 		}
 	}
 
-	if (sensc_common.corrEnable) {
+	if (sensc_common.corrEnable == true) {
 		corr_mag(magEvt);
+
+		/* assumption: IMU returns data in the same frame of reference */
+		corr_accrot(accelEvt, gyroEvt, magEvt);
 	}
 
 	return (flag == 0) ? 0 : -1;
