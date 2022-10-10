@@ -12,6 +12,10 @@ NAME := algebra_tests
 LOCAL_SRCS := main.c
 DEP_LIBS := libalgeb
 
+ifeq ("$(TARGET)","host-generic-pilot")
+	LOCAL_LDFLAGS += -lm
+endif
+
 SRCS += $(wildcard $(LOCAL_DIR)matrix/*.c)
 SRCS += $(wildcard $(LOCAL_DIR)vec/*.c)
 SRCS += $(wildcard $(LOCAL_DIR)quat/*.c)

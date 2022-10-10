@@ -156,6 +156,24 @@ int algebraTests_invalidSeekCheck(matrix_t *M)
 }
 
 
+int algebraTests_matrixAllocable(unsigned int rows, unsigned int cols)
+{
+	float *help;
+
+	if (SIZE_MAX / rows < cols) {
+		return CHECK_FAIL;
+	}
+
+	help = calloc(rows * cols, sizeof(float));
+	if (help == NULL) {
+		return CHECK_FAIL;
+	}
+
+	free(help);
+	return CHECK_OK;
+}
+
+
 int algebraTests_matrixZeroesCheck(matrix_t *A)
 {
 	int rowsNum, colsNum, row, col;
