@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 
@@ -23,14 +22,11 @@
 #include <libsensors.h>
 
 #include <sensc.h>
-#include <mctl.h>
 #include <vec.h>
-#include <matrix.h>
 #include <calib.h>
 
 #include "calibtool.h"
 
-#define VECTOR_
 
 struct {
 	calib_data_t data;
@@ -52,6 +48,14 @@ const char *accrot_help(void)
 
 static int accrot_write(FILE *file)
 {
+	char base[] = "accq";
+	quat_t *q = &accrot_common.data.params.accrot.frameQ;
+
+	fprintf(file, "%s0 %f\n", base, q->a);
+	fprintf(file, "%s1 %f\n", base, q->i);
+	fprintf(file, "%s2 %f\n", base, q->j);
+	fprintf(file, "%s3 %f\n", base, q->k);
+
 	return 0;
 }
 
