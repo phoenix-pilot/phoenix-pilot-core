@@ -15,10 +15,15 @@
 #define _SENSC_CORR_H_
 
 #include <calib.h>
+#include <libsensors.h>
 
 
 /* Performs calibration on magnetometer data */
 void corr_mag(sensor_event_t *magEvt);
+
+
+/* performs initial data rotation based on accelerometer initial attitude quaternion */
+void corr_accrot(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt);
 
 
 /* deinitializes correction procedures */
