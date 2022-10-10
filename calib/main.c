@@ -63,7 +63,7 @@ static void calib_help(void)
 			fprintf(stderr, "calibtool: calibration %s lacks help function\n", cal->name);
 		}
 		else {
-			printf("  %s%s%s:\n  %s\n", COLOR_BOLD, cal->name, COLOR_OFF, cal->help());
+			printf("  %s%s%s: %s", COLOR_BOLD, cal->name, COLOR_OFF, cal->help());
 		}
 
 		cal = (calib_ops_t *)hmap_next(calib_common.calibs, &iter);
