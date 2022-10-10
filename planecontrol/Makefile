@@ -1,0 +1,10 @@
+#
+# Makefile for Phoenix-PILOT plane control
+#
+# Copyright 2022 Phoenix Systems
+#
+
+NAME := plane-control
+LOCAL_SRCS := control.c mma.c
+DEP_LIBS := libekf libalgeb libsensc libmctl libcalib
+include $(binary.mk)
