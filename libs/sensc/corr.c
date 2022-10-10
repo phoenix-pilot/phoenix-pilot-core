@@ -40,6 +40,7 @@ static const char *motorFiles[] = {
 struct {
 	calib_data_t magmot;
 	calib_data_t magiron;
+	calib_data_t accrot;
 
 	/* for magmot correction */
 	FILE *pwmFiles[NUM_OF_MOTORS];
@@ -94,7 +95,7 @@ void corr_done(void)
 
 int corr_init(void)
 {
-	int magironRet, magmotRet;
+	int magironRet, magmotRet, accrotRet;
 	int i;
 	bool err = false;
 
@@ -119,17 +120,14 @@ int corr_init(void)
 
 	magironRet = calib_readFile(CALIB_PATH, typeMagiron, &corr_common.magiron);
 	magmotRet = calib_readFile(CALIB_PATH, typeMagmot, &corr_common.magmot);
+	accrotRet = calib_readFile(CALIB_PATH, typeAccrot, &corr_common.accrot);
 
 	/* error checking */
-	if (magironRet != 0 || magmotRet != 0) {
-		if (magmotRet == 0) {
-			fprintf(stderr, "corr: failed at magmot init\n");
-			calib_free(&corr_common.magiron);
-		}
-		if (magironRet == 0) {
-			fprintf(stderr, "corr: failed at magiron init\n");
-			calib_free(&corr_common.magiron);
-		}
+	if (magironRet != 0 || magmotRet != 0 || accrotRet != 0) {
+
+		(magmotRet == 0) ? calib_free(&corr_common.magiron) : fprintf(stderr, "corr: magmot init failed\n");
+		(magironRet == 0) ? calib_free(&corr_common.magiron) : fprintf(stderr, "corr: magiron init failed\n");
+		(accrotRet == 0) ? calib_free(&corr_common.magiron) : fprintf(stderr, "corr: accrot init failed\n");
 
 		for (i = 0; i < NUM_OF_MOTORS; i++) {
 			fclose(corr_common.pwmFiles[i]);
@@ -224,4 +222,28 @@ void corr_mag(sensor_event_t *magEvt)
 	magEvt->mag.magX += magmotCorr.x;
 	magEvt->mag.magY += magmotCorr.y;
 	magEvt->mag.magZ += magmotCorr.z;
+}
+
+
+void corr_accrot(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt)
+{
+	vec_t accel = { .x = accelEvt->accels.accelX, .y = accelEvt->accels.accelY, .z = accelEvt->accels.accelZ };
+	vec_t gyro = { .x = gyroEvt->gyro.gyroX, .y = gyroEvt->gyro.gyroY, .z = gyroEvt->gyro.gyroZ };
+	vec_t mag = { .x = magEvt->mag.magX, .y = magEvt->mag.magY, .z = magEvt->mag.magZ };
+
+	quat_vecRot(&accel, &corr_common.accrot.params.accrot.frameQ);
+	quat_vecRot(&gyro, &corr_common.accrot.params.accrot.frameQ);
+	quat_vecRot(&mag, &corr_common.accrot.params.accrot.frameQ);
+
+	accelEvt->accels.accelX = accel.x;
+	accelEvt->accels.accelY = accel.y;
+	accelEvt->accels.accelZ = accel.z;
+
+	gyroEvt->gyro.gyroX = gyro.x;
+	gyroEvt->gyro.gyroY = gyro.y;
+	gyroEvt->gyro.gyroZ = gyro.z;
+
+	magEvt->mag.magX = mag.x;
+	magEvt->mag.magY = mag.y;
+	magEvt->mag.magZ = mag.z;
 }
