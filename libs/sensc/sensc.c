@@ -170,6 +170,9 @@ int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 
 	if (sensc_common.corrEnable) {
 		corr_mag(magEvt);
+
+		/* assumption: IMU returns data in the same frame of reference */
+		corr_accrot(accelEvt, gyroEvt, magEvt);
 	}
 
 	return (flag == 0) ? 0 : -1;
