@@ -200,9 +200,11 @@ static void meas_mag2si(sensor_event_t *evt, vec_t *vec)
 
 void meas_imuCalib(void)
 {
+	static const vec_t nedG = { .x = 0, .y = 0, .z = -1 }; /* earth acceleration versor in NED frame of reference */
+	static const vec_t nedY = { .x = 0, .y = 1, .z = 0 };  /* earth y versor (east) in NED frame of reference */
+
 	int i, avg = IMU_CALIB_AVG;
-	vec_t gvec = { .x = 0, .y = 0, .z = -1 }, versorX = { .x = -1, .y = 0, .z = 0 }, n;
-	vec_t acc, gyr, mag, accAvg, gyrAvg, magAvg;
+	vec_t acc, gyr, mag, accAvg, gyrAvg, magAvg, magxacc;
 	quat_t idenQuat;
 	sensor_event_t accEvt, gyrEvt, magEvt;
 
@@ -240,8 +242,8 @@ void meas_imuCalib(void)
 	/* calculate initial rotation */
 	vec_normalize(&accAvg);
 	vec_normalize(&magAvg);
-	vec_cross(&magAvg, &accAvg, &n);
-	quat_frameRot(&accAvg, &n, &gvec, &versorX, &meas_common.calib.init_q, &idenQuat);
+	vec_cross(&magAvg, &accAvg, &magxacc);
+	quat_frameRot(&nedG, &nedY, &accAvg, &magxacc, &meas_common.calib.init_q, &idenQuat);
 }
 
 void meas_baroCalib(void)

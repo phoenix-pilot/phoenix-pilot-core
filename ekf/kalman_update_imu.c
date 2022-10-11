@@ -33,9 +33,8 @@ DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, IMUMEAS_ROWS)
 
 extern kalman_init_t init_values;
 
-/* constants */
-static vec_t true_g = { .x = 0, .y = 0, .z = -1 };
-static vec_t x_versor = { .x = -1, .y = 0, .z = 0 };
+static const vec_t nedG = { .x = 0, .y = 0, .z = -1 }; /* earth acceleration versor in NED frame of reference */
+static const vec_t nedY = { .x = 0, .y = 1, .z = 0 };  /* earth y versor (east) in NED frame of reference */
 
 vec_t imu_memory[5];
 int imu_mem_entry = 0;
@@ -46,7 +45,7 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 {
 	vec_t accel, gyro, mag;
 	vec_t magFltrd, accelFltrd;
-	vec_t xp, gDiff;
+	vec_t magxacc, gDiff;
 	quat_t qEst, rot = { .a = qa, .i = -qb, .j = -qc, .k = -qd };
 	float qEstErr;
 	uint64_t timestamp;
@@ -65,12 +64,11 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 
 	/* prepare unrotated accelerometer measurement with earth_g added for prefiltered quaternion estimation */
 	/* TODO: we can consider storing direct accel measurements in state vector and rotate it on demand (change in jacobians required!) */
-	accelFltrd = (vec_t) { .x = ax, .y = ay, .z = az };
-	accelFltrd.z += EARTH_G;
+	accelFltrd = (vec_t) { .x = ax, .y = ay, .z = az - EARTH_G };
 	quat_vecRot(&accelFltrd, &rot);
 	gDiff.x = -accelFltrd.x;
 	gDiff.y = -accelFltrd.y;
-	gDiff.z = EARTH_G - accelFltrd.z;
+	gDiff.z = accelFltrd.z + EARTH_G;
 	quat_cjg(&rot);
 	/* calculate quaternion estimation error based on its nonstationarity. Empirically fitted parameters! */
 	qEstErr = 0.1 + 100 * vec_len(&gDiff) * vec_len(&gDiff) + 10 * vec_len(&gyro);
@@ -78,16 +76,16 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	/* calculate rotation quaternion based on current magnetometer reading and ekf filtered acceleration */
 	vec_normalize(&magFltrd);
 	vec_normalize(&accelFltrd);
-	vec_cross(&magFltrd, &accelFltrd, &xp);
-	vec_normalize(&xp);
-	quat_frameRot(&accelFltrd, &xp, &true_g, &x_versor, &qEst, &rot);
+	vec_cross(&magFltrd, &accelFltrd, &magxacc);
+	vec_normalize(&magxacc);
+	quat_frameRot(&nedG, &nedY, &accelFltrd, &magxacc, &qEst, &rot);
 
 	/* rotate measurements of a and w */
 	quat_vecRot(&accel, &rot);
 	quat_vecRot(&gyro, &rot);
 
 	/* remove earth acceleration from measurements */
-	accel.z -= EARTH_G;
+	accel.z += EARTH_G;
 
 	matrix_zeroes(Z);
 	Z->data[imax] = accel.x;
