@@ -32,7 +32,7 @@
 #define BAROMEAS_ROWS 4
 #define GPSMEAS_ROWS  4
 
-#define EARTH_G       -9.80665F /* m/s^2 */
+#define EARTH_G       9.80665F   /* m/s^2 */
 #define UNI_GAS_CONST 8.3144598F /* J/(mol * K) */
 #define AIR_MOL_MASS  0.0289644F /* kg/mol */
 
