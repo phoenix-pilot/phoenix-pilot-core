@@ -100,10 +100,14 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	Z->data[immy] = mag.y;
 	Z->data[immz] = mag.z;
 
+	/*
+	* qEst rotates vectors from body frame base to NED base.
+	* We store the body frame rotation which is conjugation of qEst.
+	*/
 	Z->data[imqa] = qEst.a;
-	Z->data[imqb] = qEst.i;
-	Z->data[imqc] = qEst.j;
-	Z->data[imqd] = qEst.k;
+	Z->data[imqb] = -qEst.i;
+	Z->data[imqc] = -qEst.j;
+	Z->data[imqd] = -qEst.k;
 
 	/* update measurement error */
 	R->data[R->cols * imqa + imqa] = qEstErr;
