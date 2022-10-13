@@ -109,6 +109,13 @@ int hmap_insert(hmap_t *hm, const char *key, void *val)
 	if (hm->arr[i].value != NULL) {
 		/* traverse hashmap to find next free bucket */
 		do {
+			if (hash == hm->arr[i].hash) {
+				if (strcmp(key, hm->arr[i].key) == 0) {
+					/* There is already an entry with such a key */
+					return -1;
+				}
+			}
+
 			if (++i == hm->capacity) {
 				i = 0;
 			}
