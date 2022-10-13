@@ -51,17 +51,20 @@
 #define LOG_PERIOD 50 /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
 
 
+typedef enum { mode_rc = 0, mode_auto } control_mode_t;
+
 struct {
 	pid_ctx_t pids[PID_NUMBERS];
 
 	handle_t rcbusLock;
 	uint16_t rcChannels[RC_CHANNELS_CNT];
+
+	volatile control_mode_t mode;
 	volatile flight_type_t currFlight;
 
 	time_t lastTime;
 #if TEST_ATTITUDE
 	quad_att_t targetAtt;
-	time_t duration;
 #endif
 
 	struct {
@@ -319,17 +322,48 @@ static int quad_run(void)
 
 	while (i < sizeof(scenario) / sizeof(scenario[0]) && run == 1) {
 
-		if (quad_common.currFlight < flight_manual) {
+		if ((quad_common.currFlight >= flight_arm && armed == 1) && quad_common.currFlight < flight_manual) {
 			quad_common.currFlight = scenario[i].type;
 		}
 
 		log_enable();
 		switch (quad_common.currFlight) {
+			/* Handling basic modes */
+			case flight_idle:
+				log_print("Idle State\n");
+				sleep(2);
+				if (quad_common.mode == mode_auto) {
+					quad_common.currFlight = flight_disarm;
+				}
+				break;
+
+			case flight_disarm:
+				log_print("Disarming motors\n");
+				mma_stop();
+				sleep(2);
+				armed = 0;
+				if (quad_common.mode == mode_auto) {
+					quad_common.currFlight = flight_arm;
+				}
+				break;
+
+			case flight_arm:
+				if (armed == 0) {
+					mma_start();
+					armed = 1;
+				}
+
+				/* TODO: enable buzzer */
+				sleep(5);
+				break;
+
 			/* Handling auto modes: */
 			case flight_takeoff:
-				armed = 1;
-				mma_start();
 				err = quad_takeoff(&scenario[i++]);
+				break;
+
+			case flight_pos:
+				/* TBD */
 				break;
 
 			case flight_hover:
@@ -342,35 +376,22 @@ static int quad_run(void)
 
 			case flight_end:
 				log_print("end of the scenario\n");
-				armed = 0;
 				mma_stop();
+				armed = 0;
+				run = 0;
 				break;
 
 			/* Handling manual modes: */
 			case flight_manual:
+				quad_common.mode = mode_rc;
 				err = quad_manual();
-				break;
-
-			case flight_manualArm:
-				if (armed == 0) {
-					log_print("Manual arming\n");
-					mma_start();
-					armed = 1;
-				}
-				break;
-
-			case flight_manualDisarm:
-				if (armed == 1) {
-					log_print("Manual disarming\n");
-					mma_stop();
-					armed = 0;
-					run = 0;
-				}
 				break;
 
 			case flight_manualAbort:
 				log_print("Mission abort\n");
-				err = -1;
+				mma_stop();
+				armed = 0;
+				run = 0;
 				break;
 
 			default:
@@ -398,10 +419,16 @@ static void quad_rcbusHandler(const rcbus_msg_t *msg)
 		return;
 	}
 
+	/* Manual Disarm: SWA == MIN, SWB == MIN, SWC == MIN, SWD == MIN, Throttle == 0 && mode_rc */
+	if (msg->channels[RC_SWA_CH] <= minTriggerVal && msg->channels[RC_SWB_CH] <= minTriggerVal
+			&& msg->channels[RC_SWC_CH] <= minTriggerVal && msg->channels[RC_SWD_CH] <= minTriggerVal
+			&& msg->channels[RC_LEFT_VSTICK_CH] <= minTriggerVal && quad_common.mode == mode_rc) {
+		quad_common.currFlight = flight_disarm;
+	}
 	/* Manual Arm: SWA == MAX, SWB == MIN and Throttle == 0 and scenario cannot be launched */
-	if (msg->channels[RC_SWA_CH] >= maxTriggerVal && msg->channels[RC_SWB_CH] <= minTriggerVal
-			&& msg->channels[RC_LEFT_VSTICK_CH] <= minTriggerVal && quad_common.currFlight < flight_takeoff) {
-		quad_common.currFlight = flight_manualArm;
+	else if (msg->channels[RC_SWA_CH] >= maxTriggerVal && msg->channels[RC_LEFT_VSTICK_CH] <= minTriggerVal
+			&& quad_common.currFlight == flight_disarm) {
+		quad_common.currFlight = flight_arm;
 	}
 	/* Emergency abort: SWA == MAX, SWB == MAX, SWC == MAX, SWD == MAX */
 	else if (msg->channels[RC_SWA_CH] >= maxTriggerVal && msg->channels[RC_SWB_CH] >= maxTriggerVal
@@ -412,12 +439,6 @@ static void quad_rcbusHandler(const rcbus_msg_t *msg)
 	else if (msg->channels[RC_SWA_CH] >= maxTriggerVal && msg->channels[RC_SWB_CH] >= maxTriggerVal) {
 		quad_common.currFlight = flight_manual;
 	}
-	/* Manual Disarm: SWA == MIN, SWB == MIN */
-	else if (msg->channels[RC_SWA_CH] <= minTriggerVal && msg->channels[RC_SWB_CH] <= minTriggerVal
-			&& quad_common.currFlight >= flight_manual) {
-		quad_common.currFlight = flight_manualDisarm;
-	}
-
 
 	if (quad_common.currFlight == flight_manual) {
 		mutexLock(quad_common.rcbusLock);
@@ -738,11 +759,55 @@ static int quad_init(void)
 }
 
 
+static void quad_help(const char *progName)
+{
+	printf("Usage: %s [OPTIONS]\n"
+		"\t-c <rc/auto>   :  sets control mode\n"
+		"\t-h             :  prints help\n", progName);
+}
+
+
 int main(int argc, char **argv)
 {
-	int err;
+	int err = EOK, c;
 	pid_t pid, ret;
 	int status = 0;
+
+	if (argc < 2) {
+		quad_help(argv[0]);
+		return EXIT_FAILURE;
+	}
+
+	while ((c = getopt(argc, argv, "c:h")) != -1 && err == EOK) {
+		switch (c) {
+			case 'c':
+				if (strcmp(optarg, "rc") == 0) {
+					quad_common.mode = mode_rc;
+					printf("Control RC mode.\n");
+				}
+				else if (strcmp(optarg, "auto") == 0) {
+					quad_common.mode = mode_auto;
+					printf("Control AUTO mode.\n");
+				}
+				else {
+					err = -EINVAL;
+				}
+				break;
+
+			case 'h':
+				quad_help(argv[0]);
+				return EXIT_SUCCESS;
+
+			default:
+				quad_help(argv[0]);
+				return EXIT_FAILURE;
+		}
+	}
+
+	if (err < 0) {
+		quad_help(argv[0]);
+		return EXIT_FAILURE;
+	}
 
 	priority(1);
 
@@ -750,15 +815,6 @@ int main(int argc, char **argv)
 	if (err < 0) {
 		return EXIT_FAILURE;
 	}
-
-	/* Flight duration is get only for tests */
-#if TEST_ATTITUDE
-	if (argc != 2) {
-		fprintf(stderr, "quadcontrol: app is in TEST MODE, provide test duration in ms\n");
-		return EXIT_FAILURE;
-	}
-	quad_common.duration = strtoul(argv[1], NULL, 0);
-#endif
 
 	signal(SIGINT, SIG_IGN);
 	signal(SIGQUIT, SIG_IGN);

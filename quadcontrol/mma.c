@@ -103,7 +103,7 @@ int mma_control(float palt, float proll, float ppitch, float pyaw)
 void mma_start(void)
 {
 	mutexLock(mma_common.lock);
-	mctl_arm(armMode_auto);
+	fprintf(stdout, "mctl_arm() = %d\n", mctl_arm(armMode_auto));
 	mutexUnlock(mma_common.lock);
 }
 
@@ -111,7 +111,7 @@ void mma_start(void)
 void mma_stop(void)
 {
 	mutexLock(mma_common.lock);
-	mctl_disarm();
+	fprintf(stdout, "mctl_disarm() = %d\n", mctl_disarm());
 	mutexUnlock(mma_common.lock);
 }
 

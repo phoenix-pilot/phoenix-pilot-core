@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <string.h>
 #include <fcntl.h>
 #include <math.h>
 
@@ -25,9 +26,13 @@
 #include "mctl.h"
 
 
-#define THROTTLE_DOWN   0.0    /* default/init/lowest position of throttle */
-#define THROTTLE_SCALER 100000 /* base thrtl->pwm scaling factor */
-#define PWM_MSG_LEN     7      /* length of PWM message sent to pwm driver files + newline */
+#define THROTTLE_DOWN    0.0                /* default/init/lowest position of throttle */
+#define THROTTLE_SCALER  100000             /* base thrtl->pwm scaling factor */
+#define PWM_MSG_LEN      7                  /* length of PWM message sent to pwm driver files + newline */
+#define GPIO_PATH        "/dev/gpio0/pin  " /* path prototype for pwm enable pin. Spaces left for pin number input in range [0, 99] */
+#define GPIO_PWMEN_PIN   GPIO0_8
+#define PWMEN_MSG_ARM    "0\n"
+#define PWMEN_MSG_DISARM "1\n"
 
 
 struct {
@@ -36,6 +41,8 @@ struct {
 	bool init;         /* motors descriptors initialization flag */
 	bool armed;        /* motors armed/disarmed flag */
 	unsigned int mNb;  /* number of motors */
+
+	FILE *pwmEnable;
 } mctl_common;
 
 
@@ -86,6 +93,22 @@ static inline int mctl_motOff(unsigned int id)
 
 	return 0;
 }
+
+
+static inline int mctl_motOn(unsigned int id)
+{
+	if (id >= mctl_common.mNb) {
+		return -1;
+	}
+
+	/* check for fprintf() fail, or partial success */
+	if (fprintf(mctl_common.pwmFiles[id], "100000") < 6) {
+		return -1;
+	}
+
+	return 0;
+}
+
 
 static int mctl_charChoice(char expected)
 {
@@ -157,11 +180,29 @@ bool mctl_isArmed(void)
 
 int mctl_disarm(void)
 {
-	int i;
+	int i, ret;
 	bool err = false;
+
+	for (i = 0; i < 1000; i++) {
+		ret = fprintf(mctl_common.pwmEnable, PWMEN_MSG_DISARM);
+		fflush(mctl_common.pwmEnable);
+
+		if (ret <= 0) {
+			printf("%i-th failed at disarm...\n", (i + 1));
+			err = true;
+			usleep(5000);
+			continue;
+		}
+		break;
+	}
+
+	if (err == true) {
+		return -1;
+	}
 
 	for (i = 0; i < mctl_common.mNb; i++) {
 		if (mctl_motOff(i) < 0) {
+			fprintf(stderr, "%i-th engine off failed\n", i);
 			err = true;
 		}
 	}
@@ -178,7 +219,8 @@ int mctl_disarm(void)
 
 int mctl_arm(enum armMode mode)
 {
-	unsigned int i;
+	unsigned int i, cnt, ret;
+	bool err = false;
 
 	if (mctl_common.armed) {
 		return 0;
@@ -196,11 +238,37 @@ int mctl_arm(enum armMode mode)
 	}
 
 	mctl_printRed("Arming engines... \n");
-	for (i = 0; i < mctl_common.mNb; i++) {
-		if (mctl_motWrite(i, THROTTLE_DOWN) < 0) {
-			fprintf(stderr, "Failed to arm\n");
-			return -1;
+
+	for (i = 0; i < 1000; i++) {
+		ret = fprintf(mctl_common.pwmEnable, PWMEN_MSG_ARM);
+		fflush(mctl_common.pwmEnable);
+
+		if (ret <= 0) {
+			printf("%i-th failed at disarm...\n", (i + 1));
+			usleep(5000);
+			err = true;
+			continue;
 		}
+		break;
+	}
+
+	if (err == true) {
+		fprintf(stderr, "arming failed on pwm_en pin setting\n");
+		return -1;
+	}
+
+	sleep(5);
+
+	for (i = 0; i < mctl_common.mNb; i++) {
+		if (mctl_motOn(i) < 0) {
+			fprintf(stderr, "%i-th engine off failed\n", i);
+			err = true;
+		}
+	}
+
+	if (err == true) {
+		fprintf(stderr, "arming failed on mctl_motOn()\n");
+		return -1;
 	}
 
 	sleep(2);
@@ -231,6 +299,8 @@ void mctl_deinit(void)
 	if (mctl_common.init) {
 		mctl_common.init = false;
 
+		fclose(mctl_common.pwmEnable);
+
 		for (i = 0; i < mctl_common.mNb; i++) {
 			if (mctl_common.pwmFiles[i] != NULL) {
 				fclose(mctl_common.pwmFiles[i]);
@@ -246,7 +316,9 @@ void mctl_deinit(void)
 int mctl_init(unsigned int motors, const char **motFiles)
 {
 	int id, cnt;
+	unsigned int pwmenPin;
 	bool err;
+	char *pinSlot, gpioPath[] = GPIO_PATH;
 
 	if (motors == 0) {
 		return -1;
@@ -280,9 +352,34 @@ int mctl_init(unsigned int motors, const char **motFiles)
 		}
 	}
 
+	mctl_common.pwmEnable = NULL;
+	if (err == false) {
+		pwmenPin = GPIO_PWMEN_PIN;
+		pinSlot = strchr(gpioPath, ' ');
+
+		/* there is only 2 charactare space for pin number */
+		if (pwmenPin > 99 || pinSlot == NULL) {
+			err = true;
+		}
+
+		if (err == false) {
+			snprintf(pinSlot, 2, "%i", pwmenPin);
+			fprintf(stderr, "opening: |%s|\n", gpioPath);
+			mctl_common.pwmEnable = fopen(gpioPath, "w");
+		
+			if (mctl_common.pwmEnable == NULL) {
+				err = true;
+			}
+		}
+	}
+
 
 	/* handle error at files opening */
 	if (err) {
+		if (mctl_common.pwmEnable != NULL) {
+			fclose(mctl_common.pwmEnable);
+		}
+
 		/* close all files previous to the failed one */
 		for (id--; id >= 0; id--) {
 			fclose(mctl_common.pwmFiles[id]);
