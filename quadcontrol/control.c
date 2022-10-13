@@ -331,6 +331,7 @@ static int quad_run(void)
 			/* Handling basic modes */
 			case flight_idle:
 				log_print("Idle State\n");
+				sleep(2);
 				if (quad_common.mode == mode_auto) {
 					quad_common.currFlight = flight_disarm;
 				}
@@ -339,6 +340,7 @@ static int quad_run(void)
 			case flight_disarm:
 				log_print("Disarming motors\n");
 				mma_stop();
+				sleep(2);
 				armed = 0;
 				if (quad_common.mode == mode_auto) {
 					quad_common.currFlight = flight_arm;
