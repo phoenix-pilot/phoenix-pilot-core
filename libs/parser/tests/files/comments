@@ -1,0 +1,17 @@
+# Comment at the beginning
+
+#Comment above @STRUCT1
+@STRUCT1 # Comment next to header
+INT1 5
+
+FLOAT 2.5		#Comment next to field separated by tabs
+
+STRING TEST # Comment next to fields separated with space
+
+# Comment between headers
+
+@STRUCT2
+
+INT1 8
+# Comment in the middle of structure
+INT2 16 #Comment next to field
