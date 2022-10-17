@@ -837,6 +837,7 @@ TEST(group_quat_normalize, quat_normalize_std)
 	quat_normalize(&a);
 
 	TEST_ASSERT_EQUAL_QUAT(expected, a);
+	TEST_ASSERT_EQUAL_FLOAT(1, quat_len(&a));
 }
 
 
@@ -849,6 +850,7 @@ TEST(group_quat_normalize, quat_normalize_biggerValues)
 	quat_normalize(&a);
 
 	TEST_ASSERT_EQUAL_QUAT(expected, a);
+	TEST_ASSERT_EQUAL_FLOAT(1, quat_len(&a));
 }
 
 
