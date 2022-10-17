@@ -743,6 +743,74 @@ TEST_GROUP_RUNNER(group_quat_sandwich)
 
 
 /* ##############################################################################
+ * ------------------------        quat_len tests       -------------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_quat_len);
+
+
+TEST_SETUP(group_quat_len)
+{
+}
+
+
+TEST_TEAR_DOWN(group_quat_len)
+{
+}
+
+
+TEST(group_quat_len, quat_len_zeroQuat)
+{
+	TEST_ASSERT_EQUAL_FLOAT(0, quat_len(&Q0));
+}
+
+
+TEST(group_quat_len, quat_len_baseQuat)
+{
+	TEST_ASSERT_EQUAL_FLOAT(1, quat_len(&QA));
+	TEST_ASSERT_EQUAL_FLOAT(1, quat_len(&QI));
+	TEST_ASSERT_EQUAL_FLOAT(1, quat_len(&QJ));
+	TEST_ASSERT_EQUAL_FLOAT(1, quat_len(&QK));
+}
+
+
+TEST(group_quat_len, quat_len_std)
+{
+	quat_t a = Q2;
+	float expected = sqrt(a.a * a.a + a.i * a.i + a.j * a.j + a.k * a.k);
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_len(&a));
+
+	/* Checking with negative values */
+	quat_times(&a, -1);
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_len(&a));
+}
+
+
+TEST(group_quat_len, quat_len_biggerValues)
+{
+	quat_t a = Q4;
+	float expected = sqrt(a.a * a.a + a.i * a.i + a.j * a.j + a.k * a.k);
+
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_len(&a));
+
+	/* Checking with negative values */
+	quat_times(&a, -1);
+	TEST_ASSERT_EQUAL_FLOAT(expected, quat_len(&a));
+}
+
+
+TEST_GROUP_RUNNER(group_quat_len)
+{
+	RUN_TEST_CASE(group_quat_len, quat_len_zeroQuat);
+	RUN_TEST_CASE(group_quat_len, quat_len_baseQuat);
+	RUN_TEST_CASE(group_quat_len, quat_len_zeroQuat);
+	RUN_TEST_CASE(group_quat_len, quat_len_biggerValues);
+}
+
+
+/* ##############################################################################
  * ---------------------        quat_normalize tests       ----------------------
  * ############################################################################## */
 
