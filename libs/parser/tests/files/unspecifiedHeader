@@ -1,0 +1,15 @@
+@STRUCT2
+INT1 8
+INT2 16
+
+# This header is unspecified
+@unspecified_header
+
+@STRUCT1
+INT1 27
+STRING STR
+FLOAT 56.25
+
+@STRUCT2
+INT2 123
+INT1 -25
