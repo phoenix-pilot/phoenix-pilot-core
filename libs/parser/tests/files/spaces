@@ -1,0 +1,14 @@
+    @STRUCT1
+
+        INT1 123
+   FLOAT    2.5
+
+
+STRING = lorem_ipsum
+
+
+
+   @STRUCT2
+            INT1              8
+
+INT2=12
