@@ -243,7 +243,7 @@ void meas_imuCalib(void)
 	vec_normalize(&accAvg);
 	vec_normalize(&magAvg);
 	vec_cross(&magAvg, &accAvg, &bodyY);
-	quat_frameRot(&nedG, &nedY, &accAvg, &bodyY, &meas_common.calib.init_q, &idenQuat);
+	quat_frameRot(&accAvg, &bodyY, &nedG, &nedY, &meas_common.calib.init_q, &idenQuat);
 }
 
 void meas_baroCalib(void)
