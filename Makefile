@@ -15,7 +15,7 @@ CFLAGS += -I$(PROJECT_PATH)/
 DEFAULT_INSTALL_PATH := /usr/bin
 
 ifeq ("$(TARGET)","host-generic-pilot")
-	ALL_MAKES := $(shell find algebra -name Makefile)
+	ALL_MAKES := $(shell find algebra libs/hmap libs/parser -name Makefile)
 else
 	ALL_MAKES := $(shell find . -mindepth 2 -name Makefile)
 endif
