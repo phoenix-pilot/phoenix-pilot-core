@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <syslog.h>
 #include <string.h>
+#include <stdbool.h>
 #include <termios.h>
 #include <unistd.h>
 #include <sys/time.h>
@@ -43,12 +44,17 @@
 #define PATH_PIDS_CONFIG "/etc/quad.conf"
 #define PID_NUMBERS      4
 
-#define ANGLE_THRESHOLD (M_PI / 6)
+#define HOVER_THROTTLE 0.27
+
+#define ANGLE_THRESHOLD (M_PI / 4)
 #define RAD2DEG         ((float)180.0 / M_PI)
 #define DEG2RAD         0.0174532925f
-#define ANGLE_HOLD      INT32_MAX
 
-#define LOG_PERIOD 50 /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
+/* rcbus trigger thresholds for manual switches SWA/SWB/SWC/SWD */
+#define RCTHRESH_HIGH ((95 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) / 100 + MIN_CHANNEL_VALUE) /* high position threshold */
+#define RCTHRESH_LOW  ((5 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) / 100 + MIN_CHANNEL_VALUE)  /* low position threshold */
+
+#define LOG_PERIOD 100 /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
 
 
 typedef enum { mode_rc = 0, mode_auto } control_mode_t;
@@ -81,14 +87,7 @@ enum { pwm_alt = 0, pwm_roll, pwm_pitch, pwm_yaw, pwm_max };
    TODO: move data to the configuration file placed in a rootfs */
 #if TEST_ATTITUDE
 static const flight_mode_t scenario[] = {
-	{ .type = flight_takeoff, .takeoff = { .alt = 5000, .time = 6000 } },
-	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
-	{ .type = flight_hover, .hover = { .alt = -2000, .time = 6000 } },
-	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
-	{ .type = flight_hover, .hover = { .alt = -2000, .time = 6000 } },
-	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
-	{ .type = flight_landing, .landing = { .time = 6000 } },
-	{ .type = flight_end },
+	{ .type = flight_manual }
 };
 #else
 static const flight_mode_t scenario[] = {
@@ -122,16 +121,31 @@ static inline time_t quad_timeMsGet(void)
 }
 
 
-static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pitch, int32_t yaw)
+/* Sets logging on/off and returns current logging state */
+static inline bool quad_periodLogEnable(time_t now)
+{
+	static time_t lastLog = 0;
+
+	/* Enable logging once per 'LOG_PERIOD' milliseconds */
+	if (now - lastLog > LOG_PERIOD) {
+		lastLog = now;
+		log_enable();
+		return true;
+	}
+
+	log_disable();
+
+	return false;
+}
+
+
+static int quad_motorsCtrl(float throttle, int32_t alt, const quad_att_t *att, const ekf_state_t *measure)
 {
 	time_t dt, now;
-	ekf_state_t measure;
 	float palt, proll, ppitch, pyaw;
 
-	ekf_stateGet(&measure);
-
-	if (fabs(measure.pitch) > ANGLE_THRESHOLD || fabs(measure.roll) > ANGLE_THRESHOLD) {
-		fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors stop.\n", measure.roll, measure.pitch);
+	if (fabs(measure->pitch) > ANGLE_THRESHOLD || fabs(measure->roll) > ANGLE_THRESHOLD) {
+		fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors stop.\n", measure->roll, measure->pitch);
 		mma_stop();
 		return -1;
 	}
@@ -141,20 +155,16 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 	dt = now - quad_common.lastTime;
 	quad_common.lastTime = now;
 
-	if (yaw == ANGLE_HOLD) {
-		yaw = measure.yaw * 1000;
-	}
 
-
-	log_print("EKFE: %lld %.1f %.1f %.1f\n", now, measure.yaw * RAD2DEG, measure.pitch * RAD2DEG, measure.roll * RAD2DEG);
-	log_print("EKFX: %.2f\n", measure.enuZ);
+	log_print("EKFE: %lld %.1f %.1f %.1f\n", now, measure->yaw * RAD2DEG, measure->pitch * RAD2DEG, measure->roll * RAD2DEG);
+	log_print("EKFX: %.2f\n", measure->enuZ);
 	log_print("PID: ");
 
 
-	palt = pid_calc(&quad_common.pids[pwm_alt], alt / 1000.f, measure.enuZ, 0, dt);
-	proll = pid_calc(&quad_common.pids[pwm_roll], roll / 1000.f, measure.roll, measure.rollDot, dt);
-	ppitch = pid_calc(&quad_common.pids[pwm_pitch], pitch / 1000.f, measure.pitch, measure.pitchDot, dt);
-	pyaw = pid_calc(&quad_common.pids[pwm_yaw], yaw / 1000.f, measure.yaw, measure.yawDot, dt);
+	palt = pid_calc(&quad_common.pids[pwm_alt], alt / 1000.f, measure->enuZ, 0, dt);
+	proll = pid_calc(&quad_common.pids[pwm_roll], att->roll, measure->roll, measure->rollDot, dt);
+	ppitch = pid_calc(&quad_common.pids[pwm_pitch], att->pitch, measure->pitch, measure->pitchDot, dt);
+	pyaw = pid_calc(&quad_common.pids[pwm_yaw], att->yaw, measure->yaw, measure->yawDot, dt);
 	log_print("\n");
 
 	if (mma_control(throttle + palt, proll, ppitch, pyaw) < 0) {
@@ -171,8 +181,14 @@ static int quad_motorsCtrl(float throttle, int32_t alt, int32_t roll, int32_t pi
 
 static int quad_takeoff(const flight_mode_t *mode)
 {
+	quad_att_t att = { 0 };
 	float throttle, coeff;
 	time_t spoolStart, spoolEnd, now, lastLog = 0;
+	ekf_state_t measure;
+
+	ekf_stateGet(&measure);
+
+	att.yaw = measure.yaw;
 
 	log_enable();
 	log_print("TAKEOFF - alt: %d\n", mode->hover.alt);
@@ -181,6 +197,8 @@ static int quad_takeoff(const flight_mode_t *mode)
 	spoolEnd = spoolStart + mode->takeoff.time;
 
 	while (now < spoolEnd && quad_common.currFlight < flight_manual) {
+		ekf_stateGet(&measure);
+
 		now = quad_timeMsGet();
 
 		/* Enable logging once per 'LOG_PERIOD' milliseconds */
@@ -195,7 +213,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 		coeff = (float)(now - spoolStart) / mode->takeoff.time;
 		throttle = coeff * quad_common.throttle.max;
 
-		if (quad_motorsCtrl(throttle, mode->takeoff.alt, 0, 0, ANGLE_HOLD) < 0) {
+		if (quad_motorsCtrl(throttle, mode->takeoff.alt, &att, &measure) < 0) {
 			return -1;
 		}
 	}
@@ -208,7 +226,13 @@ static int quad_takeoff(const flight_mode_t *mode)
 
 static int quad_hover(const flight_mode_t *mode)
 {
+	quad_att_t att = { 0 };
 	time_t now, end, lastLog;
+	ekf_state_t measure;
+
+	ekf_stateGet(&measure);
+
+	att.yaw = measure.yaw;
 
 	log_enable();
 	log_print("HOVER - alt: %d, time: %lld\n", mode->hover.alt, mode->hover.time);
@@ -218,6 +242,8 @@ static int quad_hover(const flight_mode_t *mode)
 	lastLog = 0;
 
 	while (now < end && quad_common.currFlight < flight_manual) {
+		ekf_stateGet(&measure);
+
 		/* Enable logging once per 'LOG_PERIOD' milliseconds */
 		if (now - lastLog > LOG_PERIOD) {
 			lastLog = now;
@@ -227,7 +253,7 @@ static int quad_hover(const flight_mode_t *mode)
 			log_disable();
 		}
 
-		if (quad_motorsCtrl(quad_common.throttle.max, mode->hover.alt, quad_common.targetAtt.roll, quad_common.targetAtt.pitch, quad_common.targetAtt.yaw) < 0) {
+		if (quad_motorsCtrl(quad_common.throttle.max, mode->hover.alt, &att, &measure) < 0) {
 			return -1;
 		}
 
@@ -237,11 +263,25 @@ static int quad_hover(const flight_mode_t *mode)
 	return 0;
 }
 
+/* Infinite impulse response filter */
+static inline int32_t quad_iir(int32_t curr, int32_t new)
+{
+	static const int latency = 3;
+
+	return ((curr * latency) + new) / (latency + 1);
+}
+
 
 static int quad_landing(const flight_mode_t *mode)
 {
+	quad_att_t att = { 0 };
+	ekf_state_t measure;
 	float throttle, coeff;
 	time_t spoolStart, spoolEnd, now, lastLog = 0;
+
+	ekf_stateGet(&measure);
+
+	att.yaw = measure.yaw;
 
 	log_enable();
 	log_print("LANDING\n");
@@ -250,6 +290,8 @@ static int quad_landing(const flight_mode_t *mode)
 	spoolEnd = spoolStart + mode->landing.time;
 
 	while (now < spoolEnd && quad_common.currFlight < flight_manual) {
+		ekf_stateGet(&measure);
+
 		now = quad_timeMsGet();
 
 		/* Enable logging once per 'LOG_PERIOD' milliseconds */
@@ -264,7 +306,7 @@ static int quad_landing(const flight_mode_t *mode)
 		coeff = (float)(now - spoolStart) / mode->landing.time;
 		throttle = (1.f - coeff) * quad_common.throttle.max;
 
-		if (quad_motorsCtrl(throttle, 0, 0, 0, ANGLE_HOLD) < 0) {
+		if (quad_motorsCtrl(throttle, 0, &att, &measure) < 0) {
 			return -1;
 		}
 	}
@@ -273,17 +315,56 @@ static int quad_landing(const flight_mode_t *mode)
 }
 
 
+/*
+* quad_manual allows for manual and semi manual control over drone in STABILIZE and ALTHOLD modes:
+*
+* STABILIZE mode provide:
+* - control over throttle in range (50%, 150%) of HOVER_THROTTLE
+* - control over roll/pitch
+* - gathering data of measured altitude
+*
+* ALTHOLD mode provide:
+* - keeps last STABILIZE altitude
+* - control over roll/pitch
+* - throttle is left as was in STABILIZE mode
+*/
 static int quad_manual(void)
 {
-	float throttle;
+	quad_att_t att;
+	ekf_state_t measure;
+	float throttle, hoverThrtlEst = quad_common.throttle.max;
 	time_t now, lastLog = 0;
-	int32_t alt, roll, pitch, yaw;
+	int32_t alt, yawDelta;
+	int32_t rcRoll, rcPitch, rcThrottle, rcYaw, stickSWD;
+	bool althold;
+
+	ekf_stateGet(&measure);
+	alt = measure.enuZ * 1000;
+	att.yaw = measure.yaw;
 
 	log_enable();
 	log_print("RC Control\n");
 
+	/* Read RC packet for variable initialization purposes */
+	mutexLock(quad_common.rcbusLock);
+	stickSWD = quad_common.rcChannels[RC_SWD_CH];
+	rcRoll = quad_common.rcChannels[RC_RIGHT_HSTICK_CH];
+	rcPitch = quad_common.rcChannels[RC_RIGHT_VSTICK_CH];
+	rcYaw = quad_common.rcChannels[RC_LEFT_HSTICK_CH];
+	rcThrottle = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
+	mutexUnlock(quad_common.rcbusLock);
+
+	if (stickSWD >= RCTHRESH_LOW || rcThrottle >= RCTHRESH_LOW) {
+		fprintf(stderr, "Wrong initial transmitter setup. Aborting...\n");
+		return -1;
+	}
+
+	throttle = hoverThrtlEst * ((float)rcThrottle / (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) + 0.5); /* throttle now in range (0.5, 1.5) of hover throttle */
+
 	now = quad_timeMsGet();
 	while (quad_common.currFlight == flight_manual) {
+		ekf_stateGet(&measure);
+
 		now = quad_timeMsGet();
 
 		/* Enable logging once per 'LOG_PERIOD' milliseconds */
@@ -296,15 +377,31 @@ static int quad_manual(void)
 		}
 
 		mutexLock(quad_common.rcbusLock);
-		/* TODO: calculate control values based on rc data from quad_common.rcChannels[] */
-		throttle = 0;
-		alt = 0;
-		roll = 0;
-		pitch = 0;
-		yaw = 0;
+		/* simple & fast iir filter to get rid of noise from poor rc transmitter */
+		stickSWD = quad_common.rcChannels[RC_SWD_CH];
+		rcRoll = quad_iir(rcRoll, quad_common.rcChannels[RC_RIGHT_HSTICK_CH]);
+		rcPitch = quad_iir(rcPitch, quad_common.rcChannels[RC_RIGHT_VSTICK_CH]);
+		rcYaw = quad_iir(rcYaw, quad_common.rcChannels[RC_LEFT_HSTICK_CH]);
+		rcThrottle = quad_iir(rcThrottle, quad_common.rcChannels[RC_LEFT_VSTICK_CH]);
 		mutexUnlock(quad_common.rcbusLock);
 
-		if (quad_motorsCtrl(throttle, alt, roll, pitch, yaw) < 0) {
+		althold = (stickSWD > 0.9 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) ? true : false;
+		yawDelta = rcYaw - ((MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) / 2); /* delta yaw in +-500 milliradians range */
+
+		att.roll = (rcRoll - ((MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) / 2)) / 1000.f; /* +-0.5 radian ~= +- 28 degrees */
+		/* minus in pitch is to compensate for rc transmitter sign: stick up => higher channel value => negative pitch change */
+		att.pitch = -(rcPitch - ((MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) / 2)) / 1000.f; /* +-0.5 radian ~= +- 28 degrees */
+
+		/* Update target yaw/altitude only if we are not in althold */
+		if (althold == false) {
+			throttle = hoverThrtlEst * ((float)rcThrottle / (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) + 0.5); /* throttle now in range (0.5, 1.5) of hover throttle */
+
+			/* setting current value as target value, so that PID controller uses only D term */
+			alt = measure.enuZ * 1000;
+			att.yaw = measure.yaw + (yawDelta / 1000.f);
+		}
+
+		if (quad_motorsCtrl(throttle, alt, &att, &measure) < 0) {
 			return -1;
 		}
 	}
@@ -330,29 +427,37 @@ static int quad_run(void)
 		switch (quad_common.currFlight) {
 			/* Handling basic modes */
 			case flight_idle:
-				log_print("Idle State\n");
-				if (quad_common.mode == mode_auto) {
-					quad_common.currFlight = flight_disarm;
+				if (armed != 0) {
+					log_print("f_disarm: disarming motors...\n");
+					mma_stop();
+					armed = 0;
 				}
+				log_print("f_idle: idling...\n");
+				sleep(1);
 				break;
 
 			case flight_disarm:
-				log_print("Disarming motors\n");
-				mma_stop();
-				armed = 0;
-				if (quad_common.mode == mode_auto) {
-					quad_common.currFlight = flight_arm;
+				if (armed != 0) {
+					log_print("f_disarm: disarming motors...\n");
+					mma_stop();
+					armed = 0;
 				}
+				log_print("f_disarm: idling...\n");
+				sleep(1);
 				break;
 
 			case flight_arm:
 				if (armed == 0) {
+					log_print("f_arm: arming motors...\n");
 					mma_start();
 					armed = 1;
 				}
-
 				/* TODO: enable buzzer */
-				sleep(5);
+				sleep(1);
+
+				if (quad_common.mode == mode_rc) {
+					quad_common.currFlight = flight_manual;
+				}
 				break;
 
 			/* Handling auto modes: */
@@ -409,36 +514,33 @@ static int quad_run(void)
 
 static void quad_rcbusHandler(const rcbus_msg_t *msg)
 {
-	const static uint16_t maxTriggerVal = MIN_CHANNEL_VALUE + ((95 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) / 100);
-	const static uint16_t minTriggerVal = MIN_CHANNEL_VALUE + ((5 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) / 100);
-
 	if (msg->channelsCnt < RC_CHANNELS_CNT) {
 		fprintf(stderr, "quad-control: rcbus supports insufficient number of channels\n");
 		return;
 	}
 
 	/* Manual Disarm: SWA == MIN, SWB == MIN, SWC == MIN, SWD == MIN, Throttle == 0 && mode_rc */
-	if (msg->channels[RC_SWA_CH] <= minTriggerVal && msg->channels[RC_SWB_CH] <= minTriggerVal
-			&& msg->channels[RC_SWC_CH] <= minTriggerVal && msg->channels[RC_SWD_CH] <= minTriggerVal
-			&& msg->channels[RC_LEFT_VSTICK_CH] <= minTriggerVal && quad_common.mode == mode_rc) {
+	if (msg->channels[RC_SWA_CH] <= RCTHRESH_LOW && msg->channels[RC_SWB_CH] <= RCTHRESH_LOW
+			&& msg->channels[RC_SWC_CH] <= RCTHRESH_LOW && msg->channels[RC_SWD_CH] <= RCTHRESH_LOW
+			&& msg->channels[RC_LEFT_VSTICK_CH] <= RCTHRESH_LOW && quad_common.currFlight == flight_idle) {
 		quad_common.currFlight = flight_disarm;
 	}
 	/* Manual Arm: SWA == MAX, SWB == MIN and Throttle == 0 and scenario cannot be launched */
-	else if (msg->channels[RC_SWA_CH] >= maxTriggerVal && msg->channels[RC_LEFT_VSTICK_CH] <= minTriggerVal
+	else if (msg->channels[RC_SWA_CH] >= RCTHRESH_HIGH && msg->channels[RC_LEFT_VSTICK_CH] <= RCTHRESH_LOW
 			&& quad_common.currFlight == flight_disarm) {
 		quad_common.currFlight = flight_arm;
 	}
 	/* Emergency abort: SWA == MAX, SWB == MAX, SWC == MAX, SWD == MAX */
-	else if (msg->channels[RC_SWA_CH] >= maxTriggerVal && msg->channels[RC_SWB_CH] >= maxTriggerVal
-			&& msg->channels[RC_SWC_CH] >= maxTriggerVal && msg->channels[RC_SWD_CH] >= maxTriggerVal) {
+	else if (msg->channels[RC_SWA_CH] >= RCTHRESH_HIGH && msg->channels[RC_SWB_CH] >= RCTHRESH_HIGH
+			&& msg->channels[RC_SWC_CH] >= RCTHRESH_HIGH && msg->channels[RC_SWD_CH] >= RCTHRESH_HIGH) {
 		quad_common.currFlight = flight_manualAbort;
 	}
 	/* Manual Mode: SWA == MAX, SWB == MAX */
-	else if (msg->channels[RC_SWA_CH] >= maxTriggerVal && msg->channels[RC_SWB_CH] >= maxTriggerVal) {
+	else if (msg->channels[RC_SWA_CH] >= RCTHRESH_HIGH && msg->channels[RC_SWB_CH] >= RCTHRESH_HIGH) {
 		quad_common.currFlight = flight_manual;
 	}
 
-	if (quad_common.currFlight == flight_manual) {
+	if (quad_common.mode == mode_rc) {
 		mutexLock(quad_common.rcbusLock);
 		memcpy(quad_common.rcChannels, msg->channels, sizeof(quad_common.rcChannels));
 		mutexUnlock(quad_common.rcbusLock);
