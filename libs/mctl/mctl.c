@@ -83,6 +83,7 @@ static inline int mctl_motOff(unsigned int id)
 	if (fprintf(mctl_common.pwmFiles[id], "0") < 1) {
 		return -1;
 	}
+	fflush(mctl_common.pwmFiles[id]);
 
 	return 0;
 }
@@ -160,17 +161,30 @@ int mctl_disarm(void)
 	int i;
 	bool err = false;
 
+	/* 1) Stop the motors by setting throttle to 0 (motors still are armed after this step) */
+	for (i = 0; i < mctl_common.mNb; i++) {
+		if (mctl_motWrite(i, 0) < 0) {
+			err = true;
+		}
+	}
+	usleep(200 * 1000); /* This sleep ensures that ESCs are not fed with no signal (next step) too quickly */
+
+	/* 2) Disarm motors by disabling PWM generation (motors are disarmed after this step) */
 	for (i = 0; i < mctl_common.mNb; i++) {
 		if (mctl_motOff(i) < 0) {
 			err = true;
 		}
 	}
 
+	usleep(1000 * 1000); /* wait one second; ESC time dependencies */
+
 	/* as long, as there is any engine armed, we cannot lower armed flag - safety critical! */
 	if (!err) {
 		mctl_common.armed = false;
 		return 0;
 	}
+
+	mctl_common.armed = true;
 
 	return -1;
 }
