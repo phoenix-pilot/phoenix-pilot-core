@@ -189,10 +189,11 @@ def main():
     cmdParse.add_argument("port", default="/dev/ttyUSB0")
     cmdParse.add_argument("-c", "--cut", required=False, default=200, type=int)
     cmdParse.add_argument("-p", "--pwm", required=False, default=0.15, type=float)
+    cmdParse.add_argument("-b", "--baud", required=False, default=115200, type=int)
     args = cmdParse.parse_args()
 
     try:
-        ser = serial.Serial(args.port, baudrate=115200, timeout=1)
+        ser = serial.Serial(args.port, baudrate=args.baud, timeout=1)
     except serial.SerialException:
         print(f"Error while opening f{args.port}")
         sys.exit(1)
