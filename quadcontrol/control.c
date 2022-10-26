@@ -183,7 +183,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 {
 	quad_att_t att = { 0 };
 	float throttle, coeff;
-	time_t spoolStart, spoolEnd, now, lastLog = 0;
+	time_t spoolStart, spoolEnd, now;
 	ekf_state_t measure;
 
 	ekf_stateGet(&measure);
@@ -200,15 +200,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 		ekf_stateGet(&measure);
 
 		now = quad_timeMsGet();
-
-		/* Enable logging once per 'LOG_PERIOD' milliseconds */
-		if (now - lastLog > LOG_PERIOD) {
-			lastLog = now;
-			log_enable();
-		}
-		else {
-			log_disable();
-		}
+		quad_periodLogEnable(now);
 
 		coeff = (float)(now - spoolStart) / mode->takeoff.time;
 		throttle = coeff * quad_common.throttle.max;
@@ -227,7 +219,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 static int quad_hover(const flight_mode_t *mode)
 {
 	quad_att_t att = { 0 };
-	time_t now, end, lastLog;
+	time_t now, end;
 	ekf_state_t measure;
 
 	ekf_stateGet(&measure);
@@ -239,19 +231,11 @@ static int quad_hover(const flight_mode_t *mode)
 
 	now = quad_timeMsGet();
 	end = now + mode->hover.time;
-	lastLog = 0;
 
 	while (now < end && quad_common.currFlight < flight_manual) {
 		ekf_stateGet(&measure);
 
-		/* Enable logging once per 'LOG_PERIOD' milliseconds */
-		if (now - lastLog > LOG_PERIOD) {
-			lastLog = now;
-			log_enable();
-		}
-		else {
-			log_disable();
-		}
+		quad_periodLogEnable(now);
 
 		if (quad_motorsCtrl(quad_common.throttle.max, mode->hover.alt, &att, &measure) < 0) {
 			return -1;
@@ -277,7 +261,7 @@ static int quad_landing(const flight_mode_t *mode)
 	quad_att_t att = { 0 };
 	ekf_state_t measure;
 	float throttle, coeff;
-	time_t spoolStart, spoolEnd, now, lastLog = 0;
+	time_t spoolStart, spoolEnd, now;
 
 	ekf_stateGet(&measure);
 
@@ -293,15 +277,7 @@ static int quad_landing(const flight_mode_t *mode)
 		ekf_stateGet(&measure);
 
 		now = quad_timeMsGet();
-
-		/* Enable logging once per 'LOG_PERIOD' milliseconds */
-		if (now - lastLog > LOG_PERIOD) {
-			lastLog = now;
-			log_enable();
-		}
-		else {
-			log_disable();
-		}
+		quad_periodLogEnable(now);
 
 		coeff = (float)(now - spoolStart) / mode->landing.time;
 		throttle = (1.f - coeff) * quad_common.throttle.max;
@@ -333,7 +309,7 @@ static int quad_manual(void)
 	quad_att_t att;
 	ekf_state_t measure;
 	float throttle, hoverThrtlEst = quad_common.throttle.max;
-	time_t now, lastLog = 0;
+	time_t now;
 	int32_t alt, yawDelta;
 	int32_t rcRoll, rcPitch, rcThrottle, rcYaw, stickSWD;
 	bool althold;
@@ -367,14 +343,7 @@ static int quad_manual(void)
 
 		now = quad_timeMsGet();
 
-		/* Enable logging once per 'LOG_PERIOD' milliseconds */
-		if (now - lastLog > LOG_PERIOD) {
-			lastLog = now;
-			log_enable();
-		}
-		else {
-			log_disable();
-		}
+		quad_periodLogEnable(now);
 
 		mutexLock(quad_common.rcbusLock);
 		/* simple & fast iir filter to get rid of noise from poor rc transmitter */
