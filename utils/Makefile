@@ -1,0 +1,21 @@
+#
+# Makefile for utility applications in Phoenix-Pilot project
+#
+# Copyright 2022 Phoenix Systems
+#
+
+# EKF development application
+NAME := devekf
+LOCAL_SRCS := devekf.c
+DEP_LIBS := libekf libalgeb libsensc libcalib
+include $(binary.mk)
+
+NAME := sensortest
+LOCAL_SRCS := sensortest.c
+DEP_LIBS := libekf libalgeb libsensc libcalib
+include $(binary.mk)
+
+NAME := senslog
+LOCAL_SRCS := senslog.c
+DEP_LIBS := libsensc libcalib libalgeb
+include $(binary.mk)
