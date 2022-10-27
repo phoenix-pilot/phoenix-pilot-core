@@ -33,10 +33,10 @@
 
 
 static const char *motorPaths[] = {
-	PWM_MOTOR1,
-	PWM_MOTOR2,
-	PWM_MOTOR3,
-	PWM_MOTOR4
+	PWM_MOTOR1, /* path to front left motor */
+	PWM_MOTOR2, /* path to rear right motor */
+	PWM_MOTOR4, /* path to rear left motor */
+	PWM_MOTOR3  /* path to front right motor*/
 };
 
 
