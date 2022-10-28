@@ -19,3 +19,8 @@ NAME := senslog
 LOCAL_SRCS := senslog.c
 DEP_LIBS := libsensc libcalib libalgeb
 include $(binary.mk)
+
+NAME := rclog
+LOCAL_SRCS := rclog.c
+DEP_LIBS := librcbus
+include $(binary.mk)
