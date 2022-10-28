@@ -57,7 +57,8 @@
 #define RCTHRESH_HIGH ((95 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) / 100 + MIN_CHANNEL_VALUE) /* high position threshold */
 #define RCTHRESH_LOW  ((5 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) / 100 + MIN_CHANNEL_VALUE)  /* low position threshold */
 
-#define LOG_PERIOD 100 /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
+#define ABORT_FRAMES_THRESH 5 /* number of correct abort frames from RC transmitter to initiate abort sequence */
+#define LOG_PERIOD 100        /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
 
 
 typedef enum { mode_rc = 0, mode_auto } control_mode_t;
@@ -475,6 +476,9 @@ static int quad_run(void)
 
 static void quad_rcbusHandler(const rcbus_msg_t *msg)
 {
+	/* abort frame counting variable*/
+	static unsigned int abortCnt = 0;
+
 	if (msg->channelsCnt < RC_CHANNELS_CNT) {
 		fprintf(stderr, "quad-control: rcbus supports insufficient number of channels\n");
 		return;
@@ -497,14 +501,24 @@ static void quad_rcbusHandler(const rcbus_msg_t *msg)
 	else if (msg->channels[RC_SWA_CH] >= RCTHRESH_HIGH && msg->channels[RC_SWB_CH] >= RCTHRESH_HIGH
 			&& msg->channels[RC_SWC_CH] >= RCTHRESH_HIGH && msg->channels[RC_SWD_CH] >= RCTHRESH_HIGH 
 			&& quad_common.currFlight < flight_manualAbort) {
-		printf("rc: set f_abort\n");
-		quad_common.currFlight = flight_manualAbort;
+		abortCnt++;
+		printf("rc: f_abort called %i\n", abortCnt);
+
+		if (abortCnt >= ABORT_FRAMES_THRESH) {
+			printf("rc: f_abort reached\n");
+			quad_common.currFlight = flight_manualAbort;
+		}
+
+		return;
 	}
 	/* Manual Mode: SWA == MAX, SWB == MAX */
 	else if (msg->channels[RC_SWA_CH] >= RCTHRESH_HIGH && msg->channels[RC_SWB_CH] >= RCTHRESH_HIGH && quad_common.currFlight < flight_manual) {
 		printf("rc: set f_manual\n");
 		quad_common.currFlight = flight_manual;
 	}
+
+	/* Reset abort counter if new frame does not call for abort */
+	abortCnt = 0;
 
 	if (quad_common.mode == mode_rc) {
 		mutexLock(quad_common.rcbusLock);
