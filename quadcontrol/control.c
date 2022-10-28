@@ -417,23 +417,27 @@ static int quad_run(void)
 
 			/* Handling auto modes: */
 			case flight_takeoff:
+				log_print("f_takeoff\n");
 				err = quad_takeoff(&quad_common.scenario[i++]);
 				break;
 
 			case flight_pos:
+				log_print("f_pos\n");
 				/* TBD */
 				break;
 
 			case flight_hover:
+				log_print("f_hover\n");
 				err = quad_hover(&quad_common.scenario[i++]);
 				break;
 
 			case flight_landing:
+				log_print("f_landing\n");
 				err = quad_landing(&quad_common.scenario[i++]);
 				break;
 
 			case flight_end:
-				log_print("end of the scenario\n");
+				log_print("f_end\n");
 				mma_stop();
 				armed = 0;
 				run = 0;
@@ -441,6 +445,7 @@ static int quad_run(void)
 
 			/* Handling manual modes: */
 			case flight_manual:
+				log_print("f_manual\n");
 				quad_common.mode = mode_rc;
 				err = quad_manual();
 				break;
@@ -453,6 +458,7 @@ static int quad_run(void)
 				break;
 
 			default:
+				log_print("f_unknown\n");
 				break;
 		}
 
@@ -478,20 +484,25 @@ static void quad_rcbusHandler(const rcbus_msg_t *msg)
 	if (msg->channels[RC_SWA_CH] <= RCTHRESH_LOW && msg->channels[RC_SWB_CH] <= RCTHRESH_LOW
 			&& msg->channels[RC_SWC_CH] <= RCTHRESH_LOW && msg->channels[RC_SWD_CH] <= RCTHRESH_LOW
 			&& msg->channels[RC_LEFT_VSTICK_CH] <= RCTHRESH_LOW && quad_common.currFlight == flight_idle) {
+		printf("rc: set f_disarm\n");
 		quad_common.currFlight = flight_disarm;
 	}
 	/* Manual Arm: SWA == MAX, SWB == MIN and Throttle == 0 and scenario cannot be launched */
 	else if (msg->channels[RC_SWA_CH] >= RCTHRESH_HIGH && msg->channels[RC_LEFT_VSTICK_CH] <= RCTHRESH_LOW
 			&& quad_common.currFlight == flight_disarm) {
+		printf("rc: set f_arm\n");
 		quad_common.currFlight = flight_arm;
 	}
 	/* Emergency abort: SWA == MAX, SWB == MAX, SWC == MAX, SWD == MAX */
 	else if (msg->channels[RC_SWA_CH] >= RCTHRESH_HIGH && msg->channels[RC_SWB_CH] >= RCTHRESH_HIGH
-			&& msg->channels[RC_SWC_CH] >= RCTHRESH_HIGH && msg->channels[RC_SWD_CH] >= RCTHRESH_HIGH) {
+			&& msg->channels[RC_SWC_CH] >= RCTHRESH_HIGH && msg->channels[RC_SWD_CH] >= RCTHRESH_HIGH 
+			&& quad_common.currFlight < flight_manualAbort) {
+		printf("rc: set f_abort\n");
 		quad_common.currFlight = flight_manualAbort;
 	}
 	/* Manual Mode: SWA == MAX, SWB == MAX */
-	else if (msg->channels[RC_SWA_CH] >= RCTHRESH_HIGH && msg->channels[RC_SWB_CH] >= RCTHRESH_HIGH) {
+	else if (msg->channels[RC_SWA_CH] >= RCTHRESH_HIGH && msg->channels[RC_SWB_CH] >= RCTHRESH_HIGH && quad_common.currFlight < flight_manual) {
+		printf("rc: set f_manual\n");
 		quad_common.currFlight = flight_manual;
 	}
 
