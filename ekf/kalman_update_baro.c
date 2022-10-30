@@ -29,6 +29,7 @@
 #include <quat.h>
 #include <matrix.h>
 
+
 /* declare static calculation memory bank with matrices for EKF */
 DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, BAROMEAS_ROWS)
 
@@ -89,6 +90,7 @@ static float filterBaroSpeed(void)
 }
 #endif
 
+
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
@@ -114,8 +116,8 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	altDot = (lastTstamp == 0) ? 0 : (alt - lastAlt) / ((float)(currTstamp - lastTstamp) / 1000000.f);
 
 	/* Make measurements negative to account for NED <-> ENU frame conversion */
-	Z->data[imxz] = -alt;
-	Z->data[imvz] = -altDot;
+	Z->data[imbxz] = -alt;
+	Z->data[imbvz] = -altDot;
 
 	/* Update filter/derivative variables */
 	lastTstamp = currTstamp;
@@ -130,8 +132,8 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx)
 	matrix_t *state = state_est; /* aliasing for macros usage */
 	matrix_zeroes(hx);
 
-	hx->data[imxz] = xz;
-	hx->data[imvz] = vz;
+	hx->data[imbxz] = xz;
+	hx->data[imbvz] = vz;
 
 	return hx;
 }
@@ -139,8 +141,8 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx)
 
 static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_t timeStep)
 {
-	H->data[H->cols * imxz + ixz] = 1;
-	H->data[H->cols * imvz + ivz] = 1;
+	H->data[H->cols * imbxz + ixz] = 1;
+	H->data[H->cols * imbvz + ivz] = 1;
 }
 
 
@@ -148,8 +150,8 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 static void baroUpdateInitializations(matrix_t *H, matrix_t *R)
 {
 	//R->data[R->cols * impx + impx] = init_values.R_pcov;
-	R->data[R->cols * imxz + imxz] = init_values.R_xzcov;
-	R->data[R->cols * imvz + imvz] = init_values.R_vzcov;
+	R->data[R->cols * imbxz + imbxz] = init_values.R_xzcov;
+	R->data[R->cols * imbvz + imbvz] = init_values.R_vzcov;
 }
 
 

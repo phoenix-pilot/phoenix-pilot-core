@@ -173,8 +173,7 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	/* save position */
 	ekfState->enuX = ekf_common.stateEngine.state.data[ixx];
 	ekfState->enuY = ekf_common.stateEngine.state.data[ixy];
-	/* as long as inertial reckoning is not trustable enough, return barometer height as enuZ */
-	ekfState->enuZ = ekf_common.stateEngine.state.data[ihz];
+	ekfState->enuZ = ekf_common.stateEngine.state.data[ixz];
 
 	/* save accelerations */
 	ekfState->accelX = ekf_common.stateEngine.state.data[iax];

@@ -126,10 +126,6 @@ static void init_state_vector(matrix_t *state, const kalman_calib_t *calib)
 	state->data[imx] = calib->init_m.x;
 	state->data[imx] = calib->init_m.y;
 	state->data[imx] = calib->init_m.z;
-
-	/* start pressure set to 1013 hPa */
-	state->data[ihz] = 0;
-	state->data[ihv] = 0;
 }
 
 
@@ -161,9 +157,6 @@ static void init_cov_vector(matrix_t *cov)
 	cov->data[cov->cols * imx + imx] = init_values.P_merr * init_values.P_merr;
 	cov->data[cov->cols * imy + imy] = init_values.P_merr * init_values.P_merr;
 	cov->data[cov->cols * imz + imz] = init_values.P_merr * init_values.P_merr;
-
-	cov->data[cov->cols * ihz + ihz] = init_values.P_pxerr * init_values.P_pxerr;
-	cov->data[cov->cols * ihv + ihv] = init_values.P_verr * init_values.P_verr;
 }
 
 vec_t last_a = { 0 };
@@ -222,9 +215,6 @@ static void calcStateEstimation(matrix_t *state, matrix_t *state_est, time_t tim
 	state_est->data[imx] = mx;
 	state_est->data[imy] = my;
 	state_est->data[imz] = mz;
-
-	state_est->data[ihz] = hz;
-	state_est->data[ihv] = hv;
 }
 
 
@@ -280,10 +270,6 @@ static void calcPredictionJacobian(matrix_t *F, matrix_t *state, time_t timeStep
 	/* write differentials matrices */
 	matrix_writeSubmatrix(F, iqa, iqa, &dfqdq);
 	matrix_writeSubmatrix(F, iqa, iwx, &dfqdw);
-
-	F->data[ihz * F->cols + ihz] = 1;
-	F->data[ihz * F->cols + ivz] = dt;
-	F->data[ihv * F->cols + ihv] = 1;
 }
 
 
@@ -340,9 +326,7 @@ int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
 	Q->data[Q->cols * iqb + iqb] = init_values.Q_qcov;
 	Q->data[Q->cols * iqc + iqc] = init_values.Q_qcov;
 	Q->data[Q->cols * iqd + iqd] = init_values.Q_qcov;
-	Q->data[Q->cols * ihz + ihz] = init_values.Q_hcov;
 	Q->data[Q->cols * ixz + ixz] = init_values.Q_hcov;
-	Q->data[Q->cols * ihv + ihv] = init_values.Q_pvcov;
 
 	/* save function pointers */
 	engine->estimateState = calcStateEstimation;
