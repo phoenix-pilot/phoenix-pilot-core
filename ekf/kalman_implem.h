@@ -26,10 +26,10 @@
 #include "kalman_core.h"
 
 #define STATE_COLS 1
-#define STATE_ROWS 21
+#define STATE_ROWS 19
 
 #define IMUMEAS_ROWS  13
-#define BAROMEAS_ROWS 4
+#define BAROMEAS_ROWS 2
 #define GPSMEAS_ROWS  4
 
 #define EARTH_G       9.80665F   /* m/s^2 */
@@ -58,10 +58,8 @@
 #define imqd 12
 
 /* baro measurements */
-#define imhz 0
-#define imxz 1
-#define imhv 2
-#define imvz 3
+#define imbxz 0
+#define imbvz 1
 
 /* gps measurements */
 #define imgpsxx 0
@@ -89,8 +87,6 @@
 #define imx 16 /* magnetic field x */
 #define imy 17 /* magnetic field y */
 #define imz 18 /* magnetic field z */
-#define ihz 19 /* baro height */
-#define ihv 20 /* baro speed */
 
 
 /* value name */
@@ -113,8 +109,6 @@
 #define mx state->data[16]
 #define my state->data[17]
 #define mz state->data[18]
-#define hz state->data[19]
-#define hv state->data[20]
 
 /* IMPORTANT: must be kept in order with 'char * config_names' in 'kalman.inits.c' */
 typedef struct {
