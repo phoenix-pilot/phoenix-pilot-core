@@ -98,7 +98,6 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 /* initialization function for barometer update step matrices values */
 static void baroUpdateInitializations(matrix_t *H, matrix_t *R)
 {
-	//R->data[R->cols * impx + impx] = init_values.R_pcov;
 	R->data[R->cols * imbxz + imbxz] = init_values.R_xzcov;
 	R->data[R->cols * imbvz + imbvz] = init_values.R_vzcov;
 }
