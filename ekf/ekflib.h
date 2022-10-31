@@ -20,6 +20,11 @@ typedef struct {
 	float enuY;
 	float enuZ;
 
+	/* speed in ENU frame in meters */
+	float enuXDot;
+	float enuYDot;
+	float enuZDot;
+
 	/* vehicle attitude, ranges according to Tait–Bryan convention */
 	float pitch; /* (-PI/2, PI/2) */
 	float yaw;   /* (-PI, PI) */

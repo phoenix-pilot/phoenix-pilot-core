@@ -170,16 +170,20 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	q.j = ekfState->q2 = ekf_common.stateEngine.state.data[iqc];
 	q.k = ekfState->q3 = ekf_common.stateEngine.state.data[iqd];
 
-	/* save position */
-	ekfState->enuX = ekf_common.stateEngine.state.data[ixx];
-	ekfState->enuY = ekf_common.stateEngine.state.data[ixy];
-	ekfState->enuZ = ekf_common.stateEngine.state.data[ixz];
+	/* save newtonian motion parameters with frame change from NED to ENU */
+	ekfState->enuX = ekf_common.stateEngine.state.data[ixy];
+	ekfState->enuY = ekf_common.stateEngine.state.data[ixx];
+	ekfState->enuZ = -ekf_common.stateEngine.state.data[ixz];
 
-	/* save accelerations */
-	ekfState->accelX = ekf_common.stateEngine.state.data[iax];
-	ekfState->accelY = ekf_common.stateEngine.state.data[iay];
-	ekfState->accelZ = ekf_common.stateEngine.state.data[iaz];
+	ekfState->enuXDot = ekf_common.stateEngine.state.data[ivy];
+	ekfState->enuYDot = ekf_common.stateEngine.state.data[ivx];
+	ekfState->enuZDot = -ekf_common.stateEngine.state.data[ivz];
 
+	ekfState->accelX = ekf_common.stateEngine.state.data[iay];
+	ekfState->accelY = ekf_common.stateEngine.state.data[iax];
+	ekfState->accelZ = -ekf_common.stateEngine.state.data[iaz];
+
+	/* Save position quaternion */
 	angRates.x = ekf_common.stateEngine.state.data[iwx];
 	angRates.y = ekf_common.stateEngine.state.data[iwy];
 	angRates.z = ekf_common.stateEngine.state.data[iwz];
