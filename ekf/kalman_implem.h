@@ -128,10 +128,7 @@ typedef struct {
 	float R_mcov; /* measurement noise of magnetic flux */
 	float R_qcov; /* measurement noise of rotation quaternion */
 
-	float R_pcov; /* measurement noise of pressure */
-	float R_hcov; /* measurement noise of barometric altitude */
 	float R_xzcov;
-	float R_hvcov;
 	float R_vzcov;
 
 	float Q_xcov;
@@ -142,8 +139,6 @@ typedef struct {
 	float Q_wcov;     /* process noise of angular rates */
 	float Q_mcov;     /* process noise of magnetic flux */
 	float Q_qcov;     /* process noise of rotation quaternion */
-	float Q_pcov;     /* process noise of pressure */
-	float Q_pvcov;
 } kalman_init_t;
 
 
