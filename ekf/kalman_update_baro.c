@@ -92,9 +92,11 @@ static float filterBaroSpeed(void)
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
-	float pressure, temp;
+	static uint64_t lastTstamp = 0;
+	static float lastAlt = 0;
+
+	float pressure, temp, alt, altDot;
 	uint64_t currTstamp;
-	static uint64_t lastTstamp;
 
 	/* if there is no pressure measurement available return NULL */
 	if (meas_baroGet(&pressure, &temp, &currTstamp) < 0) {
@@ -105,16 +107,19 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 		return NULL;
 	}
 
-	insertToBaroMemory(hz, (float)(currTstamp - lastTstamp));
+	/* Calculate barometric height */
+	alt = 8453.669 * log(meas_calibPressGet() / pressure);
+
+	/* Calculate derivative of barometric height, or skip on first function call */
+	altDot = (lastTstamp == 0) ? 0 : (alt - lastAlt) / ((float)(currTstamp - lastTstamp) / 1000000.f);
+
+	/* Make measurements negative to account for NED <-> ENU frame conversion */
+	Z->data[imxz] = -alt;
+	Z->data[imvz] = -altDot;
+
+	/* Update filter/derivative variables */
 	lastTstamp = currTstamp;
-
-	matrix_zeroes(Z);
-	Z->data[imhz] = 8453.669 * log(meas_calibPressGet() / pressure);
-	Z->data[imxz] = 0.8 * hz + 0.2 * xz;
-
-	/* vertical speed fusion turned off. Intentionally left as zeroes */
-	Z->data[imhv] = 0;
-	Z->data[imvz] = 0;
+	lastAlt = alt;
 
 	return Z;
 }
@@ -125,9 +130,7 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx)
 	matrix_t *state = state_est; /* aliasing for macros usage */
 	matrix_zeroes(hx);
 
-	hx->data[imhz] = hz;
 	hx->data[imxz] = xz;
-	hx->data[imhv] = hv;
 	hx->data[imvz] = vz;
 
 	return hx;
@@ -136,9 +139,7 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx)
 
 static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_t timeStep)
 {
-	H->data[H->cols * imhz + ihz] = 1;
 	H->data[H->cols * imxz + ixz] = 1;
-	H->data[H->cols * imhv + ihv] = 1;
 	H->data[H->cols * imvz + ivz] = 1;
 }
 
@@ -147,9 +148,7 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 static void baroUpdateInitializations(matrix_t *H, matrix_t *R)
 {
 	//R->data[R->cols * impx + impx] = init_values.R_pcov;
-	R->data[R->cols * imhz + imhz] = init_values.R_hcov;
 	R->data[R->cols * imxz + imxz] = init_values.R_xzcov;
-	R->data[R->cols * imhv + imhv] = init_values.R_hvcov;
 	R->data[R->cols * imvz + imvz] = init_values.R_vzcov;
 }
 
