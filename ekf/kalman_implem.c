@@ -32,22 +32,22 @@
 kalman_init_t init_values = {
 	.verbose = 0,
 
-	.P_xerr = 0.1,             /* 0.1 m */
+	.P_xerr = 1,               /* 1 m */
 	.P_verr = 0.1,             /* 0.1 m/s */
-	.P_aerr = 0.01,            /* 0.001 m/s^2 */
+	.P_aerr = 0.1,             /* 0.001 m/s^2 */
 	.P_werr = DEG2RAD,         /* 1 degree */
 	.P_merr = 300,             /* 300 uT */
 	.P_qaerr = 10 * DEG2RAD,   /* 10 degrees */
 	.P_qijkerr = 10 * DEG2RAD, /* 10 degrees */
 	.P_pxerr = 0.01,           /* 10 hPa */
 
-	.R_acov = 0.001,
-	.R_wcov = 0.001,
+	.R_acov = 4,               /* 4 m/s^2 with engines on */
+	.R_wcov = 0.001,           /* 1 milliradian/s, overtrust gyroscope for fast response */
 	.R_mcov = 0.1,
 	.R_qcov = 0.01,
 
-	.R_xzcov = 20,
-	.R_vzcov = 0.001,
+	.R_xzcov = 1,
+	.R_vzcov = 0.5,
 
 	/* better to keep Q low */
 	.Q_xcov = 0.0001,
