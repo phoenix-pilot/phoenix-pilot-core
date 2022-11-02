@@ -44,7 +44,7 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	if (meas_gpsGet(&enu_pos, &enu_speed, &hdop) < 0) {
 		return NULL;
 	}
-	//printf("GPS: x=%f, y=%f, hdop: %f\n", enu_pos.x, enu_pos.y, hdop);
+
 	Z->data[imgpsxx] = enu_pos.x;
 	Z->data[imgpsxy] = enu_pos.y;
 	Z->data[imgpsvx] = enu_speed.x;

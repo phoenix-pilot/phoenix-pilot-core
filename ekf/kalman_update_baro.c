@@ -33,62 +33,11 @@
 /* declare static calculation memory bank with matrices for EKF */
 DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, BAROMEAS_ROWS)
 
+
 extern kalman_init_t init_values;
 
-/* BARO MEMORY SECTION */
-/* barometric height memory */
-static float baroMemory[2][6] = { 0 };
 
 enum baroDimension { value = 0, dtime = 1 };
-
-static int memoryPoint = 0;
-
-static void insertToBaroMemory(float x, float dtBaro)
-{
-	memoryPoint = (memoryPoint >= sizeof(baroMemory[0]) / sizeof(float)) ? 0 : memoryPoint + 1;
-	baroMemory[value][memoryPoint] = x;
-	baroMemory[dtime][memoryPoint] = dtBaro;
-}
-
-
-static float baroMemoryAt(int index, enum baroDimension dimension)
-{
-	if ((index + memoryPoint) < (sizeof(baroMemory[0]) / sizeof(float))) {
-		return baroMemory[dimension][(index + memoryPoint)];
-	}
-	else {
-		return baroMemory[dimension][(index + memoryPoint - (sizeof(baroMemory[0]) / sizeof(float)))];
-	}
-}
-
-#if 0
-/* Commented out as it will be used for vertical speed estimation when necessary, but is unused now and causes warnings */
-static float filterBaroSpeed(void)
-{
-	int i, filterSpan = sizeof(baroMemory[0]) / sizeof(float);
-	float hStart, weights, hEnd, delta, factor = 0.4;
-
-	hStart = hEnd = weights = delta = 0;
-
-	for (i = 0; i < filterSpan; i++) {
-		hStart += baroMemoryAt(i, value) * factor;
-		hEnd += baroMemoryAt(filterSpan - i, value) * factor;
-		weights += factor;
-		factor *= factor;
-
-		delta += baroMemoryAt(i, dtime);
-	}
-	hStart /= weights;
-	hEnd /= weights;
-
-	if (delta > 0.2) {
-		return (hEnd - hStart) / (delta / 1000000);
-	}
-	else {
-		return 0;
-	}
-}
-#endif
 
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
