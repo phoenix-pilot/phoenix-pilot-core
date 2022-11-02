@@ -79,7 +79,7 @@ int kalmanUpdateStep(time_t timeStep, int verbose, update_engine_t *updateEngine
 	matrix_diag(updateEngine->I);
 
 	/* y_k = z_k - h(x_(k|k-1)) */
-	matrix_sub(updateEngine->Z, updateEngine->predictMeasurements(&stateEngine->state_est, updateEngine->hx), updateEngine->Y);
+	matrix_sub(updateEngine->Z, updateEngine->predictMeasurements(&stateEngine->state_est, updateEngine->hx, timeStep), updateEngine->Y);
 
 	/* S_k = H_k * P_(k|k-1) * transpose(H_k) + R*/
 	matrix_sandwitch(updateEngine->H, &stateEngine->cov_est, updateEngine->S, updateEngine->tmp3);

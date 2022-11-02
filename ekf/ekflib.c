@@ -118,7 +118,7 @@ static void ekf_thread(void *arg)
 		mutexLock(ekf_common.lock);
 		if (ekf_common.currTime - lastBaro > BARO_UPDATE_PERIOD) {
 			/* Perform barometer update step if 'BARO_UPDATE_PERIOD' time has passed since last such update */
-			kalmanUpdateStep(timeStep, 0, &ekf_common.baroEngine, &ekf_common.stateEngine);
+			kalmanUpdateStep(ekf_common.currTime - lastBaro, 0, &ekf_common.baroEngine, &ekf_common.stateEngine);
 			lastBaro = ekf_common.currTime;
 		}
 		else {

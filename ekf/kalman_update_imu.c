@@ -119,7 +119,7 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 }
 
 
-static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx)
+static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, time_t timestep)
 {
 	matrix_t *state = state_est; /* aliasing for macros usage */
 	matrix_zeroes(hx);

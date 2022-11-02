@@ -81,7 +81,7 @@ typedef void (*updateJacobian)(matrix_t *H, matrix_t *state, time_t timeStep);
 typedef void (*stateEstimation)(matrix_t *state, matrix_t *state_est, time_t timeStep);
 
 /* function that calculates measurements of some update model based on current state estimation */
-typedef matrix_t *(*predictMeasurements)(matrix_t *state_est, matrix_t *hx);
+typedef matrix_t *(*predictMeasurements)(matrix_t *state_est, matrix_t *hx, time_t timestep);
 
 typedef void (*initMeasurementCov)(matrix_t *R);
 
