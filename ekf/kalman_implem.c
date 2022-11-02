@@ -176,9 +176,9 @@ static void calcStateEstimation(matrix_t *state, matrix_t *state_est, time_t tim
 
 	/* trapezoidal integration */
 	/* as no direct velocity measurements are done, time corelation is introduced to velocity with assumption that velocity always decreases */
-	state_est->data[ivx] = (vx + (ax + last_a.x) * 0.5 * dt) * 0.9995;
-	state_est->data[ivy] = (vy + (ay + last_a.y) * 0.5 * dt) * 0.9995;
-	state_est->data[ivz] = (vz + (az + last_a.z) * 0.5 * dt) * 0.9995;
+	state_est->data[ivx] = (vx + (ax + last_a.x) * 0.5 * dt) * 0.999;
+	state_est->data[ivy] = (vy + (ay + last_a.y) * 0.5 * dt) * 0.999;
+	state_est->data[ivz] = (vz + (az + last_a.z) * 0.5 * dt);
 
 	last_a.x = ax;
 	last_a.y = ay;
@@ -199,9 +199,9 @@ static void calcStateEstimation(matrix_t *state, matrix_t *state_est, time_t tim
 	state_est->data[iqc] = quat_q.j;
 	state_est->data[iqd] = quat_q.k;
 
-	state_est->data[iax] = ax * 0.9995;
-	state_est->data[iay] = ay * 0.9995;
-	state_est->data[iaz] = az * 0.9995;
+	state_est->data[iax] = ax;
+	state_est->data[iay] = ay;
+	state_est->data[iaz] = az;
 
 	state_est->data[iwx] = wx;
 	state_est->data[iwy] = wy;
