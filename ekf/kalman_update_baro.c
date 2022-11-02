@@ -78,11 +78,13 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 
 static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, time_t timestep)
 {
+	const float dt = timestep / 1000000.f;
 	matrix_t *state = state_est; /* aliasing for macros usage */
+
 	matrix_zeroes(hx);
 
-	hx->data[imbxz] = xz;
-	hx->data[imbvz] = vz;
+	hx->data[imbxz] = xz + vz * dt + az * dt * dt / 2;
+	hx->data[imbvz] = vz + az * dt;
 
 	return hx;
 }
@@ -90,8 +92,14 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 
 static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_t timeStep)
 {
+	const float dt = timeStep / 1000000.f;
+
 	H->data[H->cols * imbxz + ixz] = 1;
+	H->data[H->cols * imbxz + ivz] = dt;
+	H->data[H->cols * imbxz + iaz] = dt * dt / 2;
+
 	H->data[H->cols * imbvz + ivz] = 1;
+	H->data[H->cols * imbvz + iaz] = dt;
 }
 
 
