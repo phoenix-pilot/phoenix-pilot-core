@@ -175,9 +175,9 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	ekfState->enuY = ekf_common.stateEngine.state.data[IXX];
 	ekfState->enuZ = -ekf_common.stateEngine.state.data[IXZ];
 
-	ekfState->enuXDot = ekf_common.stateEngine.state.data[IVY];
-	ekfState->enuYDot = ekf_common.stateEngine.state.data[IVX];
-	ekfState->enuZDot = -ekf_common.stateEngine.state.data[IVZ];
+	ekfState->veloX = ekf_common.stateEngine.state.data[IVY];
+	ekfState->veloY = ekf_common.stateEngine.state.data[IVX];
+	ekfState->veloZ = -ekf_common.stateEngine.state.data[IVZ];
 
 	ekfState->accelX = ekf_common.stateEngine.state.data[IAY];
 	ekfState->accelY = ekf_common.stateEngine.state.data[IAX];
