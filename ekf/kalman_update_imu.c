@@ -46,7 +46,7 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	vec_t accel, gyro, mag;
 	vec_t magFltrd, accelFltrd;
 	vec_t bodyY, gDiff;
-	quat_t qEst, rot = { .a = qa, .i = -qb, .j = -qc, .k = -qd };
+	quat_t qEst, rot = { .a = QA, .i = -QB, .j = -QC, .k = -QD };
 	float qEstErr;
 	uint64_t timestamp;
 
@@ -64,7 +64,7 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 
 	/* prepare unrotated accelerometer measurement with earth_g added for prefiltered quaternion estimation */
 	/* TODO: we can consider storing direct accel measurements in state vector and rotate it on demand (change in jacobians required!) */
-	accelFltrd = (vec_t) { .x = ax, .y = ay, .z = az - EARTH_G };
+	accelFltrd = (vec_t) { .x = AX, .y = AY, .z = AZ - EARTH_G };
 	quat_vecRot(&accelFltrd, &rot);
 	gDiff.x = -accelFltrd.x;
 	gDiff.y = -accelFltrd.y;
@@ -88,32 +88,32 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	accel.z += EARTH_G;
 
 	matrix_zeroes(Z);
-	Z->data[imax] = accel.x;
-	Z->data[imay] = accel.y;
-	Z->data[imaz] = accel.z;
+	Z->data[IMAX] = accel.x;
+	Z->data[IMAY] = accel.y;
+	Z->data[IMAZ] = accel.z;
 
-	Z->data[imwx] = gyro.x;
-	Z->data[imwy] = gyro.y;
-	Z->data[imwz] = gyro.z;
+	Z->data[IMWX] = gyro.x;
+	Z->data[IMWY] = gyro.y;
+	Z->data[IMWZ] = gyro.z;
 
-	Z->data[immx] = mag.x;
-	Z->data[immy] = mag.y;
-	Z->data[immz] = mag.z;
+	Z->data[IMMX] = mag.x;
+	Z->data[IMMY] = mag.y;
+	Z->data[IMMZ] = mag.z;
 
 	/*
 	* qEst rotates vectors from body frame base to NED base.
 	* We store the body frame rotation which is conjugation of qEst.
 	*/
-	Z->data[imqa] = qEst.a;
-	Z->data[imqb] = qEst.i;
-	Z->data[imqc] = qEst.j;
-	Z->data[imqd] = qEst.k;
+	Z->data[IMQA] = qEst.a;
+	Z->data[IMQB] = qEst.i;
+	Z->data[IMQC] = qEst.j;
+	Z->data[IMQD] = qEst.k;
 
 	/* update measurement error */
-	R->data[R->cols * imqa + imqa] = qEstErr;
-	R->data[R->cols * imqb + imqb] = qEstErr;
-	R->data[R->cols * imqc + imqc] = qEstErr;
-	R->data[R->cols * imqd + imqd] = qEstErr;
+	R->data[R->cols * IMQA + IMQA] = qEstErr;
+	R->data[R->cols * IMQB + IMQB] = qEstErr;
+	R->data[R->cols * IMQC + IMQC] = qEstErr;
+	R->data[R->cols * IMQD + IMQD] = qEstErr;
 
 	return Z;
 }
@@ -124,22 +124,22 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 	matrix_t *state = state_est; /* aliasing for macros usage */
 	matrix_zeroes(hx);
 
-	hx->data[imax] = ax;
-	hx->data[imay] = ay;
-	hx->data[imaz] = az;
+	hx->data[IMAX] = AX;
+	hx->data[IMAY] = AY;
+	hx->data[IMAZ] = AZ;
 
-	hx->data[imwx] = wx;
-	hx->data[imwy] = wy;
-	hx->data[imwz] = wz;
+	hx->data[IMWX] = WX;
+	hx->data[IMWY] = WY;
+	hx->data[IMWZ] = WZ;
 
-	hx->data[immx] = mx;
-	hx->data[immy] = my;
-	hx->data[immz] = mz;
+	hx->data[IMMX] = MX;
+	hx->data[IMMY] = MY;
+	hx->data[IMMZ] = MZ;
 
-	hx->data[imqa] = qa;
-	hx->data[imqb] = qb;
-	hx->data[imqc] = qc;
-	hx->data[imqd] = qd;
+	hx->data[IMQA] = QA;
+	hx->data[IMQB] = QB;
+	hx->data[IMQC] = QC;
+	hx->data[IMQD] = QD;
 
 	return hx;
 }
@@ -152,12 +152,12 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 	matrix_diag(&I33);
 
 	matrix_zeroes(H);
-	matrix_writeSubmatrix(H, imax, iax, &I33);
-	matrix_writeSubmatrix(H, imwx, iwx, &I33);
-	matrix_writeSubmatrix(H, immx, imx, &I33);
+	matrix_writeSubmatrix(H, IMAX, IAX, &I33);
+	matrix_writeSubmatrix(H, IMWX, IWX, &I33);
+	matrix_writeSubmatrix(H, IMMX, IMX, &I33);
 	/* using I33 and one direct write to write I44 */
-	matrix_writeSubmatrix(H, imqa, iqa, &I33);
-	H->data[H->cols * imqd + iqd] = 1;
+	matrix_writeSubmatrix(H, IMQA, IQA, &I33);
+	H->data[H->cols * IMQD + IQD] = 1;
 }
 
 
@@ -165,22 +165,22 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 void imuUpdateInitializations(matrix_t *H, matrix_t *R)
 {
 	/* init of measurement noise matrix R */
-	R->data[R->cols * imax + imax] = init_values.R_acov;
-	R->data[R->cols * imay + imay] = init_values.R_acov;
-	R->data[R->cols * imaz + imaz] = init_values.R_acov;
+	R->data[R->cols * IMAX + IMAX] = init_values.R_acov;
+	R->data[R->cols * IMAY + IMAY] = init_values.R_acov;
+	R->data[R->cols * IMAZ + IMAZ] = init_values.R_acov;
 
-	R->data[R->cols * imwx + imwx] = init_values.R_wcov;
-	R->data[R->cols * imwy + imwy] = init_values.R_wcov;
-	R->data[R->cols * imwz + imwz] = init_values.R_wcov;
+	R->data[R->cols * IMWX + IMWX] = init_values.R_wcov;
+	R->data[R->cols * IMWY + IMWY] = init_values.R_wcov;
+	R->data[R->cols * IMWZ + IMWZ] = init_values.R_wcov;
 
-	R->data[R->cols * immx + immx] = init_values.R_mcov;
-	R->data[R->cols * immy + immy] = init_values.R_mcov;
-	R->data[R->cols * immz + immz] = init_values.R_mcov;
+	R->data[R->cols * IMMX + IMMX] = init_values.R_mcov;
+	R->data[R->cols * IMMY + IMMY] = init_values.R_mcov;
+	R->data[R->cols * IMMZ + IMMZ] = init_values.R_mcov;
 
-	R->data[R->cols * imqa + imqa] = init_values.R_qcov;
-	R->data[R->cols * imqb + imqb] = init_values.R_qcov;
-	R->data[R->cols * imqc + imqc] = init_values.R_qcov;
-	R->data[R->cols * imqd + imqd] = init_values.R_qcov;
+	R->data[R->cols * IMQA + IMQA] = init_values.R_qcov;
+	R->data[R->cols * IMQB + IMQB] = init_values.R_qcov;
+	R->data[R->cols * IMQC + IMQC] = init_values.R_qcov;
+	R->data[R->cols * IMQD + IMQD] = init_values.R_qcov;
 }
 
 

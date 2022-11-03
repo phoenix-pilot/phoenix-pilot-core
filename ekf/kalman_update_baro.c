@@ -68,8 +68,8 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	altDot = 0.95 * lastAltDot + 0.05 * altDot; /* speed is more susceptible to noise so it is filtered more */
 
 	/* Make measurements negative to account for NED <-> ENU frame conversion */
-	Z->data[imbxz] = -alt;
-	Z->data[imbvz] = -altDot;
+	Z->data[IMBXZ] = -alt;
+	Z->data[IMBVZ] = -altDot;
 
 	/* Update filter/derivative variables */
 	lastTstamp = currTstamp;
@@ -87,8 +87,8 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 
 	matrix_zeroes(hx);
 
-	hx->data[imbxz] = xz + vz * dt + az * dt * dt / 2;
-	hx->data[imbvz] = vz + az * dt;
+	hx->data[IMBXZ] = XZ + VZ * dt + AZ * dt * dt / 2;
+	hx->data[IMBVZ] = VZ + AZ * dt;
 
 	return hx;
 }
@@ -98,20 +98,20 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 {
 	const float dt = timeStep / 1000000.f;
 
-	H->data[H->cols * imbxz + ixz] = 1;
-	H->data[H->cols * imbxz + ivz] = dt;
-	H->data[H->cols * imbxz + iaz] = dt * dt / 2;
+	H->data[H->cols * IMBXZ + IXZ] = 1;
+	H->data[H->cols * IMBXZ + IVZ] = dt;
+	H->data[H->cols * IMBXZ + IAZ] = dt * dt / 2;
 
-	H->data[H->cols * imbvz + ivz] = 1;
-	H->data[H->cols * imbvz + iaz] = dt;
+	H->data[H->cols * IMBVZ + IVZ] = 1;
+	H->data[H->cols * IMBVZ + IAZ] = dt;
 }
 
 
 /* initialization function for barometer update step matrices values */
 static void baroUpdateInitializations(matrix_t *H, matrix_t *R)
 {
-	R->data[R->cols * imbxz + imbxz] = init_values.R_xzcov;
-	R->data[R->cols * imbvz + imbvz] = init_values.R_vzcov;
+	R->data[R->cols * IMBXZ + IMBXZ] = init_values.R_xzcov;
+	R->data[R->cols * IMBVZ + IMBVZ] = init_values.R_vzcov;
 }
 
 

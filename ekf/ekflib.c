@@ -165,28 +165,28 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	mutexLock(ekf_common.lock);
 
 	/* save quaternion attitude */
-	q.a = ekfState->q0 = ekf_common.stateEngine.state.data[iqa];
-	q.i = ekfState->q1 = ekf_common.stateEngine.state.data[iqb];
-	q.j = ekfState->q2 = ekf_common.stateEngine.state.data[iqc];
-	q.k = ekfState->q3 = ekf_common.stateEngine.state.data[iqd];
+	q.a = ekfState->q0 = ekf_common.stateEngine.state.data[IQA];
+	q.i = ekfState->q1 = ekf_common.stateEngine.state.data[IQB];
+	q.j = ekfState->q2 = ekf_common.stateEngine.state.data[IQC];
+	q.k = ekfState->q3 = ekf_common.stateEngine.state.data[IQD];
 
 	/* save newtonian motion parameters with frame change from NED to ENU */
-	ekfState->enuX = ekf_common.stateEngine.state.data[ixy];
-	ekfState->enuY = ekf_common.stateEngine.state.data[ixx];
-	ekfState->enuZ = -ekf_common.stateEngine.state.data[ixz];
+	ekfState->enuX = ekf_common.stateEngine.state.data[IXY];
+	ekfState->enuY = ekf_common.stateEngine.state.data[IXX];
+	ekfState->enuZ = -ekf_common.stateEngine.state.data[IXZ];
 
-	ekfState->enuXDot = ekf_common.stateEngine.state.data[ivy];
-	ekfState->enuYDot = ekf_common.stateEngine.state.data[ivx];
-	ekfState->enuZDot = -ekf_common.stateEngine.state.data[ivz];
+	ekfState->enuXDot = ekf_common.stateEngine.state.data[IVY];
+	ekfState->enuYDot = ekf_common.stateEngine.state.data[IVX];
+	ekfState->enuZDot = -ekf_common.stateEngine.state.data[IVZ];
 
-	ekfState->accelX = ekf_common.stateEngine.state.data[iay];
-	ekfState->accelY = ekf_common.stateEngine.state.data[iax];
-	ekfState->accelZ = -ekf_common.stateEngine.state.data[iaz];
+	ekfState->accelX = ekf_common.stateEngine.state.data[IAY];
+	ekfState->accelY = ekf_common.stateEngine.state.data[IAX];
+	ekfState->accelZ = -ekf_common.stateEngine.state.data[IAZ];
 
 	/* Save position quaternion */
-	angRates.x = ekf_common.stateEngine.state.data[iwx];
-	angRates.y = ekf_common.stateEngine.state.data[iwy];
-	angRates.z = ekf_common.stateEngine.state.data[iwz];
+	angRates.x = ekf_common.stateEngine.state.data[IWX];
+	angRates.y = ekf_common.stateEngine.state.data[IWY];
+	angRates.z = ekf_common.stateEngine.state.data[IWZ];
 
 	mutexUnlock(ekf_common.lock);
 

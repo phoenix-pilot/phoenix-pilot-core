@@ -45,16 +45,16 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 		return NULL;
 	}
 
-	Z->data[imgpsxx] = enu_pos.x;
-	Z->data[imgpsxy] = enu_pos.y;
-	Z->data[imgpsvx] = enu_speed.x;
-	Z->data[imgpsvy] = enu_speed.y;
+	Z->data[IMGPSXX] = enu_pos.x;
+	Z->data[IMGPSXY] = enu_pos.y;
+	Z->data[IMGPSVX] = enu_speed.x;
+	Z->data[IMGPSVY] = enu_speed.y;
 
 	memset(R->data, 0, sizeof(R->rows * R->cols * sizeof(float)));
-	R->data[R->cols * imgpsxx + imgpsxx] = 3 * hdop;
-	R->data[R->cols * imgpsxy + imgpsxy] = 3 * hdop;
-	R->data[R->cols * imgpsvx + imgpsvx] = 2;
-	R->data[R->cols * imgpsvy + imgpsvy] = 2;
+	R->data[R->cols * IMGPSXX + IMGPSXX] = 3 * hdop;
+	R->data[R->cols * IMGPSXY + IMGPSXY] = 3 * hdop;
+	R->data[R->cols * IMGPSVX + IMGPSVX] = 2;
+	R->data[R->cols * IMGPSVY + IMGPSVY] = 2;
 
 	return Z;
 }
@@ -65,10 +65,10 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 	matrix_t *state = state_est; /* aliasing for macros usage */
 	matrix_zeroes(hx);
 
-	hx->data[imgpsxx] = xx;
-	hx->data[imgpsxy] = xy;
-	hx->data[imgpsvx] = vx;
-	hx->data[imgpsvy] = vy;
+	hx->data[IMGPSXX] = XX;
+	hx->data[IMGPSXY] = XY;
+	hx->data[IMGPSVX] = VX;
+	hx->data[IMGPSVY] = VY;
 
 	return hx;
 }
@@ -77,10 +77,10 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_t timeStep)
 {
 	memset(H->data, 0, sizeof(H->rows * H->cols * sizeof(float)));
-	H->data[H->cols * imgpsxx + ixx] = 1;
-	H->data[H->cols * imgpsxy + ixy] = 1;
-	H->data[H->cols * imgpsvx + ivx] = 1;
-	H->data[H->cols * imgpsvy + ivy] = 1;
+	H->data[H->cols * IMGPSXX + IXX] = 1;
+	H->data[H->cols * IMGPSXY + IXY] = 1;
+	H->data[H->cols * IMGPSVX + IVX] = 1;
+	H->data[H->cols * IMGPSVY + IVY] = 1;
 }
 
 
