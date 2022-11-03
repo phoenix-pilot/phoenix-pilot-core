@@ -106,21 +106,21 @@ void read_config(void)
 /* state vectors values init */
 static void init_state_vector(matrix_t *state, const kalman_calib_t *calib)
 {
-	state->data[ixx] = state->data[ixy] = state->data[ixz] = 0; /* start position at [0,0,0] */
-	state->data[ivx] = state->data[ivy] = state->data[ivz] = 0; /* start velocity at [0,0,0] */
-	state->data[iax] = state->data[iay] = state->data[iaz] = 0; /* start acceleration at [0,0,0] */
-	state->data[iwx] = state->data[iwy] = state->data[iwz] = 0; /* start angular speed at [0,0,0] */
+	state->data[IXX] = state->data[IXY] = state->data[IXZ] = 0; /* start position at [0,0,0] */
+	state->data[IVX] = state->data[IVY] = state->data[IVZ] = 0; /* start velocity at [0,0,0] */
+	state->data[IAX] = state->data[IAY] = state->data[IAZ] = 0; /* start acceleration at [0,0,0] */
+	state->data[IWX] = state->data[IWY] = state->data[IWZ] = 0; /* start angular speed at [0,0,0] */
 
 	/* start rotation at identity quaternion */
-	state->data[iqa] = calib->init_q.a;
-	state->data[iqb] = calib->init_q.i;
-	state->data[iqc] = calib->init_q.j;
-	state->data[iqd] = calib->init_q.k;
+	state->data[IQA] = calib->init_q.a;
+	state->data[IQB] = calib->init_q.i;
+	state->data[IQC] = calib->init_q.j;
+	state->data[IQD] = calib->init_q.k;
 
 	/* start magnetic field as calibrated */
-	state->data[imx] = calib->init_m.x;
-	state->data[imx] = calib->init_m.y;
-	state->data[imx] = calib->init_m.z;
+	state->data[IMX] = calib->init_m.x;
+	state->data[IMX] = calib->init_m.y;
+	state->data[IMX] = calib->init_m.z;
 }
 
 
@@ -128,30 +128,30 @@ static void init_state_vector(matrix_t *state, const kalman_calib_t *calib)
 static void init_cov_vector(matrix_t *cov)
 {
 	matrix_zeroes(cov);
-	cov->data[cov->cols * ixx + ixx] = init_values.P_xerr * init_values.P_xerr;
-	cov->data[cov->cols * ixy + ixy] = init_values.P_xerr * init_values.P_xerr;
-	cov->data[cov->cols * ixz + ixz] = init_values.P_xerr * init_values.P_xerr;
+	cov->data[cov->cols * IXX + IXX] = init_values.P_xerr * init_values.P_xerr;
+	cov->data[cov->cols * IXY + IXY] = init_values.P_xerr * init_values.P_xerr;
+	cov->data[cov->cols * IXZ + IXZ] = init_values.P_xerr * init_values.P_xerr;
 
-	cov->data[cov->cols * ivx + ivx] = init_values.P_verr * init_values.P_verr;
-	cov->data[cov->cols * ivy + ivy] = init_values.P_verr * init_values.P_verr;
-	cov->data[cov->cols * ivz + ivz] = init_values.P_verr * init_values.P_verr;
+	cov->data[cov->cols * IVX + IVX] = init_values.P_verr * init_values.P_verr;
+	cov->data[cov->cols * IVY + IVY] = init_values.P_verr * init_values.P_verr;
+	cov->data[cov->cols * IVZ + IVZ] = init_values.P_verr * init_values.P_verr;
 
-	cov->data[cov->cols * iax + iax] = init_values.P_aerr * init_values.P_aerr;
-	cov->data[cov->cols * iay + iay] = init_values.P_aerr * init_values.P_aerr;
-	cov->data[cov->cols * iaz + iaz] = init_values.P_aerr * init_values.P_aerr;
+	cov->data[cov->cols * IAX + IAX] = init_values.P_aerr * init_values.P_aerr;
+	cov->data[cov->cols * IAY + IAY] = init_values.P_aerr * init_values.P_aerr;
+	cov->data[cov->cols * IAZ + IAZ] = init_values.P_aerr * init_values.P_aerr;
 
-	cov->data[cov->cols * iwx + iwx] = init_values.P_werr * init_values.P_werr;
-	cov->data[cov->cols * iwy + iwy] = init_values.P_werr * init_values.P_werr;
-	cov->data[cov->cols * iwz + iwz] = init_values.P_werr * init_values.P_werr;
+	cov->data[cov->cols * IWX + IWX] = init_values.P_werr * init_values.P_werr;
+	cov->data[cov->cols * IWY + IWY] = init_values.P_werr * init_values.P_werr;
+	cov->data[cov->cols * IWZ + IWZ] = init_values.P_werr * init_values.P_werr;
 
-	cov->data[cov->cols * iqa + iqa] = init_values.P_qaerr * init_values.P_qaerr;
-	cov->data[cov->cols * iqb + iqb] = init_values.P_qijkerr * init_values.P_qijkerr;
-	cov->data[cov->cols * iqc + iqc] = init_values.P_qijkerr * init_values.P_qijkerr;
-	cov->data[cov->cols * iqd + iqd] = init_values.P_qijkerr * init_values.P_qijkerr;
+	cov->data[cov->cols * IQA + IQA] = init_values.P_qaerr * init_values.P_qaerr;
+	cov->data[cov->cols * IQB + IQB] = init_values.P_qijkerr * init_values.P_qijkerr;
+	cov->data[cov->cols * IQC + IQC] = init_values.P_qijkerr * init_values.P_qijkerr;
+	cov->data[cov->cols * IQD + IQD] = init_values.P_qijkerr * init_values.P_qijkerr;
 
-	cov->data[cov->cols * imx + imx] = init_values.P_merr * init_values.P_merr;
-	cov->data[cov->cols * imy + imy] = init_values.P_merr * init_values.P_merr;
-	cov->data[cov->cols * imz + imz] = init_values.P_merr * init_values.P_merr;
+	cov->data[cov->cols * IMX + IMX] = init_values.P_merr * init_values.P_merr;
+	cov->data[cov->cols * IMY + IMY] = init_values.P_merr * init_values.P_merr;
+	cov->data[cov->cols * IMZ + IMZ] = init_values.P_merr * init_values.P_merr;
 }
 
 vec_t last_a = { 0 };
@@ -166,27 +166,27 @@ static void calcStateEstimation(matrix_t *state, matrix_t *state_est, time_t tim
 	dt = timeStep / 1000000.;
 	dt2 = dt * dt / 2;
 
-	quat_q = (quat_t) { .a = qa, .i = qb, .j = qc, .k = qd };
-	quat_w = (quat_t) { .a = 0, .i = wx, .j = wy, .k = wz };
+	quat_q = (quat_t) { .a = QA, .i = QB, .j = QC, .k = QD };
+	quat_w = (quat_t) { .a = 0, .i = WX, .j = WY, .k = WZ };
 
 	/* trapezoidal integration */
-	state_est->data[ixx] = xx + (vx + last_v.x) * 0.5 * dt + ax * dt2;
-	state_est->data[ixy] = xy + (vy + last_v.y) * 0.5 * dt + ay * dt2;
-	state_est->data[ixz] = xz + (vz + last_v.z) * 0.5 * dt + az * dt2;
+	state_est->data[IXX] = XX + (VX + last_v.x) * 0.5 * dt + AX * dt2;
+	state_est->data[IXY] = XY + (VY + last_v.y) * 0.5 * dt + AY * dt2;
+	state_est->data[IXZ] = XZ + (VZ + last_v.z) * 0.5 * dt + AZ * dt2;
 
 	/* trapezoidal integration */
 	/* as no direct velocity measurements are done, time corelation is introduced to velocity with assumption that velocity always decreases */
-	state_est->data[ivx] = (vx + (ax + last_a.x) * 0.5 * dt) * 0.999;
-	state_est->data[ivy] = (vy + (ay + last_a.y) * 0.5 * dt) * 0.999;
-	state_est->data[ivz] = (vz + (az + last_a.z) * 0.5 * dt);
+	state_est->data[IVX] = (VX + (AX + last_a.x) * 0.5 * dt) * 0.999;
+	state_est->data[IVY] = (VY + (AY + last_a.y) * 0.5 * dt) * 0.999;
+	state_est->data[IVZ] = (VZ + (AZ + last_a.z) * 0.5 * dt);
 
-	last_a.x = ax;
-	last_a.y = ay;
-	last_a.z = az;
+	last_a.x = AX;
+	last_a.y = AY;
+	last_a.z = AZ;
 
-	last_v.x = vx;
-	last_v.y = vy;
-	last_v.z = vz;
+	last_v.x = VX;
+	last_v.y = VY;
+	last_v.z = VZ;
 
 	/* predition from w */
 	quat_mlt(&quat_w, &quat_q, &res);
@@ -194,22 +194,22 @@ static void calcStateEstimation(matrix_t *state, matrix_t *state_est, time_t tim
 	quat_add(&quat_q, &res);
 	quat_normalize(&quat_q);
 
-	state_est->data[iqa] = quat_q.a;
-	state_est->data[iqb] = quat_q.i;
-	state_est->data[iqc] = quat_q.j;
-	state_est->data[iqd] = quat_q.k;
+	state_est->data[IQA] = quat_q.a;
+	state_est->data[IQB] = quat_q.i;
+	state_est->data[IQC] = quat_q.j;
+	state_est->data[IQD] = quat_q.k;
 
-	state_est->data[iax] = ax;
-	state_est->data[iay] = ay;
-	state_est->data[iaz] = az;
+	state_est->data[IAX] = AX;
+	state_est->data[IAY] = AY;
+	state_est->data[IAZ] = AZ;
 
-	state_est->data[iwx] = wx;
-	state_est->data[iwy] = wy;
-	state_est->data[iwz] = wz;
+	state_est->data[IWX] = WX;
+	state_est->data[IWY] = WY;
+	state_est->data[IWZ] = WZ;
 
-	state_est->data[imx] = mx;
-	state_est->data[imy] = my;
-	state_est->data[imz] = mz;
+	state_est->data[IMX] = MX;
+	state_est->data[IMY] = MY;
+	state_est->data[IMZ] = MZ;
 }
 
 
@@ -227,7 +227,7 @@ static void calcPredictionJacobian(matrix_t *F, matrix_t *state, time_t timeStep
 	dt2 = dt / 2; /* helper value */
 
 	/* derrivative submatrix of (dfq / dq) of size 4x4 */
-	float wxdt2 = wx * dt2, wydt2 = wy * dt2, wzdt2 = wz * dt2;
+	float wxdt2 = WX * dt2, wydt2 = WY * dt2, wzdt2 = WZ * dt2;
 	float data_dfqdq[16] = {
 		1, -wxdt2, -wydt2, -wzdt2,
 		wxdt2, 1, -wzdt2, wydt2,
@@ -235,7 +235,7 @@ static void calcPredictionJacobian(matrix_t *F, matrix_t *state, time_t timeStep
 		wzdt2, -wydt2, wxdt2, 1
 	};
 	/* derrivative submatrix of (dfq / dw) of size 4x3 */
-	float qadt2 = qa * dt2, qbdt2 = qb * dt2, qcdt2 = qc * dt2, qddt2 = qd * dt2;
+	float qadt2 = QA * dt2, qbdt2 = QB * dt2, qcdt2 = QC * dt2, qddt2 = QD * dt2;
 	float data_dfqdw[12] = {
 		-qbdt2, -qcdt2, -qddt2,
 		qadt2, qddt2, -qcdt2,
@@ -254,17 +254,17 @@ static void calcPredictionJacobian(matrix_t *F, matrix_t *state, time_t timeStep
 
 	/* change I33 to (I * dt) matrix and write it to appropriate places */
 	matrix_times(&I33, dt);
-	matrix_writeSubmatrix(F, ixx, ivx, &I33); /* dfx / dv */
-	matrix_writeSubmatrix(F, ivx, iax, &I33); /* dfv / da */
+	matrix_writeSubmatrix(F, IXX, IVX, &I33); /* dfx / dv */
+	matrix_writeSubmatrix(F, IVX, IAX, &I33); /* dfv / da */
 
 	/* change I33 to (I * dt^2 / 2) matrix and write it to appropriate places */
 	matrix_times(&I33, dt / 2);
 	//matrix_times(&I33, 0.5);
-	//matrix_writeSubmatrix(F, ixx, iax, &I33); /* dfx / dv */
+	//matrix_writeSubmatrix(F, IXX, IAX, &I33); /* dfx / dv */
 
 	/* write differentials matrices */
-	matrix_writeSubmatrix(F, iqa, iqa, &dfqdq);
-	matrix_writeSubmatrix(F, iqa, iwx, &dfqdw);
+	matrix_writeSubmatrix(F, IQA, IQA, &dfqdq);
+	matrix_writeSubmatrix(F, IQA, IWX, &dfqdw);
 }
 
 
@@ -309,19 +309,19 @@ int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
 	/* prepare noise matrix Q */
 	matrix_zeroes(&engine->Q);
 	Q = &engine->Q;
-	Q->data[Q->cols * ixx + ixx] = Q->data[Q->cols * ixy + ixy] = init_values.Q_xcov;
-	Q->data[Q->cols * ivx + ivx] = Q->data[Q->cols * ivy + ivy] = init_values.Q_vcov;
+	Q->data[Q->cols * IXX + IXX] = Q->data[Q->cols * IXY + IXY] = init_values.Q_xcov;
+	Q->data[Q->cols * IVX + IVX] = Q->data[Q->cols * IVY + IVY] = init_values.Q_vcov;
 
-	Q->data[Q->cols * iax + iax] = Q->data[Q->cols * iay + iay] = init_values.Q_ahoricov;
-	Q->data[Q->cols * iaz + iaz] = init_values.Q_avertcov;
+	Q->data[Q->cols * IAX + IAX] = Q->data[Q->cols * IAY + IAY] = init_values.Q_ahoricov;
+	Q->data[Q->cols * IAZ + IAZ] = init_values.Q_avertcov;
 
-	Q->data[Q->cols * iwx + iwx] = Q->data[Q->cols * iwy + iwy] = Q->data[Q->cols * iwz + iwz] = init_values.Q_wcov;
-	Q->data[Q->cols * imx + imx] = Q->data[Q->cols * imy + imy] = Q->data[Q->cols * imz + imz] = init_values.Q_mcov;
-	Q->data[Q->cols * iqa + iqa] = init_values.Q_qcov;
-	Q->data[Q->cols * iqb + iqb] = init_values.Q_qcov;
-	Q->data[Q->cols * iqc + iqc] = init_values.Q_qcov;
-	Q->data[Q->cols * iqd + iqd] = init_values.Q_qcov;
-	Q->data[Q->cols * ixz + ixz] = init_values.Q_hcov;
+	Q->data[Q->cols * IWX + IWX] = Q->data[Q->cols * IWY + IWY] = Q->data[Q->cols * IWZ + IWZ] = init_values.Q_wcov;
+	Q->data[Q->cols * IMX + IMX] = Q->data[Q->cols * IMY + IMY] = Q->data[Q->cols * IMZ + IMZ] = init_values.Q_mcov;
+	Q->data[Q->cols * IQA + IQA] = init_values.Q_qcov;
+	Q->data[Q->cols * IQB + IQB] = init_values.Q_qcov;
+	Q->data[Q->cols * IQC + IQC] = init_values.Q_qcov;
+	Q->data[Q->cols * IQD + IQD] = init_values.Q_qcov;
+	Q->data[Q->cols * IXZ + IXZ] = init_values.Q_hcov;
 
 	/* save function pointers */
 	engine->estimateState = calcStateEstimation;

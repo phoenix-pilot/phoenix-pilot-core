@@ -43,72 +43,72 @@
 /* abbreviation of IndexMeasurement(valuename) */
 
 /* imu measurements */
-#define imax 0
-#define imay 1
-#define imaz 2
-#define imwx 3
-#define imwy 4
-#define imwz 5
-#define immx 6
-#define immy 7
-#define immz 8
-#define imqa 9
-#define imqb 10
-#define imqc 11
-#define imqd 12
+#define IMAX 0
+#define IMAY 1
+#define IMAZ 2
+#define IMWX 3
+#define IMWY 4
+#define IMWZ 5
+#define IMMX 6
+#define IMMY 7
+#define IMMZ 8
+#define IMQA 9
+#define IMQB 10
+#define IMQC 11
+#define IMQD 12
 
 /* baro measurements */
-#define imbxz 0
-#define imbvz 1
+#define IMBXZ 0
+#define IMBVZ 1
 
 /* gps measurements */
-#define imgpsxx 0
-#define imgpsxy 1
-#define imgpsvx 2
-#define imgpsvy 3
+#define IMGPSXX 0
+#define IMGPSXY 1
+#define IMGPSVX 2
+#define IMGPSVY 3
 
 /* index of state variable of: */
-#define ixx 0  /* position x */
-#define ixy 1  /* position y */
-#define ixz 2  /* position z */
-#define ivx 3  /* velocity x */
-#define ivy 4  /* velocity y */
-#define ivz 5  /* velocity z */
-#define iqa 6  /* rotation quaternion real part */
-#define iqb 7  /* rotation quaternion imaginary i part */
-#define iqc 8  /* rotation quaternion imaginary j part */
-#define iqd 9  /* rotation quaternion imaginary k part */
-#define iax 10 /* earth based acceleration x */
-#define iay 11 /* earth based acceleration y */
-#define iaz 12 /* earth based acceleration z */
-#define iwx 13 /* earth based angular speed x */
-#define iwy 14 /* earth based angular speed y */
-#define iwz 15 /* earth based angular speed z */
-#define imx 16 /* magnetic field x */
-#define imy 17 /* magnetic field y */
-#define imz 18 /* magnetic field z */
+#define IXX 0  /* position x */
+#define IXY 1  /* position y */
+#define IXZ 2  /* position z */
+#define IVX 3  /* velocity x */
+#define IVY 4  /* velocity y */
+#define IVZ 5  /* velocity z */
+#define IQA 6  /* rotation quaternion real part */
+#define IQB 7  /* rotation quaternion imaginary i part */
+#define IQC 8  /* rotation quaternion imaginary j part */
+#define IQD 9  /* rotation quaternion imaginary k part */
+#define IAX 10 /* earth based acceleration x */
+#define IAY 11 /* earth based acceleration y */
+#define IAZ 12 /* earth based acceleration z */
+#define IWX 13 /* earth based angular speed x */
+#define IWY 14 /* earth based angular speed y */
+#define IWZ 15 /* earth based angular speed z */
+#define IMX 16 /* magnetic field x */
+#define IMY 17 /* magnetic field y */
+#define IMZ 18 /* magnetic field z */
 
 
 /* value name */
-#define xx state->data[0]
-#define xy state->data[1]
-#define xz state->data[2]
-#define vx state->data[3]
-#define vy state->data[4]
-#define vz state->data[5]
-#define qa state->data[6]
-#define qb state->data[7]
-#define qc state->data[8]
-#define qd state->data[9]
-#define ax state->data[10]
-#define ay state->data[11]
-#define az state->data[12]
-#define wx state->data[13]
-#define wy state->data[14]
-#define wz state->data[15]
-#define mx state->data[16]
-#define my state->data[17]
-#define mz state->data[18]
+#define XX state->data[0]
+#define XY state->data[1]
+#define XZ state->data[2]
+#define VX state->data[3]
+#define VY state->data[4]
+#define VZ state->data[5]
+#define QA state->data[6]
+#define QB state->data[7]
+#define QC state->data[8]
+#define QD state->data[9]
+#define AX state->data[10]
+#define AY state->data[11]
+#define AZ state->data[12]
+#define WX state->data[13]
+#define WY state->data[14]
+#define WZ state->data[15]
+#define MX state->data[16]
+#define MY state->data[17]
+#define MZ state->data[18]
 
 /* IMPORTANT: must be kept in order with 'char * config_names' in 'kalman.inits.c' */
 typedef struct {
