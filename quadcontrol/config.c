@@ -89,6 +89,45 @@ static int config_parseTime(const hmap_t *h, char *fieldName, time_t *target)
 }
 
 
+/* Doubles the `res[parserType]` buffer if necessary  */
+static int config_reallocData(int parserType, size_t dataTypeSize)
+{
+	static const int reallocRate = 2;
+	void *tmp;
+
+	if (res[parserType].invCnt >= res[parserType].sz) {
+		tmp = realloc(res[parserType].data, dataTypeSize * res[parserType].sz * reallocRate);
+		if (tmp == NULL) {
+			return -1;
+		}
+
+		res[parserType].data = tmp;
+		res[parserType].sz *= reallocRate;
+	}
+
+	return 0;
+}
+
+
+/* If necessary changes the size of res[parserType].data` so that it matches number of elements in this table */
+static int config_trimUnusedData(int parserType, size_t dataTypeSize)
+{
+	void *tmp;
+
+	if (res[parserType].invCnt < res[parserType].sz) {
+		tmp = realloc(res[parserType].data, dataTypeSize * res[parserType].invCnt);
+		if (tmp == NULL) {
+			return -1;
+		}
+
+		res[parserType].data = tmp;
+		res[parserType].sz = res[parserType].invCnt;
+	}
+
+	return 0;
+}
+
+
 static int config_takeoffParse(const hmap_t *h, flight_mode_t *mode)
 {
 	int err = 0;
@@ -158,21 +197,12 @@ static int config_landingParse(const hmap_t *h, flight_mode_t *mode)
 
 static int config_scenarioConverter(const hmap_t *h)
 {
-	static const int reallocRate = 2;
 	char *type;
-	void *tmp;
 	int err = 0;
 	flight_mode_t *mode;
 
-	if (res[cfg_scenarioID].invCnt >= res[cfg_scenarioID].sz) {
-		/* Doubling space if current is too small */
-		tmp = realloc(res[cfg_scenarioID].data, sizeof(flight_mode_t) * res[cfg_scenarioID].sz * reallocRate);
-		if (tmp == NULL) {
-			return -1;
-		}
-
-		res[cfg_scenarioID].data = tmp;
-		res[cfg_scenarioID].sz *= reallocRate;
+	if (config_reallocData(cfg_scenarioID, sizeof(flight_mode_t)) != 0) {
+		return -1;
 	}
 
 	mode = (flight_mode_t *)res[cfg_scenarioID].data + res[cfg_scenarioID].invCnt;
@@ -222,7 +252,6 @@ static int config_scenarioConverter(const hmap_t *h)
 
 int config_scenarioRead(const char *path, flight_mode_t **scenario, size_t *sz)
 {
-	void *tmp;
 	int err = 0;
 	static const unsigned int initSz = 5;
 
@@ -261,20 +290,99 @@ int config_scenarioRead(const char *path, flight_mode_t **scenario, size_t *sz)
 		return -1;
 	}
 
-	if (res[cfg_scenarioID].invCnt < res[cfg_scenarioID].sz) {
-		tmp = realloc(res[cfg_scenarioID].data, sizeof(flight_mode_t) * res[cfg_scenarioID].invCnt);
-		if (tmp == NULL) {
-			fprintf(stderr, "config: realloc error\n");
-			free(res[cfg_scenarioID].data);
-			return -1;
-		}
-
-		res[cfg_scenarioID].data = tmp;
+	if (config_trimUnusedData(cfg_scenarioID, sizeof(flight_mode_t)) != 0) {
+		fprintf(stderr, "config: realloc error\n");
+		free(res[cfg_scenarioID].data);
+		return -1;
 	}
 
 	*scenario = res[cfg_scenarioID].data;
 	res[cfg_scenarioID].data = NULL;
 	*sz = res[cfg_scenarioID].invCnt;
+
+	return 0;
+}
+
+
+static int config_pidConverter(const hmap_t *h)
+{
+	int err = 0;
+	pid_ctx_t *pid;
+	int id = res[cfg_pidID].invCnt;
+
+	if (config_reallocData(cfg_pidID, sizeof(pid_ctx_t)) != 0) {
+		return -1;
+	}
+
+	pid = (pid_ctx_t *)res[cfg_pidID].data + id;
+
+	err |= config_parseFloat(h, "P", &pid->kp);
+	err |= config_parseFloat(h, "I", &pid->ki);
+	err |= config_parseFloat(h, "D", &pid->kd);
+	err |= config_parseFloat(h, "MIN", &pid->min);
+	err |= config_parseFloat(h, "MAX", &pid->max);
+	err |= config_parseFloat(h, "IMAX", &pid->maxInteg);
+	err |= config_parseFloat(h, "IMIN", &pid->minInteg);
+
+	if (err != 0) {
+		return -1;
+	}
+
+	res[cfg_pidID].invCnt++;
+
+	return 0;
+}
+
+
+int config_pidRead(const char *path, pid_ctx_t **pids, int *sz)
+{
+	int err;
+	parser_t *p;
+	static const unsigned int initSz = 4;
+
+	if (path == NULL || pids == NULL || sz == NULL) {
+		fprintf(stderr, "config: invalid arguments\n");
+		return -1;
+	}
+
+	*pids = NULL;
+	*sz = 0;
+
+	/* Parser have to parser one header, which have seven fields */
+	p = parser_alloc(1, 7);
+	if (p == NULL) {
+		return -1;
+	}
+
+	if (parser_headerAdd(p, "PID", config_pidConverter) != 0) {
+		parser_free(p);
+		return -1;
+	}
+
+	res[cfg_pidID].data = malloc(sizeof(pid_ctx_t) * initSz);
+	if (res[cfg_pidID].data == NULL) {
+		parser_free(p);
+		return -1;
+	}
+
+	res[cfg_pidID].sz = initSz;
+	res[cfg_pidID].invCnt = 0;
+
+	err = parser_execute(p, path, PARSER_IGN_UNKNOWN_HEADERS);
+	parser_free(p);
+	if (err != 0) {
+		free(res[cfg_pidID].data);
+		return -1;
+	}
+
+	if (config_trimUnusedData(cfg_pidID, sizeof(pid_ctx_t)) != 0) {
+		fprintf(stderr, "config: realloc error\n");
+		free(res[cfg_pidID].data);
+		return -1;
+	}
+
+	*pids = res[cfg_pidID].data;
+	*sz = res[cfg_pidID].sz;
 
 	return 0;
 }

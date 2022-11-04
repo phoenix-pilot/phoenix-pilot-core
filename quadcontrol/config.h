@@ -22,4 +22,8 @@
 extern int config_scenarioRead(const char *path, flight_mode_t **scenario, size_t *sz);
 
 
+/* Parser all PIDs from file defined by `path`. If succeeded returns 0 and `pids` is array with length equal to `sz`. In other case returns -1. */
+extern int config_pidRead(const char *path, pid_ctx_t **pids, int *sz);
+
+
 #endif
