@@ -15,6 +15,7 @@
 #include "mma.h"
 #include "pid.h"
 #include "log.h"
+#include "config.h"
 
 #include <ekflib.h>
 #include <rcbus.h>
@@ -43,6 +44,8 @@
 
 #define PATH_PIDS_CONFIG "/etc/quad.conf"
 #define PID_NUMBERS      4
+
+#define PATH_SCENARIO_CONFIG "/etc/q_mission.conf"
 
 #define HOVER_THROTTLE 0.27
 
@@ -73,6 +76,9 @@ struct {
 	quad_att_t targetAtt;
 #endif
 
+	flight_mode_t *scenario;
+	size_t scenarioSz;
+
 	struct {
 		float min;
 		float max;
@@ -81,26 +87,6 @@ struct {
 
 
 enum { pwm_alt = 0, pwm_roll, pwm_pitch, pwm_yaw, pwm_max };
-
-
-/* Example of flight scenario.
-   TODO: move data to the configuration file placed in a rootfs */
-#if TEST_ATTITUDE
-static const flight_mode_t scenario[] = {
-	{ .type = flight_manual }
-};
-#else
-static const flight_mode_t scenario[] = {
-	{ .type = flight_takeoff, .takeoff = { .alt = 5000, .time = 2000 } },
-	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
-	{ .type = flight_hover, .hover = { .alt = 0, .time = 6000 } },
-	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
-	{ .type = flight_hover, .hover = { .alt = 0, .time = 6000 } },
-	{ .type = flight_hover, .hover = { .alt = 4000, .time = 5000 } },
-	{ .type = flight_landing },
-	{ .type = flight_end },
-};
-#endif
 
 
 /* TODO: verify coefficients with test quadcopter */
@@ -386,10 +372,10 @@ static int quad_run(void)
 
 	quad_common.lastTime = quad_timeMsGet();
 
-	while (i < sizeof(scenario) / sizeof(scenario[0]) && run == 1) {
+	while (i < quad_common.scenarioSz && run == 1) {
 
 		if ((quad_common.currFlight >= flight_arm && armed == 1) && quad_common.currFlight < flight_manual) {
-			quad_common.currFlight = scenario[i].type;
+			quad_common.currFlight = quad_common.scenario[i].type;
 		}
 
 		log_enable();
@@ -431,7 +417,7 @@ static int quad_run(void)
 
 			/* Handling auto modes: */
 			case flight_takeoff:
-				err = quad_takeoff(&scenario[i++]);
+				err = quad_takeoff(&quad_common.scenario[i++]);
 				break;
 
 			case flight_pos:
@@ -439,11 +425,11 @@ static int quad_run(void)
 				break;
 
 			case flight_hover:
-				err = quad_hover(&scenario[i++]);
+				err = quad_hover(&quad_common.scenario[i++]);
 				break;
 
 			case flight_landing:
-				err = quad_landing(&scenario[i++]);
+				err = quad_landing(&quad_common.scenario[i++]);
 				break;
 
 			case flight_end:
@@ -746,6 +732,8 @@ static void quad_done(void)
 	ekf_done();
 	rcbus_done();
 
+	free(quad_common.scenario);
+
 	resourceDestroy(quad_common.rcbusLock);
 }
 
@@ -773,11 +761,17 @@ static int quad_init(void)
 		return -1;
 	}
 
+	if (config_scenarioRead(PATH_SCENARIO_CONFIG, &quad_common.scenario, &quad_common.scenarioSz) != 0) {
+		resourceDestroy(quad_common.rcbusLock);
+		return -1;
+	}
+
 	/* Set initial values */
 	for (i = 0; i < PID_NUMBERS; ++i) {
 		if (pid_init(&quad_common.pids[i]) < 0) {
 			fprintf(stderr, "quadcontrol: cannot initialize PID %d\n", i);
 			resourceDestroy(quad_common.rcbusLock);
+			free(quad_common.scenario);
 			return -1;
 		}
 	}
@@ -788,6 +782,7 @@ static int quad_init(void)
 	if (mma_init(&quadCoeffs) < 0) {
 		fprintf(stderr, "quadcontrol: cannot initialize mma module\n");
 		resourceDestroy(quad_common.rcbusLock);
+		free(quad_common.scenario);
 		return -1;
 	}
 
@@ -796,12 +791,14 @@ static int quad_init(void)
 	if (rcbus_init(PATH_DEV_RC_BUS, rc_typeIbus) < 0) {
 		fprintf(stderr, "quadcontrol: cannot initialize rcbus using %s\n", PATH_DEV_RC_BUS);
 		resourceDestroy(quad_common.rcbusLock);
+		free(quad_common.scenario);
 		return -1;
 	}
 
 	if (rcbus_run(quad_rcbusHandler, 500) < 0) {
 		fprintf(stderr, "quadcontrol: cannot run rcbus\n");
 		resourceDestroy(quad_common.rcbusLock);
+		free(quad_common.scenario);
 		return -1;
 	}
 
@@ -810,6 +807,7 @@ static int quad_init(void)
 	if (ekf_init() < 0) {
 		fprintf(stderr, "quadcontrol: cannot initialize ekf\n");
 		resourceDestroy(quad_common.rcbusLock);
+		free(quad_common.scenario);
 		return -1;
 	}
 
@@ -817,6 +815,7 @@ static int quad_init(void)
 	if (ekf_run() < 0) {
 		fprintf(stderr, "quadcontrol: cannot run ekf\n");
 		resourceDestroy(quad_common.rcbusLock);
+		free(quad_common.scenario);
 		return -1;
 	}
 
