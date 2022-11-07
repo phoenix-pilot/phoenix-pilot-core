@@ -65,7 +65,7 @@ Fields have to consist of two parts. The field name and value of this field. Bet
 [Filed name]( |=)[Value]
 ```
 
-The field name defines the kinds of value, which comes after it. Value stores data in form of a string, which during parsing can be converted to other data types. Syntax of fields allows using big and small letters, digits, `_` (underscore), `,` (comma) and `.` (dot). The maximum length of a field name is 16 characters and for a value, it is 64 characters.
+The field name defines the kinds of value, which comes after it. Value stores data in form of a string, which during parsing can be converted to other data types. Syntax of fields allows using big and small letters, digits, `_` (underscore), `,` (comma) `-` (minus sign), `+` and `.` (dot). The maximum length of a field name is 16 characters and for a value, it is 64 characters.
 
 After value, it is possible to add a comment.
 
