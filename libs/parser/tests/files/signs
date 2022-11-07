@@ -1,0 +1,9 @@
+# Minus sign
+@STRUCT2
+INT1 123
+INT2 -25
+
+# Plus sign
+@STRUCT2
+INT1 +123
+INT2 25
