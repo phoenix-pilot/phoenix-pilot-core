@@ -48,7 +48,7 @@ struct {
 
 	handle_t lock;
 
-	char stack[8192];
+	char stack[8192] __attribute__((aligned(8)));
 } ekf_common;
 
 
@@ -134,16 +134,28 @@ static void ekf_thread(void *arg)
 
 int ekf_run(void)
 {
-	return beginthread(ekf_thread, 4, ekf_common.stack, sizeof(ekf_common.stack), NULL);
+	int res =  beginthread(ekf_thread, 4, ekf_common.stack, sizeof(ekf_common.stack), NULL);
+
+	/* Wait to stabilize data in covariance matrixes */
+	sleep(3);
+
+	return res;
+}
+
+
+void ekf_stop(void)
+{
+	if (ekf_common.run == 1) {
+		ekf_common.run = 0;
+	}
+
+	threadJoin(0);
 }
 
 
 void ekf_done(void)
 {
-	if (ekf_common.run == 1) {
-		ekf_common.run = 0;
-	}
-	threadJoin(0);
+	sensc_deinit();
 	kmn_predDeinit(&ekf_common.stateEngine);
 	resourceDestroy(ekf_common.lock);
 }
