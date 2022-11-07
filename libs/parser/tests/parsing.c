@@ -157,7 +157,7 @@ static int converter_multipleHeaders(const hmap_t *h)
 			break;
 		case 4:
 			res += test_hmapSizeCheck(h, 2);
-			res += test_fieldCheck(h, INT1_FIELD_NAME, "-25");
+			res += test_fieldCheck(h, INT1_FIELD_NAME, "25");
 			res += test_fieldCheck(h, INT2_FIELD_NAME, "123");
 			break;
 		default:
@@ -258,6 +258,84 @@ TEST(group_parser_execute, parser_execute_spaces)
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_spaces));
 
 	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/spaces", PARSER_EXEC_ALL_HEADERS));
+
+	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
+	TEST_ASSERT_EQUAL_INT(2, parsing_common.invCnt);
+}
+
+
+static int converter_signs(const hmap_t *h)
+{
+	int res = 0;
+
+	switch (++parsing_common.invCnt) {
+		case 1:
+			res += test_hmapSizeCheck(h, 2);
+			res += test_fieldCheck(h, INT1_FIELD_NAME, "123");
+			res += test_fieldCheck(h, INT2_FIELD_NAME, "-25");
+			break;
+		case 2:
+			res += test_hmapSizeCheck(h, 2);
+			res += test_fieldCheck(h, INT1_FIELD_NAME, "+123");
+			res += test_fieldCheck(h, INT2_FIELD_NAME, "25");
+			break;
+		default:
+			fprintf(stderr, "Too many converter invocations");
+			res += -1;
+			break;
+	}
+
+	parsing_common.corrData = res;
+
+	return res;
+}
+
+
+TEST(group_parser_execute, parser_execute_signs)
+{
+	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_signs));
+
+	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/signs", PARSER_EXEC_ALL_HEADERS));
+
+	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
+	TEST_ASSERT_EQUAL_INT(2, parsing_common.invCnt);
+}
+
+
+static int converter_ignoreUnknownHeaders(const hmap_t *h)
+{
+	int res = 0;
+
+	switch (++parsing_common.invCnt) {
+		case 1:
+			res += test_hmapSizeCheck(h, 3);
+			res += test_fieldCheck(h, INT1_FIELD_NAME, "5");
+			res += test_fieldCheck(h, FLOAT_FIELD_NAME, "2.5");
+			res += test_fieldCheck(h, STRING_FIELD_NAME, "TEST");
+			break;
+		case 2:
+			res += test_hmapSizeCheck(h, 3);
+			res += test_fieldCheck(h, INT1_FIELD_NAME, "27");
+			res += test_fieldCheck(h, FLOAT_FIELD_NAME, "56.25");
+			res += test_fieldCheck(h, STRING_FIELD_NAME, "STR");
+			break;
+		default:
+			fprintf(stderr, "Too many converter invocations");
+			res += -1;
+			break;
+	}
+
+	parsing_common.corrData = res;
+
+	return res;
+}
+
+
+TEST(group_parser_execute, parser_execute_ignoreUnknowHeaders)
+{
+	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_ignoreUnknownHeaders));
+
+	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/multiple_headers", PARSER_IGN_UNKNOWN_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(2, parsing_common.invCnt);
@@ -365,6 +443,38 @@ TEST(group_parser_execute, parser_execute_redundantFields)
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(1, parsing_common.invCnt);
+}
+
+
+static int converter_fieldWithoutHeader(const hmap_t *h)
+{
+	parsing_common.corrData = -1;
+	parsing_common.invCnt++;
+
+	return -1;
+}
+
+
+TEST(group_parser_execute, parser_execute_fieldWithoutHeader1)
+{
+	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_fieldWithoutHeader));
+	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_fieldWithoutHeader));
+
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/field_without_header", PARSER_EXEC_ALL_HEADERS));
+
+	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
+	TEST_ASSERT_EQUAL_INT(0, parsing_common.invCnt);
+}
+
+
+TEST(group_parser_execute, parser_execute_fieldWithoutHeader2)
+{
+	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_fieldWithoutHeader));
+
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/field_without_header", PARSER_IGN_UNKNOWN_HEADERS));
+
+	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
+	TEST_ASSERT_EQUAL_INT(0, parsing_common.invCnt);
 }
 
 
@@ -512,10 +622,14 @@ TEST_GROUP_RUNNER(group_parser_execute)
 	RUN_TEST_CASE(group_parser_execute, parser_execute_multipleHeaders);
 	RUN_TEST_CASE(group_parser_execute, parser_execute_comments);
 	RUN_TEST_CASE(group_parser_execute, parser_execute_spaces);
+	RUN_TEST_CASE(group_parser_execute, parser_execute_signs);
+	RUN_TEST_CASE(group_parser_execute, parser_execute_ignoreUnknowHeaders);
 	RUN_TEST_CASE(group_parser_execute, parser_execute_emptyFile);
 	RUN_TEST_CASE(group_parser_execute, parser_execute_unspecifiedHeader);
 	RUN_TEST_CASE(group_parser_execute, parser_execute_tooManyFields);
 	RUN_TEST_CASE(group_parser_execute, parser_execute_redundantFields);
+	RUN_TEST_CASE(group_parser_execute, parser_execute_fieldWithoutHeader1);
+	RUN_TEST_CASE(group_parser_execute, parser_execute_fieldWithoutHeader2);
 	RUN_TEST_CASE(group_parser_execute, parser_execute_failAtTheBeginning);
 	RUN_TEST_CASE(group_parser_execute, parser_execute_failInTheMiddle);
 	RUN_TEST_CASE(group_parser_execute, parser_execute_tooLongField);
