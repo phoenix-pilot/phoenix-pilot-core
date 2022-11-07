@@ -42,7 +42,7 @@
 #define DELTA(measurement, setVal) (fabs((setVal) - (measurement)))
 #define ALTITUDE_TOLERANCE         500 /* 1E-3 [m] (millimetres) */
 
-#define PATH_PIDS_CONFIG "/etc/quad.conf"
+#define PATH_QUAD_CONFIG "/etc/quad.conf"
 #define PID_NUMBERS      4
 
 #define PATH_SCENARIO_CONFIG "/etc/q_mission.conf"
@@ -65,7 +65,7 @@
 typedef enum { mode_rc = 0, mode_auto } control_mode_t;
 
 struct {
-	pid_ctx_t pids[PID_NUMBERS];
+	pid_ctx_t *pids;
 
 	handle_t rcbusLock;
 	uint16_t rcChannels[RC_CHANNELS_CNT];
@@ -540,229 +540,6 @@ static void quad_rcbusHandler(const rcbus_msg_t *msg)
 }
 
 
-/* Initialization functions */
-
-static inline int quad_divLine(char **line, char **var, float *val)
-{
-	char *strVal;
-
-	*var = *line;
-	strVal = strchr(*line, '=');
-	if (strVal == NULL) {
-		return -EINVAL;
-	}
-
-	*strVal++ = '\0';
-	*val = strtof(strVal, NULL);
-
-	return EOK;
-}
-
-
-#if TEST_ATTITUDE
-static int quad_attParse(FILE *file)
-{
-	int err = EOK;
-	float val;
-	size_t len = 0;
-	unsigned int cnt = 0;
-	const unsigned int fieldsNb = 3;
-	char *line = NULL, *var;
-
-	while (getline(&line, &len, file) != -1 && cnt < fieldsNb) {
-		err = quad_divLine(&line, &var, &val);
-		if (err < 0) {
-			fprintf(stderr, "quad-control: attitude wrong line %s in file %s\n", line, PATH_PIDS_CONFIG);
-			break;
-		}
-
-		if (strcmp(var, "YAW") == 0) {
-			quad_common.targetAtt.yaw = val * DEG2RAD * 1000;
-		}
-		else if (strcmp(var, "PITCH") == 0) {
-			quad_common.targetAtt.pitch = val * DEG2RAD * 1000;
-		}
-		else if (strcmp(var, "ROLL") == 0) {
-			quad_common.targetAtt.roll = val * DEG2RAD * 1000;
-		}
-		else {
-			fprintf(stderr, "quad-control: attitude wrong variable %s\n", var);
-			err = -EINVAL;
-			break;
-		}
-
-		++cnt;
-	}
-
-	if (cnt != fieldsNb) {
-		err = -EINVAL;
-	}
-
-	free(line);
-
-	return err;
-}
-#endif
-
-
-static int quad_pidParse(FILE *file, unsigned int i)
-{
-	int err = EOK;
-	float val;
-	size_t len = 0;
-	pid_ctx_t *pid;
-	unsigned int cnt = 0;
-	const unsigned int fieldsNb = 7;
-	char *line = NULL, *var;
-
-	if (i >= PID_NUMBERS) {
-		return -EINVAL;
-	}
-
-	while (getline(&line, &len, file) != -1 && cnt < fieldsNb) {
-		err = quad_divLine(&line, &var, &val);
-		if (err < 0) {
-			fprintf(stderr, "quad-control: pid wrong line %s in file %s\n", line, PATH_PIDS_CONFIG);
-			break;
-		}
-
-		pid = &quad_common.pids[i];
-
-		if (strcmp(var, "P") == 0) {
-			pid->kp = val;
-		}
-		else if (strcmp(var, "I") == 0) {
-			pid->ki = val;
-		}
-		else if (strcmp(var, "D") == 0) {
-			pid->kd = val;
-		}
-		else if (strcmp(var, "MIN") == 0) {
-			pid->min = val;
-		}
-		else if (strcmp(var, "MAX") == 0) {
-			pid->max = val;
-		}
-		else if (strcmp(var, "IMAX") == 0) {
-			pid->maxInteg = val;
-		}
-		else if (strcmp(var, "IMIN") == 0) {
-			pid->minInteg = val;
-		}
-		else {
-			fprintf(stderr, "quad-control: pid wrong variable %s\n", var);
-			err = -EINVAL;
-			break;
-		}
-
-		++cnt;
-	}
-
-	if (cnt != fieldsNb) {
-		err = -EINVAL;
-	}
-
-	free(line);
-
-	return err;
-}
-
-
-static int quad_throttleParse(FILE *file)
-{
-	int err = EOK;
-	float val;
-	size_t len = 0;
-	unsigned int cnt = 0;
-	const unsigned int fieldsNb = 2;
-	char *line = NULL, *var;
-
-	while (getline(&line, &len, file) != -1 && cnt < fieldsNb) {
-		err = quad_divLine(&line, &var, &val);
-		if (err < 0) {
-			fprintf(stderr, "quad-control: throttle wrong line %s in file %s\n", line, PATH_PIDS_CONFIG);
-			break;
-		}
-
-		if (strcmp(var, "MIN") == 0) {
-			quad_common.throttle.min = val;
-		}
-		else if (strcmp(var, "MAX") == 0) {
-			quad_common.throttle.max = val;
-		}
-		else {
-			fprintf(stderr, "quad-control: throttle wrong variable %s\n", var);
-			err = -EINVAL;
-			break;
-		}
-
-		++cnt;
-	}
-
-	if (cnt != fieldsNb) {
-		err = -EINVAL;
-	}
-
-	free(line);
-
-	return err;
-}
-
-
-static int quad_configRead(void)
-{
-	FILE *file;
-	int err = EOK;
-	size_t len = 0;
-	char *line = NULL;
-	unsigned int pidCnt = 0;
-
-	file = fopen(PATH_PIDS_CONFIG, "r");
-	if (file == NULL) {
-		return -EBADFD;
-	}
-
-	while (getline(&line, &len, file) != -1) {
-		if ((line[0] == '\n') || (line[0] == '#')) {
-			continue;
-		}
-
-		/* @PID - define new PID */
-		if ((line[0] == '@') && (strcmp(&line[1], "PID\n") == 0)) {
-			err = quad_pidParse(file, pidCnt++);
-			if (err < 0) {
-				fprintf(stderr, "quad-control: cannot parse pid parameters\n");
-				break;
-			}
-		}
-
-		/* @THROTTLE - define throttle min & max values */
-		if ((line[0] == '@') && (strcmp(&line[1], "THROTTLE\n") == 0)) {
-			err = quad_throttleParse(file);
-			if (err < 0) {
-				fprintf(stderr, "quad-control: cannot parse throttle parameters\n");
-				break;
-			}
-		}
-#if TEST_ATTITUDE
-		/* @ATTITUDE - define target attitude */
-		if ((line[0] == '@') && (strcmp(&line[1], "ATTITUDE\n") == 0)) {
-			err = quad_attParse(file);
-			if (err < 0) {
-				fprintf(stderr, "quad-control: cannot parse attitude parameters\n");
-				break;
-			}
-		}
-#endif
-	}
-
-	free(line);
-	fclose(file);
-
-	return err;
-}
-
-
 static void quad_done(void)
 {
 	mma_stop();
@@ -771,8 +548,71 @@ static void quad_done(void)
 	rcbus_done();
 
 	free(quad_common.scenario);
+	free(quad_common.pids);
 
 	resourceDestroy(quad_common.rcbusLock);
+}
+
+
+static int quad_config(void)
+{
+	int res;
+	quad_throttle_t *throttleTmp;
+#if TEST_ATTITUDE
+	quad_att_t *attTmp;
+#endif
+
+	if (config_pidRead(PATH_QUAD_CONFIG, &quad_common.pids, &res) != 0) {
+		fprintf(stderr, "quadcontrol: cannot parse PIDs from %s\n", PATH_QUAD_CONFIG);
+		return -1;
+	}
+
+	if (res != PID_NUMBERS) {
+		fprintf(stderr, "quadcontrol: wrong number of PIDs in %s", PATH_QUAD_CONFIG);
+		free(quad_common.pids);
+		return -1;
+	}
+
+	if (config_throttleRead(PATH_QUAD_CONFIG, &throttleTmp, &res) != 0) {
+		fprintf(stderr, "quadcontrol: cannot parse throttle from %s\n", PATH_QUAD_CONFIG);
+		free(quad_common.pids);
+		return -1;
+	}
+
+	if (res != 1) {
+		fprintf(stderr, "quadcontrol: wrong number of throttle configs in %s", PATH_QUAD_CONFIG);
+		free(quad_common.pids);
+		free(throttleTmp);
+		return -1;
+	}
+
+	quad_common.throttle = *throttleTmp;
+	free(throttleTmp);
+
+#if TEST_ATTITUDE
+	if (config_attitudeRead(PATH_QUAD_CONFIG, &attTmp, &res) != 0) {
+		fprintf(stderr, "quadcontrol: cannot parse attitude from %s\n", PATH_QUAD_CONFIG);
+		free(quad_common.pids);
+		return -1;
+	}
+
+	if (res != 1) {
+		fprintf(stderr, "quadcontrol: wrong number of attitude configs in %s", PATH_QUAD_CONFIG);
+		free(quad_common.pids);
+		free(attTmp);
+		return -1;
+	}
+
+	quad_common.targetAtt = *attTmp;
+	free(attTmp);
+#endif
+
+	if (config_scenarioRead(PATH_SCENARIO_CONFIG, &quad_common.scenario, &quad_common.scenarioSz) != 0) {
+		free(quad_common.pids);
+		return -1;
+	}
+
+	return 0;
 }
 
 
@@ -792,14 +632,7 @@ static int quad_init(void)
 		return res;
 	}
 
-	/* PID initialization alt, roll, pitch, yaw */
-	if (quad_configRead() < 0) {
-		fprintf(stderr, "quadcontrol: cannot parse %s\n", PATH_PIDS_CONFIG);
-		resourceDestroy(quad_common.rcbusLock);
-		return -1;
-	}
-
-	if (config_scenarioRead(PATH_SCENARIO_CONFIG, &quad_common.scenario, &quad_common.scenarioSz) != 0) {
+	if (quad_config() != 0) {
 		resourceDestroy(quad_common.rcbusLock);
 		return -1;
 	}
@@ -810,6 +643,7 @@ static int quad_init(void)
 			fprintf(stderr, "quadcontrol: cannot initialize PID %d\n", i);
 			resourceDestroy(quad_common.rcbusLock);
 			free(quad_common.scenario);
+			free(quad_common.pids);
 			return -1;
 		}
 	}
@@ -821,6 +655,7 @@ static int quad_init(void)
 		fprintf(stderr, "quadcontrol: cannot initialize mma module\n");
 		resourceDestroy(quad_common.rcbusLock);
 		free(quad_common.scenario);
+		free(quad_common.pids);
 		return -1;
 	}
 
@@ -830,6 +665,7 @@ static int quad_init(void)
 		fprintf(stderr, "quadcontrol: cannot initialize rcbus using %s\n", PATH_DEV_RC_BUS);
 		resourceDestroy(quad_common.rcbusLock);
 		free(quad_common.scenario);
+		free(quad_common.pids);
 		return -1;
 	}
 
@@ -838,6 +674,7 @@ static int quad_init(void)
 		fprintf(stderr, "quadcontrol: cannot initialize ekf\n");
 		resourceDestroy(quad_common.rcbusLock);
 		free(quad_common.scenario);
+		free(quad_common.pids);
 		return -1;
 	}
 
