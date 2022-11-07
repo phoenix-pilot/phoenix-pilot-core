@@ -20,11 +20,7 @@
 #include "parser.h"
 
 
-#define FUNCTION_ALLOC      "parser_alloc"
-#define FUNCTION_HEADER_ADD "parser_headerAdd"
-#define FUNCTION_EXECUTE    "parser_execute"
-
-#define WORD "[A-Za-z0-9_.,-]"
+#define WORD "[A-Za-z0-9_.,-\\+]"
 
 /*
  * Patterns for regex expressions
@@ -86,41 +82,41 @@ parser_t *parser_alloc(int maxHeadersNb, int maxFieldsNb)
 	parser_t *result;
 
 	if (parser_common.regexCompErr != 0) {
-		fprintf(stderr, "%s: error on Regex compilation.\n", FUNCTION_ALLOC);
+		fprintf(stderr, "%s: error on Regex compilation.\n", __FUNCTION__);
 		return NULL;
 	}
 
 	if (maxHeadersNb <= 0 || maxFieldsNb <= 0) {
-		fprintf(stderr, "%s: invalid maxHeadersNb/maxFieldsNb arguments\n", FUNCTION_ALLOC);
+		fprintf(stderr, "%s: invalid maxHeadersNb/maxFieldsNb arguments\n", __FUNCTION__);
 		return NULL;
 	}
 
 	if (SIZE_MAX / maxHeadersNb < sizeof(parser_headerInfo_t)) {
-		fprintf(stderr, "%s: maximum header number exceeded limit value\n", FUNCTION_ALLOC);
+		fprintf(stderr, "%s: maximum header number exceeded limit value\n", __FUNCTION__);
 		return NULL;
 	}
 
 	if (SIZE_MAX / maxFieldsNb < sizeof(parser_field_t)) {
-		fprintf(stderr, "%s: maximum fields number exceeded limit value\n", FUNCTION_ALLOC);
+		fprintf(stderr, "%s: maximum fields number exceeded limit value\n", __FUNCTION__);
 		return NULL;
 	}
 
 	result = malloc(sizeof(parser_t));
 	if (result == NULL) {
-		fprintf(stderr, "%s: malloc error\n", FUNCTION_ALLOC);
+		fprintf(stderr, "%s: malloc error\n", __FUNCTION__);
 		return NULL;
 	}
 
 	result->headerInfos = malloc(sizeof(parser_headerInfo_t) * maxHeadersNb);
 	if (result->headerInfos == NULL) {
-		fprintf(stderr, "%s: malloc error\n", FUNCTION_ALLOC);
+		fprintf(stderr, "%s: malloc error\n", __FUNCTION__);
 		free(result);
 		return NULL;
 	}
 
 	result->headersMap = hmap_init(maxHeadersNb);
 	if (result->headersMap == NULL) {
-		fprintf(stderr, "%s: headers map initialization error\n", FUNCTION_ALLOC);
+		fprintf(stderr, "%s: headers map initialization error\n", __FUNCTION__);
 		free(result->headerInfos);
 		free(result);
 		return NULL;
@@ -128,7 +124,7 @@ parser_t *parser_alloc(int maxHeadersNb, int maxFieldsNb)
 
 	result->fields = malloc(sizeof(parser_field_t) * maxFieldsNb);
 	if (result->fields == NULL) {
-		fprintf(stderr, "%s: malloc error\n", FUNCTION_ALLOC);
+		fprintf(stderr, "%s: malloc error\n", __FUNCTION__);
 		hmap_free(result->headersMap);
 		free(result->headerInfos);
 		free(result);
@@ -137,7 +133,7 @@ parser_t *parser_alloc(int maxHeadersNb, int maxFieldsNb)
 
 	result->fieldsMap = hmap_init(maxFieldsNb);
 	if (result->fieldsMap == NULL) {
-		fprintf(stderr, "%s: fields map initialization error\n", FUNCTION_ALLOC);
+		fprintf(stderr, "%s: fields map initialization error\n", __FUNCTION__);
 		free(result->fields);
 		hmap_free(result->headersMap);
 		free(result->headerInfos);
@@ -170,18 +166,18 @@ int parser_headerAdd(parser_t *p, const char *headerName, int (*converter)(const
 	unsigned int id;
 
 	if (p == NULL || headerName == NULL || converter == NULL) {
-		fprintf(stderr, "%s: invalid arguments\n", FUNCTION_HEADER_ADD);
+		fprintf(stderr, "%s: invalid arguments\n", __FUNCTION__);
 		return -1;
 	}
 
 	/* Checking if there is enough memory for a new header */
 	if (p->headersMap->capacity == p->headersMap->size) {
-		fprintf(stderr, "%s: maximum number of header was exceeded.\n", FUNCTION_HEADER_ADD);
+		fprintf(stderr, "%s: maximum number of header was exceeded.\n", __FUNCTION__);
 		return -1;
 	}
 
 	if (strlen(headerName) > MAX_HEADER_LEN) {
-		fprintf(stderr, "%s: header name \"%s\" is too long\n", FUNCTION_HEADER_ADD, headerName);
+		fprintf(stderr, "%s: header name \"%s\" is too long\n", __FUNCTION__, headerName);
 		return -1;
 	}
 
@@ -193,7 +189,7 @@ int parser_headerAdd(parser_t *p, const char *headerName, int (*converter)(const
 	if (hmap_insert(p->headersMap,
 			p->headerInfos[id].headerName,
 			&p->headerInfos[id]) == -1) {
-		fprintf(stderr, "%s: header %s already exists!\n", FUNCTION_HEADER_ADD, headerName);
+		fprintf(stderr, "%s: header %s already exists!\n", __FUNCTION__, headerName);
 		return -1;
 	}
 
@@ -277,16 +273,16 @@ int parser_execute(parser_t *p, const char *path)
 	char header[MAX_HEADER_LEN + 1];
 	parser_headerInfo_t *headerInfo = NULL;
 
-	int res, fieldsCnt = 0, err = 0;
+	int fieldsCnt = 0, err = 0;
 
 	if (p == NULL || path == NULL) {
-		fprintf(stderr, "%s: invalid arguments.\n", FUNCTION_EXECUTE);
+		fprintf(stderr, "%s: invalid arguments.\n", __FUNCTION__);
 		return -1;
 	}
 
 	file = fopen(path, "r");
 	if (file == NULL) {
-		fprintf(stderr, "%s: error on file \"%s\" opening.\n", FUNCTION_EXECUTE, path);
+		fprintf(stderr, "%s: error on file \"%s\" opening.\n", __FUNCTION__, path);
 		return -1;
 	}
 
@@ -298,21 +294,21 @@ int parser_execute(parser_t *p, const char *path)
 					err = headerInfo->converter(p->fieldsMap);
 					hmap_clear(p->fieldsMap);
 					if (err != 0) {
-						fprintf(stderr, "%s: error on converter invocation\n", FUNCTION_EXECUTE);
+						fprintf(stderr, "%s: error on converter invocation\n", __FUNCTION__);
 						break;
 					}
 				}
 				fieldsCnt = 0;
 
 				if (parser_headerGet(line, header) != 0) {
-					fprintf(stderr, "%s: error on parsing header \"%s\"\n", FUNCTION_EXECUTE, line);
+					fprintf(stderr, "%s: error on parsing header \"%s\"\n", __FUNCTION__, line);
 					err = -1;
 					break;
 				}
 
 				headerInfo = hmap_get(p->headersMap, header);
 				if (headerInfo == NULL) {
-					fprintf(stderr, "%s: undefined header \"%s\"\n", FUNCTION_EXECUTE, header);
+					fprintf(stderr, "%s: undefined header \"%s\"\n", __FUNCTION__, header);
 					err = -1;
 					break;
 				}
@@ -322,25 +318,25 @@ int parser_execute(parser_t *p, const char *path)
 			case type_Field:
 				/* Checking the case when there is no header above field in file */
 				if (headerInfo == NULL) {
-					fprintf(stderr, "%s: file is incorrect. Field without header\n\"%s\"\n", FUNCTION_EXECUTE, line);
+					fprintf(stderr, "%s: file is incorrect. Field without header\n\"%s\"\n", __FUNCTION__, line);
 					err = -1;
 					break;
 				}
 
 				if (fieldsCnt >= p->fieldsMap->capacity) {
-					fprintf(stderr, "%s: maximum number of fields was exceeded\n", FUNCTION_EXECUTE);
+					fprintf(stderr, "%s: maximum number of fields was exceeded\n", __FUNCTION__);
 					err = -1;
 					break;
 				}
 
 				if (parser_fieldGet(line, &p->fields[fieldsCnt]) != 0) {
-					fprintf(stderr, "%s: error on field parsing \"%s\"\n", FUNCTION_EXECUTE, line);
+					fprintf(stderr, "%s: error on field parsing \"%s\"\n", __FUNCTION__, line);
 					err = -1;
 					break;
 				}
 
 				if (hmap_insert(p->fieldsMap, p->fields[fieldsCnt].field, p->fields[fieldsCnt].value) != 0) {
-					fprintf(stderr, "%s: incorrect file. Header \"%s\" with multiple fields \"%s\"\n", FUNCTION_EXECUTE, header, p->fields[fieldsCnt].field);
+					fprintf(stderr, "%s: incorrect file. Header \"%s\" with multiple fields \"%s\"\n", __FUNCTION__, header, p->fields[fieldsCnt].field);
 					err = -1;
 					break;
 				}
@@ -352,6 +348,7 @@ int parser_execute(parser_t *p, const char *path)
 				break;
 
 			case type_InvalidLine:
+				printf("Invalid line \"%s\"\n", line);
 			default:
 				err = -1;
 				break;
@@ -365,18 +362,16 @@ int parser_execute(parser_t *p, const char *path)
 		}
 	}
 
-	res = 0;
-
 	if (feof(file) == 0) {
-		fprintf(stderr, "%s: error on file parsing\n", FUNCTION_EXECUTE);
+		fprintf(stderr, "%s: error on parsing %s\n", __FUNCTION__, path);
 		err = -1;
 	}
 
-	if (res == 0 && headerInfo != NULL) {
+	if (err == 0 && headerInfo != NULL) {
 		err = headerInfo->converter(p->fieldsMap);
 
 		if (err != 0) {
-			fprintf(stderr, "%s: error on converter invocation\n", FUNCTION_EXECUTE);
+			fprintf(stderr, "%s: error on converter invocation\n", __FUNCTION__);
 		}
 	}
 
