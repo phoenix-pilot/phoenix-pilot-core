@@ -379,6 +379,7 @@ static int quad_run(void)
 			quad_common.currFlight = quad_common.scenario[i].type;
 		}
 
+
 		log_enable();
 		switch (quad_common.currFlight) {
 			/* Handling basic modes */
@@ -753,6 +754,7 @@ static int quad_configRead(void)
 
 static void quad_done(void)
 {
+	mma_stop();
 	mma_done();
 	ekf_done();
 	rcbus_done();
@@ -820,14 +822,6 @@ static int quad_init(void)
 		return -1;
 	}
 
-	if (rcbus_run(quad_rcbusHandler, 500) < 0) {
-		fprintf(stderr, "quadcontrol: cannot run rcbus\n");
-		resourceDestroy(quad_common.rcbusLock);
-		free(quad_common.scenario);
-		return -1;
-	}
-
-
 	/* EKF initialization */
 	if (ekf_init() < 0) {
 		fprintf(stderr, "quadcontrol: cannot initialize ekf\n");
@@ -835,18 +829,6 @@ static int quad_init(void)
 		free(quad_common.scenario);
 		return -1;
 	}
-
-
-	if (ekf_run() < 0) {
-		fprintf(stderr, "quadcontrol: cannot run ekf\n");
-		resourceDestroy(quad_common.rcbusLock);
-		free(quad_common.scenario);
-		return -1;
-	}
-
-
-	/* EKF needs time to calibrate itself */
-	sleep(10);
 
 	return 0;
 }
@@ -913,7 +895,7 @@ int main(int argc, char **argv)
 	signal(SIGQUIT, SIG_IGN);
 	signal(SIGTERM, SIG_IGN);
 
-	pid = vfork();
+	pid = fork();
 	/* Parent process waits on child and makes clean up  */
 	if (pid > 0) {
 		do {
@@ -929,17 +911,40 @@ int main(int argc, char **argv)
 		/* Take terminal control */
 		tcsetpgrp(STDIN_FILENO, getpid());
 
+		if (rcbus_run(quad_rcbusHandler, 500) < 0) {
+			fprintf(stderr, "quadcontrol: cannot run rcbus\n");
+			quad_done();
+			exit(EXIT_FAILURE);
+		}
+
+		if (ekf_run() < 0) {
+			fprintf(stderr, "quadcontrol: cannot run ekf\n");
+			rcbus_stop();
+			quad_done();
+			exit(EXIT_FAILURE);
+		}
+
+
 		quad_run();
+
+		/* Stop threads from external libs */
+		ekf_stop();
+		rcbus_stop();
+
+		quad_done();
+
 		exit(EXIT_SUCCESS);
 	}
 	else {
 		fprintf(stderr, "quadcontrol: vfork failed with code %d\n", pid);
 	}
 
+
 	quad_done();
 
 	/* Take back terminal control */
 	tcsetpgrp(STDIN_FILENO, getpid());
+
 
 	return EXIT_SUCCESS;
 }
