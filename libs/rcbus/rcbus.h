@@ -36,7 +36,11 @@ typedef void (*RcMsgHandler)(const rcbus_msg_t *msg);
 extern int rcbus_run(RcMsgHandler handler, time_t timeout);
 
 
-/* Close reading thread and close communication with a device. */
+/* Close reading thread */
+extern void rcbus_stop(void);
+
+
+/* Close communication with a device. */
 extern void rcbus_done(void);
 
 
