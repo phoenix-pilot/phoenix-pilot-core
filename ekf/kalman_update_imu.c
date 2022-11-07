@@ -45,9 +45,8 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 {
 	vec_t accel, gyro, mag;
 	vec_t magFltrd, accelFltrd;
-	vec_t bodyY, gDiff;
+	vec_t bodyY;
 	quat_t qEst, rot = { .a = QA, .i = -QB, .j = -QC, .k = -QD };
-	float qEstErr;
 	uint64_t timestamp;
 
 	/* 
@@ -66,12 +65,7 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	/* TODO: we can consider storing direct accel measurements in state vector and rotate it on demand (change in jacobians required!) */
 	accelFltrd = (vec_t) { .x = AX, .y = AY, .z = AZ - EARTH_G };
 	quat_vecRot(&accelFltrd, &rot);
-	gDiff.x = -accelFltrd.x;
-	gDiff.y = -accelFltrd.y;
-	gDiff.z = accelFltrd.z + EARTH_G;
 	quat_cjg(&rot);
-	/* calculate quaternion estimation error based on its nonstationarity. Empirically fitted parameters! */
-	qEstErr = 0.1 + 100 * vec_len(&gDiff) * vec_len(&gDiff) + 10 * vec_len(&gyro);
 
 	/* calculate rotation quaternion based on current magnetometer reading and ekf filtered acceleration */
 	vec_normalize(&magFltrd);
@@ -108,12 +102,6 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	Z->data[IMQB] = qEst.i;
 	Z->data[IMQC] = qEst.j;
 	Z->data[IMQD] = qEst.k;
-
-	/* update measurement error */
-	R->data[R->cols * IMQA + IMQA] = qEstErr;
-	R->data[R->cols * IMQB + IMQB] = qEstErr;
-	R->data[R->cols * IMQC + IMQC] = qEstErr;
-	R->data[R->cols * IMQD + IMQD] = qEstErr;
 
 	return Z;
 }
