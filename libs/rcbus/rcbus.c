@@ -201,13 +201,17 @@ int rcbus_run(RcMsgHandler handler, time_t timeout)
 }
 
 
-void rcbus_done(void)
+void rcbus_stop(void)
 {
 	rcbus_common.run = 0;
 
 	/* FIXME: add tid to threadJoin function, after merge in libphoenix */
 	threadJoin(0);
+}
 
+
+void rcbus_done(void)
+{
 	close(rcbus_common.fd);
 }
 
