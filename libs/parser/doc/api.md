@@ -43,9 +43,11 @@ For more information about `converter` see [there](api.md#converter-handler).
 # `parser_execute()`
 
 ```c
-int parser_execute(parser_t *p, const char *path)
+int parser_execute(parser_t *p, const char *path, unsigned int mode)
 ```
-Parses the file specified by the `path`. It invocates a `converter` function for every found header in a parsed file.
+Parses the file specified by the `path`. It invocates a `converter` function for every found header in a parsed file. Argument `mode` allows to specify behavior in case of an undefined header:
+- `PARSER_EXEC_ALL_HEADERS` - returns an error,
+- `PARSER_IGN_UNKNOWN_HEADERS` - ignores such headers.
 
 Returned integer signalizes if the function parsed the whole file.
 
@@ -73,6 +75,8 @@ The function does not change the maximum number of headers or fields.
 - `MAX_HEADER_LEN` is equal to maximum header length.
 - `MAX_FIELD_LEN` is equal to maximum field name length.
 - `MAX_VALUE_LEN` is equal to maximum field value length.
+- `PARSER_EXEC_ALL_HEADERS` allows to specify behavior of `parser_execute`.
+- `PARSER_IGN_UNKNOWN_HEADERS` allows to specify behavior of `parser_execute`.
 
 
 # Converter Handler
