@@ -15,9 +15,10 @@
 #define _QUADCONTROL_CONFIG_H_
 
 #include "control.h"
+#include "pid.h"
 
 
-/* Parses file from `path` with saved mission scenario. Returns array `scenario` with length equal to `sz` */
+/* Parses file from `path` with saved mission scenario. If succeeded returns 0 and `scenario` is array with length equal to `sz`. In other case returns -1.  */
 extern int config_scenarioRead(const char *path, flight_mode_t **scenario, size_t *sz);
 
 

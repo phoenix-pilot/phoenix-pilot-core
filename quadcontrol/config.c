@@ -30,27 +30,73 @@ static struct {
 } res[cfg_end];
 
 
+static int config_parseInt32(const hmap_t *h, char *fieldName, int32_t *target)
+{
+	char *valueStr, *endptr;
+
+	valueStr = hmap_get(h, fieldName);
+	if (valueStr == NULL) {
+		fprintf(stderr, "config: no \"%s\" field in header\n", fieldName);
+		return -1;
+	}
+
+	*target = strtol(valueStr, &endptr, 10);
+	if (endptr[0] != '\0') {
+		fprintf(stderr, "config: invalid \"%s\" value in header\n", fieldName);
+		return -1;
+	}
+
+	return 0;
+}
+
+
+static int config_parseFloat(const hmap_t *h, char *fieldName, float *target)
+{
+	char *valueStr, *endptr;
+
+	valueStr = hmap_get(h, fieldName);
+	if (valueStr == NULL) {
+		fprintf(stderr, "config: no \"%s\" field in header\n", fieldName);
+		return -1;
+	}
+
+	*target = strtof(valueStr, &endptr);
+	if (endptr[0] != '\0') {
+		fprintf(stderr, "config: invalid \"%s\" value in header\n", fieldName);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int config_parseTime(const hmap_t *h, char *fieldName, time_t *target)
+{
+	char *valueStr, *endptr;
+
+	valueStr = hmap_get(h, fieldName);
+	if (valueStr == NULL) {
+		fprintf(stderr, "config: no \"%s\" field in header\n", fieldName);
+		return -1;
+	}
+
+	*target = strtoull(valueStr, &endptr, 10);
+	if (endptr[0] != '\0') {
+		fprintf(stderr, "config: invalid \"%s\" value in header\n", fieldName);
+		return -1;
+	}
+
+	return 0;
+}
+
+
 static int config_takeoffParse(const hmap_t *h, flight_mode_t *mode)
 {
-	char *altStr, *timeStr, *endptr;
+	int err = 0;
 
-	altStr = hmap_get(h, "alt");
-	timeStr = hmap_get(h, "time");
+	err |= config_parseInt32(h, "alt", &mode->takeoff.alt);
+	err |= config_parseFloat(h, "time", &mode->takeoff.time);
 
-	if (altStr == NULL || timeStr == NULL) {
-		fprintf(stderr, "config: not all required fields in takeoff header\n");
-		return -1;
-	}
-
-	mode->takeoff.alt = strtol(altStr, &endptr, 10);
-	if (endptr[0] != '\0') {
-		fprintf(stderr, "config: invalid altitude value in takeoff header\n");
-		return -1;
-	}
-
-	mode->takeoff.time = strtof(timeStr, &endptr);
-	if (endptr[0] != '\0') {
-		fprintf(stderr, "config: invalid time value in takeoff header\n");
+	if (err != 0) {
 		return -1;
 	}
 
@@ -62,41 +108,13 @@ static int config_takeoffParse(const hmap_t *h, flight_mode_t *mode)
 
 static int config_positionParse(const hmap_t *h, flight_mode_t *mode)
 {
-	char *valStr, *endptr;
+	int err = 0;
 
-	valStr = hmap_get(h, "alt");
-	if (valStr == NULL) {
-		fprintf(stderr, "config: no \"alt\" field in position header\n");
-		return -1;
-	}
+	err |= config_parseInt32(h, "alt", &mode->pos.alt);
+	err |= config_parseInt32(h, "lat", &mode->pos.lat);
+	err |= config_parseInt32(h, "lon", &mode->pos.lon);
 
-	mode->pos.alt = strtol(valStr, &endptr, 10);
-	if (endptr[0] != '\0') {
-		fprintf(stderr, "config: invalid altitude value in position header\n");
-		return -1;
-	}
-
-	valStr = hmap_get(h, "lat");
-	if (valStr == NULL) {
-		fprintf(stderr, "config: no \"lat\" field in position header\n");
-		return -1;
-	}
-
-	mode->pos.lat = strtol(valStr, &endptr, 10);
-	if (endptr[0] != '\0') {
-		fprintf(stderr, "config: invalid latitude value in position header\n");
-		return -1;
-	}
-
-	valStr = hmap_get(h, "lon");
-	if (valStr == NULL) {
-		fprintf(stderr, "config: no \"lon\" field in position header\n");
-		return -1;
-	}
-
-	mode->pos.lon = strtol(valStr, &endptr, 10);
-	if (endptr[0] != '\0') {
-		fprintf(stderr, "config: invalid longitude value in position header\n");
+	if (err != 0) {
 		return -1;
 	}
 
@@ -108,27 +126,17 @@ static int config_positionParse(const hmap_t *h, flight_mode_t *mode)
 
 static int config_hoverParse(const hmap_t *h, flight_mode_t *mode)
 {
-	char *altStr, *timeStr, *endptr;
+	int err = 0;
+	int32_t alt;
 
-	altStr = hmap_get(h, "alt");
-	timeStr = hmap_get(h, "time");
+	err |= config_parseInt32(h, "alt", &alt);
+	err |= config_parseTime(h, "time", &mode->hover.time);
 
-	if (altStr == NULL || timeStr == NULL) {
-		fprintf(stderr, "config: not all required fields in hover header\n");
+	if (err != 0 || alt < 0) {
 		return -1;
 	}
 
-	mode->hover.alt = strtol(altStr, &endptr, 10);
-	if (endptr[0] != '\0') {
-		fprintf(stderr, "config: invalid altitude value in hover header\n");
-		return -1;
-	}
-
-	mode->hover.time = strtoull(timeStr, &endptr, 10);
-	if (endptr[0] != '\0') {
-		fprintf(stderr, "config: invalid time value in hover header\n");
-		return -1;
-	}
+	mode->hover.alt = alt;
 
 	mode->type = flight_hover;
 
@@ -138,18 +146,7 @@ static int config_hoverParse(const hmap_t *h, flight_mode_t *mode)
 
 static int config_landingParse(const hmap_t *h, flight_mode_t *mode)
 {
-	char *timeStr, *endptr;
-
-	timeStr = hmap_get(h, "time");
-
-	if (timeStr == NULL) {
-		fprintf(stderr, "config: no \"time\" field in landing header\n");
-		return -1;
-	}
-
-	mode->landing.time = strtoull(timeStr, &endptr, 10);
-	if (endptr[0] != '\0') {
-		fprintf(stderr, "config: invalid \"time\" value in hover header\n");
+	if (config_parseTime(h, "time", &mode->landing.time) != 0) {
 		return -1;
 	}
 
@@ -234,6 +231,10 @@ int config_scenarioRead(const char *path, flight_mode_t **scenario, size_t *sz)
 		return -1;
 	}
 
+	*scenario = NULL;
+	*sz = 0;
+
+	/* Parser have to parse one header with two fields */
 	parser_t *p = parser_alloc(1, 3);
 	if (p == NULL) {
 		return -1;
