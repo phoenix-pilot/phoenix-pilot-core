@@ -60,10 +60,12 @@ class lpgui:
             self.rollPitchPlot.plot(pen="blue", name="roll")]
 
         # Prepare position plot (only height currently)
-        self.enuzData = []
-        self.enuzPlot = self.win.addPlot(title="Height", colspan=1)
+        self.enuzData = [[] for _ in range(2)]
+        self.enuzPlot = self.win.addPlot(title="Alt/Variometer", colspan=1)
         self.enuzPlot.addLegend()
-        self.enuzDatalines = self.enuzPlot.plot(pen="yellow", name="enuz")
+        self.enuzDatalines = [
+            self.enuzPlot.plot(pen="yellow", name="Alt."),
+            self.enuzPlot.plot(pen="red", name="Vario.")]
 
         self.win.nextRow()
 
@@ -119,14 +121,15 @@ class lpgui:
             for i in range(len(self.eulerData)):
                 if len(self.eulerData[i]) > self.plotcut:
                     self.eulerData[i].pop(0)
-                self.eulerData[i].append(float(ls[i+2]))
+                self.eulerData[i].append(float(ls[i + 2]))
                 self.eulerDatalines[i].setData(self.eulerData[i])
         # EKFX - position related logging
         if ls[0] == "EKFX":
             if len(self.enuzData) > self.plotcut:
                 self.enuzData.pop(0)
-            self.enuzData.append(float(ls[1]))
-            self.enuzDatalines.setData(self.enuzData)
+            for i in range(2):
+                self.enuzData[i].append(float(ls[i + 1]))
+                self.enuzDatalines[i].setData(self.enuzData[i])
         # PID - logs of pid values from pid controllers
         if ls[0] == "PID":
             # iterate over roll/pitch/yaw plots
