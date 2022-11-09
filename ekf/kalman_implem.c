@@ -41,17 +41,17 @@ kalman_init_t init_values = {
 	.P_qijkerr = 10 * DEG2RAD, /* 10 degrees */
 	.P_pxerr = 0.01,           /* 10 hPa */
 
-	.R_acov = 4,               /* 4 m/s^2 with engines on */
-	.R_wcov = 0.001,           /* 1 milliradian/s, overtrust gyroscope for fast response */
+	.R_acov = 10,               /* 10 m/s^2 with engines on */
+	.R_wcov = 0.001,            /* 1 milliradian/s, overtrust gyroscope for fast response */
 	.R_mcov = 0.1,
-	.R_qcov = 0.01,
+	.R_qcov = 500,
 
-	.R_xzcov = 1,
+	.R_xzcov = 0.1,
 	.R_vzcov = 0.5,
 
 	/* better to keep Q low */
 	.Q_xcov = 0.0001,
-	.Q_vcov = 0.001,
+	.Q_vcov = 0.01,
 	.Q_hcov = 0.001,
 	.Q_avertcov = 0.0001,
 	.Q_ahoricov = 0.0001,
