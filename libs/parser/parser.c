@@ -14,8 +14,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "parser.h"
 
@@ -263,14 +263,14 @@ static int parser_fieldGet(char *line, parser_field_t *result)
 }
 
 
-int parser_execute(parser_t *p, const char *path)
+int parser_execute(parser_t *p, const char *path, unsigned int mode)
 {
 	FILE *file;
 
 	char *line = NULL;
 	size_t lineLen = 0;
 
-	char header[MAX_HEADER_LEN + 1];
+	char header[MAX_HEADER_LEN + 1] = { 0 };
 	parser_headerInfo_t *headerInfo = NULL;
 
 	int fieldsCnt = 0, err = 0;
@@ -307,19 +307,23 @@ int parser_execute(parser_t *p, const char *path)
 				}
 
 				headerInfo = hmap_get(p->headersMap, header);
-				if (headerInfo == NULL) {
+				if (headerInfo == NULL && (mode & PARSER_EXEC_ALL_HEADERS) == PARSER_EXEC_ALL_HEADERS) {
 					fprintf(stderr, "%s: undefined header \"%s\"\n", __FUNCTION__, header);
 					err = -1;
-					break;
 				}
 
 				break;
 
 			case type_Field:
 				/* Checking the case when there is no header above field in file */
-				if (headerInfo == NULL) {
+				if (header[0] == '\0') {
 					fprintf(stderr, "%s: file is incorrect. Field without header\n\"%s\"\n", __FUNCTION__, line);
 					err = -1;
+					break;
+				}
+
+				/* Ignoring field */
+				if (headerInfo == NULL) {
 					break;
 				}
 

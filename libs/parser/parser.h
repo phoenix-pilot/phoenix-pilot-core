@@ -22,6 +22,10 @@
 #define MAX_FIELD_LEN  16
 #define MAX_VALUE_LEN  64
 
+/* Available modes */
+#define PARSER_EXEC_ALL_HEADERS    (1 << 0)
+#define PARSER_IGN_UNKNOWN_HEADERS (1 << 1)
+
 
 typedef struct parser_t parser_t;
 
@@ -37,8 +41,8 @@ extern void parser_free(parser_t *p);
 extern int parser_headerAdd(parser_t *p, const char *headerName, int (*converter)(const hmap_t *));
 
 
-/* Performs the parsing at file specified by `path` */
-extern int parser_execute(parser_t *p, const char *path);
+/* Performs the parsing at file specified by `path`. Specific behavior can be set by `mode` argument. */
+extern int parser_execute(parser_t *p, const char *path, unsigned int mode);
 
 
 /* Removes all added headers */
