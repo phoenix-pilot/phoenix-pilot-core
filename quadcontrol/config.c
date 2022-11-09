@@ -253,7 +253,7 @@ int config_scenarioRead(const char *path, flight_mode_t **scenario, size_t *sz)
 	res[cfg_scenarioID].sz = initSz;
 	res[cfg_scenarioID].invCnt = 0;
 
-	err = parser_execute(p, path);
+	err = parser_execute(p, path, PARSER_EXEC_ALL_HEADERS);
 	parser_free(p);
 	if (err != 0) {
 		free(res[cfg_scenarioID].data);
