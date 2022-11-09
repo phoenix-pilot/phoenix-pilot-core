@@ -234,14 +234,6 @@ static int quad_hover(const flight_mode_t *mode)
 	return 0;
 }
 
-/* Infinite impulse response filter */
-static inline int32_t quad_iir(int32_t curr, int32_t new)
-{
-	static const int latency = 3;
-
-	return ((curr * latency) + new) / (latency + 1);
-}
-
 
 static int quad_landing(const flight_mode_t *mode)
 {
@@ -308,12 +300,9 @@ static int quad_manual(void)
 	log_enable();
 	log_print("RC Control\n");
 
-	/* Read RC packet for variable initialization purposes */
+	/* Read RC packet and do initialization check */
 	mutexLock(quad_common.rcbusLock);
 	stickSWD = quad_common.rcChannels[RC_SWD_CH];
-	rcRoll = quad_common.rcChannels[RC_RIGHT_HSTICK_CH];
-	rcPitch = quad_common.rcChannels[RC_RIGHT_VSTICK_CH];
-	rcYaw = quad_common.rcChannels[RC_LEFT_HSTICK_CH];
 	rcThrottle = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
 	mutexUnlock(quad_common.rcbusLock);
 
@@ -333,12 +322,11 @@ static int quad_manual(void)
 		quad_periodLogEnable(now);
 
 		mutexLock(quad_common.rcbusLock);
-		/* simple & fast iir filter to get rid of noise from poor rc transmitter */
 		stickSWD = quad_common.rcChannels[RC_SWD_CH];
-		rcRoll = quad_iir(rcRoll, quad_common.rcChannels[RC_RIGHT_HSTICK_CH]);
-		rcPitch = quad_iir(rcPitch, quad_common.rcChannels[RC_RIGHT_VSTICK_CH]);
-		rcYaw = quad_iir(rcYaw, quad_common.rcChannels[RC_LEFT_HSTICK_CH]);
-		rcThrottle = quad_iir(rcThrottle, quad_common.rcChannels[RC_LEFT_VSTICK_CH]);
+		rcRoll = quad_common.rcChannels[RC_RIGHT_HSTICK_CH];
+		rcPitch = quad_common.rcChannels[RC_RIGHT_VSTICK_CH];
+		rcYaw = quad_common.rcChannels[RC_LEFT_HSTICK_CH];
+		rcThrottle = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
 		mutexUnlock(quad_common.rcbusLock);
 
 		althold = (stickSWD > 0.9 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) ? true : false;
