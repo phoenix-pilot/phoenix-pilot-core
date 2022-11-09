@@ -126,7 +126,7 @@ TEST(group_parser_execute, parser_execute_oneHeader)
 {
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_oneHeader));
 
-	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/one_header"));
+	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/one_header", PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(1, parsing_common.invCnt);
@@ -177,7 +177,7 @@ TEST(group_parser_execute, parser_execute_multipleHeaders)
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_multipleHeaders));
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_multipleHeaders));
 
-	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/multiple_headers"));
+	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/multiple_headers", PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(4, parsing_common.invCnt);
@@ -217,7 +217,7 @@ TEST(group_parser_execute, parser_execute_comments)
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_comments));
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_comments));
 
-	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/comments"));
+	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/comments", PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(2, parsing_common.invCnt);
@@ -257,7 +257,7 @@ TEST(group_parser_execute, parser_execute_spaces)
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_spaces));
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_spaces));
 
-	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/spaces"));
+	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/spaces", PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(2, parsing_common.invCnt);
@@ -266,7 +266,7 @@ TEST(group_parser_execute, parser_execute_spaces)
 
 TEST(group_parser_execute, parser_execute_emptyFile)
 {
-	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/empty_file"));
+	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/empty_file", PARSER_EXEC_ALL_HEADERS));
 }
 
 
@@ -295,7 +295,7 @@ TEST(group_parser_execute, parser_execute_unspecifiedHeader)
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_unspecifiedHeader));
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_unspecifiedHeader));
 
-	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/unspecified_header"));
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/unspecified_header", PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(1, parsing_common.invCnt);
@@ -328,7 +328,7 @@ TEST(group_parser_execute, parser_execute_tooManyFields)
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_tooManyFields));
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_tooManyFields));
 
-	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/too_many_fields"));
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/too_many_fields", PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(1, parsing_common.invCnt);
@@ -361,7 +361,7 @@ TEST(group_parser_execute, parser_execute_redundantFields)
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_redundantFields));
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_redundantFields));
 
-	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/redundant_fields"));
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/redundant_fields", PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(1, parsing_common.invCnt);
@@ -382,7 +382,7 @@ TEST(group_parser_execute, parser_execute_failAtTheBeginning)
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_failAtTheBeginning));
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_failAtTheBeginning));
 
-	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/multiple_headers"));
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/multiple_headers", PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(1, parsing_common.invCnt);
@@ -405,7 +405,7 @@ TEST(group_parser_execute, parser_execute_failInTheMiddle)
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_failInTheMiddle));
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_failInTheMiddle));
 
-	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/multiple_headers"));
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/multiple_headers", PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(3, parsing_common.invCnt);
@@ -437,7 +437,7 @@ TEST(group_parser_execute, parser_execute_tooLongField)
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_tooLongField));
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_tooLongField));
 
-	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/too_long_field_name"));
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/too_long_field_name", PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(1, parsing_common.invCnt);
@@ -469,7 +469,7 @@ TEST(group_parser_execute, parser_execute_tooLongValue)
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_tooLongValue));
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_tooLongValue));
 
-	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/too_long_value"));
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/too_long_value", PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(1, parsing_common.invCnt);
@@ -493,13 +493,13 @@ TEST(group_parser_execute, parser_execute_nullArguments)
 
 	/* Pointer to parser is NULL */
 	TEST_ASSERT_NOT_EQUAL_INT(0,
-		parser_execute(NULL, "usr/test/parser/multipleStructures"));
+		parser_execute(NULL, "usr/test/parser/multipleStructures", PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.invCnt);
 
 	/* Path to file is NULL */
-	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, NULL));
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, NULL, PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.invCnt);
@@ -569,7 +569,7 @@ TEST(group_parser_clear, parser_clear_std)
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_multipleHeaders));
 	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_multipleHeaders));
 
-	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/multiple_headers"));
+	TEST_ASSERT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/multiple_headers", PARSER_EXEC_ALL_HEADERS));
 
 	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
 	TEST_ASSERT_EQUAL_INT(4, parsing_common.invCnt);
