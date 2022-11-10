@@ -24,6 +24,7 @@
 #include <quat.h>
 
 #include "kalman_core.h"
+#include "meas.h"
 
 #define STATE_COLS 1
 #define STATE_ROWS 19
@@ -142,59 +143,16 @@ typedef struct {
 } kalman_init_t;
 
 
-typedef struct {
-
-} kalman_common_t;
-
-
-typedef struct {
-	float lat;
-	float lon;
-	float h;
-} geodetic_t;
-
-/* initial values calculated during calibration */
-typedef struct {
-	quat_t init_q;
-	vec_t init_m;
-	vec_t gyr_nivel;
-	vec_t gpsRefEcef;
-	float base_pressure;
-	float base_temp;
-	geodetic_t gpsRefGeodetic;
-} kalman_calib_t;
-
 int verbose;
 
-/* CALIBRATIONS */
-/* TODO: move to separate, calibration-related header */
 
 void read_config(void);
-
-void meas_imuCalib(void);
-
-void meas_baroCalib(void);
-
-void meas_gpsCalib(void);
-
-const kalman_calib_t *meas_calibGet(void);
-
-float meas_calibPressGet(void);
-
-
-/* MEASUREMENT ACQUISITION */
-
-int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp);
-
-int meas_baroGet(float *pressure, float *temperature, uint64_t *dtBaroUs);
-
-int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop);
 
 
 /* PHMATRIX MATRICES INITIALIZATIONS */
 
 /* initializes matices related to state prediction step of kalman filter */
-int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib);
+int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib);
 
 /* deinitializes prediction matrices */
 void kmn_predDeinit(state_engine_t *engine);
