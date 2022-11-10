@@ -27,6 +27,12 @@ typedef struct {
 	float lat;
 	float lon;
 	float h;
+
+	float sinLat;
+	float sinLon;
+
+	float cosLat;
+	float cosLon;
 } meas_geodetic_t;
 
 

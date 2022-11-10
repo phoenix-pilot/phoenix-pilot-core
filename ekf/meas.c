@@ -39,12 +39,16 @@
 #define IMU_CALIB_AVG  1000
 #define BARO_CALIB_AVG 100
 
+/* different accelerometer biases sizes */
+#define ACC_BIAS_SIZE    3
+#define ACC_NONORTHO_SIZE 9
+
 static struct {
 	meas_calib_t calib;
 } meas_common;
 
 /* accelerometer calibration data */
-float acc_calib1[12] = {
+static const float accCalib[ACC_BIAS_SIZE + ACC_NONORTHO_SIZE] = {
 	/* sphere offset in m/s^2 */
 	0.237000, 0.120545, 0.022396,
 	/* sphere deformation */
@@ -54,62 +58,64 @@ float acc_calib1[12] = {
 };
 
 
-vec_t geo2ecef(float lat, float lon, float h)
+static void meas_gps2geo(const sensor_event_t *gpsEvt, meas_geodetic_t *geo)
 {
-	float sinLat, sinLon, cosLat, cosLon, N;
+	geo->lat = (float)gpsEvt->gps.lat / 1e7;
+	geo->lon = (float)gpsEvt->gps.lon / 1e7;
+	geo->h = (float)gpsEvt->gps.alt / 1e3;
 
-	/* point coordinates trigonometric values */
-	sinLat = sin(lat * DEG2RAD);
-	sinLon = sin(lon * DEG2RAD);
-	cosLat = cos(lat * DEG2RAD);
-	cosLon = cos(lon * DEG2RAD);
-	N = EARTH_SEMI_MAJOR / sqrt(1 - EARTH_ECCENTRICITY_SQUARED * sinLat);
+	geo->sinLat = sin(geo->lat * DEG2RAD);
+	geo->cosLat = cos(geo->lat * DEG2RAD);
 
-	return (vec_t) {
-		.x = (N + h) * cosLat * cosLon,
-		.y = (N + h) * cosLat * sinLon,
-		.z = ((1 - EARTH_ECCENTRICITY_SQUARED) * N + h) * sinLat
-	};
+	geo->sinLon = sin(geo->lon * DEG2RAD);
+	geo->cosLon = cos(geo->lon * DEG2RAD);
 }
 
-/* convert gps geodetic coordinates into neu (north/east/up) vector with reference point */
-vec_t geo2enu(float lat, float lon, float h, float latRef, float lonRef, vec_t *refEcef)
+
+static void meas_geo2ecef(const meas_geodetic_t *geo, vec_t *ecef)
 {
-	float sinLatRef, sinLonRef, cosLatRef, cosLonRef;
+	float N = EARTH_SEMI_MAJOR / sqrt(1 - EARTH_ECCENTRICITY_SQUARED * geo->sinLat);
+
+	ecef->x = (N + geo->h) * geo->cosLat * geo->cosLon;
+	ecef->y = (N + geo->h) * geo->cosLat * geo->sinLon;
+	ecef->z = ((1 - EARTH_ECCENTRICITY_SQUARED) * N + geo->h) * geo->sinLat;
+}
+
+
+/* convert gps geodetic coordinates `geo` into `enu` (east/north/up) vector with help of `refGeo` and `refEcef` coordinates */
+static void meas_geo2enu(const meas_geodetic_t *geo, const meas_geodetic_t *refGeo, const vec_t *refEcef, vec_t *enu)
+{
 	float rot_data[9], dif_data[3], enu_data[3];
 	matrix_t rot = { .rows = 3, .cols = 3, .transposed = 0, .data = rot_data };
 	matrix_t dif = { .rows = 3, .cols = 1, .transposed = 0, .data = dif_data };
-	matrix_t enu = { .rows = 3, .cols = 1, .transposed = 0, .data = enu_data };
+	matrix_t enuMatrix = { .rows = 3, .cols = 1, .transposed = 0, .data = enu_data };
 	vec_t pointEcef;
 
-	/* reference point coordinates trigonometric values */
-	sinLatRef = sin(latRef * DEG2RAD);
-	sinLonRef = sin(lonRef * DEG2RAD);
-	cosLatRef = cos(latRef * DEG2RAD);
-	cosLonRef = cos(lonRef * DEG2RAD);
-
 	/* rot matrix fill */
-	rot.data[0] = -sinLonRef;
-	rot.data[1] = cosLonRef;
+	rot.data[0] = -refGeo->sinLon;
+	rot.data[1] = refGeo->cosLon;
 	rot.data[2] = 0;
-	rot.data[3] = -sinLatRef * cosLonRef;
-	rot.data[4] = -sinLatRef * sinLonRef;
-	rot.data[5] = cosLatRef;
-	rot.data[6] = cosLatRef * cosLonRef;
-	rot.data[7] = cosLatRef * sinLonRef;
-	rot.data[8] = sinLatRef;
+	rot.data[3] = -refGeo->sinLat * refGeo->cosLon;
+	rot.data[4] = -refGeo->sinLat * refGeo->sinLon;
+	rot.data[5] = refGeo->cosLat;
+	rot.data[6] = refGeo->cosLat * refGeo->cosLon;
+	rot.data[7] = refGeo->cosLat * refGeo->sinLon;
+	rot.data[8] = refGeo->sinLat;
 
 	/* diff matrix fill */
-	pointEcef = geo2ecef(lat, lon, h);
+	meas_geo2ecef(geo, &pointEcef);
 	dif.data[0] = pointEcef.x - refEcef->x;
 	dif.data[1] = pointEcef.y - refEcef->y;
 	dif.data[2] = pointEcef.z - refEcef->z;
 
 	/* perform ECEF to ENU by calculating matrix product (rot * dif) */
-	matrix_prod(&rot, &dif, &enu);
+	matrix_prod(&rot, &dif, &enuMatrix);
 
-	return (vec_t) { .x = enu.data[0], .y = enu.data[1], .z = enu.data[2] };
+	enu->x = enuMatrix.data[0];
+	enu->y = enuMatrix.data[1];
+	enu->z = enuMatrix.data[2];
 }
+
 
 void meas_gpsCalib(void)
 {
@@ -158,13 +164,18 @@ void meas_gpsCalib(void)
 	meas_common.calib.gps.refGeodetic.lon = refLon;
 	meas_common.calib.gps.refGeodetic.h = refHeight;
 
-	meas_common.calib.gps.refEcef = geo2ecef(refLat, refLon, refHeight);
+	meas_common.calib.gps.refGeodetic.sinLat = sin(meas_common.calib.gps.refGeodetic.lat * DEG2RAD);
+	meas_common.calib.gps.refGeodetic.cosLat = cos(meas_common.calib.gps.refGeodetic.lat * DEG2RAD);
+	meas_common.calib.gps.refGeodetic.sinLon = sin(meas_common.calib.gps.refGeodetic.lon * DEG2RAD);
+	meas_common.calib.gps.refGeodetic.cosLon = cos(meas_common.calib.gps.refGeodetic.lon * DEG2RAD);
+
+	meas_geo2ecef(&meas_common.calib.gps.refGeodetic, &meas_common.calib.gps.refEcef);
 
 	printf("Acquired GPS position of (lat/lon/h): %f/%f/%f\n", meas_common.calib.gps.refEcef.x, meas_common.calib.gps.refEcef.y, meas_common.calib.gps.refEcef.z);
 
 }
 
-static void meas_ellipCompensate(vec_t *v, float *calib)
+static void meas_ellipCompensate(vec_t *v, const float *calib)
 {
 	float tx, ty, tz;
 
@@ -223,7 +234,7 @@ void meas_imuCalib(void)
 			meas_gyr2si(&gyrEvt, &gyr);
 			meas_mag2si(&magEvt, &mag);
 
-			meas_ellipCompensate(&acc, acc_calib1);
+			meas_ellipCompensate(&acc, accCalib);
 
 			vec_add(&accAvg, &acc);
 			vec_add(&gyrAvg, &gyr);
@@ -289,7 +300,7 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 	meas_gyr2si(&gyrEvt, gyros);  /* angulars from mrad/s -> rad/s */
 	meas_mag2si(&magEvt, mags);   /* only magnitude matters from geomagnetism */
 
-	meas_ellipCompensate(accels, acc_calib1);
+	meas_ellipCompensate(accels, accCalib);
 
 	/* gyro niveling */
 	vec_sub(gyros, &meas_common.calib.imu.gyroBias);
