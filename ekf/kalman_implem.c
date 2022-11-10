@@ -113,15 +113,15 @@ static void init_state_vector(matrix_t *state, const meas_calib_t *calib)
 	state->data[IWX] = state->data[IWY] = state->data[IWZ] = 0; /* start angular speed at [0,0,0] */
 
 	/* start rotation at identity quaternion */
-	state->data[IQA] = calib->imu.init_q.a;
-	state->data[IQB] = calib->imu.init_q.i;
-	state->data[IQC] = calib->imu.init_q.j;
-	state->data[IQD] = calib->imu.init_q.k;
+	state->data[IQA] = calib->imu.initQuat.a;
+	state->data[IQB] = calib->imu.initQuat.i;
+	state->data[IQC] = calib->imu.initQuat.j;
+	state->data[IQD] = calib->imu.initQuat.k;
 
 	/* start magnetic field as calibrated */
-	state->data[IMX] = calib->imu.init_m.x;
-	state->data[IMX] = calib->imu.init_m.y;
-	state->data[IMX] = calib->imu.init_m.z;
+	state->data[IMX] = calib->imu.initMag.x;
+	state->data[IMX] = calib->imu.initMag.y;
+	state->data[IMX] = calib->imu.initMag.z;
 }
 
 
