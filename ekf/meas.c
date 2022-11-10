@@ -121,7 +121,7 @@ void meas_gpsCalib(void)
 {
 	int i, avg = 10;
 	sensor_event_t gpsEvt;
-	float refLat, refLon, refHeight;
+	meas_geodetic_t refPos = { 0 };
 
 	/* Assuring gps fix */
 	while (1) {
@@ -143,7 +143,6 @@ void meas_gpsCalib(void)
 		sleep(4);
 	}
 
-	refLat = refLon = refHeight = 0;
 	i = 0;
 	while (i < avg) {
 		if (sensc_gpsGet(&gpsEvt) < 0){
@@ -151,18 +150,17 @@ void meas_gpsCalib(void)
 			continue;
 		}
 		printf("Sampling gps position: sample %d/%d\n", i+1, avg);
-		refLat += (float)gpsEvt.gps.lat / 1e7;
-		refLon += (float)gpsEvt.gps.lon / 1e7;
-		refHeight += gpsEvt.gps.alt / 1e3;
+		refPos.lat += (float)gpsEvt.gps.lat / 1e7;
+		refPos.lon += (float)gpsEvt.gps.lon / 1e7;
+		refPos.h += gpsEvt.gps.alt / 1e3;
 		i++;
 	}
-	refLat /= avg;
-	refLon /= avg;
+	refPos.lat /= avg;
+	refPos.lon /= avg;
+	refPos.h /= avg;
 
 	/* Calculating geodetic reference point */
-	meas_common.calib.gps.refGeodetic.lat = refLat;
-	meas_common.calib.gps.refGeodetic.lon = refLon;
-	meas_common.calib.gps.refGeodetic.h = refHeight;
+	meas_common.calib.gps.refGeodetic = refPos;
 
 	meas_common.calib.gps.refGeodetic.sinLat = sin(meas_common.calib.gps.refGeodetic.lat * DEG2RAD);
 	meas_common.calib.gps.refGeodetic.cosLat = cos(meas_common.calib.gps.refGeodetic.lat * DEG2RAD);
@@ -334,15 +332,14 @@ int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop)
 		return -1;
 	}
 
-	geo.lat = (float)gpsEvt.gps.lat / 1e7; /* convert to degrees */
-	geo.lon = (float)gpsEvt.gps.lon / 1e7; /* convert to degrees */
-	geo.h = (float)gpsEvt.gps.alt / 1e3;   /* convert to millimeters */
+	meas_gps2geo(&gpsEvt, &geo);
 
 	meas_geo2enu(&geo, &meas_common.calib.gps.refGeodetic, &meas_common.calib.gps.refEcef, enu);
 
-	enu_speed->x = (float)gpsEvt.gps.velEast / 1e3;  /* */
-	enu_speed->y = (float)gpsEvt.gps.velNorth / 1e3; /* convert to m/s */
-	enu_speed->z = -(float)gpsEvt.gps.velDown / 1e3; /* */
+	/* speed conversion to m/s */
+	enu_speed->x = (float)gpsEvt.gps.velEast / 1e3;
+	enu_speed->y = (float)gpsEvt.gps.velNorth / 1e3;
+	enu_speed->z = -(float)gpsEvt.gps.velDown / 1e3;
 
 	*hdop = (float)(gpsEvt.gps.hdop) / 100;
 
