@@ -175,6 +175,8 @@ void meas_imuCalib(void);
 
 void meas_baroCalib(void);
 
+void meas_gpsCalib(void);
+
 const kalman_calib_t *meas_calibGet(void);
 
 float meas_calibPressGet(void);

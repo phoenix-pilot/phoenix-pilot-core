@@ -110,55 +110,57 @@ vec_t geo2enu(float lat, float lon, float h, float latRef, float lonRef, vec_t *
 	return (vec_t) { .x = enu.data[0], .y = enu.data[1], .z = enu.data[2] };
 }
 
-void gps_calibrate(void)
+void meas_gpsCalib(void)
 {
-
-	/* code to be refactored after libsensors implementation */
-#if 0
 	int i, avg = 10;
-	gps_data_t data;
+	sensor_event_t gpsEvt;
 	float refLat, refLon, refHeight;
-	
+
+	/* Assuring gps fix */
 	while (1) {
-		sensGps(&data);
-		if (data.lat != 0 && data.lon != 0 && data.groundSpeed > 0) {
+		sensc_gpsGet(&gpsEvt);
+		if (gpsEvt.gps.lat != 0 && gpsEvt.gps.lon != 0 && gpsEvt.gps.groundSpeed > 0) {
 			break;
 		}
 		printf("Awaiting GPS fix...\n");
 		sleep(4);
 	}
 
+	/* Assuring gps fix */
 	while (1) {
-		sensGps(&data);
-		if (data.hdop < 500) {
+		sensc_gpsGet(&gpsEvt);
+		if (gpsEvt.gps.hdop < 20) {
 			break;
 		}
-		printf("Awaiting good quality GPS (current hdop = %d)\n", data.hdop);
+		printf("Awaiting good quality GPS (current hdop = %d)\n", gpsEvt.gps.hdop);
 		sleep(4);
 	}
 
 	refLat = refLon = refHeight = 0;
 	i = 0;
 	while (i < avg) {
-		if (sensGps(&data) < 0){
+		if (sensc_gpsGet(&gpsEvt) < 0){
 			sleep(1);
 			continue;
 		}
 		printf("Sampling gps position: sample %d/%d\n", i+1, avg);
-		refLat += (float)data.lat / 1e7;
-		refLon += (float)data.lon / 1e7;
+		refLat += (float)gpsEvt.gps.lat / 1e7;
+		refLon += (float)gpsEvt.gps.lon / 1e7;
+		refHeight += gpsEvt.gps.alt / 1e3;
 		i++;
 	}
 	refLat /= avg;
 	refLon /= avg;
 
-	gpsRefGeodetic.lat = refLat;
-	gpsRefGeodetic.lon = refLon;
-	gpsRefGeodetic.h = 0;
-	gpsRefEcef = geo2ecef(gpsRefGeodetic.lat, gpsRefGeodetic.lon, gpsRefGeodetic.h);
+	/* Calculating geodetic reference point */
+	meas_common.calib.gpsRefGeodetic.lat = refLat;
+	meas_common.calib.gpsRefGeodetic.lon = refLon;
+	meas_common.calib.gpsRefGeodetic.h = refHeight;
 
-	printf("Acquired GPS position of (lat/lon/h): %f/%f/%f\n", gpsRefGeodetic.lat, gpsRefGeodetic.lon, gpsRefGeodetic.h);
-#endif
+	meas_common.calib.gpsRefEcef = geo2ecef(refLat, refLon, refHeight);
+
+	printf("Acquired GPS position of (lat/lon/h): %f/%f/%f\n", meas_common.calib.gpsRefEcef.x, meas_common.calib.gpsRefEcef.y, meas_common.calib.gpsRefEcef.z);
+
 }
 
 static void meas_ellipCompensate(vec_t *v, float *calib)
