@@ -239,14 +239,14 @@ void meas_imuCalib(void)
 	vec_times(&gyrAvg, 1. / (float)avg);
 	vec_times(&magAvg, 1. / (float)avg);
 
-	meas_common.calib.imu.gyr_nivel = gyrAvg; /* save gyro drift parameters */
-	meas_common.calib.imu.init_m = magAvg;    /* save initial magnetometer reading */
+	meas_common.calib.imu.gyroBias = gyrAvg; /* save gyro drift parameters */
+	meas_common.calib.imu.initMag = magAvg;  /* save initial magnetometer reading */
 
 	/* calculate initial rotation */
 	vec_normalize(&accAvg);
 	vec_normalize(&magAvg);
 	vec_cross(&magAvg, &accAvg, &bodyY);
-	quat_frameRot(&accAvg, &bodyY, &nedG, &nedY, &meas_common.calib.imu.init_q, &idenQuat);
+	quat_frameRot(&accAvg, &bodyY, &nedG, &nedY, &meas_common.calib.imu.initQuat, &idenQuat);
 }
 
 void meas_baroCalib(void)
@@ -270,8 +270,8 @@ void meas_baroCalib(void)
 		}
 	}
 
-	meas_common.calib.baro.base_pressure = (float)press / avg;
-	meas_common.calib.baro.base_temp = (float)temp / avg;
+	meas_common.calib.baro.basePress = (float)press / avg;
+	meas_common.calib.baro.baseTemp = (float)temp / avg;
 }
 
 int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
@@ -292,7 +292,7 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 	meas_ellipCompensate(accels, acc_calib1);
 
 	/* gyro niveling */
-	vec_sub(gyros, &meas_common.calib.imu.gyr_nivel);
+	vec_sub(gyros, &meas_common.calib.imu.gyroBias);
 
 	return 0;
 }
@@ -300,15 +300,15 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 
 int meas_baroGet(float *pressure, float *temperature, uint64_t *timestamp)
 {
-	sensor_event_t baro_evt;
+	sensor_event_t baroEvt;
 
-	if (sensc_baroGet(&baro_evt) < 0) {
+	if (sensc_baroGet(&baroEvt) < 0) {
 		return -1;
 	}
 
-	*timestamp = baro_evt.timestamp;
-	*temperature = baro_evt.baro.temp;
-	*pressure = baro_evt.baro.pressure;
+	*timestamp = baroEvt.timestamp;
+	*temperature = baroEvt.baro.temp;
+	*pressure = baroEvt.baro.pressure;
 
 	return 0;
 }
@@ -348,5 +348,5 @@ const meas_calib_t *meas_calibGet(void)
 
 float meas_calibPressGet(void)
 {
-	return meas_common.calib.baro.base_pressure;
+	return meas_common.calib.baro.basePress;
 }

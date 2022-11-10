@@ -33,14 +33,14 @@ typedef struct {
 /* initial values calculated during calibration */
 typedef struct {
 	struct {
-		quat_t init_q;   /* starting position quaternion */
-		vec_t init_m;    /* starting magnetic field */
-		vec_t gyr_nivel; /* starting gyro bias */
+		quat_t initQuat; /* starting position quaternion */
+		vec_t initMag;   /* starting magnetic field */
+		vec_t gyroBias;  /* starting gyro bias */
 	} imu;
 
 	struct {
-		float base_pressure; /* starting atmospheric pressure */
-		float base_temp;     /* starting temperature */
+		float basePress; /* starting atmospheric pressure */
+		float baseTemp;  /* starting temperature */
 	} baro;
 
 	struct {
