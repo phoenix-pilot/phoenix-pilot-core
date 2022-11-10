@@ -22,6 +22,7 @@
 #include <time.h>
 
 #include "kalman_implem.h"
+#include "meas.h"
 
 #include <vec.h>
 #include <quat.h>
@@ -104,7 +105,7 @@ void read_config(void)
 
 
 /* state vectors values init */
-static void init_state_vector(matrix_t *state, const kalman_calib_t *calib)
+static void init_state_vector(matrix_t *state, const meas_calib_t *calib)
 {
 	state->data[IXX] = state->data[IXY] = state->data[IXZ] = 0; /* start position at [0,0,0] */
 	state->data[IVX] = state->data[IVY] = state->data[IVZ] = 0; /* start velocity at [0,0,0] */
@@ -112,15 +113,15 @@ static void init_state_vector(matrix_t *state, const kalman_calib_t *calib)
 	state->data[IWX] = state->data[IWY] = state->data[IWZ] = 0; /* start angular speed at [0,0,0] */
 
 	/* start rotation at identity quaternion */
-	state->data[IQA] = calib->init_q.a;
-	state->data[IQB] = calib->init_q.i;
-	state->data[IQC] = calib->init_q.j;
-	state->data[IQD] = calib->init_q.k;
+	state->data[IQA] = calib->imu.init_q.a;
+	state->data[IQB] = calib->imu.init_q.i;
+	state->data[IQC] = calib->imu.init_q.j;
+	state->data[IQD] = calib->imu.init_q.k;
 
 	/* start magnetic field as calibrated */
-	state->data[IMX] = calib->init_m.x;
-	state->data[IMX] = calib->init_m.y;
-	state->data[IMX] = calib->init_m.z;
+	state->data[IMX] = calib->imu.init_m.x;
+	state->data[IMX] = calib->imu.init_m.y;
+	state->data[IMX] = calib->imu.init_m.z;
 }
 
 
@@ -269,7 +270,7 @@ static void calcPredictionJacobian(matrix_t *F, matrix_t *state, time_t timeStep
 
 
 /* initialization of prediction step matrix values */
-int kmn_predInit(state_engine_t *engine, const kalman_calib_t *calib)
+int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib)
 {
 	matrix_t *Q;
 
