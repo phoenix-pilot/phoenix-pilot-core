@@ -327,25 +327,24 @@ int meas_baroGet(float *pressure, float *temperature, uint64_t *timestamp)
 
 int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop)
 {
-	sensor_event_t gps_evt;
+	sensor_event_t gpsEvt;
+	meas_geodetic_t geo;
 
-	if (sensc_gpsGet(&gps_evt) < 0) {
+	if (sensc_gpsGet(&gpsEvt) < 0) {
 		return -1;
 	}
 
-	*enu = geo2enu(
-		(float)gps_evt.gps.lat / 1e7,
-		(float)gps_evt.gps.lon / 1e7,
-		0,
-		meas_common.calib.gps.refGeodetic.lat,
-		meas_common.calib.gps.refGeodetic.lon,
-		&meas_common.calib.gps.refEcef);
+	geo.lat = (float)gpsEvt.gps.lat / 1e7; /* convert to degrees */
+	geo.lon = (float)gpsEvt.gps.lon / 1e7; /* convert to degrees */
+	geo.h = (float)gpsEvt.gps.alt / 1e3;   /* convert to millimeters */
 
-	enu_speed->x = (float)gps_evt.gps.velEast / 1e3;
-	enu_speed->y = (float)gps_evt.gps.velNorth / 1e3;
-	enu_speed->z = 0;
+	meas_geo2enu(&geo, &meas_common.calib.gps.refGeodetic, &meas_common.calib.gps.refEcef, enu);
 
-	*hdop = (float)(gps_evt.gps.hdop) / 100;
+	enu_speed->x = (float)gpsEvt.gps.velEast / 1e3;  /* */
+	enu_speed->y = (float)gpsEvt.gps.velNorth / 1e3; /* convert to m/s */
+	enu_speed->z = -(float)gpsEvt.gps.velDown / 1e3; /* */
+
+	*hdop = (float)(gpsEvt.gps.hdop) / 100;
 
 	return 0;
 }
