@@ -24,6 +24,7 @@
 #include <sys/msg.h>
 
 #include "kalman_implem.h"
+#include "meas.h"
 
 #include <libsensors.h>
 #include <sensc.h>
@@ -39,7 +40,7 @@
 #define BARO_CALIB_AVG 100
 
 static struct {
-	kalman_calib_t calib;
+	meas_calib_t calib;
 } meas_common;
 
 /* accelerometer calibration data */
@@ -153,13 +154,13 @@ void meas_gpsCalib(void)
 	refLon /= avg;
 
 	/* Calculating geodetic reference point */
-	meas_common.calib.gpsRefGeodetic.lat = refLat;
-	meas_common.calib.gpsRefGeodetic.lon = refLon;
-	meas_common.calib.gpsRefGeodetic.h = refHeight;
+	meas_common.calib.gps.refGeodetic.lat = refLat;
+	meas_common.calib.gps.refGeodetic.lon = refLon;
+	meas_common.calib.gps.refGeodetic.h = refHeight;
 
-	meas_common.calib.gpsRefEcef = geo2ecef(refLat, refLon, refHeight);
+	meas_common.calib.gps.refEcef = geo2ecef(refLat, refLon, refHeight);
 
-	printf("Acquired GPS position of (lat/lon/h): %f/%f/%f\n", meas_common.calib.gpsRefEcef.x, meas_common.calib.gpsRefEcef.y, meas_common.calib.gpsRefEcef.z);
+	printf("Acquired GPS position of (lat/lon/h): %f/%f/%f\n", meas_common.calib.gps.refEcef.x, meas_common.calib.gps.refEcef.y, meas_common.calib.gps.refEcef.z);
 
 }
 
@@ -238,14 +239,14 @@ void meas_imuCalib(void)
 	vec_times(&gyrAvg, 1. / (float)avg);
 	vec_times(&magAvg, 1. / (float)avg);
 
-	meas_common.calib.gyr_nivel = gyrAvg; /* save gyro drift parameters */
-	meas_common.calib.init_m = magAvg;    /* save initial magnetometer reading */
+	meas_common.calib.imu.gyr_nivel = gyrAvg; /* save gyro drift parameters */
+	meas_common.calib.imu.init_m = magAvg;    /* save initial magnetometer reading */
 
 	/* calculate initial rotation */
 	vec_normalize(&accAvg);
 	vec_normalize(&magAvg);
 	vec_cross(&magAvg, &accAvg, &bodyY);
-	quat_frameRot(&accAvg, &bodyY, &nedG, &nedY, &meas_common.calib.init_q, &idenQuat);
+	quat_frameRot(&accAvg, &bodyY, &nedG, &nedY, &meas_common.calib.imu.init_q, &idenQuat);
 }
 
 void meas_baroCalib(void)
@@ -269,8 +270,8 @@ void meas_baroCalib(void)
 		}
 	}
 
-	meas_common.calib.base_pressure = (float)press / avg;
-	meas_common.calib.base_temp = (float)temp / avg;
+	meas_common.calib.baro.base_pressure = (float)press / avg;
+	meas_common.calib.baro.base_temp = (float)temp / avg;
 }
 
 int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
@@ -291,7 +292,7 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 	meas_ellipCompensate(accels, acc_calib1);
 
 	/* gyro niveling */
-	vec_sub(gyros, &meas_common.calib.gyr_nivel);
+	vec_sub(gyros, &meas_common.calib.imu.gyr_nivel);
 
 	return 0;
 }
@@ -325,9 +326,9 @@ int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop)
 		(float)gps_evt.gps.lat / 1e7,
 		(float)gps_evt.gps.lon / 1e7,
 		0,
-		meas_common.calib.gpsRefGeodetic.lat,
-		meas_common.calib.gpsRefGeodetic.lon,
-		&meas_common.calib.gpsRefEcef);
+		meas_common.calib.gps.refGeodetic.lat,
+		meas_common.calib.gps.refGeodetic.lon,
+		&meas_common.calib.gps.refEcef);
 
 	enu_speed->x = (float)gps_evt.gps.velEast / 1e3;
 	enu_speed->y = (float)gps_evt.gps.velNorth / 1e3;
@@ -339,7 +340,7 @@ int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop)
 }
 
 
-const kalman_calib_t *meas_calibGet(void)
+const meas_calib_t *meas_calibGet(void)
 {
 	return &meas_common.calib;
 }
@@ -347,5 +348,5 @@ const kalman_calib_t *meas_calibGet(void)
 
 float meas_calibPressGet(void)
 {
-	return meas_common.calib.base_pressure;
+	return meas_common.calib.baro.base_pressure;
 }
