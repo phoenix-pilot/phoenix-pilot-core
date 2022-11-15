@@ -46,15 +46,15 @@ kalman_init_t init_values = {
 	.R_mcov = 0.1,
 	.R_qcov = 500,
 
-	.R_xzcov = 0.1,
-	.R_vzcov = 0.5,
+	.R_xzcov = 0.075,
+	.R_vzcov = 0.2,
 
 	/* better to keep Q low */
-	.Q_xcov = 0.0001,
-	.Q_vcov = 0.01,
+	.Q_xcov = 2,
+	.Q_vcov = 2,
 	.Q_hcov = 0.001,
-	.Q_avertcov = 0.0001,
-	.Q_ahoricov = 0.0001,
+	.Q_avertcov = 1,
+	.Q_ahoricov = 0.1,
 	.Q_wcov = 0.001,
 	.Q_mcov = 0.001,
 	.Q_qcov = 0.001
