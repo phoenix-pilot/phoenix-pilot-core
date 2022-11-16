@@ -49,9 +49,10 @@
 
 #define HOVER_THROTTLE 0.27
 
-#define ANGLE_THRESHOLD (M_PI / 4)
-#define RAD2DEG         ((float)180.0 / M_PI)
-#define DEG2RAD         0.0174532925f
+#define ANGLE_THRESHOLD_LOW  (M_PI / 4) /* low threshold for landing safety */
+#define ANGLE_THRESHOLD_HIGH (M_PI / 2) /* high threshold for maneuvers */
+#define RAD2DEG              ((float)180.0 / M_PI)
+#define DEG2RAD              0.0174532925f
 
 /* rcbus trigger thresholds for manual switches SWA/SWB/SWC/SWD */
 #define RCTHRESH_HIGH ((95 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) / 100 + MIN_CHANNEL_VALUE) /* high position threshold */
@@ -131,7 +132,7 @@ static int quad_motorsCtrl(float throttle, int32_t alt, const quad_att_t *att, c
 	time_t dt, now;
 	float palt, proll, ppitch, pyaw;
 
-	if (fabs(measure->pitch) > ANGLE_THRESHOLD || fabs(measure->roll) > ANGLE_THRESHOLD) {
+	if (fabs(measure->pitch) > ANGLE_THRESHOLD_HIGH || fabs(measure->roll) > ANGLE_THRESHOLD_HIGH) {
 		fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors stop.\n", measure->roll, measure->pitch);
 		mma_stop();
 		return -1;
@@ -343,6 +344,15 @@ static int quad_manual(void)
 			/* setting current value as target value, so that PID controller uses only D term */
 			alt = measure.enuZ * 1000;
 			att.yaw = measure.yaw + (yawDelta / 1000.f);
+		}
+
+		/* Perform low threshold check only if throttle is at minimum (probable landing) in case of drone tipping off */
+		if (rcThrottle < 0.05 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) {
+			if (fabs(measure.pitch) > ANGLE_THRESHOLD_LOW || fabs(measure.roll) > ANGLE_THRESHOLD_LOW) {
+				fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors stop.\n", measure.roll, measure.pitch);
+				mma_stop();
+				return -1;
+			}
 		}
 
 		if (quad_motorsCtrl(throttle, alt, &att, &measure) < 0) {
