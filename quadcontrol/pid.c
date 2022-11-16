@@ -22,7 +22,7 @@
 
 float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, time_t dt)
 {
-	float err, out;
+	float err, out = 0;
 	float p, i, d; /* Results for proportional, integral and derivative parts of PID */
 
 	if (pid == NULL) {
@@ -52,7 +52,8 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, ti
 	p = pid->kp * err;
 
 	/* Integral */
-	i = pid->integral + pid->ki * (err * dt);
+	i = (pid->flags & PID_RESET_I) ? 0 : pid->integral;
+	i += (pid->flags & PID_IGNORE_I) ? 0 : pid->ki * (err * dt);
 	if (i > pid->maxInteg) {
 		i = pid->maxInteg;
 	}
@@ -62,7 +63,8 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, ti
 	}
 
 	/* PID */
-	out = p + d;
+	out += (pid->flags & PID_IGNORE_P) ? 0 : p;
+	out += (pid->flags & PID_IGNORE_D) ? 0 : d;
 	if (out > pid->max) {
 		out = pid->max;
 	}
@@ -104,6 +106,8 @@ int pid_init(pid_ctx_t *pid)
 	pid->prevErr = 0;
 
 	pid->errBound = NO_BOUNDVAL;
+
+	pid->flags = PID_FULL;
 
 	return 0;
 }

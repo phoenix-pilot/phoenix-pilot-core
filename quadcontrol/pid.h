@@ -18,6 +18,12 @@
 
 #define NO_BOUNDVAL 0.0
 
+#define PID_FULL     0
+#define PID_IGNORE_P (1 << 0)
+#define PID_IGNORE_I (1 << 1)
+#define PID_IGNORE_D (1 << 2)
+#define PID_RESET_I  (1 << 3)
+
 typedef struct {
 	/* Coefficients */
 	float kp; /* proportional gain */
@@ -35,6 +41,8 @@ typedef struct {
 	float lastPid;  /* Last calculated PID value */
 
 	float errBound; /* positive boundary value for process variable (symmetric boundary value assumed) */
+
+	uint32_t flags; /* flags controlling pid controller behaviour */
 } pid_ctx_t;
 
 
