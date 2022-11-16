@@ -45,9 +45,8 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 {
 	static uint64_t lastTstamp = 0;
 	static float lastAlt = 0;
-	static float lastAltDot = 0;
 
-	float pressure, temp, alt, altDot;
+	float pressure, temp;
 	uint64_t currTstamp;
 
 	/* if there is no pressure measurement available return NULL */
@@ -59,22 +58,12 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 		return NULL;
 	}
 
-	/* Calculate barometric height */
-	alt = 8453.669 * log(meas_calibPressGet() / pressure);
-	alt = 0.9 * lastAlt + 0.1 * alt;
-
-	/* Calculate derivative of barometric height, or skip on first function call */
-	altDot = (lastTstamp == 0) ? 0 : (alt - lastAlt) / ((float)(currTstamp - lastTstamp) / 1000000.f);
-	altDot = 0.95 * lastAltDot + 0.05 * altDot; /* speed is more susceptible to noise so it is filtered more */
-
 	/* Make measurements negative to account for NED <-> ENU frame conversion */
-	Z->data[IMBXZ] = -alt;
-	Z->data[IMBVZ] = -altDot;
+	Z->data[IMBXZ] = -8453.669 * log(meas_calibPressGet() / pressure); /* Calculate barometric height */
+	Z->data[IMBVZ] = -(XZ - lastAlt) / ((float)timeStep / 1000000.f);  /* Calculate derivative of barometric height */
 
 	/* Update filter/derivative variables */
-	lastTstamp = currTstamp;
-	lastAlt = alt;
-	lastAltDot = altDot;
+	lastAlt = XZ;
 
 	return Z;
 }
