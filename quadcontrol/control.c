@@ -109,6 +109,15 @@ static inline time_t quad_timeMsGet(void)
 }
 
 
+static inline void quad_pidRestore(void)
+{
+	quad_common.pids[pwm_alt].flags = PID_FULL;
+	quad_common.pids[pwm_roll].flags = PID_FULL;
+	quad_common.pids[pwm_pitch].flags = PID_FULL;
+	quad_common.pids[pwm_yaw].flags = PID_FULL;
+}
+
+
 /* Sets logging on/off and returns current logging state */
 static inline bool quad_periodLogEnable(time_t now)
 {
@@ -355,6 +364,12 @@ static int quad_manual(void)
 			}
 		}
 
+		/* Disabling altitude pid controller in STABILIZE for full RC throttle control */
+		quad_common.pids[pwm_alt].flags = PID_FULL;
+		if (althold == false) {
+			quad_common.pids[pwm_alt].flags |= PID_IGNORE_P | PID_IGNORE_I | PID_IGNORE_D | PID_RESET_I;
+		}
+
 		if (quad_motorsCtrl(throttle, alt, &att, &measure) < 0) {
 			return -1;
 		}
@@ -377,6 +392,7 @@ static int quad_run(void)
 			quad_common.currFlight = quad_common.scenario[i].type;
 		}
 
+		quad_pidRestore();
 
 		log_enable();
 		switch (quad_common.currFlight) {
