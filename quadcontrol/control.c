@@ -81,10 +81,7 @@ struct {
 	flight_mode_t *scenario;
 	size_t scenarioSz;
 
-	struct {
-		float min;
-		float max;
-	} throttle;
+	quad_throttle_t throttle;
 } quad_common;
 
 

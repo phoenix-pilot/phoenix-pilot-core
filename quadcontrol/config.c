@@ -20,7 +20,7 @@
 #include <errno.h>
 
 
-enum { cfg_scenarioID = 0, cfg_pidID, cfg_end };
+enum { cfg_scenarioID = 0, cfg_pidID, cfg_throttleID, cfg_end };
 
 
 static struct {
@@ -383,6 +383,85 @@ int config_pidRead(const char *path, pid_ctx_t **pids, int *sz)
 
 	*pids = res[cfg_pidID].data;
 	*sz = res[cfg_pidID].sz;
+
+	return 0;
+}
+
+
+static int config_throttleConverter(const hmap_t *h)
+{
+	int err = 0;
+	quad_throttle_t *throttle;
+	int id = res[cfg_throttleID].invCnt;
+
+	if (config_reallocData(cfg_throttleID, sizeof(quad_throttle_t)) != 0) {
+		return -1;
+	}
+
+	throttle = (quad_throttle_t *)res[cfg_throttleID].data + id;
+
+	err |= config_parseFloat(h, "MAX", &throttle->max);
+	err |= config_parseFloat(h, "MIN", &throttle->min);
+
+	if (err != 0) {
+		return -1;
+	}
+
+	res[cfg_throttleID].invCnt++;
+
+	return 0;
+}
+
+
+int config_throttleRead(const char *path, quad_throttle_t **throttle, int *sz)
+{
+	int err;
+	parser_t *p;
+	static const unsigned int initSz = 1;
+
+	if (path == NULL || throttle == NULL || sz == NULL) {
+		fprintf(stderr, "config: invalid arguments\n");
+		return -1;
+	}
+
+	*throttle = NULL;
+	*sz = 0;
+
+	/* Parser have to parser one header, which have two fields */
+	p = parser_alloc(1, 2);
+	if (p == NULL) {
+		return -1;
+	}
+
+	if (parser_headerAdd(p, "THROTTLE", config_throttleConverter) != 0) {
+		parser_free(p);
+		return -1;
+	}
+
+	res[cfg_throttleID].data = malloc(sizeof(quad_throttle_t) * initSz);
+	if (res[cfg_throttleID].data == NULL) {
+		parser_free(p);
+		return -1;
+	}
+
+	res[cfg_throttleID].invCnt = 0;
+	res[cfg_throttleID].sz = 1;
+
+	err = parser_execute(p, path, PARSER_IGN_UNKNOWN_HEADERS);
+	parser_free(p);
+	if (err != 0) {
+		free(res[cfg_throttleID].data);
+		return -1;
+	}
+
+	if (config_trimUnusedData(cfg_throttleID, sizeof(quad_throttle_t)) != 0) {
+		fprintf(stderr, "config: realloc error\n");
+		free(res[cfg_throttleID].data);
+		return -1;
+	}
+
+	*throttle = res[cfg_throttleID].data;
+	*sz = res[cfg_throttleID].sz;
 
 	return 0;
 }
