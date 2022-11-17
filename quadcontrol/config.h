@@ -30,4 +30,8 @@ extern int config_pidRead(const char *path, pid_ctx_t **pids, int *sz);
 extern int config_throttleRead(const char *path, quad_throttle_t **throttle, int *sz);
 
 
+/* Parser all attitude config structures from file defined by `path`. If succeeded returns 0 and `attitude` is array with length equal to `sz`. In other case returns -1. */
+extern int config_attitudeRead(const char *path, quad_att_t **attitude, int *sz);
+
+
 #endif

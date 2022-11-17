@@ -20,8 +20,7 @@
 #include <errno.h>
 
 
-enum { cfg_scenarioID = 0, cfg_pidID, cfg_throttleID, cfg_end };
-
+enum { cfg_scenarioID = 0, cfg_pidID, cfg_throttleID, cfg_attitudeID, cfg_end };
 
 static struct {
 	void *data;
@@ -462,6 +461,85 @@ int config_throttleRead(const char *path, quad_throttle_t **throttle, int *sz)
 
 	*throttle = res[cfg_throttleID].data;
 	*sz = res[cfg_throttleID].sz;
+
+	return 0;
+}
+
+
+static int config_attitudeConverter(const hmap_t *h)
+{
+	int err = 0;
+	quad_att_t *attitude;
+	int id = res[cfg_attitudeID].invCnt;
+
+	if (config_reallocData(cfg_attitudeID, sizeof(quad_att_t)) != 0) {
+		return -1;
+	}
+
+	attitude = (quad_att_t *)res[cfg_attitudeID].data + id;
+
+	err |= config_parseFloat(h, "PITCH", &attitude->pitch);
+	err |= config_parseFloat(h, "ROLL", &attitude->roll);
+	err |= config_parseFloat(h, "YAW", &attitude->yaw);
+
+	if (err != 0) {
+		return -1;
+	}
+
+	res[cfg_attitudeID].invCnt++;
+
+	return 0;
+}
+
+
+int config_attitudeRead(const char *path, quad_att_t **attitude, int *sz)
+{
+	int err;
+	parser_t *p;
+	static const unsigned int initSz = 1;
+
+	if (path == NULL || attitude == NULL || sz == NULL) {
+		fprintf(stderr, "config: invalid arguments\n");
+		return -1;
+	}
+
+	*attitude = NULL;
+	*sz = 0;
+
+	/* Parser have to parser one header, which have three fields */
+	p = parser_alloc(1, 3);
+	if (p == NULL) {
+		return -1;
+	}
+
+	if (parser_headerAdd(p, "ATTITUDE", config_attitudeConverter) != 0) {
+		parser_free(p);
+		return -1;
+	}
+
+	res[cfg_attitudeID].data = malloc(sizeof(quad_att_t) * initSz);
+	if (res[cfg_attitudeID].data == NULL) {
+		parser_free(p);
+		return -1;
+	}
+
+	res[cfg_attitudeID].sz = initSz;
+	res[cfg_attitudeID].invCnt = 0;
+
+	err = parser_execute(p, path, PARSER_IGN_UNKNOWN_HEADERS);
+	parser_free(p);
+	if (err != 0) {
+		return -1;
+	}
+
+	if (config_trimUnusedData(cfg_attitudeID, sizeof(quad_att_t)) != 0) {
+		fprintf(stderr, "config: realloc error\n");
+		free(res[cfg_attitudeID].data);
+		return -1;
+	}
+
+	*attitude = res[cfg_attitudeID].data;
+	*sz = res[cfg_attitudeID].sz;
 
 	return 0;
 }
