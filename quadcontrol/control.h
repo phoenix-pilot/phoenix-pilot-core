@@ -68,6 +68,11 @@ typedef struct {
 	};
 } flight_mode_t;
 
+/* Throttle configuration */
+typedef struct {
+	float min;
+	float max;
+} quad_throttle_t;
 
 /* Quadcopter configuration */
 typedef struct {
