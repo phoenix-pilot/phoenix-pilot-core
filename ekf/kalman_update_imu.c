@@ -31,7 +31,6 @@
 /* declare static calculation memory bank with matrices for EKF */
 DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, IMUMEAS_ROWS)
 
-extern kalman_init_t init_values;
 
 static const vec_t nedG = { .x = 0, .y = 0, .z = -1 }; /* earth acceleration versor in NED frame of reference */
 static const vec_t nedY = { .x = 0, .y = 1, .z = 0 };  /* earth y versor (east) in NED frame of reference */
@@ -150,31 +149,31 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 
 
 /* initialization function for IMU update step matrices values */
-void imuUpdateInitializations(matrix_t *H, matrix_t *R)
+void imuUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_init_t *inits)
 {
 	/* init of measurement noise matrix R */
-	R->data[R->cols * IMAX + IMAX] = init_values.R_acov;
-	R->data[R->cols * IMAY + IMAY] = init_values.R_acov;
-	R->data[R->cols * IMAZ + IMAZ] = init_values.R_acov;
+	R->data[R->cols * IMAX + IMAX] = inits->R_acov;
+	R->data[R->cols * IMAY + IMAY] = inits->R_acov;
+	R->data[R->cols * IMAZ + IMAZ] = inits->R_acov;
 
-	R->data[R->cols * IMWX + IMWX] = init_values.R_wcov;
-	R->data[R->cols * IMWY + IMWY] = init_values.R_wcov;
-	R->data[R->cols * IMWZ + IMWZ] = init_values.R_wcov;
+	R->data[R->cols * IMWX + IMWX] = inits->R_wcov;
+	R->data[R->cols * IMWY + IMWY] = inits->R_wcov;
+	R->data[R->cols * IMWZ + IMWZ] = inits->R_wcov;
 
-	R->data[R->cols * IMMX + IMMX] = init_values.R_mcov;
-	R->data[R->cols * IMMY + IMMY] = init_values.R_mcov;
-	R->data[R->cols * IMMZ + IMMZ] = init_values.R_mcov;
+	R->data[R->cols * IMMX + IMMX] = inits->R_mcov;
+	R->data[R->cols * IMMY + IMMY] = inits->R_mcov;
+	R->data[R->cols * IMMZ + IMMZ] = inits->R_mcov;
 
-	R->data[R->cols * IMQA + IMQA] = init_values.R_qcov;
-	R->data[R->cols * IMQB + IMQB] = init_values.R_qcov;
-	R->data[R->cols * IMQC + IMQC] = init_values.R_qcov;
-	R->data[R->cols * IMQD + IMQD] = init_values.R_qcov;
+	R->data[R->cols * IMQA + IMQA] = inits->R_qcov;
+	R->data[R->cols * IMQB + IMQB] = inits->R_qcov;
+	R->data[R->cols * IMQC + IMQC] = inits->R_qcov;
+	R->data[R->cols * IMQD + IMQD] = inits->R_qcov;
 }
 
 
-void kmn_imuEngInit(update_engine_t *engine)
+void kmn_imuEngInit(update_engine_t *engine, const kalman_init_t *inits)
 {
-	imuUpdateInitializations(&ekf_H, &ekf_R);
+	imuUpdateInitializations(&ekf_H, &ekf_R, inits);
 
 	POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(engine)
 

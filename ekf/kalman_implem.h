@@ -111,7 +111,7 @@
 #define MY state->data[17]
 #define MZ state->data[18]
 
-/* IMPORTANT: must be kept in order with 'char * config_names' in 'kalman.inits.c' */
+/* IMPORTANT: must be kept in order with 'char * configNames' in 'kalman.inits.c' */
 typedef struct {
 	int verbose;
 
@@ -146,25 +146,25 @@ typedef struct {
 int verbose;
 
 
-extern void kmn_configRead(void);
+extern void kmn_configRead(kalman_init_t *initVals);
 
 
 /* PHMATRIX MATRICES INITIALIZATIONS */
 
 /* initializes matices related to state prediction step of kalman filter */
-extern int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib);
+extern int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman_init_t *inits);
 
 /* deinitializes prediction matrices */
 extern void kmn_predDeinit(state_engine_t *engine);
 
 /* imu update engine composer */
-extern void kmn_imuEngInit(update_engine_t *engine);
+extern void kmn_imuEngInit(update_engine_t *engine, const kalman_init_t *inits);
 
 /* barometer update engine composer */
-extern void kmn_baroEngInit(update_engine_t *engine);
+extern void kmn_baroEngInit(update_engine_t *engine, const kalman_init_t *inits);
 
 /* GPS update engine composer */
-extern void kmn_gpsEngInit(update_engine_t *engine);
+extern void kmn_gpsEngInit(update_engine_t *engine, const kalman_init_t *inits);
 
 
 #endif
