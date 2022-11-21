@@ -34,9 +34,6 @@
 DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, BAROMEAS_ROWS)
 
 
-extern kalman_init_t init_values;
-
-
 enum baroDimension { value = 0, dtime = 1 };
 
 
@@ -90,16 +87,16 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 
 
 /* initialization function for barometer update step matrices values */
-static void baroUpdateInitializations(matrix_t *H, matrix_t *R)
+static void baroUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_init_t *inits)
 {
-	R->data[R->cols * IMBXZ + IMBXZ] = init_values.R_xzcov;
-	R->data[R->cols * IMBVZ + IMBVZ] = init_values.R_vzcov;
+	R->data[R->cols * IMBXZ + IMBXZ] = inits->R_xzcov;
+	R->data[R->cols * IMBVZ + IMBVZ] = inits->R_vzcov;
 }
 
 
-void kmn_baroEngInit(update_engine_t *engine)
+void kmn_baroEngInit(update_engine_t *engine, const kalman_init_t *inits)
 {
-	baroUpdateInitializations(&ekf_H, &ekf_R);
+	baroUpdateInitializations(&ekf_H, &ekf_R, inits);
 
 	POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(engine)
 

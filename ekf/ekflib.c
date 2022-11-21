@@ -31,6 +31,8 @@
 #include "ekflib.h"
 
 struct {
+	kalman_init_t initVals;
+
 	update_engine_t imuEngine;
 	update_engine_t baroEngine;
 	state_engine_t stateEngine;
@@ -66,18 +68,18 @@ int ekf_init(void)
 	}
 
 	/* TODO: config read should utilize parser, and default values should be stored in /etc/calib.conf */
-	kmn_configRead(); /* only for development process */
+	kmn_configRead(&ekf_common.initVals); /* only for development process */
 
 	meas_imuCalib();
 	meas_baroCalib();
 
-	if (kmn_predInit(&ekf_common.stateEngine, meas_calibGet()) < 0) {
+	if (kmn_predInit(&ekf_common.stateEngine, meas_calibGet(), &ekf_common.initVals) < 0) {
 		resourceDestroy(ekf_common.lock);
 		printf("failed to initialize prediction matrices\n");
 		return -1;
 	}
-	kmn_imuEngInit(&ekf_common.imuEngine);
-	kmn_baroEngInit(&ekf_common.baroEngine);
+	kmn_imuEngInit(&ekf_common.imuEngine, &ekf_common.initVals);
+	kmn_baroEngInit(&ekf_common.baroEngine, &ekf_common.initVals);
 
 	return 0;
 }

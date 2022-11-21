@@ -32,7 +32,6 @@
 /* declare static calculation memory bank with matrices for EKF */
 DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, GPSMEAS_ROWS)
 
-extern kalman_init_t init_values;
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
@@ -84,16 +83,16 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 }
 
 
-static void gpsUpdateInitializations(matrix_t *H, matrix_t *R)
+static void gpsUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_init_t *inits)
 {
 	/* covariance is live-updated with each gps measurement */
 	return;
 }
 
 
-void kmn_gpsEngInit(update_engine_t *engine)
+void kmn_gpsEngInit(update_engine_t *engine, const kalman_init_t *inits)
 {
-	gpsUpdateInitializations(&ekf_H, &ekf_R);
+	gpsUpdateInitializations(&ekf_H, &ekf_R, inits);
 
 	POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(engine)
 

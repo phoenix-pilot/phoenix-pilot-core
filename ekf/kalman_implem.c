@@ -29,8 +29,8 @@
 #include <matrix.h>
 
 
-/* NOTE: must be kept in the same order as 'config_names' */
-kalman_init_t init_values = {
+/* NOTE: must be kept in the same order as 'configNames' */
+static const kalman_init_t initTemplate = {
 	.verbose = 0,
 
 	.P_xerr = 1,               /* 1 m */
@@ -63,7 +63,7 @@ kalman_init_t init_values = {
 
 
 /* NOTE: must be kept in the same order as 'init_values' */
-char *config_names[] = {
+static const char *configNames[] = {
 	"verbose",
 	"P_xerr", "P_verr", "P_aerr", "P_werr", "P_merr", "P_qaerr", "P_qijkerr", "P_pxerr",
 	"R_acov", "R_wcov", "R_mcov", "R_qcov", "R_xzcov", "R_vzcov",
@@ -72,12 +72,14 @@ char *config_names[] = {
 
 
 /* reads config file named "config" from filesystem */
-void kmn_configRead(void)
+void kmn_configRead(kalman_init_t *initVals)
 {
 	char buf[32], *p, *v;
 	int i;
 	float val;
 	FILE *fd = fopen("config", "r");
+	kalman_init_t inits = initTemplate;
+
 	if (fd == NULL) {
 		printf("No config file found!\n");
 	}
@@ -86,21 +88,22 @@ void kmn_configRead(void)
 			p = strtok(buf, " ");
 			v = strtok(NULL, " ");
 			val = atof(v);
-			for (i = 0; i < sizeof(init_values) / sizeof(float); i++) {
-				if (memcmp(p, config_names[i], strlen(config_names[i])) == 0) {
-					((float *)&init_values)[i] = (float)val;
+			for (i = 0; i < sizeof(inits) / sizeof(float); i++) {
+				if (memcmp(p, configNames[i], strlen(configNames[i])) == 0) {
+					((float *)&inits)[i] = (float)val;
 					break;
 				}
 			}
 		}
 		fclose(fd);
 	}
-	verbose = init_values.verbose;
 
 	printf("config:\n");
-	for (i = 0; i < sizeof(init_values) / sizeof(float); i++) {
-		printf("%s = %f\n", config_names[i], ((float *)&init_values)[i]);
+	for (i = 0; i < sizeof(inits) / sizeof(float); i++) {
+		printf("%s = %f\n", configNames[i], ((float *)&inits)[i]);
 	}
+
+	*initVals = inits;
 }
 
 
@@ -126,41 +129,41 @@ static void init_state_vector(matrix_t *state, const meas_calib_t *calib)
 
 
 /* covariance matrox values inits */
-static void init_cov_vector(matrix_t *cov)
+static void init_cov_vector(matrix_t *cov, const kalman_init_t *inits)
 {
 	matrix_zeroes(cov);
-	cov->data[cov->cols * IXX + IXX] = init_values.P_xerr * init_values.P_xerr;
-	cov->data[cov->cols * IXY + IXY] = init_values.P_xerr * init_values.P_xerr;
-	cov->data[cov->cols * IXZ + IXZ] = init_values.P_xerr * init_values.P_xerr;
+	cov->data[cov->cols * IXX + IXX] = inits->P_xerr * inits->P_xerr;
+	cov->data[cov->cols * IXY + IXY] = inits->P_xerr * inits->P_xerr;
+	cov->data[cov->cols * IXZ + IXZ] = inits->P_xerr * inits->P_xerr;
 
-	cov->data[cov->cols * IVX + IVX] = init_values.P_verr * init_values.P_verr;
-	cov->data[cov->cols * IVY + IVY] = init_values.P_verr * init_values.P_verr;
-	cov->data[cov->cols * IVZ + IVZ] = init_values.P_verr * init_values.P_verr;
+	cov->data[cov->cols * IVX + IVX] = inits->P_verr * inits->P_verr;
+	cov->data[cov->cols * IVY + IVY] = inits->P_verr * inits->P_verr;
+	cov->data[cov->cols * IVZ + IVZ] = inits->P_verr * inits->P_verr;
 
-	cov->data[cov->cols * IAX + IAX] = init_values.P_aerr * init_values.P_aerr;
-	cov->data[cov->cols * IAY + IAY] = init_values.P_aerr * init_values.P_aerr;
-	cov->data[cov->cols * IAZ + IAZ] = init_values.P_aerr * init_values.P_aerr;
+	cov->data[cov->cols * IAX + IAX] = inits->P_aerr * inits->P_aerr;
+	cov->data[cov->cols * IAY + IAY] = inits->P_aerr * inits->P_aerr;
+	cov->data[cov->cols * IAZ + IAZ] = inits->P_aerr * inits->P_aerr;
 
-	cov->data[cov->cols * IWX + IWX] = init_values.P_werr * init_values.P_werr;
-	cov->data[cov->cols * IWY + IWY] = init_values.P_werr * init_values.P_werr;
-	cov->data[cov->cols * IWZ + IWZ] = init_values.P_werr * init_values.P_werr;
+	cov->data[cov->cols * IWX + IWX] = inits->P_werr * inits->P_werr;
+	cov->data[cov->cols * IWY + IWY] = inits->P_werr * inits->P_werr;
+	cov->data[cov->cols * IWZ + IWZ] = inits->P_werr * inits->P_werr;
 
-	cov->data[cov->cols * IQA + IQA] = init_values.P_qaerr * init_values.P_qaerr;
-	cov->data[cov->cols * IQB + IQB] = init_values.P_qijkerr * init_values.P_qijkerr;
-	cov->data[cov->cols * IQC + IQC] = init_values.P_qijkerr * init_values.P_qijkerr;
-	cov->data[cov->cols * IQD + IQD] = init_values.P_qijkerr * init_values.P_qijkerr;
+	cov->data[cov->cols * IQA + IQA] = inits->P_qaerr * inits->P_qaerr;
+	cov->data[cov->cols * IQB + IQB] = inits->P_qijkerr * inits->P_qijkerr;
+	cov->data[cov->cols * IQC + IQC] = inits->P_qijkerr * inits->P_qijkerr;
+	cov->data[cov->cols * IQD + IQD] = inits->P_qijkerr * inits->P_qijkerr;
 
-	cov->data[cov->cols * IMX + IMX] = init_values.P_merr * init_values.P_merr;
-	cov->data[cov->cols * IMY + IMY] = init_values.P_merr * init_values.P_merr;
-	cov->data[cov->cols * IMZ + IMZ] = init_values.P_merr * init_values.P_merr;
+	cov->data[cov->cols * IMX + IMX] = inits->P_merr * inits->P_merr;
+	cov->data[cov->cols * IMY + IMY] = inits->P_merr * inits->P_merr;
+	cov->data[cov->cols * IMZ + IMZ] = inits->P_merr * inits->P_merr;
 }
-
-vec_t last_a = { 0 };
-vec_t last_v = { 0 };
 
 /* State estimation function definition */
 static void calcStateEstimation(matrix_t *state, matrix_t *state_est, time_t timeStep)
 {
+	static vec_t last_a = { 0 };
+	static vec_t last_v = { 0 };
+
 	float dt, dt2;
 	quat_t quat_q, quat_w, res;
 
@@ -270,7 +273,7 @@ static void calcPredictionJacobian(matrix_t *F, matrix_t *state, time_t timeStep
 
 
 /* initialization of prediction step matrix values */
-int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib)
+int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman_init_t *inits)
 {
 	matrix_t *Q;
 
@@ -305,24 +308,24 @@ int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib)
 	}
 
 	init_state_vector(&engine->state, calib);
-	init_cov_vector(&engine->cov);
+	init_cov_vector(&engine->cov, inits);
 
 	/* prepare noise matrix Q */
 	matrix_zeroes(&engine->Q);
 	Q = &engine->Q;
-	Q->data[Q->cols * IXX + IXX] = Q->data[Q->cols * IXY + IXY] = init_values.Q_xcov;
-	Q->data[Q->cols * IVX + IVX] = Q->data[Q->cols * IVY + IVY] = init_values.Q_vcov;
+	Q->data[Q->cols * IXX + IXX] = Q->data[Q->cols * IXY + IXY] = inits->Q_xcov;
+	Q->data[Q->cols * IVX + IVX] = Q->data[Q->cols * IVY + IVY] = inits->Q_vcov;
 
-	Q->data[Q->cols * IAX + IAX] = Q->data[Q->cols * IAY + IAY] = init_values.Q_ahoricov;
-	Q->data[Q->cols * IAZ + IAZ] = init_values.Q_avertcov;
+	Q->data[Q->cols * IAX + IAX] = Q->data[Q->cols * IAY + IAY] = inits->Q_ahoricov;
+	Q->data[Q->cols * IAZ + IAZ] = inits->Q_avertcov;
 
-	Q->data[Q->cols * IWX + IWX] = Q->data[Q->cols * IWY + IWY] = Q->data[Q->cols * IWZ + IWZ] = init_values.Q_wcov;
-	Q->data[Q->cols * IMX + IMX] = Q->data[Q->cols * IMY + IMY] = Q->data[Q->cols * IMZ + IMZ] = init_values.Q_mcov;
-	Q->data[Q->cols * IQA + IQA] = init_values.Q_qcov;
-	Q->data[Q->cols * IQB + IQB] = init_values.Q_qcov;
-	Q->data[Q->cols * IQC + IQC] = init_values.Q_qcov;
-	Q->data[Q->cols * IQD + IQD] = init_values.Q_qcov;
-	Q->data[Q->cols * IXZ + IXZ] = init_values.Q_hcov;
+	Q->data[Q->cols * IWX + IWX] = Q->data[Q->cols * IWY + IWY] = Q->data[Q->cols * IWZ + IWZ] = inits->Q_wcov;
+	Q->data[Q->cols * IMX + IMX] = Q->data[Q->cols * IMY + IMY] = Q->data[Q->cols * IMZ + IMZ] = inits->Q_mcov;
+	Q->data[Q->cols * IQA + IQA] = inits->Q_qcov;
+	Q->data[Q->cols * IQB + IQB] = inits->Q_qcov;
+	Q->data[Q->cols * IQC + IQC] = inits->Q_qcov;
+	Q->data[Q->cols * IQD + IQD] = inits->Q_qcov;
+	Q->data[Q->cols * IXZ + IXZ] = inits->Q_hcov;
 
 	/* save function pointers */
 	engine->estimateState = calcStateEstimation;
