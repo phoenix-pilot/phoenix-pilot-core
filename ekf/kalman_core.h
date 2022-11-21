@@ -136,12 +136,12 @@ typedef struct {
 
 
 /* performs kalman prediction step */
-void kalmanPredictionStep(state_engine_t *engine, time_t timeStep, int verbose);
+extern void kalmanPredictionStep(state_engine_t *engine, time_t timeStep, int verbose);
 
 /* performs kalman measurement update step */
-int kalmanUpdateStep(time_t timeStep, int verbose, update_engine_t *updateEngine, state_engine_t *stateEngine);
+extern int kalmanUpdateStep(time_t timeStep, int verbose, update_engine_t *updateEngine, state_engine_t *stateEngine);
 
 /* Initializes measurement engine. All measurement matrices HAVE TO BE PROVIDED at the time of this function call */
-void kalmanCreateMeasurementEngine(initMeasurementCov initMeasCov, dataGetter getData, updateJacobian getJacobian, predictMeasurements predictMeasurements);
+extern void kalmanCreateMeasurementEngine(initMeasurementCov initMeasCov, dataGetter getData, updateJacobian getJacobian, predictMeasurements predictMeasurements);
 
 #endif

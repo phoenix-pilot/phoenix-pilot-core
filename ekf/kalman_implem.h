@@ -146,25 +146,25 @@ typedef struct {
 int verbose;
 
 
-void kmn_configRead(void);
+extern void kmn_configRead(void);
 
 
 /* PHMATRIX MATRICES INITIALIZATIONS */
 
 /* initializes matices related to state prediction step of kalman filter */
-int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib);
+extern int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib);
 
 /* deinitializes prediction matrices */
-void kmn_predDeinit(state_engine_t *engine);
+extern void kmn_predDeinit(state_engine_t *engine);
 
 /* imu update engine composer */
-void kmn_imuEngInit(update_engine_t *engine);
+extern void kmn_imuEngInit(update_engine_t *engine);
 
 /* barometer update engine composer */
-void kmn_baroEngInit(update_engine_t *engine);
+extern void kmn_baroEngInit(update_engine_t *engine);
 
 /* GPS update engine composer */
-void kmn_gpsEngInit(update_engine_t *engine);
+extern void kmn_gpsEngInit(update_engine_t *engine);
 
 
 #endif
