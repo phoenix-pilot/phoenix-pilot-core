@@ -32,16 +32,12 @@
 DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, IMUMEAS_ROWS)
 
 
-static const vec_t nedG = { .x = 0, .y = 0, .z = -1 }; /* earth acceleration versor in NED frame of reference */
-static const vec_t nedY = { .x = 0, .y = 1, .z = 0 };  /* earth y versor (east) in NED frame of reference */
-
-vec_t imu_memory[5];
-int imu_mem_entry = 0;
-
-
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
+	static const vec_t nedG = { .x = 0, .y = 0, .z = -1 }; /* earth acceleration versor in NED frame of reference */
+	static const vec_t nedY = { .x = 0, .y = 1, .z = 0 };  /* earth y versor (east) in NED frame of reference */
+
 	vec_t accel, gyro, mag;
 	vec_t magFltrd, accelFltrd;
 	vec_t bodyY;
