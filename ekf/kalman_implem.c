@@ -72,7 +72,7 @@ char *config_names[] = {
 
 
 /* reads config file named "config" from filesystem */
-void read_config(void)
+void kmn_configRead(void)
 {
 	char buf[32], *p, *v;
 	int i;

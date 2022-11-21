@@ -66,7 +66,7 @@ int ekf_init(void)
 	}
 
 	/* TODO: config read should utilize parser, and default values should be stored in /etc/calib.conf */
-	read_config(); /* only for development process */
+	kmn_configRead(); /* only for development process */
 
 	meas_imuCalib();
 	meas_baroCalib();

@@ -146,7 +146,7 @@ typedef struct {
 int verbose;
 
 
-void read_config(void);
+void kmn_configRead(void);
 
 
 /* PHMATRIX MATRICES INITIALIZATIONS */
