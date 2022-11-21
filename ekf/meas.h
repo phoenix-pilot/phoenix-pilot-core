@@ -59,33 +59,33 @@ typedef struct {
 /* CALIBRATION INITIALIZERS */
 
 /* obtain current IMU calibration parameters */
-void meas_imuCalib(void);
+extern void meas_imuCalib(void);
 
 /* obtain current barometer calibration parameters */
-void meas_baroCalib(void);
+extern void meas_baroCalib(void);
 
 /* obtain current gps calibration parameters */
-void meas_gpsCalib(void);
+extern void meas_gpsCalib(void);
 
 
 /* CALIBRATION GETTERS */
 
 /* Return pointer to full calibration data */
-const meas_calib_t *meas_calibGet(void);
+extern const meas_calib_t *meas_calibGet(void);
 
 /* returns the calibration pressure in Pascals */
-float meas_calibPressGet(void);
+extern float meas_calibPressGet(void);
 
 
 /* MEASUREMENT ACQUISITION */
 
 /* Returns prepared IMU data in SI units */
-int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp);
+extern int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp);
 
 /* Returns prepared barometer data in SI units */
-int meas_baroGet(float *pressure, float *temperature, uint64_t *dtBaroUs);
+extern int meas_baroGet(float *pressure, float *temperature, uint64_t *dtBaroUs);
 
 /* Returns prepared GPS data in SI units */
-int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop);
+extern int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop);
 
 #endif
