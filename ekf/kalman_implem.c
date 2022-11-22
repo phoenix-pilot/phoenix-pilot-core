@@ -108,7 +108,7 @@ void kmn_configRead(kalman_init_t *initVals)
 
 
 /* state vectors values init */
-static void init_state_vector(matrix_t *state, const meas_calib_t *calib)
+static void kmn_initState(matrix_t *state, const meas_calib_t *calib)
 {
 	state->data[IXX] = state->data[IXY] = state->data[IXZ] = 0; /* start position at [0,0,0] */
 	state->data[IVX] = state->data[IVY] = state->data[IVZ] = 0; /* start velocity at [0,0,0] */
@@ -129,7 +129,7 @@ static void init_state_vector(matrix_t *state, const meas_calib_t *calib)
 
 
 /* covariance matrox values inits */
-static void init_cov_vector(matrix_t *cov, const kalman_init_t *inits)
+static void kmn_initCov(matrix_t *cov, const kalman_init_t *inits)
 {
 	matrix_zeroes(cov);
 	cov->data[cov->cols * IXX + IXX] = inits->P_xerr * inits->P_xerr;
@@ -159,7 +159,7 @@ static void init_cov_vector(matrix_t *cov, const kalman_init_t *inits)
 }
 
 /* State estimation function definition */
-static void calcStateEstimation(matrix_t *state, matrix_t *state_est, time_t timeStep)
+static void kmn_stateEst(matrix_t *state, matrix_t *state_est, time_t timeStep)
 {
 	static vec_t last_a = { 0 };
 	static vec_t last_v = { 0 };
@@ -218,7 +218,7 @@ static void calcStateEstimation(matrix_t *state, matrix_t *state_est, time_t tim
 
 
 /* prediction step jacobian calculation function */
-static void calcPredictionJacobian(matrix_t *F, matrix_t *state, time_t timeStep)
+static void kmn_predJcb(matrix_t *F, matrix_t *state, time_t timeStep)
 {
 	float dt, dt2;
 	/* differentials matrices */
@@ -307,8 +307,8 @@ int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman
 		return -1;
 	}
 
-	init_state_vector(&engine->state, calib);
-	init_cov_vector(&engine->cov, inits);
+	kmn_initState(&engine->state, calib);
+	kmn_initCov(&engine->cov, inits);
 
 	/* prepare noise matrix Q */
 	matrix_zeroes(&engine->Q);
@@ -328,8 +328,8 @@ int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman
 	Q->data[Q->cols * IXZ + IXZ] = inits->Q_hcov;
 
 	/* save function pointers */
-	engine->estimateState = calcStateEstimation;
-	engine->getJacobian = calcPredictionJacobian;
+	engine->estimateState = kmn_stateEst;
+	engine->getJacobian = kmn_predJcb;
 
 	return 0;
 }
