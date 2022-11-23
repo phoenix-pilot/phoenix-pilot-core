@@ -25,6 +25,7 @@
 
 #include "kalman_implem.h"
 #include "meas.h"
+#include "filters.h"
 
 #include <libsensors.h>
 #include <sensc.h>
@@ -283,6 +284,7 @@ void meas_baroCalib(void)
 	meas_common.calib.baro.baseTemp = (float)temp / avg;
 }
 
+
 int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 {
 	sensor_event_t accEvt, gyrEvt, magEvt;
@@ -302,6 +304,9 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 
 	/* gyro niveling */
 	vec_sub(gyros, &meas_common.calib.imu.gyroBias);
+
+	fltr_accLpf(accels);
+	//fltr_gyrLpf(gyros);
 
 	return 0;
 }
