@@ -41,11 +41,13 @@ static const kalman_init_t initTemplate = {
 	.P_qaerr = 10 * DEG2RAD,   /* 10 degrees */
 	.P_qijkerr = 10 * DEG2RAD, /* 10 degrees */
 	.P_pxerr = 0.01,           /* 10 hPa */
+	.P_bazerr = 0.1,
 
 	.R_acov = 10,               /* 10 m/s^2 with engines on */
 	.R_wcov = 0.01,            /* 1 milliradian/s, overtrust gyroscope for fast response */
 	.R_mcov = 0.1,
 	.R_qcov = 500,
+	.R_azbias = 1000,
 
 	.R_xzcov = 0.075,
 	.R_vzcov = 0.2,
@@ -58,16 +60,17 @@ static const kalman_init_t initTemplate = {
 	.Q_ahoricov = 0.1,
 	.Q_wcov = 0.001,
 	.Q_mcov = 0.001,
-	.Q_qcov = 0.001
+	.Q_qcov = 0.001,
+	.Q_azbias = 0.0001
 };
 
 
 /* NOTE: must be kept in the same order as 'init_values' */
 static const char *configNames[] = {
 	"verbose",
-	"P_xerr", "P_verr", "P_aerr", "P_werr", "P_merr", "P_qaerr", "P_qijkerr", "P_pxerr",
-	"R_acov", "R_wcov", "R_mcov", "R_qcov", "R_xzcov", "R_vzcov",
-	"Q_xcov", "Q_vcov", "Q_hcov", "Q_avertcov", "Q_ahoricov", "Q_wcov", "Q_mcov", "Q_qcov"
+	"P_xerr", "P_verr", "P_aerr", "P_werr", "P_merr", "P_qaerr", "P_qijkerr", "P_pxerr", "P_bazerr",
+	"R_acov", "R_wcov", "R_mcov", "R_qcov", "R_xzcov", "R_vzcov", "R_azbias",
+	"Q_xcov", "Q_vcov", "Q_hcov", "Q_avertcov", "Q_ahoricov", "Q_wcov", "Q_mcov", "Q_qcov", "Q_azbias"
 };
 
 
@@ -125,6 +128,8 @@ static void kmn_initState(matrix_t *state, const meas_calib_t *calib)
 	state->data[IMX] = calib->imu.initMag.x;
 	state->data[IMX] = calib->imu.initMag.y;
 	state->data[IMX] = calib->imu.initMag.z;
+
+	state->data[IBAZ] = 0;
 }
 
 
@@ -156,6 +161,8 @@ static void kmn_initCov(matrix_t *cov, const kalman_init_t *inits)
 	cov->data[cov->cols * IMX + IMX] = inits->P_merr * inits->P_merr;
 	cov->data[cov->cols * IMY + IMY] = inits->P_merr * inits->P_merr;
 	cov->data[cov->cols * IMZ + IMZ] = inits->P_merr * inits->P_merr;
+
+	cov->data[cov->cols * IBAZ + IBAZ] = inits->P_bazerr * inits->P_bazerr;
 }
 
 /* State estimation function definition */
@@ -214,6 +221,8 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, time_t timeStep)
 	state_est->data[IMX] = MX;
 	state_est->data[IMY] = MY;
 	state_est->data[IMZ] = MZ;
+
+	state_est->data[IBAZ] = BAZ;
 }
 
 
@@ -326,6 +335,8 @@ int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman
 	Q->data[Q->cols * IQC + IQC] = inits->Q_qcov;
 	Q->data[Q->cols * IQD + IQD] = inits->Q_qcov;
 	Q->data[Q->cols * IXZ + IXZ] = inits->Q_hcov;
+
+	Q->data[Q->cols * IBAZ + IBAZ] = inits->Q_azbias;
 
 	/* save function pointers */
 	engine->estimateState = kmn_stateEst;

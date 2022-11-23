@@ -45,6 +45,8 @@ typedef struct {
 	float accelX;
 	float accelY;
 	float accelZ;
+
+	float accelBiasZ;
 } ekf_state_t;
 
 

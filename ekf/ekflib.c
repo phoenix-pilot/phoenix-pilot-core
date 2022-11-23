@@ -202,6 +202,8 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	angRates.y = ekf_common.stateEngine.state.data[IWY];
 	angRates.z = ekf_common.stateEngine.state.data[IWZ];
 
+	ekfState->accelBiasZ = ekf_common.stateEngine.state.data[IBAZ];
+
 	mutexUnlock(ekf_common.lock);
 
 	/* calculate and save euler attitude */

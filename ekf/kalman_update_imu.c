@@ -37,6 +37,7 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 {
 	static const vec_t nedG = { .x = 0, .y = 0, .z = -1 }; /* earth acceleration versor in NED frame of reference */
 	static const vec_t nedY = { .x = 0, .y = 1, .z = 0 };  /* earth y versor (east) in NED frame of reference */
+	static float lastVelZ = 0;
 
 	vec_t accel, gyro, mag;
 	vec_t magFltrd, accelFltrd;
@@ -73,13 +74,12 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	quat_vecRot(&accel, &rot);
 	quat_vecRot(&gyro, &rot);
 
-	/* remove earth acceleration from measurements */
-	accel.z += EARTH_G;
+	accel.z += EARTH_G; /* remove earth acceleration from measurements */
 
 	matrix_zeroes(Z);
 	Z->data[IMAX] = accel.x;
 	Z->data[IMAY] = accel.y;
-	Z->data[IMAZ] = accel.z;
+	Z->data[IMAZ] = accel.z - BAZ;
 
 	Z->data[IMWX] = gyro.x;
 	Z->data[IMWY] = gyro.y;
@@ -88,6 +88,10 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	Z->data[IMMX] = mag.x;
 	Z->data[IMMY] = mag.y;
 	Z->data[IMMZ] = mag.z;
+
+	/* Accel Z bias estimation based on discrepancy between measured and estimated changes in speed */
+	Z->data[IMBAZ] = AZ - ((VZ - lastVelZ) / ((float)timeStep / 1000000));
+	lastVelZ = VZ;
 
 	/*
 	* qEst rotates vectors from body frame base to NED base.
@@ -124,6 +128,8 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 	hx->data[IMQC] = QC;
 	hx->data[IMQD] = QD;
 
+	hx->data[IMBAZ] = BAZ;
+
 	return hx;
 }
 
@@ -141,6 +147,8 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 	/* using I33 and one direct write to write I44 */
 	matrix_writeSubmatrix(H, IMQA, IQA, &I33);
 	H->data[H->cols * IMQD + IQD] = 1;
+	
+	H->data[H->cols * IMBAZ + IBAZ] = 1;
 }
 
 
@@ -164,6 +172,8 @@ void imuUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_init_t *ini
 	R->data[R->cols * IMQB + IMQB] = inits->R_qcov;
 	R->data[R->cols * IMQC + IMQC] = inits->R_qcov;
 	R->data[R->cols * IMQD + IMQD] = inits->R_qcov;
+
+	R->data[R->cols * IMBAZ + IMBAZ] = inits->R_azbias;
 }
 
 
