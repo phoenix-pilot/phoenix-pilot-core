@@ -27,9 +27,9 @@
 #include "meas.h"
 
 #define STATE_COLS 1
-#define STATE_ROWS 19
+#define STATE_ROWS 20
 
-#define IMUMEAS_ROWS  13
+#define IMUMEAS_ROWS  14
 #define BAROMEAS_ROWS 2
 #define GPSMEAS_ROWS  4
 
@@ -57,6 +57,7 @@
 #define IMQB 10
 #define IMQC 11
 #define IMQD 12
+#define IMBAZ 13
 
 /* baro measurements */
 #define IMBXZ 0
@@ -88,6 +89,7 @@
 #define IMX 16 /* magnetic field x */
 #define IMY 17 /* magnetic field y */
 #define IMZ 18 /* magnetic field z */
+#define IBAZ 19 /* acceleration z bias */
 
 
 /* value name */
@@ -110,6 +112,7 @@
 #define MX state->data[16]
 #define MY state->data[17]
 #define MZ state->data[18]
+#define BAZ state->data[19]
 
 /* IMPORTANT: must be kept in order with 'char * configNames' in 'kalman.inits.c' */
 typedef struct {
@@ -123,11 +126,13 @@ typedef struct {
 	float P_qaerr;   /* initial covariance of rotation quaternion real part a */
 	float P_qijkerr; /* initial covariance of rotation quaternion imaginary parts i/j/k */
 	float P_pxerr;   /* initial covariance of pressure measurement */
+	float P_bazerr;  /* initial covariance of accelerometer z bias */
 
 	float R_acov; /* measurement noise of acceleration */
 	float R_wcov; /* measurement noise of angular rates */
 	float R_mcov; /* measurement noise of magnetic flux */
 	float R_qcov; /* measurement noise of rotation quaternion */
+	float R_azbias; /* measurement noise of z axis bias */
 
 	float R_xzcov;
 	float R_vzcov;
@@ -140,6 +145,7 @@ typedef struct {
 	float Q_wcov;     /* process noise of angular rates */
 	float Q_mcov;     /* process noise of magnetic flux */
 	float Q_qcov;     /* process noise of rotation quaternion */
+	float Q_azbias;   /* process noise of accelerometer z axis bias */
 } kalman_init_t;
 
 
