@@ -32,6 +32,7 @@
 /* NOTE: must be kept in the same order as 'configNames' */
 static const kalman_init_t initTemplate = {
 	.verbose = 0,
+	.log = 0,
 
 	.P_xerr = 1,               /* 1 m */
 	.P_verr = 0.1,             /* 0.1 m/s */
@@ -67,7 +68,7 @@ static const kalman_init_t initTemplate = {
 
 /* NOTE: must be kept in the same order as 'init_values' */
 static const char *configNames[] = {
-	"verbose",
+	"verbose", "log",
 	"P_xerr", "P_verr", "P_aerr", "P_werr", "P_merr", "P_qaerr", "P_qijkerr", "P_pxerr", "P_bazerr",
 	"R_acov", "R_wcov", "R_mcov", "R_qcov", "R_xzcov", "R_vzcov", "R_azbias",
 	"Q_xcov", "Q_vcov", "Q_hcov", "Q_avertcov", "Q_ahoricov", "Q_wcov", "Q_mcov", "Q_qcov", "Q_azbias"

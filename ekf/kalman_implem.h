@@ -117,6 +117,7 @@
 /* IMPORTANT: must be kept in order with 'char * configNames' in 'kalman.inits.c' */
 typedef struct {
 	int verbose;
+	int log;
 
 	float P_xerr;    /* initial covariance of position x/y/z */
 	float P_verr;    /* initial covariance of velocity x/y/z */
