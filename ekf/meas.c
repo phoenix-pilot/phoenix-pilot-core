@@ -26,6 +26,7 @@
 #include "kalman_implem.h"
 #include "meas.h"
 #include "filters.h"
+#include "log.h"
 
 #include <libsensors.h>
 #include <sensc.h>
@@ -293,6 +294,8 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 		return -1;
 	}
 
+	ekflog_write(EKFLOG_SENSC, "SI %lld %d %d %d %d %d %d\n", *timestamp, accEvt.accels.accelX, accEvt.accels.accelY, accEvt.accels.accelZ, gyrEvt.gyro.gyroX,  gyrEvt.gyro.gyroY,  gyrEvt.gyro.gyroZ);
+
 	/* these timestamps do not need to be very accurate */
 	*timestamp = (accEvt.timestamp + gyrEvt.timestamp + magEvt.timestamp) / 3;
 
@@ -307,6 +310,8 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 
 	fltr_accLpf(accels);
 	//fltr_gyrLpf(gyros);
+
+	ekflog_write(EKFLOG_MEAS, "MI %lld %.3f %.3f %.3f %.3f %.3f %.3f\n", *timestamp, accels->x, accels->y, accels->z, gyros->x, gyros->y, gyros->z);
 
 	return 0;
 }

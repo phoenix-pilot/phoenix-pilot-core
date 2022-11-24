@@ -22,6 +22,7 @@
 
 #include "kalman_core.h"
 #include "kalman_implem.h"
+#include "log.h"
 
 #include <sensc.h>
 #include <vec.h>
@@ -56,7 +57,9 @@ struct {
 
 int ekf_init(void)
 {
-	if (mutexCreate(&(ekf_common.lock)) < 0) {
+	uint32_t logFlags;
+
+	if (mutexCreate(&ekf_common.lock) < 0) {
 		printf("Cannot create mutex for ekf\n");
 		return -1;
 	}
@@ -70,12 +73,41 @@ int ekf_init(void)
 	/* TODO: config read should utilize parser, and default values should be stored in /etc/calib.conf */
 	kmn_configRead(&ekf_common.initVals); /* only for development process */
 
+	/* TODO: reimplement this nasty cast below */
+	ekf_common.initVals.log = (int)(*((float*)(&ekf_common.initVals.log)));
+
+	/* Choose ekf log mode */
+	switch (ekf_common.initVals.log) {
+		case 1:
+			logFlags = EKFLOG_SENSC;
+			break;
+		case 2:
+			logFlags = EKFLOG_MEAS;
+			break;
+		case 3:
+			logFlags = EKFLOG_EKF_IMU;
+			break;
+		case 4:
+			logFlags = EKFLOG_EKF_POS;
+			break;
+		default:
+			logFlags = 0;
+	}
+
+	if (ekflog_init("ekf_log.txt", logFlags) != 0) {
+		resourceDestroy(ekf_common.lock);
+		sensc_deinit();
+		return -1;
+	}
+
 	meas_imuCalib();
 	meas_baroCalib();
 
 	if (kmn_predInit(&ekf_common.stateEngine, meas_calibGet(), &ekf_common.initVals) < 0) {
 		resourceDestroy(ekf_common.lock);
 		printf("failed to initialize prediction matrices\n");
+		sensc_deinit();
+		ekflog_done();
 		return -1;
 	}
 	kmn_imuEngInit(&ekf_common.imuEngine, &ekf_common.initVals);
@@ -127,6 +159,17 @@ static void ekf_thread(void *arg)
 			kalmanUpdateStep(timeStep, 0, &ekf_common.imuEngine, &ekf_common.stateEngine); /* imu measurements update procedure */
 		}
 		mutexUnlock(ekf_common.lock);
+
+		ekflog_write(
+			EKFLOG_EKF_IMU,
+			"EI %lli %.3f %.3f %.3f %.3f %.3f %.3f\n",
+			ekf_common.currTime,
+			*matrix_at(&ekf_common.stateEngine.state, IAX, 0),
+			*matrix_at(&ekf_common.stateEngine.state, IAY, 0),
+			*matrix_at(&ekf_common.stateEngine.state, IAZ, 0),
+			*matrix_at(&ekf_common.stateEngine.state, IWX, 0),
+			*matrix_at(&ekf_common.stateEngine.state, IWY, 0),
+			*matrix_at(&ekf_common.stateEngine.state, IWZ, 0));
 	}
 
 	ekf_common.run = -1;
@@ -158,6 +201,7 @@ void ekf_stop(void)
 void ekf_done(void)
 {
 	sensc_deinit();
+	ekflog_done();
 	kmn_predDeinit(&ekf_common.stateEngine);
 	resourceDestroy(ekf_common.lock);
 }

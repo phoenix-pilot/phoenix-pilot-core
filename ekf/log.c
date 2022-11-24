@@ -62,7 +62,7 @@ int ekflog_init(const char *path, uint32_t flags)
 
 	ekflog_common.file = fopen(path, "w");
 	if (ekflog_common.file == NULL) {
-		fprintf(stderr, "ekflog: cant open %s to write\n", path);
+		fprintf(stderr, "ekflog: can`t open %s to write\n", path);
 		return -1;
 	}
 
