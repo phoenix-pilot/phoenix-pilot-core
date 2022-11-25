@@ -128,6 +128,8 @@ class lpgui:
             if len(self.enuzData) > self.plotcut:
                 self.enuzData.pop(0)
             for i in range(2):
+                if len(self.enuzData[i]) > self.plotcut:
+                    self.enuzData[i].pop(0)
                 self.enuzData[i].append(float(ls[i + 1]))
                 self.enuzDatalines[i].setData(self.enuzData[i])
         # PID - logs of pid values from pid controllers
