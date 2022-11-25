@@ -44,14 +44,14 @@ static const kalman_init_t initTemplate = {
 	.P_pxerr = 0.01,           /* 10 hPa */
 	.P_bazerr = 0.1,
 
-	.R_acov = 10,               /* 10 m/s^2 with engines on */
+	.R_acov = 0.01,               /* 10 m/s^2 with engines on */
 	.R_wcov = 0.01,            /* 1 milliradian/s, overtrust gyroscope for fast response */
 	.R_mcov = 0.1,
 	.R_qcov = 500,
 	.R_azbias = 1000,
 
-	.R_xzcov = 0.075,
-	.R_vzcov = 0.2,
+	.R_xzcov = 0.05,
+	.R_vzcov = 0.1,
 
 	/* better to keep Q low */
 	.Q_xcov = 2,
