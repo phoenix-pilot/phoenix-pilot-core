@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 		ret = sensortest_motorsProcedure();
 
 		sensortest_common.run = 0;
-		threadJoin(0);
+		threadJoin(-1, 0);
 	}
 	else {
 		printf("Failed to start data acquisition thread\n");

@@ -205,8 +205,7 @@ void rcbus_stop(void)
 {
 	rcbus_common.run = 0;
 
-	/* FIXME: add tid to threadJoin function, after merge in libphoenix */
-	threadJoin(0);
+	threadJoin(-1, 0);
 }
 
 
