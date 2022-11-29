@@ -151,7 +151,7 @@ void ekf_stop(void)
 		ekf_common.run = 0;
 	}
 
-	threadJoin(0);
+	threadJoin(-1, 0);
 }
 
 
