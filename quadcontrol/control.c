@@ -57,9 +57,15 @@
 /* rcbus trigger thresholds for manual switches SWA/SWB/SWC/SWD */
 #define RCTHRESH_HIGH ((95 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) / 100 + MIN_CHANNEL_VALUE) /* high position threshold */
 #define RCTHRESH_LOW  ((5 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) / 100 + MIN_CHANNEL_VALUE)  /* low position threshold */
+#define RC_OVRD_LEVEL    (1 << 0)
+#define RC_OVRD_YAW      (1 << 1)
+#define RC_OVRD_THROTTLE (1 << 2)
 
 #define ABORT_FRAMES_THRESH 5 /* number of correct abort frames from RC transmitter to initiate abort sequence */
 #define LOG_PERIOD 100        /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
+
+/* Flight modes magic numbers */
+#define QCTRL_ALTHOLD_JUMP 5000 /* altitude step (millimeters) for two-height althold mode in quad_manual */
 
 
 typedef enum { mode_rc = 0, mode_auto } control_mode_t;
@@ -112,6 +118,13 @@ static inline void quad_pidRestore(void)
 	quad_common.pids[pwm_roll].flags = PID_FULL;
 	quad_common.pids[pwm_pitch].flags = PID_FULL;
 	quad_common.pids[pwm_yaw].flags = PID_FULL;
+}
+
+
+static inline void quad_levelAtt(quad_att_t *att)
+{
+	att->pitch = 0;
+	att->roll = 0;
 }
 
 
@@ -168,6 +181,37 @@ static int quad_motorsCtrl(float throttle, int32_t alt, const quad_att_t *att, c
 	usleep(1000);
 
 	return 0;
+}
+
+
+/* Overrides parameters selected with `flags` with RC values */
+static void quad_rcOverride(quad_att_t *att, float *throttle, uint32_t flags)
+{
+	int32_t rcRoll, rcPitch, rcThrottle, rcYaw;
+
+	mutexLock(quad_common.rcbusLock);
+	rcRoll = quad_common.rcChannels[RC_RIGHT_HSTICK_CH];
+	rcPitch = quad_common.rcChannels[RC_RIGHT_VSTICK_CH];
+	rcYaw = quad_common.rcChannels[RC_LEFT_HSTICK_CH];
+	rcThrottle = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
+	mutexUnlock(quad_common.rcbusLock);
+
+	/* +-0.5 radian ~= +- 28 degrees */
+	if ((flags & RC_OVRD_LEVEL) != 0 && att != NULL) {
+		att->roll = (rcRoll - ((MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) / 2)) / 1000.f;
+		/* minus in pitch is to compensate for rc transmitter sign: stick up => higher channel value => negative pitch change */
+		att->pitch = -(rcPitch - ((MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) / 2)) / 1000.f;
+	}
+
+	/* delta yaw in +-500 milliradians range */
+	if ((flags & RC_OVRD_YAW) != 0 && att != NULL) {
+		att->yaw += (float)(rcYaw - ((MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) / 2)) / 1000.f;
+	}
+
+	/* throttle now in range (0.5, 1.5) of hover throttle */
+	if ((flags & RC_OVRD_THROTTLE) != 0 && throttle != NULL) {
+		*throttle = quad_common.throttle.max * ((float)rcThrottle / (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) + 0.5f);
+	}
 }
 
 
@@ -278,96 +322,95 @@ static int quad_landing(const flight_mode_t *mode)
 
 
 /*
-* quad_manual allows for manual and semi manual control over drone in STABILIZE and ALTHOLD modes:
-*
-* STABILIZE mode provide:
-* - control over throttle in range (50%, 150%) of HOVER_THROTTLE
-* - control over roll/pitch
-* - gathering data of measured altitude
-*
-* ALTHOLD mode provide:
-* - keeps last STABILIZE altitude
-* - control over roll/pitch
-* - throttle is left as was in STABILIZE mode
+* quad_manual allows for manual and semi manual control over drone in STABILIZE and ALTHOLD modes.
+* SWC switch changes the drone behaviour:
+* LOW = STABILIZE mode
+* MED = ALTHOLD at last STABILIZE height
+* HIGH = ALTHOLD at last STABILIZE height + 5m
 */
 static int quad_manual(void)
 {
 	quad_att_t att;
 	ekf_state_t measure;
-	float throttle, hoverThrtlEst = quad_common.throttle.max;
+	float throttle = 0;
 	time_t now;
-	int32_t alt, yawDelta;
-	int32_t rcRoll, rcPitch, rcThrottle, rcYaw, stickSWD;
-	bool althold;
+	int32_t setAlt, alt, stickSWC, rcThrottle;
 
+	/* Initialize yaw and altitude */
 	ekf_stateGet(&measure);
-	alt = measure.enuZ * 1000;
+	alt = setAlt = measure.enuZ * 1000;
 	att.yaw = measure.yaw;
 
 	log_enable();
 	log_print("RC Control\n");
-
-	/* Read RC packet and do initialization check */
-	mutexLock(quad_common.rcbusLock);
-	stickSWD = quad_common.rcChannels[RC_SWD_CH];
-	rcThrottle = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
-	mutexUnlock(quad_common.rcbusLock);
-
-	if (stickSWD >= RCTHRESH_LOW || rcThrottle >= RCTHRESH_LOW) {
-		fprintf(stderr, "Wrong initial transmitter setup. Aborting...\n");
-		return -1;
-	}
-
-	throttle = hoverThrtlEst * ((float)rcThrottle / (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) + 0.5); /* throttle now in range (0.5, 1.5) of hover throttle */
 
 	now = quad_timeMsGet();
 	while (quad_common.currFlight == flight_manual) {
 		ekf_stateGet(&measure);
 
 		now = quad_timeMsGet();
-
 		quad_periodLogEnable(now);
 
+		/* Setup basic attitude */
+		quad_levelAtt(&att);
+		att.yaw = measure.yaw;
+
+		/* Read values necessary for safety and submode selection */
 		mutexLock(quad_common.rcbusLock);
-		stickSWD = quad_common.rcChannels[RC_SWD_CH];
-		rcRoll = quad_common.rcChannels[RC_RIGHT_HSTICK_CH];
-		rcPitch = quad_common.rcChannels[RC_RIGHT_VSTICK_CH];
-		rcYaw = quad_common.rcChannels[RC_LEFT_HSTICK_CH];
+		stickSWC = quad_common.rcChannels[RC_SWC_CH];
 		rcThrottle = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
 		mutexUnlock(quad_common.rcbusLock);
 
-		althold = (stickSWD > 0.9 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) ? true : false;
-		yawDelta = rcYaw - ((MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) / 2); /* delta yaw in +-500 milliradians range */
-
-		att.roll = (rcRoll - ((MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) / 2)) / 1000.f; /* +-0.5 radian ~= +- 28 degrees */
-		/* minus in pitch is to compensate for rc transmitter sign: stick up => higher channel value => negative pitch change */
-		att.pitch = -(rcPitch - ((MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) / 2)) / 1000.f; /* +-0.5 radian ~= +- 28 degrees */
-
-		/* Update target yaw/altitude only if we are not in althold */
-		if (althold == false) {
-			throttle = hoverThrtlEst * ((float)rcThrottle / (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) + 0.5); /* throttle now in range (0.5, 1.5) of hover throttle */
-
-			/* setting current value as target value, so that PID controller uses only D term */
-			alt = measure.enuZ * 1000;
-			att.yaw = measure.yaw + (yawDelta / 1000.f);
-		}
-
-		/* Perform low threshold check only if throttle is at minimum (probable landing) in case of drone tipping off */
-		if (rcThrottle < 0.05 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) {
-			if (fabs(measure.pitch) > ANGLE_THRESHOLD_LOW || fabs(measure.roll) > ANGLE_THRESHOLD_LOW) {
-				fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors stop.\n", measure.roll, measure.pitch);
-				mma_stop();
-				return -1;
-			}
-		}
-
-		/* Disabling altitude pid controller in STABILIZE for full RC throttle control */
 		quad_common.pids[pwm_alt].flags = PID_FULL;
-		if (althold == false) {
-			quad_common.pids[pwm_alt].flags |= PID_IGNORE_P | PID_IGNORE_I | PID_IGNORE_D | PID_RESET_I;
+
+		/* SWC == LOW (or illegal value) -> stabilize */
+		if (stickSWC < (0.1 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) || stickSWC > MAX_CHANNEL_VALUE) {
+			att.yaw = measure.yaw;
+			alt = setAlt = measure.enuZ * 1000;
+
+			/* We don`t want altitude pid to affect the hover in stabilize mode */
+			quad_common.pids[pwm_alt].flags |= PID_IGNORE_P | PID_IGNORE_I | PID_IGNORE_D;
+
+			quad_rcOverride(&att, &throttle, RC_OVRD_LEVEL | RC_OVRD_YAW | RC_OVRD_THROTTLE);
+
+			/* Perform low threshold check only if throttle is at minimum (probable landing) in case of drone tipping off */
+			if (rcThrottle < 0.05 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) {
+				if (fabs(measure.pitch) > ANGLE_THRESHOLD_LOW || fabs(measure.roll) > ANGLE_THRESHOLD_LOW) {
+					fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors stop.\n", measure.roll, measure.pitch);
+					mma_stop();
+					return -1;
+				}
+			}
+
+		}
+		/* SWC == HIGH -> althold @ curr alt. + 5m */
+		else if (stickSWC > (0.9 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE))) {
+			/* Do not use I altitude pid if there is too big difference between current alt and set alt */
+			if (fabs(measure.enuZ * 1000 - setAlt) > 1000) {
+				quad_common.pids[pwm_alt].flags |= PID_IGNORE_I;
+			}
+			else {
+				quad_common.pids[pwm_alt].flags &= ~PID_IGNORE_I;
+			}
+
+			setAlt = alt + QCTRL_ALTHOLD_JUMP;
+			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
+		}
+		/* SWC == MID -> althold @ curr alt. */
+		else {
+			/* Do not use I altitude pid if there is too big difference between current alt and set alt */
+			if (fabs(measure.enuZ * 1000 - setAlt) > 1000) {
+				quad_common.pids[pwm_alt].flags |= PID_IGNORE_I;
+			}
+			else {
+				quad_common.pids[pwm_alt].flags &= ~PID_IGNORE_I;
+			}
+
+			setAlt = alt;
+			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 		}
 
-		if (quad_motorsCtrl(throttle, alt, &att, &measure) < 0) {
+		if (quad_motorsCtrl(throttle, setAlt, &att, &measure) < 0) {
 			return -1;
 		}
 	}
