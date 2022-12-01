@@ -131,11 +131,24 @@ static int config_takeoffParse(const hmap_t *h, flight_mode_t *mode)
 {
 	int err = 0;
 
+	/* obligatory parameters */
 	err |= config_parseInt32(h, "alt", &mode->takeoff.alt);
-	err |= config_parseFloat(h, "time", &mode->takeoff.time);
 
 	if (err != 0) {
 		return -1;
+	}
+
+	/* optional parameters */
+	if (config_parseTime(h, "idleT", &mode->takeoff.idleTime) != 0) {
+		mode->takeoff.idleTime = 3000;
+	}
+
+	if (config_parseTime(h, "spoolT", &mode->takeoff.spoolTime) != 0) {
+		mode->takeoff.idleTime = 3000;
+	}
+
+	if (config_parseTime(h, "liftT", &mode->takeoff.liftTime) != 0) {
+		mode->takeoff.idleTime = 2000;
 	}
 
 	mode->type = flight_takeoff;

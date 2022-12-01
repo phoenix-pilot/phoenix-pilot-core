@@ -65,7 +65,8 @@
 #define LOG_PERIOD 100        /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
 
 /* Flight modes magic numbers */
-#define QCTRL_ALTHOLD_JUMP 5000 /* altitude step (millimeters) for two-height althold mode in quad_manual */
+#define QCTRL_ALTHOLD_JUMP   5000  /* altitude step (millimeters) for two-height althold mode in quad_manual */
+#define QCTRL_TAKEOFF_ALTSAG -5000 /* altitude sag during takeoff for PID control of the liftoff procedure (should be negative as we start at alt=0mm) */
 
 
 typedef enum { mode_rc = 0, mode_auto } control_mode_t;
@@ -219,36 +220,105 @@ static void quad_rcOverride(quad_att_t *att, float *throttle, uint32_t flags)
 
 static int quad_takeoff(const flight_mode_t *mode)
 {
+	const float idleTime = mode->takeoff.idleTime;
+	const float spoolTime = mode->takeoff.spoolTime;
+	const float liftTime = mode->takeoff.liftTime;
+
+	const float hoverThrottle = quad_common.throttle.max; /* set hoverThrottle as throttle.max */
+	const int32_t startAlt = QCTRL_TAKEOFF_ALTSAG;        /* starting with negative altitude to lower the throttle */
+	const int32_t targetAlt = mode->takeoff.alt;
+
 	quad_att_t att = { 0 };
-	float throttle, coeff;
-	time_t spoolStart, spoolEnd, now;
+	time_t now, tIdle, tStart, tEnd; /* time markers for current time and liftoff procedure */
 	ekf_state_t measure;
+	float throttle = 0;
+	int32_t alt;
+	bool isHold = false;
 
 	ekf_stateGet(&measure);
 
+	quad_levelAtt(&att);
 	att.yaw = measure.yaw;
+	alt = startAlt;
 
 	log_enable();
-	log_print("TAKEOFF - alt: %d\n", mode->hover.alt);
+	log_print("TAKEOFF - alt: %d\n", targetAlt);
 
-	spoolStart = now = quad_timeMsGet();
-	spoolEnd = spoolStart + mode->takeoff.time;
+	/* Ignoring I for a takeoff beginning so it doesn`t wind up */
+	quad_common.pids[pwm_alt].flags = PID_FULL | PID_IGNORE_I;
 
-	while (now < spoolEnd && quad_common.currFlight < flight_manual) {
+	now = quad_timeMsGet();
+	tIdle = now + idleTime;
+	tStart = tIdle + spoolTime;
+	tEnd = tStart + (time_t)liftTime;
+
+	throttle = hoverThrottle;
+
+	while (quad_common.currFlight == flight_takeoff && isHold == false) {
 		ekf_stateGet(&measure);
 
 		now = quad_timeMsGet();
 		quad_periodLogEnable(now);
 
-		coeff = (float)(now - spoolStart) / mode->takeoff.time;
-		throttle = coeff * quad_common.throttle.max;
+		if (now < tIdle) {
+			/* Relaxation period for drone to settle after engines spinoff */
 
-		if (quad_motorsCtrl(throttle, mode->takeoff.alt, &att, &measure) < 0) {
+			alt = startAlt;                 /* takeoff throttle sag enforced via negative target altitude */
+			throttle = 0.5 * hoverThrottle; /* relaxation time throttle sag */
+
+			quad_common.pids[pwm_yaw].flags = PID_FULL | PID_IGNORE_I | PID_RESET_I;
+			quad_common.pids[pwm_alt].flags = PID_FULL | PID_IGNORE_I | PID_RESET_I;
+		}
+		else if (now < tStart) {
+			/* Bringing drone to hover throttle minus altitude pid */
+			alt = startAlt;
+			quad_common.pids[pwm_yaw].flags = PID_FULL | PID_IGNORE_I;
+			quad_common.pids[pwm_alt].flags = PID_FULL | PID_IGNORE_I;
+			throttle = hoverThrottle * (1 - 0.5 * (float)(tStart - now) / spoolTime); /* reducing relaxation time throttle sag */
+		}
+		else if (now < tEnd) {
+			/* Lifting up the altitude to lift the drone */
+			quad_common.pids[pwm_yaw].flags = PID_FULL | PID_IGNORE_I;
+			quad_common.pids[pwm_alt].flags = PID_FULL | PID_IGNORE_I;
+			alt = startAlt + (float)(targetAlt - startAlt) * (1 - (float)(tEnd - now) / liftTime);
+		}
+		else {
+			/* Liftup done, we are climbing/hover */
+			alt = targetAlt;
+			if ((measure.enuZ * 1000) > (targetAlt - 500)) {
+				isHold = true;
+			}
+		}
+
+		att.yaw = measure.yaw;
+
+		/* Do not use I altitude pid if there is too big difference between current alt and set alt */
+		if (fabs(measure.enuZ * 1000 - targetAlt) > 1000) {
+			quad_common.pids[pwm_alt].flags |= PID_IGNORE_I;
+		}
+		else {
+			quad_common.pids[pwm_alt].flags &= ~PID_IGNORE_I;
+		}
+
+		/* switch on the I gain in altitude PID controller if we cross (targetAlt - 1m) threshold */
+		if ((measure.enuZ * 1000) > (targetAlt - 1000)) {
+			quad_common.pids[pwm_alt].flags = PID_FULL;
+		}
+
+		/* Perform low threshold check in case of drone tipping off */
+		if (fabs(measure.pitch) > ANGLE_THRESHOLD_LOW || fabs(measure.roll) > ANGLE_THRESHOLD_LOW) {
+			fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors stop.\n", measure.roll, measure.pitch);
+			mma_stop();
+			return -1;
+		}
+
+		/* NO GPS! - override needed not to hit something */
+		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL | RC_OVRD_YAW);
+
+		if (quad_motorsCtrl(throttle, alt, &att, &measure) < 0) {
 			return -1;
 		}
 	}
-
-	/* TBD */
 
 	return 0;
 }
