@@ -326,12 +326,14 @@ static int quad_takeoff(const flight_mode_t *mode)
 
 static int quad_hover(const flight_mode_t *mode)
 {
+	const float throttle = quad_common.throttle.max;
+	const int32_t targetAlt = mode->hover.alt;
+
 	quad_att_t att = { 0 };
 	time_t now, end;
 	ekf_state_t measure;
 
 	ekf_stateGet(&measure);
-
 	att.yaw = measure.yaw;
 
 	log_enable();
@@ -340,16 +342,29 @@ static int quad_hover(const flight_mode_t *mode)
 	now = quad_timeMsGet();
 	end = now + mode->hover.time;
 
-	while (now < end && quad_common.currFlight < flight_manual) {
+	while (now < end && quad_common.currFlight == flight_hover) {
 		ekf_stateGet(&measure);
 
+		now = quad_timeMsGet();
 		quad_periodLogEnable(now);
 
-		if (quad_motorsCtrl(quad_common.throttle.max, mode->hover.alt, &att, &measure) < 0) {
-			return -1;
+		/* Setup basic attitude */
+		quad_levelAtt(&att);
+		att.yaw = measure.yaw;
+
+		/* Do not use I altitude pid if there is too big difference between current alt and set alt */
+		if (fabs(measure.enuZ * 1000 - targetAlt) > 1000) {
+			quad_common.pids[pwm_alt].flags |= PID_IGNORE_I;
+		}
+		else {
+			quad_common.pids[pwm_alt].flags &= ~PID_IGNORE_I;
 		}
 
-		now = quad_timeMsGet();
+		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL | RC_OVRD_YAW);
+
+		if (quad_motorsCtrl(throttle, targetAlt, &att, &measure) < 0) {
+			return -1;
+		}
 	}
 
 	return 0;
