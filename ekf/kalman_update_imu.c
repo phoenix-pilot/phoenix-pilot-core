@@ -87,7 +87,7 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	Z->data[IMMZ] = mag.z;
 
 	/* Accel Z bias estimation based on discrepancy between measured and estimated changes in speed */
-	Z->data[IMBAZ] = AZ - ((VZ - lastVelZ) / ((float)timeStep / 1000000));
+	Z->data[IMBAZ] = BAZ + (AZ - ((VZ - lastVelZ) / ((float)timeStep / 1000000)));
 	lastVelZ = VZ;
 
 	/*

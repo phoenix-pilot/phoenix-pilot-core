@@ -174,14 +174,15 @@ static void ekf_thread(void *arg)
 
 		ekflog_write(
 			EKFLOG_EKF_IMU,
-			"EI %lli %.3f %.3f %.3f %.3f %.3f %.3f\n",
+			"EI %lli %.3f %.3f %.3f %.3f %.3f %.3f %.3f\n",
 			ekf_common.currTime,
 			*matrix_at(&ekf_common.stateEngine.state, IAX, 0),
 			*matrix_at(&ekf_common.stateEngine.state, IAY, 0),
 			*matrix_at(&ekf_common.stateEngine.state, IAZ, 0),
 			*matrix_at(&ekf_common.stateEngine.state, IWX, 0),
 			*matrix_at(&ekf_common.stateEngine.state, IWY, 0),
-			*matrix_at(&ekf_common.stateEngine.state, IWZ, 0));
+			*matrix_at(&ekf_common.stateEngine.state, IWZ, 0),
+			*matrix_at(&ekf_common.stateEngine.state, IBAZ, 0));
 	}
 
 	ekf_common.run = -1;
