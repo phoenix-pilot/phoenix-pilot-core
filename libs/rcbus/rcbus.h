@@ -37,7 +37,7 @@ extern int rcbus_run(RcMsgHandler handler, time_t timeout);
 
 
 /* Close reading thread */
-extern void rcbus_stop(void);
+extern int rcbus_stop(void);
 
 
 /* Close communication with a device. */
