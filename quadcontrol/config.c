@@ -197,8 +197,16 @@ static int config_hoverParse(const hmap_t *h, flight_mode_t *mode)
 
 static int config_landingParse(const hmap_t *h, flight_mode_t *mode)
 {
-	if (config_parseTime(h, "time", &mode->landing.time) != 0) {
-		return -1;
+	if (config_parseInt32(h, "descent", &mode->landing.descent) != 0) {
+		mode->landing.descent = 250;
+	}
+
+	if (config_parseInt32(h, "diff", &mode->landing.diff) != 0) {
+		mode->landing.diff = 4000;
+	}
+
+	if (config_parseTime(h, "timeout", &mode->landing.timeout) != 0) {
+		mode->landing.timeout = 5000;
 	}
 
 	mode->type = flight_landing;
