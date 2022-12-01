@@ -201,11 +201,17 @@ int rcbus_run(RcMsgHandler handler, time_t timeout)
 }
 
 
-void rcbus_stop(void)
+int rcbus_stop(void)
 {
+	int err = EOK;
+
 	rcbus_common.run = 0;
 
-	threadJoin(-1, 0);
+	do {
+		err = threadJoin(rcbus_common.tid, 0);
+	} while (err == -EINTR);
+
+	return err;
 }
 
 
