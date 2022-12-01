@@ -681,11 +681,9 @@ static void quad_rcbusHandler(const rcbus_msg_t *msg)
 	/* Reset abort counter if new frame does not call for abort */
 	abortCnt = 0;
 
-	if (quad_common.mode == mode_rc) {
-		mutexLock(quad_common.rcbusLock);
-		memcpy(quad_common.rcChannels, msg->channels, sizeof(quad_common.rcChannels));
-		mutexUnlock(quad_common.rcbusLock);
-	}
+	mutexLock(quad_common.rcbusLock);
+	memcpy(quad_common.rcChannels, msg->channels, sizeof(quad_common.rcChannels));
+	mutexUnlock(quad_common.rcbusLock);
 }
 
 
