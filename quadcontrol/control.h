@@ -27,8 +27,10 @@ typedef enum { /* Basic modes:  */ flight_idle = 0, flight_disarm, flight_arm,
 
 
 typedef struct {
-	int32_t alt; /* altitude in 1E-3 [m] (millimetres) above MSL */
-	float time;  /* time of engine spool up in milliseconds */
+	int32_t alt;   /* altitude in 1E-3 [m] (millimetres) above MSL */
+	time_t idleTime;  /* relaxation time (milliseconds) after engines startup */
+	time_t spoolTime; /* time (milliseconds) to reach hover throttle */
+	time_t liftTime;  /* time (milliseconds) to reach PID controlled throttle values */
 } flight_takeoff_t;
 
 
