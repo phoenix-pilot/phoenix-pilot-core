@@ -56,7 +56,7 @@ extern int ekf_init(void);
 extern int ekf_run(void);
 
 
-extern void ekf_stop(void);
+extern int ekf_stop(void);
 
 
 extern void ekf_done(void);

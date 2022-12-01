@@ -45,6 +45,7 @@ struct {
 	matrix_t F;
 	matrix_t Q;
 
+	unsigned int tid;
 	volatile unsigned int run; /* proceed with ekf loop */
 	time_t lastTime;           /* last kalman loop time */
 	time_t currTime;           /* current kalman loop time */
@@ -179,7 +180,7 @@ static void ekf_thread(void *arg)
 
 int ekf_run(void)
 {
-	int res =  beginthread(ekf_thread, 4, ekf_common.stack, sizeof(ekf_common.stack), NULL);
+	int res =  beginthreadex(ekf_thread, 3, ekf_common.stack, sizeof(ekf_common.stack), NULL, &ekf_common.tid);
 
 	/* Wait to stabilize data in covariance matrixes */
 	sleep(3);
@@ -188,13 +189,19 @@ int ekf_run(void)
 }
 
 
-void ekf_stop(void)
+int ekf_stop(void)
 {
+	int err = EOK;
+
 	if (ekf_common.run == 1) {
 		ekf_common.run = 0;
 	}
 
-	threadJoin(-1, 0);
+	do {
+		err = threadJoin(ekf_common.tid, 0);
+	} while (err == -EINTR);
+
+	return err;
 }
 
 
