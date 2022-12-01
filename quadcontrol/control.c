@@ -373,31 +373,52 @@ static int quad_hover(const flight_mode_t *mode)
 
 static int quad_landing(const flight_mode_t *mode)
 {
+	const int32_t dscSpeed = mode->landing.descent;   /* descend speed in mm/s */
+	const int32_t landDiff = mode->landing.diff;      /* Minimum altitude difference to occur when we suspect landing is done */
+	const time_t landTimeout = mode->landing.timeout; /* Time threshold of `landDiff` persistence to decide that landing is finished */
+
 	quad_att_t att = { 0 };
 	ekf_state_t measure;
-	float throttle, coeff;
-	time_t spoolStart, spoolEnd, now;
+	float throttle = quad_common.throttle.max;
+	time_t now, landStart, susLandTime = 0;
+	int32_t startAlt, targetAlt;
 
 	ekf_stateGet(&measure);
 
+	quad_levelAtt(&att);
 	att.yaw = measure.yaw;
+	startAlt = measure.enuZ * 1000;
 
 	log_enable();
 	log_print("LANDING\n");
 
-	spoolStart = now = quad_timeMsGet();
-	spoolEnd = spoolStart + mode->landing.time;
+	now = landStart = quad_timeMsGet();
 
-	while (now < spoolEnd && quad_common.currFlight < flight_manual) {
+	while (quad_common.currFlight < flight_manual) {
 		ekf_stateGet(&measure);
 
 		now = quad_timeMsGet();
 		quad_periodLogEnable(now);
 
-		coeff = (float)(now - spoolStart) / mode->landing.time;
-		throttle = (1.f - coeff) * quad_common.throttle.max;
+		att.yaw = measure.yaw;
+		targetAlt = startAlt - (dscSpeed * (now - landStart)) / 1000;
 
-		if (quad_motorsCtrl(throttle, 0, &att, &measure) < 0) {
+		/* Update suspected landing time if threshold alt. difference is not breached */
+		if ((targetAlt - measure.enuZ * 1000) > -landDiff) {
+			susLandTime = now;
+		}
+
+		/* threshold alt. difference breached for longer than `landTimeout` means landing is complete */
+		if ((now - susLandTime) > landTimeout) {
+			log_enable();
+			log_print("LANDING COMPLETE\n");
+			break;
+		}
+
+		/* NO GPS! - override needed not to hit something */
+		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL | RC_OVRD_YAW);
+
+		if (quad_motorsCtrl(throttle, targetAlt, &att, &measure) < 0) {
 			return -1;
 		}
 	}
