@@ -44,8 +44,8 @@ static const kalman_init_t initTemplate = {
 	.P_pxerr = 0.01,           /* 10 hPa */
 	.P_bazerr = 0.1,
 
-	.R_acov = 0.01,               /* 10 m/s^2 with engines on */
-	.R_wcov = 0.01,            /* 1 milliradian/s, overtrust gyroscope for fast response */
+	.R_acov = 0.01,            /* 0.01 m/s as data is prefiltered */
+	.R_wcov = 0.01,            /* 10 milliradian/s, overtrust gyroscope for fast response */
 	.R_mcov = 0.1,
 	.R_qcov = 500,
 	.R_azbias = 1000,
@@ -270,11 +270,6 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, time_t timeStep)
 	matrix_times(&I33, dt);
 	matrix_writeSubmatrix(F, IXX, IVX, &I33); /* dfx / dv */
 	matrix_writeSubmatrix(F, IVX, IAX, &I33); /* dfv / da */
-
-	/* change I33 to (I * dt^2 / 2) matrix and write it to appropriate places */
-	matrix_times(&I33, dt / 2);
-	//matrix_times(&I33, 0.5);
-	//matrix_writeSubmatrix(F, IXX, IAX, &I33); /* dfx / dv */
 
 	/* write differentials matrices */
 	matrix_writeSubmatrix(F, IQA, IQA, &dfqdq);

@@ -110,10 +110,6 @@ int kalman_update(time_t timeStep, int verbose, update_engine_t *updateEngine, s
 
 	/* only for debug purposes */
 	if (verbose) {
-		//printf("PkHt:\n");
-		//matrix_print(updateEngine->tmp2);
-		//printf("S-1:\n");
-		//matrix_print(updateEngine->tmp1);
 		printf("K:\n");
 		matrix_print(&updateEngine->K);
 
