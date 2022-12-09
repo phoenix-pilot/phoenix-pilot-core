@@ -283,39 +283,9 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, time_t timeStep)
 
 
 /* initialization of prediction step matrix values */
-int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman_init_t *inits)
+void kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman_init_t *inits)
 {
 	matrix_t *Q;
-
-
-	if (matrix_bufAlloc(&engine->state, STATE_ROWS, STATE_COLS) != 0) {
-		return -1;
-	}
-
-	if (matrix_bufAlloc(&engine->state_est, STATE_ROWS, STATE_COLS) != 0) {
-		kmn_predDeinit(engine);
-		return -1;
-	}
-
-	if (matrix_bufAlloc(&engine->cov, STATE_ROWS, STATE_ROWS) != 0) {
-		kmn_predDeinit(engine);
-		return -1;
-	}
-
-	if (matrix_bufAlloc(&engine->cov_est, STATE_ROWS, STATE_ROWS) != 0) {
-		kmn_predDeinit(engine);
-		return -1;
-	}
-
-	if (matrix_bufAlloc(&engine->F, STATE_ROWS, STATE_ROWS) != 0) {
-		kmn_predDeinit(engine);
-		return -1;
-	}
-
-	if (matrix_bufAlloc(&engine->Q, STATE_ROWS, STATE_ROWS) != 0) {
-		kmn_predDeinit(engine);
-		return -1;
-	}
 
 	kmn_initState(&engine->state, calib);
 	kmn_initCov(&engine->cov, inits);
@@ -342,17 +312,4 @@ int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman
 	/* save function pointers */
 	engine->estimateState = kmn_stateEst;
 	engine->getJacobian = kmn_predJcb;
-
-	return 0;
-}
-
-
-void kmn_predDeinit(state_engine_t *engine)
-{
-	matrix_bufFree(&engine->state);
-	matrix_bufFree(&engine->state_est);
-	matrix_bufFree(&engine->cov);
-	matrix_bufFree(&engine->cov_est);
-	matrix_bufFree(&engine->F);
-	matrix_bufFree(&engine->Q);
 }

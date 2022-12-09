@@ -59,6 +59,7 @@ struct {
 int ekf_init(void)
 {
 	uint32_t logFlags;
+	int err;
 
 	if (mutexCreate(&ekf_common.lock) < 0) {
 		printf("Cannot create mutex for ekf\n");
@@ -67,6 +68,17 @@ int ekf_init(void)
 
 	ekf_common.run = 0;
 	if (sensc_init("/dev/sensors", true) < 0) {
+		resourceDestroy(ekf_common.lock);
+		return -1;
+	}
+
+	err = 0;
+	err |= kalman_predictAlloc(&ekf_common.stateEngine, STATE_ROWS);
+	err |= kalman_updateAlloc(&ekf_common.imuEngine, STATE_ROWS, IMUMEAS_ROWS);
+	err |= kalman_updateAlloc(&ekf_common.baroEngine, STATE_ROWS, BAROMEAS_ROWS);
+
+	if (err != 0) {
+		sensc_deinit();
 		resourceDestroy(ekf_common.lock);
 		return -1;
 	}
@@ -98,19 +110,18 @@ int ekf_init(void)
 	if (ekflog_init("ekf_log.txt", logFlags) != 0) {
 		resourceDestroy(ekf_common.lock);
 		sensc_deinit();
+
+		kalman_predictDealloc(&ekf_common.stateEngine);
+		kalman_updateDealloc(&ekf_common.imuEngine);
+		kalman_updateDealloc(&ekf_common.baroEngine);
+
 		return -1;
 	}
 
 	meas_imuCalib();
 	meas_baroCalib();
 
-	if (kmn_predInit(&ekf_common.stateEngine, meas_calibGet(), &ekf_common.initVals) < 0) {
-		resourceDestroy(ekf_common.lock);
-		printf("failed to initialize prediction matrices\n");
-		sensc_deinit();
-		ekflog_done();
-		return -1;
-	}
+	kmn_predInit(&ekf_common.stateEngine, meas_calibGet(), &ekf_common.initVals);
 	kmn_imuEngInit(&ekf_common.imuEngine, &ekf_common.initVals);
 	kmn_baroEngInit(&ekf_common.baroEngine, &ekf_common.initVals);
 
@@ -207,9 +218,12 @@ int ekf_stop(void)
 
 void ekf_done(void)
 {
+	kalman_predictDealloc(&ekf_common.stateEngine);
+	kalman_updateDealloc(&ekf_common.imuEngine);
+	kalman_updateDealloc(&ekf_common.baroEngine);
+
 	sensc_deinit();
 	ekflog_done();
-	kmn_predDeinit(&ekf_common.stateEngine);
 	resourceDestroy(ekf_common.lock);
 }
 

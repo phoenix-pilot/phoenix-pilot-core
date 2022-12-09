@@ -159,10 +159,7 @@ extern void kmn_configRead(kalman_init_t *initVals);
 /* PHMATRIX MATRICES INITIALIZATIONS */
 
 /* initializes matices related to state prediction step of kalman filter */
-extern int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman_init_t *inits);
-
-/* deinitializes prediction matrices */
-extern void kmn_predDeinit(state_engine_t *engine);
+extern void kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman_init_t *inits);
 
 /* imu update engine composer */
 extern void kmn_imuEngInit(update_engine_t *engine, const kalman_init_t *inits);
