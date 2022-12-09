@@ -30,10 +30,6 @@
 #include <matrix.h>
 
 
-/* declare static calculation memory bank with matrices for EKF */
-DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, BAROMEAS_ROWS)
-
-
 enum baroDimension { value = 0, dtime = 1 };
 
 
@@ -96,9 +92,7 @@ static void baroUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_ini
 
 void kmn_baroEngInit(update_engine_t *engine, const kalman_init_t *inits)
 {
-	baroUpdateInitializations(&ekf_H, &ekf_R, inits);
-
-	POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(engine)
+	baroUpdateInitializations(&engine->H, &engine->R, inits);
 
 	engine->getData = getMeasurement;
 	engine->getJacobian = getMeasurementPredictionJacobian;
