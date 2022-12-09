@@ -89,28 +89,28 @@ typedef void (*initMeasurementCov)(matrix_t *R);
 /* Update engine is set of matrices and functions neccessary to perform update step with prediction step matrices */
 typedef struct {
 	/* user initializable update matrices pointers */
-	matrix_t *H;
-	matrix_t *R;
+	matrix_t H;
+	matrix_t R;
 
 	/* standard EKF matrices pointers */
-	matrix_t *Z;
-	matrix_t *Y;
-	matrix_t *S;
-	matrix_t *K;
-	matrix_t *I;
-	matrix_t *hx;
+	matrix_t Z;
+	matrix_t Y;
+	matrix_t S;
+	matrix_t K;
+	matrix_t I;
+	matrix_t hx;
 
 	/* inversion helper elements */
-	matrix_t *invS;
+	matrix_t invS;
 	float *invBuf;
 	unsigned int invBufLen;
 
 	/* phmatrix calculation buffers */
-	matrix_t *tmp1;
-	matrix_t *tmp2;
-	matrix_t *tmp3;
-	matrix_t *tmp4;
-	matrix_t *tmp5;
+	matrix_t tmp1;
+	matrix_t tmp2;
+	matrix_t tmp3;
+	matrix_t tmp4;
+	matrix_t tmp5;
 
 
 	dataGetter getData;                      /* data getter function */
@@ -136,12 +136,21 @@ typedef struct {
 
 
 /* performs kalman prediction step */
-extern void kalmanPredictionStep(state_engine_t *engine, time_t timeStep, int verbose);
+extern void kalman_predict(state_engine_t *engine, time_t timeStep, int verbose);
 
 /* performs kalman measurement update step */
-extern int kalmanUpdateStep(time_t timeStep, int verbose, update_engine_t *updateEngine, state_engine_t *stateEngine);
+extern int kalman_update(time_t timeStep, int verbose, update_engine_t *updateEngine, state_engine_t *stateEngine);
 
-/* Initializes measurement engine. All measurement matrices HAVE TO BE PROVIDED at the time of this function call */
-extern void kalmanCreateMeasurementEngine(initMeasurementCov initMeasCov, dataGetter getData, updateJacobian getJacobian, predictMeasurements predictMeasurements);
+/* Deallocates update engine */
+extern void kalman_updateDealloc(update_engine_t *engine);
+
+/* Allocates update engine */
+extern int kalman_updateAlloc(update_engine_t *engine, unsigned int stateLen, unsigned int measLen);
+
+/* Deallocates prediction engine */
+extern void kalman_predictDealloc(state_engine_t *engine);
+
+/* Allocates prediction engine */
+extern int kalman_predictAlloc(state_engine_t *engine, int stateLen);
 
 #endif
