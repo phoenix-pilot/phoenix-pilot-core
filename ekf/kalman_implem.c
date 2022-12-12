@@ -44,8 +44,8 @@ static const kalman_init_t initTemplate = {
 	.P_pxerr = 0.01,           /* 10 hPa */
 	.P_bazerr = 0.1,
 
-	.R_acov = 0.01,               /* 10 m/s^2 with engines on */
-	.R_wcov = 0.01,            /* 1 milliradian/s, overtrust gyroscope for fast response */
+	.R_acov = 0.01,            /* 0.01 m/s as data is prefiltered */
+	.R_wcov = 0.01,            /* 10 milliradian/s, overtrust gyroscope for fast response */
 	.R_mcov = 0.1,
 	.R_qcov = 500,
 	.R_azbias = 1000,
@@ -271,11 +271,6 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, time_t timeStep)
 	matrix_writeSubmatrix(F, IXX, IVX, &I33); /* dfx / dv */
 	matrix_writeSubmatrix(F, IVX, IAX, &I33); /* dfv / da */
 
-	/* change I33 to (I * dt^2 / 2) matrix and write it to appropriate places */
-	matrix_times(&I33, dt / 2);
-	//matrix_times(&I33, 0.5);
-	//matrix_writeSubmatrix(F, IXX, IAX, &I33); /* dfx / dv */
-
 	/* write differentials matrices */
 	matrix_writeSubmatrix(F, IQA, IQA, &dfqdq);
 	matrix_writeSubmatrix(F, IQA, IWX, &dfqdw);
@@ -283,39 +278,9 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, time_t timeStep)
 
 
 /* initialization of prediction step matrix values */
-int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman_init_t *inits)
+void kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman_init_t *inits)
 {
 	matrix_t *Q;
-
-
-	if (matrix_bufAlloc(&engine->state, STATE_ROWS, STATE_COLS) != 0) {
-		return -1;
-	}
-
-	if (matrix_bufAlloc(&engine->state_est, STATE_ROWS, STATE_COLS) != 0) {
-		kmn_predDeinit(engine);
-		return -1;
-	}
-
-	if (matrix_bufAlloc(&engine->cov, STATE_ROWS, STATE_ROWS) != 0) {
-		kmn_predDeinit(engine);
-		return -1;
-	}
-
-	if (matrix_bufAlloc(&engine->cov_est, STATE_ROWS, STATE_ROWS) != 0) {
-		kmn_predDeinit(engine);
-		return -1;
-	}
-
-	if (matrix_bufAlloc(&engine->F, STATE_ROWS, STATE_ROWS) != 0) {
-		kmn_predDeinit(engine);
-		return -1;
-	}
-
-	if (matrix_bufAlloc(&engine->Q, STATE_ROWS, STATE_ROWS) != 0) {
-		kmn_predDeinit(engine);
-		return -1;
-	}
 
 	kmn_initState(&engine->state, calib);
 	kmn_initCov(&engine->cov, inits);
@@ -342,17 +307,4 @@ int kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman
 	/* save function pointers */
 	engine->estimateState = kmn_stateEst;
 	engine->getJacobian = kmn_predJcb;
-
-	return 0;
-}
-
-
-void kmn_predDeinit(state_engine_t *engine)
-{
-	matrix_bufFree(&engine->state);
-	matrix_bufFree(&engine->state_est);
-	matrix_bufFree(&engine->cov);
-	matrix_bufFree(&engine->cov_est);
-	matrix_bufFree(&engine->F);
-	matrix_bufFree(&engine->Q);
 }

@@ -28,9 +28,6 @@
 
 #include "kalman_implem.h"
 
-/* declare static calculation memory bank with matrices for EKF */
-DECLARE_STATIC_MEASUREMENT_MATRIX_BANK(STATE_ROWS, IMUMEAS_ROWS)
-
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
@@ -153,7 +150,7 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 
 
 /* initialization function for IMU update step matrices values */
-void imuUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_init_t *inits)
+static void imuUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_init_t *inits)
 {
 	/* init of measurement noise matrix R */
 	R->data[R->cols * IMAX + IMAX] = inits->R_acov;
@@ -179,9 +176,7 @@ void imuUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_init_t *ini
 
 void kmn_imuEngInit(update_engine_t *engine, const kalman_init_t *inits)
 {
-	imuUpdateInitializations(&ekf_H, &ekf_R, inits);
-
-	POPULATE_MEASUREMENT_ENGINE_STATIC_MATRICES(engine)
+	imuUpdateInitializations(&engine->H, &engine->R, inits);
 
 	engine->getData = getMeasurement;
 	engine->getJacobian = getMeasurementPredictionJacobian;
