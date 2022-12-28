@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
+#include <sys/threads.h>
 
 #include "kalman_implem.h"
 
@@ -25,27 +26,20 @@
 #include <quat.h>
 #include <matrix.h>
 
-/* buffer matrix for calculations */
-/* TODO: move this matrix to stateEngine to remove macros and globals from core */
-static float predict_tmp_data[STATE_ROWS * STATE_ROWS];
-static matrix_t predict_tmp = { .cols = STATE_ROWS, .rows = STATE_ROWS, .transposed = 0, .data = predict_tmp_data };
-
-
-static void predict_covar_estimate(matrix_t *F, matrix_t *P, matrix_t *P_estimate, matrix_t *Q)
-{
-	matrix_sandwitch(F, P, P_estimate, &predict_tmp);
-	matrix_add(P_estimate, Q, NULL);
-}
-
 
 /* performs kalman prediction step given state engine */
 void kalman_predict(state_engine_t *engine, time_t timeStep, int verbose)
 {
+	/* get current value of control vector U */
+	engine->getControl(&engine->U);
+
 	/* calculate current state transition jacobian */
-	engine->getJacobian(&engine->F, &engine->state, timeStep);
+	engine->getJacobian(&engine->F, &engine->state, &engine->U, timeStep);
 
 	/* apriori estimation of state before measurement */
-	engine->estimateState(&engine->state, &engine->state_est, timeStep);
+	engine->estimateState(&engine->state, &engine->state_est, &engine->U, timeStep);
+
+	engine->getNoiseQ(&engine->state, &engine->U, &engine->Q, timeStep);
 
 	if (verbose) {
 		printf("stat_est:\n");
@@ -55,7 +49,8 @@ void kalman_predict(state_engine_t *engine, time_t timeStep, int verbose)
 	}
 
 	/* apriori estimation of covariance matrix */
-	predict_covar_estimate(&engine->F, &engine->cov, &engine->cov_est, &engine->Q);
+	matrix_sandwitch(&engine->F, &engine->cov, &engine->cov_est, &engine->B);
+	matrix_add(&engine->cov_est, &engine->Q, NULL);
 
 	if (verbose) {
 		printf("cov:\n");
@@ -195,10 +190,12 @@ void kalman_predictDealloc(state_engine_t *engine)
 	matrix_bufFree(&engine->cov_est);
 	matrix_bufFree(&engine->F);
 	matrix_bufFree(&engine->Q);
+	matrix_bufFree(&engine->U);
+	matrix_bufFree(&engine->B);
 }
 
 
-int kalman_predictAlloc(state_engine_t *engine, int stateLen)
+int kalman_predictAlloc(state_engine_t *engine, int stateLen, int ctrlLen)
 {
 	int err = 0;
 
@@ -213,6 +210,12 @@ int kalman_predictAlloc(state_engine_t *engine, int stateLen)
 	/* Noise and state transition jacobian matrices */
 	err |= matrix_bufAlloc(&engine->F, stateLen, stateLen);
 	err |= matrix_bufAlloc(&engine->Q, stateLen, stateLen);
+
+	/* Control vector matrix */
+	err |= matrix_bufAlloc(&engine->U, ctrlLen, 1);
+
+	/* temporary/helper matrices initialization */
+	err |= matrix_bufAlloc(&engine->B, stateLen, stateLen);
 
 	if (err != 0) {
 		kalman_predictDealloc(engine);

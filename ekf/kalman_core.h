@@ -18,6 +18,7 @@
 
 #include <matrix.h>
 
+/* UPDATE STEP FUNCTIONS */
 
 /* Function that acquires measuremnets and puts it into Z matrix */
 typedef matrix_t *(*dataGetter)(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep);
@@ -25,11 +26,22 @@ typedef matrix_t *(*dataGetter)(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 /*  function that fills jacobian matrix H based on data from state vector and dt */
 typedef void (*updateJacobian)(matrix_t *H, matrix_t *state, time_t timeStep);
 
+/*  function that fills jacobian matrix H based on data from state vector and dt */
+typedef void (*predJacobian)(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeStep);
+
+/* PREDICTION STEP FUNCTIONS */
+
+/* Function that acquires values of control vector and writes it to the U vector. On success returns pointer to U, NULL on fail */
+typedef matrix_t *(*controlVectorGetter)(matrix_t *U);
+
 /* function that fills state estimation based on current state and dt */
-typedef void (*stateEstimation)(matrix_t *state, matrix_t *state_est, time_t timeStep);
+typedef void (*stateEstimation)(matrix_t *state, matrix_t *state_est, matrix_t *U, time_t timeStep);
 
 /* function that calculates measurements of some update model based on current state estimation */
 typedef matrix_t *(*predictMeasurements)(matrix_t *state_est, matrix_t *hx, time_t timestep);
+
+/* function calculates current process noise covariance matrix based on 'state` and `U` matrices */
+typedef void (*predNoiseGetter)(matrix_t *state, matrix_t *U, matrix_t *Q, time_t timestep);
 
 typedef void (*initMeasurementCov)(matrix_t *R);
 
@@ -60,7 +72,6 @@ typedef struct {
 	matrix_t tmp4;
 	matrix_t tmp5;
 
-
 	dataGetter getData;                      /* data getter function */
 	updateJacobian getJacobian;              /* update step jacobian calculation */
 	predictMeasurements predictMeasurements; /* predict hx bector based on state estimation */
@@ -75,11 +86,17 @@ typedef struct {
 	matrix_t cov;
 	matrix_t cov_est;
 
+	matrix_t U;
+
 	matrix_t F;
 	matrix_t Q;
 
+	matrix_t B; /* buffer matrix for covariance estimate calculations */
+
 	stateEstimation estimateState;
-	updateJacobian getJacobian;
+	predJacobian getJacobian;
+	controlVectorGetter getControl;
+	predNoiseGetter getNoiseQ;
 } state_engine_t;
 
 
@@ -98,7 +115,7 @@ extern int kalman_updateAlloc(update_engine_t *engine, unsigned int stateLen, un
 /* Deallocates prediction engine */
 extern void kalman_predictDealloc(state_engine_t *engine);
 
-/* Allocates prediction engine */
-extern int kalman_predictAlloc(state_engine_t *engine, int stateLen);
+/* Allocates prediction engine with state vector length `stateLen` and control vector length `ctrlLen` */
+extern int kalman_predictAlloc(state_engine_t *engine, int stateLen, int ctrlLen);
 
 #endif
