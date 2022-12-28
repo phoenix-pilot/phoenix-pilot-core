@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 #include <time.h>
 
 #include <sys/msg.h>
@@ -29,75 +30,52 @@
 #include "kalman_implem.h"
 
 
+struct {
+	const kalman_init_t *inits;
+} imu_common;
+
+
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
-	static const vec_t nedG = { .x = 0, .y = 0, .z = -1 }; /* earth acceleration versor in NED frame of reference */
-	static const vec_t nedY = { .x = 0, .y = 1, .z = 0 };  /* earth y versor (east) in NED frame of reference */
-	static float lastVelZ = 0;
+	vec_t accel, gyro, mag, nedMeasE;
+	time_t timestamp;
+	float accelSigma;
 
-	vec_t accel, gyro, mag;
-	vec_t magFltrd, accelFltrd;
-	vec_t bodyY;
-	quat_t qEst, rot = { .a = QA, .i = -QB, .j = -QC, .k = -QD };
-	uint64_t timestamp;
-
-	/* 
-		Sensors API wrapper call 
-
-		Accelerations in m/s^2
-		Angular rates in rad/s
-		magnetic flux field in 10^-7 T
-	*/
+	/* Get current sensor readings */
 	meas_imuGet(&accel, &gyro, &mag, &timestamp);
 
-	/* estimate rotation quaternion with assumption that imu is stationary */
-	magFltrd = mag;
+	/* earth acceleration calculations */
+	vec_times(&accel, -1);                        /* earth acceleration is measured by accelerometer UPWARD, which in NED is negative */
+	accelSigma = fabs(vec_len(&accel) - EARTH_G); /* calculate current acceleration difference from gravity (to decide on EKF stationarity)*/
 
-	/* prepare unrotated accelerometer measurement with earth_g added for prefiltered quaternion estimation */
-	/* TODO: we can consider storing direct accel measurements in state vector and rotate it on demand (change in jacobians required!) */
-	accelFltrd = (vec_t) { .x = AX, .y = AY, .z = AZ - EARTH_G };
-	quat_vecRot(&accelFltrd, &rot);
-	quat_cjg(&rot);
+	if (accelSigma < 2 * imu_common.inits->R_astdev) {
+		/*
+		* If we are within 2*stdev threshold (should occur 95% of times if stationary) use base standard deviation for measurement
+		* If beyond (2*sigma) treat measurement as with auxiliary acceleration and use its difference as uncertainty
+		*/
+		accelSigma = imu_common.inits->R_astdev;
+	}
+	accelSigma = accelSigma * accelSigma / EARTH_G * EARTH_G;
+	*matrix_at(R, MGX, MGX) = *matrix_at(R, MGY, MGY) = *matrix_at(R, MGZ, MGZ) = accelSigma;
 
-	/* calculate rotation quaternion based on current magnetometer reading and ekf filtered acceleration */
-	vec_normalize(&magFltrd);
-	vec_normalize(&accelFltrd);
-	vec_cross(&magFltrd, &accelFltrd, &bodyY);
-	vec_normalize(&bodyY);
-	quat_frameRot(&accelFltrd, &bodyY, &nedG, &nedY, &qEst, &rot);
+	/* east versor calculations */
+	vec_cross(&accel, &mag, &nedMeasE);
+	vec_normalize(&nedMeasE);
+	vec_normalize(&accel);
 
-	/* rotate measurements of a and w */
-	quat_vecRot(&accel, &rot);
-	quat_vecRot(&gyro, &rot);
+	Z->data[MGX] = accel.x;
+	Z->data[MGY] = accel.y;
+	Z->data[MGZ] = accel.z;
 
-	accel.z += EARTH_G; /* remove earth acceleration from measurements */
+	Z->data[MEX] = nedMeasE.x;
+	Z->data[MEY] = nedMeasE.y;
+	Z->data[MEZ] = nedMeasE.z;
 
-	matrix_zeroes(Z);
-	Z->data[IMAX] = accel.x;
-	Z->data[IMAY] = accel.y;
-	Z->data[IMAZ] = accel.z - BAZ;
-
-	Z->data[IMWX] = gyro.x;
-	Z->data[IMWY] = gyro.y;
-	Z->data[IMWZ] = gyro.z;
-
-	Z->data[IMMX] = mag.x;
-	Z->data[IMMY] = mag.y;
-	Z->data[IMMZ] = mag.z;
-
-	/* Accel Z bias estimation based on discrepancy between measured and estimated changes in speed */
-	Z->data[IMBAZ] = BAZ + (AZ - ((VZ - lastVelZ) / ((float)timeStep / 1000000)));
-	lastVelZ = VZ;
-
-	/*
-	* qEst rotates vectors from body frame base to NED base.
-	* We store the body frame rotation which is conjugation of qEst.
-	*/
-	Z->data[IMQA] = qEst.a;
-	Z->data[IMQB] = qEst.i;
-	Z->data[IMQC] = qEst.j;
-	Z->data[IMQD] = qEst.k;
+	/* SIMPLIFICATION: prediction state uses constant value as gyro bias. Its safe to just pass current state value as measurement */
+	Z->data[MBWX] = state->data[BWX];
+	Z->data[MBWY] = state->data[BWY];
+	Z->data[MBWZ] = state->data[BWZ];
 
 	return Z;
 }
@@ -105,27 +83,29 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 
 static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, time_t timestep)
 {
-	matrix_t *state = state_est; /* aliasing for macros usage */
+	/* gravity versor and east versor in NED frame of reference */
+	vec_t nedMeasG = { .x = 0, .y = 0, .z = 1 };
+	vec_t nedMeasE = { .x = 0, .y = 1, .z = 0 };
+
+	/* Taking conjugation of quaternion as it should rotate from inertial frame to body frame */
+	const quat_t qState = {.a = kmn_vecAt(state_est, QA), .i = -kmn_vecAt(state_est, QB), .j = -kmn_vecAt(state_est, QC), .k = -kmn_vecAt(state_est, QD)};
+
 	matrix_zeroes(hx);
 
-	hx->data[IMAX] = AX;
-	hx->data[IMAY] = AY;
-	hx->data[IMAZ] = AZ;
+	quat_vecRot(&nedMeasG, &qState);
+	quat_vecRot(&nedMeasE, &qState);
 
-	hx->data[IMWX] = WX;
-	hx->data[IMWY] = WY;
-	hx->data[IMWZ] = WZ;
+	hx->data[MGX] = nedMeasG.x;
+	hx->data[MGY] = nedMeasG.y;
+	hx->data[MGZ] = nedMeasG.z;
 
-	hx->data[IMMX] = MX;
-	hx->data[IMMY] = MY;
-	hx->data[IMMZ] = MZ;
+	hx->data[MEX] = nedMeasE.x;
+	hx->data[MEY] = nedMeasE.y;
+	hx->data[MEZ] = nedMeasE.z;
 
-	hx->data[IMQA] = QA;
-	hx->data[IMQB] = QB;
-	hx->data[IMQC] = QC;
-	hx->data[IMQD] = QD;
-
-	hx->data[IMBAZ] = BAZ;
+	hx->data[MBWX] = state_est->data[BWX];
+	hx->data[MBWY] = state_est->data[BWY];
+	hx->data[MBWZ] = state_est->data[BWZ];
 
 	return hx;
 }
@@ -133,50 +113,64 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 
 static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_t timeStep)
 {
-	float I33_data[9] = { 0 };
-	matrix_t I33 = { .rows = 3, .cols = 3, .transposed = 0, .data = I33_data };
-	matrix_diag(&I33);
+	const quat_t qState = {.a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD)};
+
+	float dgdqData[3 * 4];
+	matrix_t dgdq = { .data = dgdqData, .rows = 3, .cols = 4, .transposed = 0 };
+
+	float dedqData[3 * 4];
+	matrix_t dedq = { .data = dedqData, .rows = 3, .cols = 4, .transposed = 0 };
 
 	matrix_zeroes(H);
-	matrix_writeSubmatrix(H, IMAX, IAX, &I33);
-	matrix_writeSubmatrix(H, IMWX, IWX, &I33);
-	matrix_writeSubmatrix(H, IMMX, IMX, &I33);
-	/* using I33 and one direct write to write I44 */
-	matrix_writeSubmatrix(H, IMQA, IQA, &I33);
-	H->data[H->cols * IMQD + IQD] = 1;
-	
-	H->data[H->cols * IMBAZ + IBAZ] = 1;
+
+	/* Derivative of rotated earth acceleration with respect to quaternion */
+	dgdq.data[5] = dgdq.data[8] = qState.a;
+	dgdq.data[2] = -qState.a;
+	dgdq.data[3] = dgdq.data[4] = qState.i;
+	dgdq.data[9] = -qState.i;
+	dgdq.data[7] = qState.j;
+	dgdq.data[10] = dgdq.data[0] = -qState.j;
+	dgdq.data[1] = dgdq.data[6] = dgdq.data[11] = qState.k;
+	matrix_times(&dgdq, 2);
+
+	/* Derivative of rotated east versor with respect to quaternion */
+	dedq.data[3] = dedq.data[4] = qState.a;
+	dedq.data[9] = -qState.a;
+	dedq.data[2] = qState.i;
+	dedq.data[5] = dedq.data[8] = -qState.i;
+	dedq.data[1] = dedq.data[6] = dedq.data[11] = qState.j;
+	dedq.data[0] = dedq.data[10] = qState.k;
+	dedq.data[7] = -qState.k;
+	matrix_times(&dedq, 2);
+
+	matrix_writeSubmatrix(H, MGX, QA, &dgdq);
+	matrix_writeSubmatrix(H, MEX, QA, &dedq);
+	*matrix_at(H, MBWX, BWX) = *matrix_at(H, MBWY, BWY) = *matrix_at(H, MBWZ, BWZ) = 1;
+
 }
 
 
 /* initialization function for IMU update step matrices values */
-static void imuUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_init_t *inits)
+static void imuUpdateInitializations(matrix_t *H, matrix_t *R)
 {
-	/* init of measurement noise matrix R */
-	R->data[R->cols * IMAX + IMAX] = inits->R_acov;
-	R->data[R->cols * IMAY + IMAY] = inits->R_acov;
-	R->data[R->cols * IMAZ + IMAZ] = inits->R_acov;
+	matrix_zeroes(R);
 
-	R->data[R->cols * IMWX + IMWX] = inits->R_wcov;
-	R->data[R->cols * IMWY + IMWY] = inits->R_wcov;
-	R->data[R->cols * IMWZ + IMWZ] = inits->R_wcov;
+	/* Noise terms of acceeration measurement */
+	*matrix_at(R, MGX, MGX) = *matrix_at(R, MGY, MGY) = *matrix_at(R, MGZ, MGZ) = imu_common.inits->R_astdev * imu_common.inits->R_astdev / (EARTH_G * EARTH_G);
 
-	R->data[R->cols * IMMX + IMMX] = inits->R_mcov;
-	R->data[R->cols * IMMY + IMMY] = inits->R_mcov;
-	R->data[R->cols * IMMZ + IMMZ] = inits->R_mcov;
+	/* Noise terms of east versor measurement */
+	*matrix_at(R, MEX, MEX) = *matrix_at(R, MEY, MEY) = *matrix_at(R, MEZ, MEZ) = imu_common.inits->R_mstdev * imu_common.inits->R_mstdev / (EARTH_G * EARTH_G);
 
-	R->data[R->cols * IMQA + IMQA] = inits->R_qcov;
-	R->data[R->cols * IMQB + IMQB] = inits->R_qcov;
-	R->data[R->cols * IMQC + IMQC] = inits->R_qcov;
-	R->data[R->cols * IMQD + IMQD] = inits->R_qcov;
-
-	R->data[R->cols * IMBAZ + IMBAZ] = inits->R_azbias;
+	/* Noise terms of gyroscope bias measurement */
+	*matrix_at(R, MBWX, MBWX) = *matrix_at(R, MBWY, MBWY) = *matrix_at(R, MBWZ, MBWZ) = imu_common.inits->R_bwstdev * imu_common.inits->R_bwstdev;
 }
 
 
 void kmn_imuEngInit(update_engine_t *engine, const kalman_init_t *inits)
 {
-	imuUpdateInitializations(&engine->H, &engine->R, inits);
+	imu_common.inits = inits;
+
+	imuUpdateInitializations(&engine->H, &engine->R);
 
 	engine->getData = getMeasurement;
 	engine->getJacobian = getMeasurementPredictionJacobian;
