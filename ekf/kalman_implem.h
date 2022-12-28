@@ -26,127 +26,63 @@
 #include "kalman_core.h"
 #include "meas.h"
 
-#define STATE_COLS 1
-#define STATE_ROWS 20
-
-#define IMUMEAS_ROWS  14
-#define BAROMEAS_ROWS 2
-#define GPSMEAS_ROWS  4
-
 #define EARTH_G       9.80665F   /* m/s^2 */
 #define UNI_GAS_CONST 8.3144598F /* J/(mol * K) */
 #define AIR_MOL_MASS  0.0289644F /* kg/mol */
 
 #define DEG2RAD 0.0174532925
 
-#define BARO_UPDATE_PERIOD 50000 /* time in microseconds between barometer update procedure */
+/* */
+/* Kalman filter index defines */
+/* */
 
-/* abbreviation of IndexMeasurement(valuename) */
+#define STATE_LENGTH    7
+#define CTRL_LENGTH     3
+#define MEAS_IMU_LENGTH 9
 
-/* imu measurements */
-#define IMAX 0
-#define IMAY 1
-#define IMAZ 2
-#define IMWX 3
-#define IMWY 4
-#define IMWZ 5
-#define IMMX 6
-#define IMMY 7
-#define IMMZ 8
-#define IMQA 9
-#define IMQB 10
-#define IMQC 11
-#define IMQD 12
-#define IMBAZ 13
+/* STATE VECTOR */
+/* Attitude quaternion rotates vectors from body frame of reference to inertial frame of reference */
+#define QA  0 /* attitude quaternion real part */
+#define QB  1 /* attitude quaternion i part */
+#define QC  2 /* attitude quaternion j part */
+#define QD  3 /* attitude quaternion k part */
+/* Gyroscope body frame biases describes offsets of gyro measurements when stationary */
+#define BWX 4 /* gyroscope x axis bias */
+#define BWY 5 /* gyroscope y axis bias */
+#define BWZ 6 /* gyroscope z axis bias */
 
-/* baro measurements */
-#define IMBXZ 0
-#define IMBVZ 1
+/* control vector u */
+#define UWX 0
+#define UWY 1
+#define UWZ 2
 
-/* gps measurements */
-#define IMGPSXX 0
-#define IMGPSXY 1
-#define IMGPSVX 2
-#define IMGPSVY 3
-
-/* index of state variable of: */
-#define IXX 0  /* position x */
-#define IXY 1  /* position y */
-#define IXZ 2  /* position z */
-#define IVX 3  /* velocity x */
-#define IVY 4  /* velocity y */
-#define IVZ 5  /* velocity z */
-#define IQA 6  /* rotation quaternion real part */
-#define IQB 7  /* rotation quaternion imaginary i part */
-#define IQC 8  /* rotation quaternion imaginary j part */
-#define IQD 9  /* rotation quaternion imaginary k part */
-#define IAX 10 /* earth based acceleration x */
-#define IAY 11 /* earth based acceleration y */
-#define IAZ 12 /* earth based acceleration z */
-#define IWX 13 /* earth based angular speed x */
-#define IWY 14 /* earth based angular speed y */
-#define IWZ 15 /* earth based angular speed z */
-#define IMX 16 /* magnetic field x */
-#define IMY 17 /* magnetic field y */
-#define IMZ 18 /* magnetic field z */
-#define IBAZ 19 /* acceleration z bias */
+/* measurement vector indexes */
+#define MGX 0
+#define MGY 1
+#define MGZ 2
+#define MEX 3
+#define MEY 4
+#define MEZ 5
+#define MBWX 6 /* Measurement of gyroscope x axis bias (body frame of reference) */
+#define MBWY 7 /* Measurement of gyroscope y axis bias (body frame of reference) */
+#define MBWZ 8 /* Measurement of gyroscope z axis bias (body frame of reference) */
 
 
-/* value name */
-#define XX state->data[0]
-#define XY state->data[1]
-#define XZ state->data[2]
-#define VX state->data[3]
-#define VY state->data[4]
-#define VZ state->data[5]
-#define QA state->data[6]
-#define QB state->data[7]
-#define QC state->data[8]
-#define QD state->data[9]
-#define AX state->data[10]
-#define AY state->data[11]
-#define AZ state->data[12]
-#define WX state->data[13]
-#define WY state->data[14]
-#define WZ state->data[15]
-#define MX state->data[16]
-#define MY state->data[17]
-#define MZ state->data[18]
-#define BAZ state->data[19]
 
 /* IMPORTANT: must be kept in order with 'char * configNames' in 'kalman.inits.c' */
 typedef struct {
 	int verbose;
 	int log;
 
-	float P_xerr;    /* initial covariance of position x/y/z */
-	float P_verr;    /* initial covariance of velocity x/y/z */
-	float P_aerr;    /* initial covariance of accelerations x/y/z */
-	float P_werr;    /* initial covariance of angular rates x/y/z */
-	float P_merr;    /* initial covariance of magnetic flux measurment x/y/z */
-	float P_qaerr;   /* initial covariance of rotation quaternion real part a */
-	float P_qijkerr; /* initial covariance of rotation quaternion imaginary parts i/j/k */
-	float P_pxerr;   /* initial covariance of pressure measurement */
-	float P_bazerr;  /* initial covariance of accelerometer z bias */
+	float P_qerr;
+	float P_bwerr;
 
-	float R_acov; /* measurement noise of acceleration */
-	float R_wcov; /* measurement noise of angular rates */
-	float R_mcov; /* measurement noise of magnetic flux */
-	float R_qcov; /* measurement noise of rotation quaternion */
-	float R_azbias; /* measurement noise of z axis bias */
+	float R_astdev;
+	float R_mstdev;
+	float R_bwstdev;
 
-	float R_xzcov;
-	float R_vzcov;
-
-	float Q_xcov;
-	float Q_vcov;
-	float Q_hcov;     /* process noise of altitude */
-	float Q_avertcov; /* process noise of vertical acceleration */
-	float Q_ahoricov; /* process noise of horizontal accelerations */
-	float Q_wcov;     /* process noise of angular rates */
-	float Q_mcov;     /* process noise of magnetic flux */
-	float Q_qcov;     /* process noise of rotation quaternion */
-	float Q_azbias;   /* process noise of accelerometer z axis bias */
+	float Q_wstdev;
+	float Q_bwDotstdev;
 } kalman_init_t;
 
 
@@ -154,6 +90,12 @@ int verbose;
 
 
 extern void kmn_configRead(kalman_init_t *initVals);
+
+/* Reads from a matrix like from a untransposed column vector directly */
+static inline float kmn_vecAt(const matrix_t *M, unsigned int i)
+{
+	return M->data[i];
+}
 
 
 /* PHMATRIX MATRICES INITIALIZATIONS */
