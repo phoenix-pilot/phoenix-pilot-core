@@ -305,9 +305,6 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 
 	meas_ellipCompensate(accels, accCalib);
 
-	/* gyro niveling */
-	vec_sub(gyros, &meas_common.calib.imu.gyroBias);
-
 	fltr_accLpf(accels);
 	//fltr_gyrLpf(gyros);
 
