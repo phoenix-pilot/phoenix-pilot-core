@@ -29,49 +29,35 @@
 #include <matrix.h>
 
 
+struct {
+	const kalman_init_t *inits;
+	vec_t gyroBiasBypass;
+} pred_common;
+
+
 /* NOTE: must be kept in the same order as 'configNames' */
 static const kalman_init_t initTemplate = {
 	.verbose = 0,
 	.log = 0,
 
-	.P_xerr = 1,               /* 1 m */
-	.P_verr = 0.1,             /* 0.1 m/s */
-	.P_aerr = 0.1,             /* 0.001 m/s^2 */
-	.P_werr = DEG2RAD,         /* 1 degree */
-	.P_merr = 300,             /* 300 uT */
-	.P_qaerr = 10 * DEG2RAD,   /* 10 degrees */
-	.P_qijkerr = 10 * DEG2RAD, /* 10 degrees */
-	.P_pxerr = 0.01,           /* 10 hPa */
-	.P_bazerr = 0.1,
+	.P_qerr = 10 * DEG2RAD,   /* 10 degrees */
+	.P_bwerr = 1,
 
-	.R_acov = 0.01,            /* 0.01 m/s as data is prefiltered */
-	.R_wcov = 0.01,            /* 10 milliradian/s, overtrust gyroscope for fast response */
-	.R_mcov = 0.1,
-	.R_qcov = 500,
-	.R_azbias = 1000,
+	.R_astdev = 0.8,   /* standard deviation of accelerometer reading in m/s */
+	.R_mstdev = 1,     /* standard deviation of magnetometer reading in milligauss */
+	.R_bwstdev = 1.16, /* standard deviation of gyroscope bias estimation in radians */
 
-	.R_xzcov = 0.05,
-	.R_vzcov = 0.1,
-
-	/* better to keep Q low */
-	.Q_xcov = 2,
-	.Q_vcov = 2,
-	.Q_hcov = 0.001,
-	.Q_avertcov = 1,
-	.Q_ahoricov = 0.1,
-	.Q_wcov = 0.001,
-	.Q_mcov = 0.001,
-	.Q_qcov = 0.001,
-	.Q_azbias = 0.0001
+	.Q_wstdev = 0.9,
+	.Q_bwDotstdev = 0.04
 };
 
 
 /* NOTE: must be kept in the same order as 'init_values' */
 static const char *configNames[] = {
 	"verbose", "log",
-	"P_xerr", "P_verr", "P_aerr", "P_werr", "P_merr", "P_qaerr", "P_qijkerr", "P_pxerr", "P_bazerr",
-	"R_acov", "R_wcov", "R_mcov", "R_qcov", "R_xzcov", "R_vzcov", "R_azbias",
-	"Q_xcov", "Q_vcov", "Q_hcov", "Q_avertcov", "Q_ahoricov", "Q_wcov", "Q_mcov", "Q_qcov", "Q_azbias"
+	"P_qerr", "P_bwerr",
+	"R_astdev", "R_mstdev", "R_bwstdev",
+	"Q_wstdev", "Q_bwDotstdev"
 };
 
 
@@ -111,200 +97,193 @@ void kmn_configRead(kalman_init_t *initVals)
 }
 
 
-/* state vectors values init */
-static void kmn_initState(matrix_t *state, const meas_calib_t *calib)
+static matrix_t *kmn_getCtrl(matrix_t *U)
 {
-	state->data[IXX] = state->data[IXY] = state->data[IXZ] = 0; /* start position at [0,0,0] */
-	state->data[IVX] = state->data[IVY] = state->data[IVZ] = 0; /* start velocity at [0,0,0] */
-	state->data[IAX] = state->data[IAY] = state->data[IAZ] = 0; /* start acceleration at [0,0,0] */
-	state->data[IWX] = state->data[IWY] = state->data[IWZ] = 0; /* start angular speed at [0,0,0] */
+	vec_t accel, gyro, mag;
+	time_t tstamp;
 
-	/* start rotation at identity quaternion */
-	state->data[IQA] = calib->imu.initQuat.a;
-	state->data[IQB] = calib->imu.initQuat.i;
-	state->data[IQC] = calib->imu.initQuat.j;
-	state->data[IQD] = calib->imu.initQuat.k;
+	meas_imuGet(&accel, &gyro, &mag, &tstamp);
 
-	/* start magnetic field as calibrated */
-	state->data[IMX] = calib->imu.initMag.x;
-	state->data[IMX] = calib->imu.initMag.y;
-	state->data[IMX] = calib->imu.initMag.z;
+	*matrix_at(U, UWX, 0) = gyro.x;
+	*matrix_at(U, UWY, 0) = gyro.y;
+	*matrix_at(U, UWZ, 0) = gyro.z;
 
-	state->data[IBAZ] = 0;
+	return U;
 }
 
-
-/* covariance matrox values inits */
-static void kmn_initCov(matrix_t *cov, const kalman_init_t *inits)
-{
-	matrix_zeroes(cov);
-	cov->data[cov->cols * IXX + IXX] = inits->P_xerr * inits->P_xerr;
-	cov->data[cov->cols * IXY + IXY] = inits->P_xerr * inits->P_xerr;
-	cov->data[cov->cols * IXZ + IXZ] = inits->P_xerr * inits->P_xerr;
-
-	cov->data[cov->cols * IVX + IVX] = inits->P_verr * inits->P_verr;
-	cov->data[cov->cols * IVY + IVY] = inits->P_verr * inits->P_verr;
-	cov->data[cov->cols * IVZ + IVZ] = inits->P_verr * inits->P_verr;
-
-	cov->data[cov->cols * IAX + IAX] = inits->P_aerr * inits->P_aerr;
-	cov->data[cov->cols * IAY + IAY] = inits->P_aerr * inits->P_aerr;
-	cov->data[cov->cols * IAZ + IAZ] = inits->P_aerr * inits->P_aerr;
-
-	cov->data[cov->cols * IWX + IWX] = inits->P_werr * inits->P_werr;
-	cov->data[cov->cols * IWY + IWY] = inits->P_werr * inits->P_werr;
-	cov->data[cov->cols * IWZ + IWZ] = inits->P_werr * inits->P_werr;
-
-	cov->data[cov->cols * IQA + IQA] = inits->P_qaerr * inits->P_qaerr;
-	cov->data[cov->cols * IQB + IQB] = inits->P_qijkerr * inits->P_qijkerr;
-	cov->data[cov->cols * IQC + IQC] = inits->P_qijkerr * inits->P_qijkerr;
-	cov->data[cov->cols * IQD + IQD] = inits->P_qijkerr * inits->P_qijkerr;
-
-	cov->data[cov->cols * IMX + IMX] = inits->P_merr * inits->P_merr;
-	cov->data[cov->cols * IMY + IMY] = inits->P_merr * inits->P_merr;
-	cov->data[cov->cols * IMZ + IMZ] = inits->P_merr * inits->P_merr;
-
-	cov->data[cov->cols * IBAZ + IBAZ] = inits->P_bazerr * inits->P_bazerr;
-}
 
 /* State estimation function definition */
-static void kmn_stateEst(matrix_t *state, matrix_t *state_est, time_t timeStep)
+static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time_t timeStep)
 {
-	static vec_t last_a = { 0 };
-	static vec_t last_v = { 0 };
+	/* quaternionized values from state vector */
+	const quat_t qState = {.a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD)};
+	const quat_t bwState = {.a = 0, .i = kmn_vecAt(state, BWX), .j = kmn_vecAt(state, BWY), .k = kmn_vecAt(state, BWZ)};
 
-	float dt, dt2;
-	quat_t quat_q, quat_w, res;
+	/* quaternionized angular rate from U vector */
+	quat_t wMeas = {.a = 0, .i = kmn_vecAt(U, UWX), .j = kmn_vecAt(U, UWY), .k = kmn_vecAt(U, UWZ)};
 
-	dt = timeStep / 1000000.;
-	dt2 = dt * dt / 2;
+	/* quaternionized angular rate and rotation quaternion estimates */
+	quat_t qEst, qtmp;
 
-	quat_q = (quat_t) { .a = QA, .i = QB, .j = QC, .k = QD };
-	quat_w = (quat_t) { .a = 0, .i = WX, .j = WY, .k = WZ };
+	float dt = (float)timeStep / 1000000.f;
 
-	/* trapezoidal integration */
-	state_est->data[IXX] = XX + (VX + last_v.x) * 0.5 * dt + AX * dt2;
-	state_est->data[IXY] = XY + (VY + last_v.y) * 0.5 * dt + AY * dt2;
-	state_est->data[IXZ] = XZ + (VZ + last_v.z) * 0.5 * dt + AZ * dt2;
+	/* quaternion estimation: q = q * ( q_iden + h/2 * (wMeas - bw) ) */
+	quat_dif(&wMeas, &bwState, &qtmp);
+	quat_times(&qtmp, dt / 2);
+	qtmp.a += 1;
+	quat_mlt(&qState, &qtmp, &qEst);
+	quat_normalize(&qEst);
 
-	/* trapezoidal integration */
-	/* as no direct velocity measurements are done, time corelation is introduced to velocity with assumption that velocity always decreases */
-	state_est->data[IVX] = (VX + (AX + last_a.x) * 0.5 * dt) * 0.999;
-	state_est->data[IVY] = (VY + (AY + last_a.y) * 0.5 * dt) * 0.999;
-	state_est->data[IVZ] = (VZ + (AZ + last_a.z) * 0.5 * dt);
+	*matrix_at(state_est, QA, 0) = qEst.a;
+	*matrix_at(state_est, QB, 0) = qEst.i;
+	*matrix_at(state_est, QC, 0) = qEst.j;
+	*matrix_at(state_est, QD, 0) = qEst.k;
 
-	last_a.x = AX;
-	last_a.y = AY;
-	last_a.z = AZ;
+	/* gyroscope bias estimation: SIMPLIFICATION: we use constant value as prediction */
+	*matrix_at(state_est, BWX, 0) = pred_common.gyroBiasBypass.x;
+	*matrix_at(state_est, BWY, 0) = pred_common.gyroBiasBypass.y;
+	*matrix_at(state_est, BWZ, 0) = pred_common.gyroBiasBypass.z;
+}
 
-	last_v.x = VX;
-	last_v.y = VY;
-	last_v.z = VZ;
 
-	/* predition from w */
-	quat_mlt(&quat_w, &quat_q, &res);
-	quat_times(&res, dt / 2);
-	quat_add(&quat_q, &res);
-	quat_normalize(&quat_q);
+/* Calculates derivative: d(q * p) / d(q) with assumptions:
+ * 1) `out` is 4x4 matrix
+ * 2) 'q' and 'p' are quaternions
+*/
+static void kmn_qpDiffQ(quat_t *p, matrix_t *out)
+{
+	out->data[0] = out->data[5] = out->data[10] = out->data[15] = p->a;
 
-	state_est->data[IQA] = quat_q.a;
-	state_est->data[IQB] = quat_q.i;
-	state_est->data[IQC] = quat_q.j;
-	state_est->data[IQD] = quat_q.k;
+	out->data[4] = out->data[11] = p->i;
+	out->data[1] = out->data[14] = -p->i;
 
-	state_est->data[IAX] = AX;
-	state_est->data[IAY] = AY;
-	state_est->data[IAZ] = AZ;
+	out->data[8] = out->data[13] = p->j;
+	out->data[2] = out->data[7] = -p->j;
 
-	state_est->data[IWX] = WX;
-	state_est->data[IWY] = WY;
-	state_est->data[IWZ] = WZ;
+	out->data[12] = out->data[6] = p->k;
+	out->data[3] = out->data[9] = -p->k;
+}
 
-	state_est->data[IMX] = MX;
-	state_est->data[IMY] = MY;
-	state_est->data[IMZ] = MZ;
 
-	state_est->data[IBAZ] = BAZ;
+/* Calculates derivative: d(q * w) / d(q) with assumptions:
+ * 1) `out` is 4x3 matrix
+ * 2) 'q' is a quaternion
+ * 3) 'w' is a quaternionized vector (only imaginary terms are significant)
+*/
+static void kmn_qwDiffW(const quat_t *q, matrix_t *out)
+{
+	out->data[3] = out->data[7] = out->data[11] = q->a;
+
+	out->data[10] = q->i;
+	out->data[0] = out->data[8] = -q->i;
+
+	out->data[5] = q->j;
+	out->data[1] = out->data[9] = -q->j;
+
+	out->data[6] = q->k;
+	out->data[2] = out->data[4] = -q->k;
 }
 
 
 /* prediction step jacobian calculation function */
-static void kmn_predJcb(matrix_t *F, matrix_t *state, time_t timeStep)
+static void kmn_predJcb(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeStep)
 {
-	float dt, dt2;
-	/* differentials matrices */
-	matrix_t dfqdq, dfqdw;
-	/* diagonal matrix */
-	float I33_data[9] = { 0 };
-	matrix_t I33 = { .rows = 3, .cols = 3, .transposed = 0, .data = I33_data };
+	const quat_t qState = {.a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD)};
+	const quat_t bwState = {.a = 0, .i = kmn_vecAt(state, BWX), .j = kmn_vecAt(state, BWY), .k = kmn_vecAt(state, BWZ)};
+	const quat_t wMeas = {.a = 0, .i = kmn_vecAt(U, UWX), .j = kmn_vecAt(U, UWY), .k = kmn_vecAt(U, UWZ)};
 
-	dt = timeStep / 1000000.F;
-	dt2 = dt / 2; /* helper value */
+	const float dt = (float)timeStep / 1000000;
 
-	/* derrivative submatrix of (dfq / dq) of size 4x4 */
-	float wxdt2 = WX * dt2, wydt2 = WY * dt2, wzdt2 = WZ * dt2;
-	float data_dfqdq[16] = {
-		1, -wxdt2, -wydt2, -wzdt2,
-		wxdt2, 1, -wzdt2, wydt2,
-		wydt2, wzdt2, 1, -wxdt2,
-		wzdt2, -wydt2, wxdt2, 1
-	};
-	/* derrivative submatrix of (dfq / dw) of size 4x3 */
-	float qadt2 = QA * dt2, qbdt2 = QB * dt2, qcdt2 = QC * dt2, qddt2 = QD * dt2;
-	float data_dfqdw[12] = {
-		-qbdt2, -qcdt2, -qddt2,
-		qadt2, qddt2, -qcdt2,
-		-qddt2, qadt2, qbdt2,
-		qcdt2, -qbdt2, qadt2
-	};
+	/* d(f_q)/d(q) variables */
+	float dfqdqData[4 * 4];
+	matrix_t dfqdq = { .data = dfqdqData, .rows = 3, .cols = 3, .transposed = 0 };
+	quat_t p; /* quaternion derivative product second term */
 
-	dfqdq = (matrix_t) { .rows = 4, .cols = 4, .transposed = 0, .data = data_dfqdq };
-	dfqdw = (matrix_t) { .rows = 4, .cols = 3, .transposed = 0, .data = data_dfqdw };
+	/* d(f_q)/d(bw) variables */
+	float dfqdbwData[4 * 3];
+	matrix_t dfqdbw = { .data = dfqdbwData, .rows = 4, .cols = 3, .transposed = 0 };
 
-	matrix_diag(&I33);
+	/* d(f_q)/d(q) calculations */
+	quat_dif(&wMeas, &bwState, &p);
+	quat_times(&p, dt / 2);
+	p.a += 1;
+	kmn_qpDiffQ(&p, &dfqdq);
+	/* d(f_q)/d(q) write into F */
+	matrix_writeSubmatrix(F, QA, QA, &dfqdq);
 
-	/* set F to zeroes and add ones on diag */
-	matrix_zeroes(F);
-	matrix_diag(F);
+	/* d(f_q)/d(bw) calculations */
+	kmn_qwDiffW(&qState, &dfqdbw);
+	matrix_times(&dfqdbw, -dt / 2);
+	/* d(f_q)/d(b_w) write into F */
+	matrix_writeSubmatrix(F, QA, BWX, &dfqdbw);
 
-	/* change I33 to (I * dt) matrix and write it to appropriate places */
-	matrix_times(&I33, dt);
-	matrix_writeSubmatrix(F, IXX, IVX, &I33); /* dfx / dv */
-	matrix_writeSubmatrix(F, IVX, IAX, &I33); /* dfv / da */
+	/* d(f_bw)/d(bw) calculations */
+	*matrix_at(F, BWX, BWX) = *matrix_at(F, BWY, BWY) = *matrix_at(F, BWZ, BWZ) = 1;
 
-	/* write differentials matrices */
-	matrix_writeSubmatrix(F, IQA, IQA, &dfqdq);
-	matrix_writeSubmatrix(F, IQA, IWX, &dfqdw);
+}
+
+
+static void kmn_getNoiseQ(matrix_t *state, matrix_t *U, matrix_t *Q, time_t timestep)
+{
+	/* Submatrix for quaternion process noise */
+	float qNoiseData[4 * 4] = { 0 };
+	matrix_t qNoise = {.data = qNoiseData, .rows = 4, .cols = 4, .transposed = 0};
+
+	const quat_t q = {.a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD)};
+	const float dtSq = ((float)timestep / 1000000.f) * ((float)timestep / 1000000.f);
+
+	matrix_zeroes(Q);
+
+	/* QUATERNION PROCESS NOISE: diagonal terms */
+	*matrix_at(&qNoise, 0, 0) = 1 - q.a * q.a;
+	*matrix_at(&qNoise, 1, 1) = 1 - q.i * q.i;
+	*matrix_at(&qNoise, 2, 2) = 1 - q.j * q.j;
+	*matrix_at(&qNoise, 3, 3) = 1 - q.k * q.k;
+
+	/* QUATERNION PROCESS NOISE: upper and lower triangle terms */
+	*matrix_at(&qNoise, 0, 1) = *matrix_at(&qNoise, 1, 0) = -q.a * q.i;
+	*matrix_at(&qNoise, 0, 2) = *matrix_at(&qNoise, 2, 0) = -q.a * q.j;
+	*matrix_at(&qNoise, 0, 3) = *matrix_at(&qNoise, 3, 0) = -q.a * q.k;
+	*matrix_at(&qNoise, 1, 2) = *matrix_at(&qNoise, 2, 1) = -q.i * q.j;
+	*matrix_at(&qNoise, 1, 3) = *matrix_at(&qNoise, 3, 1) = -q.i * q.k;
+	*matrix_at(&qNoise, 2, 3) = *matrix_at(&qNoise, 3, 2) = -q.j * q.k;
+
+	matrix_times(&qNoise, pred_common.inits->Q_wstdev * pred_common.inits->Q_wstdev * dtSq / 4);
+	matrix_writeSubmatrix(Q, QA, QA, &qNoise);
+
+	/* GYRO BIAS PROCESS NOISE */
+	*matrix_at(Q, BWX, BWX) = *matrix_at(Q, BWY, BWY) = *matrix_at(Q, BWZ, BWZ) = pred_common.inits->Q_bwDotstdev * pred_common.inits->Q_bwDotstdev * dtSq;
+
+}
+
+
+static void kmn_initState(matrix_t *state, const meas_calib_t *calib)
+{
+	*matrix_at(state, QA, 0) = calib->imu.initQuat.a;
+	*matrix_at(state, QB, 0) = calib->imu.initQuat.i;
+	*matrix_at(state, QC, 0) = calib->imu.initQuat.j;
+	*matrix_at(state, QD, 0) = calib->imu.initQuat.k;
+
+	*matrix_at(state, BWX, 0) = pred_common.gyroBiasBypass.x;
+	*matrix_at(state, BWY, 0) = pred_common.gyroBiasBypass.y;
+	*matrix_at(state, BWZ, 0) = pred_common.gyroBiasBypass.z;
 }
 
 
 /* initialization of prediction step matrix values */
 void kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman_init_t *inits)
 {
-	matrix_t *Q;
+	pred_common.inits = inits;
+	pred_common.gyroBiasBypass = calib->imu.gyroBias;
 
 	kmn_initState(&engine->state, calib);
-	kmn_initCov(&engine->cov, inits);
 
 	/* prepare noise matrix Q */
 	matrix_zeroes(&engine->Q);
-	Q = &engine->Q;
-	Q->data[Q->cols * IXX + IXX] = Q->data[Q->cols * IXY + IXY] = inits->Q_xcov;
-	Q->data[Q->cols * IVX + IVX] = Q->data[Q->cols * IVY + IVY] = inits->Q_vcov;
-
-	Q->data[Q->cols * IAX + IAX] = Q->data[Q->cols * IAY + IAY] = inits->Q_ahoricov;
-	Q->data[Q->cols * IAZ + IAZ] = inits->Q_avertcov;
-
-	Q->data[Q->cols * IWX + IWX] = Q->data[Q->cols * IWY + IWY] = Q->data[Q->cols * IWZ + IWZ] = inits->Q_wcov;
-	Q->data[Q->cols * IMX + IMX] = Q->data[Q->cols * IMY + IMY] = Q->data[Q->cols * IMZ + IMZ] = inits->Q_mcov;
-	Q->data[Q->cols * IQA + IQA] = inits->Q_qcov;
-	Q->data[Q->cols * IQB + IQB] = inits->Q_qcov;
-	Q->data[Q->cols * IQC + IQC] = inits->Q_qcov;
-	Q->data[Q->cols * IQD + IQD] = inits->Q_qcov;
-	Q->data[Q->cols * IXZ + IXZ] = inits->Q_hcov;
-
-	Q->data[Q->cols * IBAZ + IBAZ] = inits->Q_azbias;
 
 	/* save function pointers */
 	engine->estimateState = kmn_stateEst;
 	engine->getJacobian = kmn_predJcb;
+	engine->getControl = kmn_getCtrl;
+	engine->getNoiseQ = kmn_getNoiseQ;
 }
