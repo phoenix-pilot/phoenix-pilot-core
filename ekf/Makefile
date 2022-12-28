@@ -5,7 +5,7 @@
 #
 
 # Files structures
-KALMAN_SRCS := kalman_implem.c kalman_core.c kalman_update_imu.c kalman_update_baro.c kalman_update_gps.c
+KALMAN_SRCS := kalman_implem.c kalman_core.c kalman_update_imu.c
 
 # EKF library
 NAME := libekf
