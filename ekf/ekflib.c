@@ -73,9 +73,8 @@ int ekf_init(void)
 	}
 
 	err = 0;
-	err |= kalman_predictAlloc(&ekf_common.stateEngine, STATE_ROWS);
-	err |= kalman_updateAlloc(&ekf_common.imuEngine, STATE_ROWS, IMUMEAS_ROWS);
-	err |= kalman_updateAlloc(&ekf_common.baroEngine, STATE_ROWS, BAROMEAS_ROWS);
+	err |= kalman_predictAlloc(&ekf_common.stateEngine, STATE_LENGTH, CTRL_LENGTH);
+	err |= kalman_updateAlloc(&ekf_common.imuEngine, STATE_LENGTH, MEAS_IMU_LENGTH);
 
 	if (err != 0) {
 		sensc_deinit();
@@ -113,7 +112,6 @@ int ekf_init(void)
 
 		kalman_predictDealloc(&ekf_common.stateEngine);
 		kalman_updateDealloc(&ekf_common.imuEngine);
-		kalman_updateDealloc(&ekf_common.baroEngine);
 
 		return -1;
 	}
@@ -123,7 +121,6 @@ int ekf_init(void)
 
 	kmn_predInit(&ekf_common.stateEngine, meas_calibGet(), &ekf_common.initVals);
 	kmn_imuEngInit(&ekf_common.imuEngine, &ekf_common.initVals);
-	kmn_baroEngInit(&ekf_common.baroEngine, &ekf_common.initVals);
 
 	return 0;
 }
@@ -143,7 +140,7 @@ static time_t ekf_dtGet(void)
 
 static void ekf_thread(void *arg)
 {
-	time_t timeStep, lastBaro;
+	time_t timeStep;
 
 	printf("ekf: starting ekf thread\n");
 
@@ -151,7 +148,6 @@ static void ekf_thread(void *arg)
 
 	/* Kalman loop */
 	gettime(&ekf_common.lastTime, NULL);
-	lastBaro = ekf_common.lastTime;
 
 	while (ekf_common.run == 1) {
 		usleep(1000);
@@ -162,27 +158,20 @@ static void ekf_thread(void *arg)
 
 		/* TODO: make critical section smaller and only on accesses to state and cov matrices */
 		mutexLock(ekf_common.lock);
-		if (ekf_common.currTime - lastBaro > BARO_UPDATE_PERIOD) {
-			/* Perform barometer update step if 'BARO_UPDATE_PERIOD' time has passed since last such update */
-			kalman_update(ekf_common.currTime - lastBaro, 0, &ekf_common.baroEngine, &ekf_common.stateEngine);
-			lastBaro = ekf_common.currTime;
-		}
-		else {
-			kalman_update(timeStep, 0, &ekf_common.imuEngine, &ekf_common.stateEngine); /* imu measurements update procedure */
-		}
+		kalman_update(timeStep, 0, &ekf_common.imuEngine, &ekf_common.stateEngine); /* imu measurements update procedure */
 		mutexUnlock(ekf_common.lock);
 
 		ekflog_write(
 			EKFLOG_EKF_IMU,
 			"EI %lli %.3f %.3f %.3f %.3f %.3f %.3f %.3f\n",
 			ekf_common.currTime,
-			*matrix_at(&ekf_common.stateEngine.state, IAX, 0),
-			*matrix_at(&ekf_common.stateEngine.state, IAY, 0),
-			*matrix_at(&ekf_common.stateEngine.state, IAZ, 0),
-			*matrix_at(&ekf_common.stateEngine.state, IWX, 0),
-			*matrix_at(&ekf_common.stateEngine.state, IWY, 0),
-			*matrix_at(&ekf_common.stateEngine.state, IWZ, 0),
-			*matrix_at(&ekf_common.stateEngine.state, IBAZ, 0));
+			*matrix_at(&ekf_common.stateEngine.state, QA, 0),
+			*matrix_at(&ekf_common.stateEngine.state, QB, 0),
+			*matrix_at(&ekf_common.stateEngine.state, QC, 0),
+			*matrix_at(&ekf_common.stateEngine.state, QD, 0),
+			*matrix_at(&ekf_common.stateEngine.state, BWX, 0),
+			*matrix_at(&ekf_common.stateEngine.state, BWY, 0),
+			*matrix_at(&ekf_common.stateEngine.state, BWZ, 0));
 	}
 
 	ekf_common.run = -1;
@@ -221,7 +210,6 @@ void ekf_done(void)
 {
 	kalman_predictDealloc(&ekf_common.stateEngine);
 	kalman_updateDealloc(&ekf_common.imuEngine);
-	kalman_updateDealloc(&ekf_common.baroEngine);
 
 	sensc_deinit();
 	ekflog_done();
@@ -240,45 +228,35 @@ void ekf_boundsGet(float *bYaw, float *bRoll, float *bPitch)
 void ekf_stateGet(ekf_state_t *ekfState)
 {
 	quat_t q;
-	vec_t angRates = { 0 }; /* (rollDot, pitchDot, yawDot) */
-
 	mutexLock(ekf_common.lock);
 
 	/* save quaternion attitude */
-	q.a = ekfState->q0 = ekf_common.stateEngine.state.data[IQA];
-	q.i = ekfState->q1 = ekf_common.stateEngine.state.data[IQB];
-	q.j = ekfState->q2 = ekf_common.stateEngine.state.data[IQC];
-	q.k = ekfState->q3 = ekf_common.stateEngine.state.data[IQD];
+	q.a = ekfState->q0 = ekf_common.stateEngine.state.data[QA];
+	q.i = ekfState->q1 = ekf_common.stateEngine.state.data[QB];
+	q.j = ekfState->q2 = ekf_common.stateEngine.state.data[QC];
+	q.k = ekfState->q3 = ekf_common.stateEngine.state.data[QD];
 
 	/* save newtonian motion parameters with frame change from NED to ENU */
-	ekfState->enuX = ekf_common.stateEngine.state.data[IXY];
-	ekfState->enuY = ekf_common.stateEngine.state.data[IXX];
-	ekfState->enuZ = -ekf_common.stateEngine.state.data[IXZ];
+	ekfState->enuX = 0;
+	ekfState->enuY = 0;
+	ekfState->enuZ = 0;
 
-	ekfState->veloX = ekf_common.stateEngine.state.data[IVY];
-	ekfState->veloY = ekf_common.stateEngine.state.data[IVX];
-	ekfState->veloZ = -ekf_common.stateEngine.state.data[IVZ];
+	ekfState->veloX = 0;
+	ekfState->veloY = 0;
+	ekfState->veloZ = 0;
 
-	ekfState->accelX = ekf_common.stateEngine.state.data[IAY];
-	ekfState->accelY = ekf_common.stateEngine.state.data[IAX];
-	ekfState->accelZ = -ekf_common.stateEngine.state.data[IAZ];
+	ekfState->accelX = 0;
+	ekfState->accelY = 0;
+	ekfState->accelZ = 0;
 
-	/* Save position quaternion */
-	angRates.x = ekf_common.stateEngine.state.data[IWX];
-	angRates.y = ekf_common.stateEngine.state.data[IWY];
-	angRates.z = ekf_common.stateEngine.state.data[IWZ];
+	ekfState->rollDot = ekf_common.stateEngine.U.data[UWX] - ekf_common.stateEngine.state.data[BWX];
+	ekfState->pitchDot = ekf_common.stateEngine.U.data[UWY] - ekf_common.stateEngine.state.data[BWY];
+	ekfState->yawDot = ekf_common.stateEngine.U.data[UWZ] - ekf_common.stateEngine.state.data[BWZ];
 
-	ekfState->accelBiasZ = ekf_common.stateEngine.state.data[IBAZ];
+	ekfState->accelBiasZ = 0;
 
 	mutexUnlock(ekf_common.lock);
 
 	/* calculate and save euler attitude */
 	quat_quat2euler(&q, &ekfState->roll, &ekfState->pitch, &ekfState->yaw);
-
-	/* rotate angular rates back to UAV frame of reference */
-	quat_cjg(&q);
-	quat_vecRot(&angRates, &q);
-	ekfState->rollDot = angRates.x;
-	ekfState->pitchDot = angRates.y;
-	ekfState->yawDot = angRates.z;
 }
