@@ -241,13 +241,13 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	ekfState->enuY = 0;
 	ekfState->enuZ = 0;
 
-	ekfState->veloX = 0;
-	ekfState->veloY = 0;
-	ekfState->veloZ = 0;
+	ekfState->veloX = kmn_vecAt(&ekf_common.stateEngine.state, VX);
+	ekfState->veloY = kmn_vecAt(&ekf_common.stateEngine.state, VY);
+	ekfState->veloZ = kmn_vecAt(&ekf_common.stateEngine.state, VZ);
 
-	ekfState->accelX = 0;
-	ekfState->accelY = 0;
-	ekfState->accelZ = 0;
+	ekfState->accelX = kmn_vecAt(&ekf_common.stateEngine.U, UAX);
+	ekfState->accelY = kmn_vecAt(&ekf_common.stateEngine.U, UAY);
+	ekfState->accelZ = kmn_vecAt(&ekf_common.stateEngine.U, UAZ);
 
 	ekfState->rollDot = ekf_common.stateEngine.U.data[UWX] - ekf_common.stateEngine.state.data[BWX];
 	ekfState->pitchDot = ekf_common.stateEngine.U.data[UWY] - ekf_common.stateEngine.state.data[BWY];

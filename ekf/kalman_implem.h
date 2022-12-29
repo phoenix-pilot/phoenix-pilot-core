@@ -36,9 +36,10 @@
 /* Kalman filter index defines */
 /* */
 
-#define STATE_LENGTH    13
-#define CTRL_LENGTH     6
-#define MEAS_IMU_LENGTH 9
+#define STATE_LENGTH     13
+#define CTRL_LENGTH      6
+#define MEAS_IMU_LENGTH  9
+#define MEAS_BARO_LENGTH 1
 
 /* STATE VECTOR */
 /* Attitude quaternion rotates vectors from body frame of reference to inertial frame of reference */
@@ -67,7 +68,7 @@
 #define UAY 4
 #define UAZ 5
 
-/* measurement vector indexes */
+/* IMU measurement vector indexes */
 #define MGX 0
 #define MGY 1
 #define MGZ 2
@@ -78,21 +79,30 @@
 #define MBWY 7 /* Measurement of gyroscope y axis bias (body frame of reference) */
 #define MBWZ 8 /* Measurement of gyroscope z axis bias (body frame of reference) */
 
+/* Baro measurement vector indexes */
+#define MDZ 0 /* Measurement of change in height (NED z component change) */
+
 
 /* IMPORTANT: must be kept in order with 'char * configNames' in 'kalman.inits.c' */
 typedef struct {
 	int verbose;
 	int log;
 
+	/* State covariance error initialization values */
 	float P_qerr;
 	float P_verr;
 	float P_baerr;
 	float P_bwerr;
 
+	/* IMU measurement model standard deviations */
 	float R_astdev;
 	float R_mstdev;
 	float R_bwstdev;
 
+	/* Baro measurement model standard deviations */
+	float R_dzstdev;
+
+	/* State process noise values */
 	float Q_astdev;
 	float Q_wstdev;
 	float Q_baDotstdev;
