@@ -87,6 +87,9 @@
 #define MDZ 0 /* Measurement of change in height (NED z component change) */
 #define MRZ 1 /* Measurement of vertical position (NED height) */
 
+/* Baro measurement vector indexes */
+#define MDZ 0 /* Measurement of change in height (NED z component change) */
+
 
 /* IMPORTANT: must be kept in order with 'char * configNames' in 'kalman.inits.c' */
 typedef struct {
