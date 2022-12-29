@@ -138,7 +138,7 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	vec_t aMeas = {.x = kmn_vecAt(U, UAX), .y = kmn_vecAt(U, UAY), .z = kmn_vecAt(U, UAZ)};
 
 	/* quaternionized angular rate and rotation quaternion estimates */
-	quat_t qEst, qtmp, qChange;
+	quat_t qEst, qtmp;
 	vec_t vEst;
 
 	const float dt = (float)timeStep / 1000000.f;
