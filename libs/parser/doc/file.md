@@ -59,13 +59,13 @@ Fields define all the properties of the nearest header, which is above the field
 
 The order of fields does not matter. Between fields connected with one header comments and empty lines are possible.
 
-Fields have to consist of two parts. The field name and value of this field. Between them, there should be at least one white space or `=` (both of them are also possible).
+Fields have to consist of two parts. The field name and value of this field. Between them, there should be at least one white space or single `=` (combinations with `=` and white spaces are also possible).
 
 ```
 [Filed name]( |=)[Value]
 ```
 
-The field name defines the kinds of value, which comes after it. Value stores data in form of a string, which during parsing can be converted to other data types. Syntax of fields allows using big and small letters, digits, `_` (underscore), `,` (comma) `-` (minus sign), `+` and `.` (dot). The maximum length of a field name is 16 characters and for a value, it is 64 characters.
+The field name defines the kinds of value, which comes after it. Value stores data in form of a string, which during parsing can be converted to other data types. Syntax of fields allows using big and small letters, digits, underscores (`_`) for names and additionally commas (`,`), minus signs (`-`), plus signs (`+`) as well as dots (`.`) for values. The maximum length of a field name is 16 characters and for a value, it is 64 characters.
 
 After value, it is possible to add a comment.
 
