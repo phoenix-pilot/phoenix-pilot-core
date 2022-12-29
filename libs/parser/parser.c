@@ -16,11 +16,10 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #include "parser.h"
 
-
-#define WORD "[A-Za-z0-9_.,-\\+]"
 
 /*
  * Patterns for regex expressions
@@ -31,13 +30,14 @@
  *
  * Especially be aware of `regmatch_t` structures.
  */
-#define HEADER_PATTERN        "^[[:space:]]*@(" WORD "+)[[:space:]]*(#.*)?[[:space:]]*$"
+#define WORD "([A-Za-z0-9_]+)"
+
+#define HEADER_PATTERN        "^[[:space:]]*@" WORD "[[:space:]]*(#.*)?$"
 #define HEADER_SUBEXPRESSIONS 2
 
-#define FIELD_PATTERN        "^[[:space:]]*(" WORD "+)[ =]+(" WORD "+)([[:space:]]+#.*)?[[:space:]]*$"
-#define FIELD_SUBEXPRESSIONS 3
-
-#define COMMENT_PATTERN "^[[:space:]]*#.*$|^[[:space:]]*$"
+#define FIELD_VALUE          "([A-Za-z0-9_,.+-]+)"
+#define FIELD_PATTERN        "^[[:space:]]*" WORD "( +| *= *)" FIELD_VALUE "[[:space:]]*(#.*)?$"
+#define FIELD_SUBEXPRESSIONS 4
 
 
 /* Static variables */
@@ -46,7 +46,7 @@ struct {
 
 	regex_t headerRegex;
 	regex_t fieldRegex;
-	regex_t commentRegex;
+	regex_t headerNameRegex;
 } parser_common;
 
 
@@ -74,7 +74,10 @@ struct parser_t {
 };
 
 
-enum parser_lineType { type_Header, type_Field, type_Comment, type_InvalidLine };
+enum parser_lineType { type_Header,
+	type_Field,
+	type_Comment,
+	type_InvalidLine };
 
 
 parser_t *parser_alloc(int maxHeadersNb, int maxFieldsNb)
@@ -161,12 +164,28 @@ void parser_free(parser_t *p)
 }
 
 
+/* Returns 0 if headerName contains valid name for a header. In other case returns -1 */
+static int parser_headerNameCheck(const char *headerName)
+{
+	if (regexec(&parser_common.headerNameRegex, headerName, 0, NULL, 0) == 0) {
+		return 0;
+	}
+
+	return -1;
+}
+
+
 int parser_headerAdd(parser_t *p, const char *headerName, int (*converter)(const hmap_t *))
 {
 	unsigned int id;
 
 	if (p == NULL || headerName == NULL || converter == NULL) {
 		fprintf(stderr, "%s: invalid arguments\n", __FUNCTION__);
+		return -1;
+	}
+
+	if (parser_headerNameCheck(headerName) != 0) {
+		fprintf(stderr, "%s: invalid header name\n", __FUNCTION__);
 		return -1;
 	}
 
@@ -198,18 +217,23 @@ int parser_headerAdd(parser_t *p, const char *headerName, int (*converter)(const
 
 
 /* Returns a type of line from file */
-enum parser_lineType parser_lineTypeGet(char *line)
+static enum parser_lineType parser_lineTypeGet(const char *line)
 {
 	enum parser_lineType result = type_InvalidLine;
 
-	if (regexec(&parser_common.fieldRegex, line, 0, NULL, 0) == 0) {
-		result = type_Field;
+	const char *s = line;
+	while (isspace(*s)) {
+		s++;
 	}
-	else if (regexec(&parser_common.commentRegex, line, 0, NULL, 0) == 0) {
+
+	if (*s == '\0' || *s == '#') {
 		result = type_Comment;
 	}
-	else if (regexec(&parser_common.headerRegex, line, 0, NULL, 0) == 0) {
+	else if (*s == '@') {
 		result = type_Header;
+	}
+	else if (isalnum(*s) || *s == '_') {
+		result = type_Field;
 	}
 
 	return result;
@@ -246,11 +270,11 @@ static int parser_fieldGet(char *line, parser_field_t *result)
 
 	if (regexec(&parser_common.fieldRegex, line, FIELD_SUBEXPRESSIONS, regmatch, 0) == 0) {
 		fieldLen = regmatch[1].rm_eo - regmatch[1].rm_so;
-		valueLen = regmatch[2].rm_eo - regmatch[2].rm_so;
+		valueLen = regmatch[3].rm_eo - regmatch[3].rm_so;
 
 		if (fieldLen <= MAX_FIELD_LEN && valueLen <= MAX_VALUE_LEN) {
 			strncpy(result->field, &line[regmatch[1].rm_so], fieldLen);
-			strncpy(result->value, &line[regmatch[2].rm_so], valueLen);
+			strncpy(result->value, &line[regmatch[3].rm_so], valueLen);
 
 			result->field[fieldLen] = '\0';
 			result->value[valueLen] = '\0';
@@ -399,20 +423,20 @@ void parser_clear(parser_t *p)
 
 __attribute__((constructor)) static void parser_compileRegex(void)
 {
-	if (regcomp(&parser_common.commentRegex, COMMENT_PATTERN, REG_EXTENDED) != 0) {
-		parser_common.regexCompErr = -1;
-		return;
-	}
-
 	if (regcomp(&parser_common.fieldRegex, FIELD_PATTERN, REG_EXTENDED) != 0) {
-		regfree(&parser_common.commentRegex);
 		parser_common.regexCompErr = -1;
 		return;
 	}
 
 	if (regcomp(&parser_common.headerRegex, HEADER_PATTERN, REG_EXTENDED) != 0) {
-		regfree(&parser_common.commentRegex);
 		regfree(&parser_common.fieldRegex);
+		parser_common.regexCompErr = -1;
+		return;
+	}
+
+	if (regcomp(&parser_common.headerNameRegex, "^" WORD "$", REG_EXTENDED) != 0) {
+		regfree(&parser_common.fieldRegex);
+		regfree(&parser_common.headerRegex);
 		parser_common.regexCompErr = -1;
 		return;
 	}
@@ -422,8 +446,8 @@ __attribute__((constructor)) static void parser_compileRegex(void)
 __attribute__((destructor)) static void parser_regexFree(void)
 {
 	if (parser_common.regexCompErr == 0) {
-		regfree(&parser_common.commentRegex);
 		regfree(&parser_common.fieldRegex);
 		regfree(&parser_common.headerRegex);
+		regfree(&parser_common.headerNameRegex);
 	}
 }
