@@ -293,6 +293,7 @@ void meas_imuCalib(void)
 
 	meas_common.calib.imu.gyroBias = gyrAvg; /* save gyro drift parameters */
 	meas_common.calib.imu.initMag = magAvg;  /* save initial magnetometer reading */
+	meas_common.calib.imu.initAcc = accAvg;
 
 	/* calculate initial rotation */
 	vec_normalize(&accAvg);

@@ -42,6 +42,7 @@ typedef struct {
 		quat_t initQuat; /* starting position quaternion */
 		vec_t initMag;   /* starting magnetic field */
 		vec_t gyroBias;  /* starting gyro bias */
+		vec_t initAcc;   /* Accelerometer G length measured */
 	} imu;
 
 	struct {
