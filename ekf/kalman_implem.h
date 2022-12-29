@@ -36,8 +36,8 @@
 /* Kalman filter index defines */
 /* */
 
-#define STATE_LENGTH    7
-#define CTRL_LENGTH     3
+#define STATE_LENGTH    13
+#define CTRL_LENGTH     6
 #define MEAS_IMU_LENGTH 9
 
 /* STATE VECTOR */
@@ -50,11 +50,22 @@
 #define BWX 4 /* gyroscope x axis bias */
 #define BWY 5 /* gyroscope y axis bias */
 #define BWZ 6 /* gyroscope z axis bias */
+/* Velocity in inertial frame of reference */
+#define VX 7 /* velocity x component */
+#define VY 8 /* velocity y component */
+#define VZ 9 /* velocity z component */
+/* Accelerometer body frame biases describes acceleration offsets in flight */
+#define BAX 10 /* accelerometer x axis bias */
+#define BAY 11 /* accelerometer y axis bias */
+#define BAZ 12 /* accelerometer z axis bias */
 
 /* control vector u */
 #define UWX 0
 #define UWY 1
 #define UWZ 2
+#define UAX 3
+#define UAY 4
+#define UAZ 5
 
 /* measurement vector indexes */
 #define MGX 0
@@ -68,20 +79,23 @@
 #define MBWZ 8 /* Measurement of gyroscope z axis bias (body frame of reference) */
 
 
-
 /* IMPORTANT: must be kept in order with 'char * configNames' in 'kalman.inits.c' */
 typedef struct {
 	int verbose;
 	int log;
 
 	float P_qerr;
+	float P_verr;
+	float P_baerr;
 	float P_bwerr;
 
 	float R_astdev;
 	float R_mstdev;
 	float R_bwstdev;
 
+	float Q_astdev;
 	float Q_wstdev;
+	float Q_baDotstdev;
 	float Q_bwDotstdev;
 } kalman_init_t;
 
