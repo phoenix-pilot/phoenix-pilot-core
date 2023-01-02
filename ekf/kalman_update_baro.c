@@ -24,13 +24,11 @@
 #include <sys/msg.h>
 
 #include "kalman_implem.h"
+#include "filters.h"
 
 #include <vec.h>
 #include <quat.h>
 #include <matrix.h>
-
-
-enum baroDimension { value = 0, dtime = 1 };
 
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
@@ -38,8 +36,9 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 {
 	static uint64_t lastTstamp = 0;
 	static float lastAlt = 0;
+	static float lpfAltChange = 0;
 
-	float pressure, temp;
+	float pressure, temp, alt;
 	uint64_t currTstamp;
 
 	/* if there is no pressure measurement available return NULL */
@@ -51,12 +50,14 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 		return NULL;
 	}
 
-	/* Make measurements negative to account for NED <-> ENU frame conversion */
-	Z->data[IMBXZ] = -8453.669 * log(meas_calibPressGet() / pressure); /* Calculate barometric height */
-	Z->data[IMBVZ] = -(XZ - lastAlt) / ((float)timeStep / 1000000.f);  /* Calculate derivative of barometric height */
+	/* Make measurements negative to account for NED frame convention */
+	alt = -8453.669 * log(meas_calibPressGet() / pressure);
+	lpfAltChange = (alt - lastAlt);
+	fltr_vBaroLpf(&lpfAltChange);
 
-	/* Update filter/derivative variables */
-	lastAlt = XZ;
+	Z->data[MDZ] = lpfAltChange;
+
+	lastAlt = alt;
 
 	return Z;
 }
@@ -64,12 +65,13 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 
 static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, time_t timestep)
 {
-	matrix_t *state = state_est; /* aliasing for macros usage */
+	const float dt = (float)timestep / 1000000.f;
 
-	matrix_zeroes(hx);
+	vec_t deltaR = { .x = kmn_vecAt(state_est, VX), .y = kmn_vecAt(state_est, VY), .z = kmn_vecAt(state_est, VZ) };
 
-	hx->data[IMBXZ] = XZ;
-	hx->data[IMBVZ] = VZ;
+	vec_times(&deltaR, dt);
+
+	hx->data[MDZ] = deltaR.z;
 
 	return hx;
 }
@@ -77,16 +79,20 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 
 static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_t timeStep)
 {
-	H->data[H->cols * IMBXZ + IXZ] = 1;
-	H->data[H->cols * IMBVZ + IVZ] = 1;
+	const float dt = (float)timeStep / 1000000.f;
+
+	matrix_zeroes(H);
+
+	/* d(dz)/d(v) calculations */
+	*matrix_at(H, MDZ, VZ) = dt;
 }
 
 
 /* initialization function for barometer update step matrices values */
 static void baroUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_init_t *inits)
 {
-	R->data[R->cols * IMBXZ + IMBXZ] = inits->R_xzcov;
-	R->data[R->cols * IMBVZ + IMBVZ] = inits->R_vzcov;
+	matrix_zeroes(R);
+	*matrix_at(R, MDZ, MDZ) = inits->R_dzstdev * inits->R_dzstdev;
 }
 
 
