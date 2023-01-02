@@ -23,7 +23,7 @@
 #include <quat.h>
 
 
-enum printMode { prntVersor, prntAtt, printAcc };
+enum printMode { prntVersor, prntAtt, printAcc, silent };
 
 
 static void printUavVersors(ekf_state_t *uavState)
@@ -68,6 +68,9 @@ int main(int argc, char **argv)
 	if (atoi(argv[1]) == 2) {
 		mode = printAcc;
 	}
+	if (atoi(argv[1]) == 3) {
+		mode = silent;
+	}
 
 	if (ekf_init() == 0) {
 		ekf_run();
@@ -86,6 +89,7 @@ int main(int argc, char **argv)
 		if (mode == printAcc) {
 			printUavAcc(&uavState);
 		}
+		/* Mode = silent do not invoke any printing function */
 	}
 
 	ekf_done();
