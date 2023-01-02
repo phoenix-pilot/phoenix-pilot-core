@@ -75,6 +75,7 @@ int ekf_init(void)
 	err = 0;
 	err |= kalman_predictAlloc(&ekf_common.stateEngine, STATE_LENGTH, CTRL_LENGTH);
 	err |= kalman_updateAlloc(&ekf_common.imuEngine, STATE_LENGTH, MEAS_IMU_LENGTH);
+	err |= kalman_updateAlloc(&ekf_common.baroEngine, STATE_LENGTH, MEAS_BARO_LENGTH);
 
 	if (err != 0) {
 		sensc_deinit();
@@ -112,6 +113,7 @@ int ekf_init(void)
 
 		kalman_predictDealloc(&ekf_common.stateEngine);
 		kalman_updateDealloc(&ekf_common.imuEngine);
+		kalman_updateDealloc(&ekf_common.baroEngine);
 
 		return -1;
 	}
@@ -121,6 +123,7 @@ int ekf_init(void)
 
 	kmn_predInit(&ekf_common.stateEngine, meas_calibGet(), &ekf_common.initVals);
 	kmn_imuEngInit(&ekf_common.imuEngine, &ekf_common.initVals);
+	kmn_baroEngInit(&ekf_common.baroEngine, &ekf_common.initVals);
 
 	return 0;
 }
@@ -140,7 +143,9 @@ static time_t ekf_dtGet(void)
 
 static void ekf_thread(void *arg)
 {
+	static time_t lastBaroUpdate = 0;
 	time_t timeStep;
+	update_engine_t *currUpdate;
 
 	printf("ekf: starting ekf thread\n");
 
@@ -149,6 +154,8 @@ static void ekf_thread(void *arg)
 	/* Kalman loop */
 	gettime(&ekf_common.lastTime, NULL);
 
+	lastBaroUpdate = ekf_common.lastTime;
+
 	while (ekf_common.run == 1) {
 		usleep(1000);
 		timeStep = ekf_dtGet();
@@ -156,9 +163,19 @@ static void ekf_thread(void *arg)
 		/* state prediction procedure */
 		kalman_predict(&ekf_common.stateEngine, timeStep, 0);
 
+		/* Select current update engine and adjust timestep if necessary */
+		if (ekf_common.currTime - lastBaroUpdate > BARO_UPDATE_TIMEOUT) {
+			currUpdate = &ekf_common.baroEngine;
+			timeStep = ekf_common.currTime - lastBaroUpdate;
+			lastBaroUpdate = ekf_common.currTime;
+		}
+		else {
+			currUpdate = &ekf_common.imuEngine;
+		}
+
 		/* TODO: make critical section smaller and only on accesses to state and cov matrices */
 		mutexLock(ekf_common.lock);
-		kalman_update(timeStep, 0, &ekf_common.imuEngine, &ekf_common.stateEngine); /* imu measurements update procedure */
+		kalman_update(timeStep, 0, currUpdate, &ekf_common.stateEngine); /* baro measurements update procedure */
 		mutexUnlock(ekf_common.lock);
 
 		ekflog_write(

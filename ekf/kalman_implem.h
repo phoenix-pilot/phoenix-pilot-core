@@ -32,6 +32,8 @@
 
 #define DEG2RAD 0.0174532925
 
+#define BARO_UPDATE_TIMEOUT 40000
+
 /* */
 /* Kalman filter index defines */
 /* */
