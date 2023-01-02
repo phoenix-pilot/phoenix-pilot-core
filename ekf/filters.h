@@ -22,4 +22,8 @@
 /* Filters accelerometer signal using windowed-sinc FIR filter. Passing null clears the buffer. Thread unsafe! */
 void fltr_accLpf(vec_t *raw);
 
+/* Filters barometer speed signal using windowed-sinc FIR filter. Passing null clears the buffer. Thread unsafe! */
+void fltr_vBaroLpf(float *raw);
+
+
 #endif

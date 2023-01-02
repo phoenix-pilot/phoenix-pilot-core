@@ -100,6 +100,47 @@ static const float fltr_accWindow[FLTR_ACCEL_LEN] = {
 };
 
 
+/*
+* Barometer speed data is passed through windowed-sinc FIR filter of following parameters:
+ - Cutoff frequency: 1Hz
+ - Transition bandwidth: 1Hz
+ - Window type: Keiser
+ - Stopband attenuation: -21 dB
+ - window length: 25
+
+ Source: https://fiiir.com/
+*/
+#define FLTR_VBARO_LEN 25
+
+static const float fltr_vBaroWindow[FLTR_VBARO_LEN] = {
+	0.002818592054366249,
+	0.009031280354472482,
+	0.015862290899262995,
+	0.023103874815533786,
+	0.030522690608008492,
+	0.037869336163470380,
+	0.044888815628454863,
+	0.051331451628891314,
+	0.056963725767400129,
+	0.061578528814388821,
+	0.065004326755273401,
+	0.067112798739478188,
+	0.067824575541997806,
+	0.067112798739478188,
+	0.065004326755273401,
+	0.061578528814388821,
+	0.056963725767400129,
+	0.051331451628891314,
+	0.044888815628454863,
+	0.037869336163470380,
+	0.030522690608008492,
+	0.023103874815533786,
+	0.015862290899262995,
+	0.009031280354472482,
+	0.002818592054366249
+};
+
+
 static void fltr_windowVec(vec_t *raw, vec_t *buf, int *bufPos, const float *window, int windowLen)
 {
 	vec_t part, full = { 0 };
@@ -135,10 +176,54 @@ static void fltr_windowVec(vec_t *raw, vec_t *buf, int *bufPos, const float *win
 }
 
 
+static void fltr_windowScl(float *raw, float *buf, int *bufPos, const float *window, int windowLen)
+{
+	float part, full = 0;
+	int i, j;
+
+	if (raw == NULL) {
+		for (i = 0; i < windowLen; i++) {
+			buf[i] = 0;
+		}
+		return;
+	}
+
+	buf[*bufPos] = *raw;
+
+	for (i = 0; i < windowLen; i++) {
+		j = (*bufPos) - i;
+		if (j < 0) {
+			j += windowLen;
+		}
+
+		part = (i > *bufPos) ? buf[windowLen + *bufPos - i] : buf[(*bufPos) - i];
+		part *= window[windowLen - 1 - i];
+		full += part;
+	}
+
+	/* Cyclic increment */
+	*bufPos += 1;
+	if ((*bufPos) == windowLen) {
+		*bufPos = 0;
+	}
+
+	*raw = full;
+}
+
+
 void fltr_accLpf(vec_t *raw)
 {
 	static vec_t buf[FLTR_ACCEL_LEN] = { 0 };
 	static int bufPos = 0;
 
 	fltr_windowVec(raw, buf, &bufPos, fltr_accWindow, FLTR_ACCEL_LEN);
+}
+
+
+void fltr_vBaroLpf(float *raw)
+{
+	static float buf[FLTR_VBARO_LEN] = { 0 };
+	static int bufPos = 0;
+
+	fltr_windowScl(raw, buf, &bufPos, fltr_vBaroWindow, FLTR_VBARO_LEN);
 }
