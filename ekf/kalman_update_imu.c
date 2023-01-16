@@ -47,17 +47,10 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 
 	/* earth acceleration calculations */
 	vec_times(&accel, -1);                        /* earth acceleration is measured by accelerometer UPWARD, which in NED is negative */
-	accelSigma = fabs(vec_len(&accel) - EARTH_G); /* calculate current acceleration difference from gravity (to decide on EKF stationarity)*/
-
-	if (accelSigma < 2 * imu_common.inits->R_astdev) {
-		/*
-		* If we are within 2*stdev threshold (should occur 95% of times if stationary) use base standard deviation for measurement
-		* If beyond (2*sigma) treat measurement as with auxiliary acceleration and use its difference as uncertainty
-		*/
-		accelSigma = imu_common.inits->R_astdev;
-	}
-	accelSigma = accelSigma * accelSigma / EARTH_G * EARTH_G;
-	*matrix_at(R, MGX, MGX) = *matrix_at(R, MGY, MGY) = *matrix_at(R, MGZ, MGZ) = accelSigma;
+	accelSigma = imu_common.inits->R_astdev * imu_common.inits->R_astdev / EARTH_G * EARTH_G;
+	*matrix_at(R, MGX, MGX) = accelSigma;
+	*matrix_at(R, MGY, MGY) = accelSigma;
+	*matrix_at(R, MGZ, MGZ) = accelSigma;
 
 	/* east versor calculations */
 	vec_cross(&accel, &mag, &nedMeasE);
@@ -71,11 +64,6 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	Z->data[MEX] = nedMeasE.x;
 	Z->data[MEY] = nedMeasE.y;
 	Z->data[MEZ] = nedMeasE.z;
-
-	/* SIMPLIFICATION: prediction state uses constant value as gyro bias. Its safe to just pass current state value as measurement */
-	Z->data[MBWX] = state->data[BWX];
-	Z->data[MBWY] = state->data[BWY];
-	Z->data[MBWZ] = state->data[BWZ];
 
 	return Z;
 }
@@ -102,10 +90,6 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 	hx->data[MEX] = nedMeasE.x;
 	hx->data[MEY] = nedMeasE.y;
 	hx->data[MEZ] = nedMeasE.z;
-
-	hx->data[MBWX] = state_est->data[BWX];
-	hx->data[MBWY] = state_est->data[BWY];
-	hx->data[MBWZ] = state_est->data[BWZ];
 
 	return hx;
 }
@@ -145,8 +129,6 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 
 	matrix_writeSubmatrix(H, MGX, QA, &dgdq);
 	matrix_writeSubmatrix(H, MEX, QA, &dedq);
-	*matrix_at(H, MBWX, BWX) = *matrix_at(H, MBWY, BWY) = *matrix_at(H, MBWZ, BWZ) = 1;
-
 }
 
 
@@ -160,9 +142,6 @@ static void imuUpdateInitializations(matrix_t *H, matrix_t *R)
 
 	/* Noise terms of east versor measurement */
 	*matrix_at(R, MEX, MEX) = *matrix_at(R, MEY, MEY) = *matrix_at(R, MEZ, MEZ) = imu_common.inits->R_mstdev * imu_common.inits->R_mstdev / (EARTH_G * EARTH_G);
-
-	/* Noise terms of gyroscope bias measurement */
-	*matrix_at(R, MBWX, MBWX) = *matrix_at(R, MBWY, MBWY) = *matrix_at(R, MBWZ, MBWZ) = imu_common.inits->R_bwstdev * imu_common.inits->R_bwstdev;
 }
 
 
