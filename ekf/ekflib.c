@@ -146,6 +146,7 @@ static void ekf_thread(void *arg)
 	static time_t lastBaroUpdate = 0;
 	time_t timeStep;
 	update_engine_t *currUpdate;
+	int i = 0;
 
 	printf("ekf: starting ekf thread\n");
 
@@ -178,17 +179,19 @@ static void ekf_thread(void *arg)
 		kalman_update(timeStep, 0, currUpdate, &ekf_common.stateEngine); /* baro measurements update procedure */
 		mutexUnlock(ekf_common.lock);
 
-		ekflog_write(
-			EKFLOG_EKF_IMU,
-			"EI %lli %.3f %.3f %.3f %.3f %.3f %.3f %.3f\n",
-			ekf_common.currTime,
-			*matrix_at(&ekf_common.stateEngine.state, QA, 0),
-			*matrix_at(&ekf_common.stateEngine.state, QB, 0),
-			*matrix_at(&ekf_common.stateEngine.state, QC, 0),
-			*matrix_at(&ekf_common.stateEngine.state, QD, 0),
-			*matrix_at(&ekf_common.stateEngine.state, BWX, 0),
-			*matrix_at(&ekf_common.stateEngine.state, BWY, 0),
-			*matrix_at(&ekf_common.stateEngine.state, BWZ, 0));
+		if (i++ > 10) {
+			ekflog_write(
+				EKFLOG_EKF_IMU,
+				"%lli %.3f %.3f %.3f %.3f %.3f %.3f\n",
+				ekf_common.currTime,
+				kmn_vecAt(&ekf_common.stateEngine.U, UWX),
+				kmn_vecAt(&ekf_common.stateEngine.U, UWY),
+				kmn_vecAt(&ekf_common.stateEngine.U, UWZ),
+				*matrix_at(&ekf_common.stateEngine.state, BWX, 0) * 1000,
+				*matrix_at(&ekf_common.stateEngine.state, BWY, 0) * 1000,
+				*matrix_at(&ekf_common.stateEngine.state, BWZ, 0) * 1000);
+			i = 0;
+		}
 	}
 
 	ekf_common.run = -1;
@@ -254,13 +257,13 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	q.k = ekfState->q3 = ekf_common.stateEngine.state.data[QD];
 
 	/* save newtonian motion parameters with frame change from NED to ENU */
-	ekfState->enuX = 0;
-	ekfState->enuY = 0;
-	ekfState->enuZ = 0;
+	ekfState->enuX = kmn_vecAt(&ekf_common.stateEngine.state, RY);
+	ekfState->enuY = kmn_vecAt(&ekf_common.stateEngine.state, RX);
+	ekfState->enuZ = -kmn_vecAt(&ekf_common.stateEngine.state, RZ);
 
-	ekfState->veloX = kmn_vecAt(&ekf_common.stateEngine.state, VX);
-	ekfState->veloY = kmn_vecAt(&ekf_common.stateEngine.state, VY);
-	ekfState->veloZ = kmn_vecAt(&ekf_common.stateEngine.state, VZ);
+	ekfState->veloX = kmn_vecAt(&ekf_common.stateEngine.state, VY);
+	ekfState->veloY = kmn_vecAt(&ekf_common.stateEngine.state, VX);
+	ekfState->veloZ = -kmn_vecAt(&ekf_common.stateEngine.state, VZ);
 
 	ekfState->accelX = kmn_vecAt(&ekf_common.stateEngine.U, UAX);
 	ekfState->accelY = kmn_vecAt(&ekf_common.stateEngine.U, UAY);
