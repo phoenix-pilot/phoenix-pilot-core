@@ -45,12 +45,13 @@ static const kalman_init_t initTemplate = {
 	.P_verr = 1,
 	.P_baerr = 1,
 	.P_bwerr = 1,
+	.P_rerr = 1,
 
 	.R_astdev = 0.1,     /* standard deviation of accelerometer reading in m/s */
 	.R_mstdev = 1,       /* standard deviation of magnetometer reading in milligauss */
 	.R_bwstdev = 0.0001, /* standard deviation of gyroscope bias estimation in radians */
 
-	.R_dzstdev = 0.02, /* standard deviation of change in height in meters */
+	.R_hstdev = 0.02, /* standard deviation of change in height in meters */
 
 	.Q_astdev = 1, /* 1m/s^2 process noise of velocity */
 	.Q_wstdev = 0.9,
@@ -62,9 +63,9 @@ static const kalman_init_t initTemplate = {
 /* NOTE: must be kept in the same order as 'init_values' */
 static const char *configNames[] = {
 	"verbose", "log",
-	"P_qerr", "P_verr", "P_baerr", "P_bwerr",
+	"P_qerr", "P_verr", "P_baerr", "P_bwerr", "P_rerr",
 	"R_astdev", "R_mstdev", "R_bwstdev",
-	"R_dzstdev",
+	"R_hstdev",
 	"Q_astdev", "Q_wstdev", "Q_baDotstdev", "Q_bwDotstdev"
 };
 
@@ -137,7 +138,7 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	vec_t aMeas = {.x = kmn_vecAt(U, UAX), .y = kmn_vecAt(U, UAY), .z = kmn_vecAt(U, UAZ)};
 
 	/* quaternionized angular rate and rotation quaternion estimates */
-	quat_t qEst, qtmp;
+	quat_t qEst, qtmp, qChange;
 	vec_t vEst;
 
 	const float dt = (float)timeStep / 1000000.f;
@@ -155,9 +156,9 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	*matrix_at(state_est, QD, 0) = qEst.k;
 
 	/* gyroscope bias estimation: SIMPLIFICATION: we use constant value as prediction */
-	*matrix_at(state_est, BWX, 0) = pred_common.gyroBiasBypass.x;
-	*matrix_at(state_est, BWY, 0) = pred_common.gyroBiasBypass.y;
-	*matrix_at(state_est, BWZ, 0) = pred_common.gyroBiasBypass.z;
+	*matrix_at(state_est, BWX, 0) = kmn_vecAt(state, BWX);
+	*matrix_at(state_est, BWY, 0) = kmn_vecAt(state, BWY);
+	*matrix_at(state_est, BWZ, 0) = kmn_vecAt(state, BWZ);
 
 	/* velocity estimation */
 	vec_dif(&aMeas, &baState, &vEst);
@@ -174,6 +175,11 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	*matrix_at(state_est, BAX, 0) = 0;
 	*matrix_at(state_est, BAY, 0) = 0;
 	*matrix_at(state_est, BAZ, 0) = 0;
+
+	/* position estimation */
+	*matrix_at(state_est, RX, 0) = 0;
+	*matrix_at(state_est, RY, 0) = 0;
+	*matrix_at(state_est, RZ, 0) = kmn_vecAt(state, RZ) + dt * vState.z;
 }
 
 /* Calculates cross product matrix for vector v so that when left-hand-multiplied by a vector p produces cross product (v x p).
@@ -298,7 +304,7 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeSt
 	const quat_t bwState = {.a = 0, .i = kmn_vecAt(state, BWX), .j = kmn_vecAt(state, BWY), .k = kmn_vecAt(state, BWZ)};
 	const vec_t baState = {.x = kmn_vecAt(state, BAX), .y = kmn_vecAt(state, BAY), .z = kmn_vecAt(state, BAZ)};
 	const quat_t wMeas = {.a = 0, .i = kmn_vecAt(U, UWX), .j = kmn_vecAt(U, UWY), .k = kmn_vecAt(U, UWZ)};
-	const vec_t aMeas = {.x = kmn_vecAt(U, VX), .y = kmn_vecAt(U, VY), .z = kmn_vecAt(U, VZ)};
+	const vec_t aMeas = {.x = kmn_vecAt(U, UAX), .y = kmn_vecAt(U, UAY), .z = kmn_vecAt(U, UAZ)};
 
 	const float dt = (float)timeStep / 1000000;
 
@@ -323,7 +329,7 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeSt
 	/* d(f_q)/d(q) calculations */
 	quat_dif(&wMeas, &bwState, &p);
 	quat_times(&p, dt / 2);
-	p.a += 1;
+	p.a = 1;
 	kmn_qpDiffQ(&p, &dfqdq);
 	/* d(f_q)/d(q) write into F */
 	matrix_writeSubmatrix(F, QA, QA, &dfqdq);
@@ -355,6 +361,11 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeSt
 
 	/* d(f_ba)/d(ba) calculations */
 	*matrix_at(F, BAX, BAX) = *matrix_at(F, BAY, BAY) = *matrix_at(F, BAZ, BAZ) = 1;
+
+	/* d(f_r)/d(r) and d(f_r)/d(v) */
+	*matrix_at(F, RX, RX) = *matrix_at(F, RY, RY), *matrix_at(F, RZ, RZ) = 1;
+	*matrix_at(F, RX, VX) = *matrix_at(F, RY, VY), *matrix_at(F, RZ, VZ) = dt;
+
 }
 
 
@@ -394,6 +405,9 @@ static void kmn_getNoiseQ(matrix_t *state, matrix_t *U, matrix_t *Q, time_t time
 
 	/* ACCEL BIAS PROCESS NOISE */
 	*matrix_at(Q, BWX, BWX) = *matrix_at(Q, BWY, BWY) = *matrix_at(Q, BWZ, BWZ) = pred_common.inits->Q_baDotstdev * pred_common.inits->Q_baDotstdev * dtSq;
+
+
+	*matrix_at(Q, RX, RX) = *matrix_at(Q, RY, RY), *matrix_at(Q, RZ, RZ) = (dtSq * pred_common.inits->Q_astdev) * (dtSq * pred_common.inits->Q_astdev);
 }
 
 
@@ -408,13 +422,17 @@ static void kmn_initState(matrix_t *state, const meas_calib_t *calib)
 	*matrix_at(state, VY, 0) = 0;
 	*matrix_at(state, VZ, 0) = 0;
 
-	*matrix_at(state, BWX, 0) = pred_common.gyroBiasBypass.x;
-	*matrix_at(state, BWY, 0) = pred_common.gyroBiasBypass.y;
-	*matrix_at(state, BWZ, 0) = pred_common.gyroBiasBypass.z;
+	*matrix_at(state, BWX, 0) = 0;
+	*matrix_at(state, BWY, 0) = 0;
+	*matrix_at(state, BWZ, 0) = 0;
 
 	*matrix_at(state, BAX, 0) = 0;
 	*matrix_at(state, BAY, 0) = 0;
 	*matrix_at(state, BAZ, 0) = 0;
+
+	*matrix_at(state, RX, 0) = 0;
+	*matrix_at(state, RY, 0) = 0;
+	*matrix_at(state, RZ, 0) = 0;
 }
 
 

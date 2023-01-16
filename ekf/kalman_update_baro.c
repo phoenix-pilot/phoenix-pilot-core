@@ -56,6 +56,7 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	fltr_vBaroLpf(&lpfAltChange);
 
 	Z->data[MDZ] = lpfAltChange;
+	Z->data[MRZ] = alt;
 
 	lastAlt = alt;
 
@@ -72,6 +73,7 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 	vec_times(&deltaR, dt);
 
 	hx->data[MDZ] = deltaR.z;
+	hx->data[MRZ] = kmn_vecAt(state_est, RZ);
 
 	return hx;
 }
@@ -85,6 +87,7 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 
 	/* d(dz)/d(v) calculations */
 	*matrix_at(H, MDZ, VZ) = dt;
+	*matrix_at(H, MRZ, RZ) = 1;
 }
 
 
@@ -92,7 +95,14 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 static void baroUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_init_t *inits)
 {
 	matrix_zeroes(R);
-	*matrix_at(R, MDZ, MDZ) = inits->R_dzstdev * inits->R_dzstdev;
+
+	/*
+	Its easy to prove that if we measure change of height using gaussian noised height measurement
+	then variance (standard deviation squared) of such height change is twice the squared height standard deviation.
+	*/
+	*matrix_at(R, MDZ, MDZ) = inits->R_hstdev * inits->R_hstdev * 2;
+
+	*matrix_at(R, MRZ, MRZ) = inits->R_hstdev * inits->R_hstdev;
 }
 
 
