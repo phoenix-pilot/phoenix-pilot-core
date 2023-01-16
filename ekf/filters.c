@@ -253,7 +253,3 @@ void fltr_gyroLpf(vec_t *raw)
 
 	fltr_windowVec(raw, buf, &bufPos, fltr_gyroWindow, FLTR_GYRO_LEN);
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> ekf: gyro low pass filter
