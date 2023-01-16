@@ -357,7 +357,7 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 	vec_sub(gyros, &meas_common.calib.imu.gyroBias);
 
 	fltr_accLpf(accels);
-	//fltr_gyrLpf(gyros);
+	fltr_gyroLpf(gyros);
 
 	ekflog_write(EKFLOG_MEAS, "MI %lld %.3f %.3f %.3f %.3f %.3f %.3f\n", *timestamp, accels->x, accels->y, accels->z, gyros->x, gyros->y, gyros->z);
 
