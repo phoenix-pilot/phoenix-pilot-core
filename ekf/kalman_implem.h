@@ -32,16 +32,16 @@
 
 #define DEG2RAD 0.0174532925
 
-#define BARO_UPDATE_TIMEOUT 40000
+#define BARO_UPDATE_TIMEOUT 4000000
 
 /* */
 /* Kalman filter index defines */
 /* */
 
-#define STATE_LENGTH     13
+#define STATE_LENGTH     16
 #define CTRL_LENGTH      6
-#define MEAS_IMU_LENGTH  9
-#define MEAS_BARO_LENGTH 1
+#define MEAS_IMU_LENGTH  6
+#define MEAS_BARO_LENGTH 2
 
 /* STATE VECTOR */
 /* Attitude quaternion rotates vectors from body frame of reference to inertial frame of reference */
@@ -61,6 +61,11 @@
 #define BAX 10 /* accelerometer x axis bias */
 #define BAY 11 /* accelerometer y axis bias */
 #define BAZ 12 /* accelerometer z axis bias */
+/* Position in inertial frame of reference (NED) */
+#define RX 13 /* position x component */
+#define RY 14 /* position y component */
+#define RZ 15 /* position z component */
+
 
 /* control vector u */
 #define UWX 0
@@ -77,12 +82,10 @@
 #define MEX 3
 #define MEY 4
 #define MEZ 5
-#define MBWX 6 /* Measurement of gyroscope x axis bias (body frame of reference) */
-#define MBWY 7 /* Measurement of gyroscope y axis bias (body frame of reference) */
-#define MBWZ 8 /* Measurement of gyroscope z axis bias (body frame of reference) */
 
 /* Baro measurement vector indexes */
 #define MDZ 0 /* Measurement of change in height (NED z component change) */
+#define MRZ 1 /* Measurement of vertical position (NED height) */
 
 
 /* IMPORTANT: must be kept in order with 'char * configNames' in 'kalman.inits.c' */
@@ -95,6 +98,7 @@ typedef struct {
 	float P_verr;
 	float P_baerr;
 	float P_bwerr;
+	float P_rerr;
 
 	/* IMU measurement model standard deviations */
 	float R_astdev;
@@ -102,7 +106,7 @@ typedef struct {
 	float R_bwstdev;
 
 	/* Baro measurement model standard deviations */
-	float R_dzstdev;
+	float R_hstdev;
 
 	/* State process noise values */
 	float Q_astdev;
