@@ -456,7 +456,6 @@ static int quad_manual(void)
 
 		/* Setup basic attitude */
 		quad_levelAtt(&att);
-		att.yaw = measure.yaw;
 
 		/* Read values necessary for safety and submode selection */
 		mutexLock(quad_common.rcbusLock);
