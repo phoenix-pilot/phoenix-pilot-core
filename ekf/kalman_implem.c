@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include <string.h>
 #include <time.h>
 
@@ -47,11 +48,11 @@ static const kalman_init_t initTemplate = {
 	.P_bwerr = 1,
 	.P_rerr = 1,
 
-	.R_astdev = 0.1,     /* standard deviation of accelerometer reading in m/s */
-	.R_mstdev = 1,       /* standard deviation of magnetometer reading in milligauss */
+	.R_astdev = 0.085,     /* standard deviation of accelerometer reading in m/s */
+	.R_mstdev = 0.5,       /* standard deviation of magnetometer reading in milligauss */
 	.R_bwstdev = 0.0001, /* standard deviation of gyroscope bias estimation in radians */
 
-	.R_hstdev = 0.02, /* standard deviation of change in height in meters */
+	.R_hstdev = 0.025, /* standard deviation of change in height in meters */
 
 	.Q_astdev = 1, /* 1m/s^2 process noise of velocity */
 	.Q_wstdev = 0.9,
@@ -133,6 +134,8 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	const vec_t vState = {.x = kmn_vecAt(state, VX), .y = kmn_vecAt(state, VY), .z = kmn_vecAt(state, VZ)};
 	const vec_t baState = {.x = kmn_vecAt(state, BAX), .y = kmn_vecAt(state, BAY), .z = kmn_vecAt(state, BAZ)};
 
+	static quat_t gyroBiasLpf = { 0 };
+
 	/* quaternionized angular rate from U vector */
 	quat_t wMeas = {.a = 0, .i = kmn_vecAt(U, UWX), .j = kmn_vecAt(U, UWY), .k = kmn_vecAt(U, UWZ)}; /* quaternionized vector */
 	vec_t aMeas = {.x = kmn_vecAt(U, UAX), .y = kmn_vecAt(U, UAY), .z = kmn_vecAt(U, UAZ)};
@@ -142,6 +145,17 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	vec_t vEst;
 
 	const float dt = (float)timeStep / 1000000.f;
+
+	/* update gyro bias lpf value. Gyro bias decreases when there are bad estimation conditions */
+	gyroBiasLpf.i *= GYRO_BIAS_IIR_FACTOR;
+	gyroBiasLpf.j *= GYRO_BIAS_IIR_FACTOR;
+	if (fabs(wMeas.i) > 0.05 && fabs(gyroBiasLpf.i) < 0.01) {
+		gyroBiasLpf.i += (1.f - GYRO_BIAS_IIR_FACTOR) * wMeas.i;
+	}
+	if (fabs(wMeas.j) > 0.05 && fabs(gyroBiasLpf.j) < 0.01) {
+		gyroBiasLpf.j += (1.f - GYRO_BIAS_IIR_FACTOR) * wMeas.j;
+	}
+	quat_sub(&wMeas, &gyroBiasLpf);
 
 	/* quaternion estimation: q = q * ( q_iden + h/2 * (wMeas - bw) ) */
 	quat_dif(&wMeas, &bwState, &qtmp);
@@ -303,6 +317,7 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeSt
 	const quat_t qState = {.a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD)};
 	const quat_t bwState = {.a = 0, .i = kmn_vecAt(state, BWX), .j = kmn_vecAt(state, BWY), .k = kmn_vecAt(state, BWZ)};
 	const vec_t baState = {.x = kmn_vecAt(state, BAX), .y = kmn_vecAt(state, BAY), .z = kmn_vecAt(state, BAZ)};
+
 	const quat_t wMeas = {.a = 0, .i = kmn_vecAt(U, UWX), .j = kmn_vecAt(U, UWY), .k = kmn_vecAt(U, UWZ)};
 	const vec_t aMeas = {.x = kmn_vecAt(U, UAX), .y = kmn_vecAt(U, UAY), .z = kmn_vecAt(U, UAZ)};
 
@@ -365,7 +380,6 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeSt
 	/* d(f_r)/d(r) and d(f_r)/d(v) */
 	*matrix_at(F, RX, RX) = *matrix_at(F, RY, RY), *matrix_at(F, RZ, RZ) = 1;
 	*matrix_at(F, RX, VX) = *matrix_at(F, RY, VY), *matrix_at(F, RZ, VZ) = dt;
-
 }
 
 
