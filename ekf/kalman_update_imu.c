@@ -40,7 +40,7 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 {
 	vec_t accel, gyro, mag, nedMeasE;
 	time_t timestamp;
-	float accelSigma;
+	float accelSigma, accLen;
 
 	/* Get current sensor readings */
 	meas_imuGet(&accel, &gyro, &mag, &timestamp);
@@ -48,6 +48,10 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	/* earth acceleration calculations */
 	vec_times(&accel, -1);                        /* earth acceleration is measured by accelerometer UPWARD, which in NED is negative */
 	accelSigma = imu_common.inits->R_astdev * imu_common.inits->R_astdev / EARTH_G * EARTH_G;
+
+	accLen = vec_len(&accel);
+	accelSigma *= 1 + (accLen - EARTH_G) * (accLen - EARTH_G);
+
 	*matrix_at(R, MGX, MGX) = accelSigma;
 	*matrix_at(R, MGY, MGY) = accelSigma;
 	*matrix_at(R, MGZ, MGZ) = accelSigma;
