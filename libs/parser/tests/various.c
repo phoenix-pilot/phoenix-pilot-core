@@ -25,6 +25,8 @@
 #define EXAMPLE_HEADER_NAME1      "struct1"
 #define EXAMPLE_HEADER_NAME2      "struct2"
 #define TEST_TOO_LONG_HEADER_NAME "too_long_header_to_define"
+#define INVALID_HEADER_NAME1      "STRUCT;1"
+#define INVALID_HEADER_NAME2      "STRUCT=1"
 
 /* Must be at least 2 */
 #define HEADER_NB 5
@@ -161,6 +163,13 @@ TEST(group_parser_headerAdd, parser_headerAdd_multipleHeaders)
 }
 
 
+TEST(group_parser_headerAdd, parser_headerAdd_incorrectChars)
+{
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_headerAdd(various_common.p, INVALID_HEADER_NAME1, example_converter));
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_headerAdd(various_common.p, INVALID_HEADER_NAME2, example_converter));
+}
+
+
 TEST(group_parser_headerAdd, parser_headerAdd_passingNull)
 {
 	/* Parser as NULL */
@@ -206,6 +215,7 @@ TEST_GROUP_RUNNER(group_parser_headerAdd)
 {
 	RUN_TEST_CASE(group_parser_headerAdd, parser_headerAdd_oneHeader);
 	RUN_TEST_CASE(group_parser_headerAdd, parser_headerAdd_multipleHeaders);
+	RUN_TEST_CASE(group_parser_headerAdd, parser_headerAdd_incorrectChars);
 	RUN_TEST_CASE(group_parser_headerAdd, parser_headerAdd_passingNull);
 	RUN_TEST_CASE(group_parser_headerAdd, parser_headerAdd_tooManyHeader);
 	RUN_TEST_CASE(group_parser_headerAdd, parser_headerAdd_addingHeaderTwoTimes);

@@ -75,6 +75,16 @@ static int test_hmapSizeCheck(const hmap_t *h, int expSize)
 }
 
 
+static int converter_shouldNotBeInvocated(const hmap_t *h)
+{
+	fprintf(stderr, "Too many converter invocations\n");
+	parsing_common.invCnt++;
+	parsing_common.corrData = -1;
+
+	return -1;
+}
+
+
 /* ##############################################################################
  * ---------------------        parser_execute tests       ----------------------
  * ############################################################################## */
@@ -586,20 +596,43 @@ TEST(group_parser_execute, parser_execute_tooLongValue)
 }
 
 
-static int converter_nullArguments(const hmap_t *h)
+TEST(group_parser_execute, parser_execute_incorrectCharsInFieldName)
 {
-	fprintf(stderr, "Too many converter invocations");
-	parsing_common.invCnt++;
-	parsing_common.corrData = -1;
+	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_shouldNotBeInvocated));
 
-	return -1;
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/incorrect_char_in_field_name", PARSER_EXEC_ALL_HEADERS));
+
+	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
+	TEST_ASSERT_EQUAL_INT(0, parsing_common.invCnt);
+}
+
+
+TEST(group_parser_execute, parser_execute_incorrectCharsInFieldValue)
+{
+	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_shouldNotBeInvocated));
+
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/incorrect_char_in_field_value", PARSER_EXEC_ALL_HEADERS));
+
+	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
+	TEST_ASSERT_EQUAL_INT(0, parsing_common.invCnt);
+}
+
+
+TEST(group_parser_execute, parser_execute_incorrectFieldSyntax)
+{
+	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_shouldNotBeInvocated));
+
+	TEST_ASSERT_NOT_EQUAL_INT(0, parser_execute(parsing_common.p, "usr/test/parser/incorrect_field_syntax", PARSER_EXEC_ALL_HEADERS));
+
+	TEST_ASSERT_EQUAL_INT(0, parsing_common.corrData);
+	TEST_ASSERT_EQUAL_INT(0, parsing_common.invCnt);
 }
 
 
 TEST(group_parser_execute, parser_execute_nullArguments)
 {
-	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_nullArguments));
-	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_nullArguments));
+	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT1_HEADER_NAME, converter_shouldNotBeInvocated));
+	TEST_ASSERT_EQUAL_INT(0, parser_headerAdd(parsing_common.p, TEST_STRUCT2_HEADER_NAME, converter_shouldNotBeInvocated));
 
 	/* Pointer to parser is NULL */
 	TEST_ASSERT_NOT_EQUAL_INT(0,
@@ -634,6 +667,9 @@ TEST_GROUP_RUNNER(group_parser_execute)
 	RUN_TEST_CASE(group_parser_execute, parser_execute_failInTheMiddle);
 	RUN_TEST_CASE(group_parser_execute, parser_execute_tooLongField);
 	RUN_TEST_CASE(group_parser_execute, parser_execute_tooLongValue);
+	RUN_TEST_CASE(group_parser_execute, parser_execute_incorrectCharsInFieldName);
+	RUN_TEST_CASE(group_parser_execute, parser_execute_incorrectCharsInFieldValue);
+	RUN_TEST_CASE(group_parser_execute, parser_execute_incorrectFieldSyntax);
 	RUN_TEST_CASE(group_parser_execute, parser_execute_nullArguments);
 }
 
