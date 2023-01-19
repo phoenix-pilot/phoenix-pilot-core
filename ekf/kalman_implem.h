@@ -32,7 +32,10 @@
 
 #define DEG2RAD 0.0174532925
 
-#define BARO_UPDATE_TIMEOUT 4000000
+#define BARO_UPDATE_TIMEOUT 40000
+
+/* This factor achieves 90% step response of about 20-60 seconds if gyro is sampled between 1000Hz and 300Hz */
+#define GYRO_BIAS_IIR_FACTOR 0.9999
 
 /* */
 /* Kalman filter index defines */
