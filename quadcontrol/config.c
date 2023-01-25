@@ -20,7 +20,7 @@
 #include <errno.h>
 
 
-enum { cfg_scenarioID = 0, cfg_pidID, cfg_throttleID, cfg_attitudeID, cfg_end };
+enum { cfg_scenarioID = 0, cfg_pidID, cfg_throttleID, cfg_attitudeID, cfg_attenuateID, cfg_end };
 
 static struct {
 	void *data;
@@ -482,6 +482,86 @@ int config_throttleRead(const char *path, quad_throttle_t **throttle, int *sz)
 
 	*throttle = res[cfg_throttleID].data;
 	*sz = res[cfg_throttleID].sz;
+
+	return 0;
+}
+
+
+static int config_attenConverter(const hmap_t *h)
+{
+	int err = 0;
+	mma_atten_t *atten;
+
+	if (config_reallocData(cfg_attenuateID, sizeof(mma_atten_t)) != 0) {
+		return -1;
+	}
+
+	atten = (mma_atten_t *)res[cfg_attenuateID].data;
+
+	err |= config_parseFloat(h, "startVal", &atten->startVal);
+	err |= config_parseFloat(h, "endVal", &atten->endVal);
+	err |= config_parseFloat(h, "midVal", &atten->midVal);
+	err |= config_parseFloat(h, "midArg", &atten->midArg);
+
+	if (err != 0) {
+		return -1;
+	}
+
+	res[cfg_attenuateID].invCnt++;
+
+	return 0;
+}
+
+
+int config_attenRead(const char *path, mma_atten_t **atten, int *sz)
+{
+	int err;
+	parser_t *p;
+	static const unsigned int initSz = 1;
+
+	if (path == NULL || atten == NULL || sz == NULL) {
+		fprintf(stderr, "config: invalid arguments\n");
+		return -1;
+	}
+
+	*sz = 0;
+	*atten = NULL;
+
+	/* Parser have to parser one header, which have four fields */
+	p = parser_alloc(1, 4);
+	if (p == NULL) {
+		return -1;
+	}
+
+	if (parser_headerAdd(p, "ATTENUATE", config_attenConverter) != 0) {
+		parser_free(p);
+		return -1;
+	}
+
+	res[cfg_attenuateID].data = malloc(sizeof(mma_atten_t) * initSz);
+	if (res[cfg_attenuateID].data == NULL) {
+		parser_free(p);
+		return -1;
+	}
+
+	res[cfg_attenuateID].invCnt = 0;
+	res[cfg_attenuateID].sz = initSz;
+
+	err = parser_execute(p, path, PARSER_IGN_UNKNOWN_HEADERS);
+	parser_free(p);
+	if (err != 0) {
+		free(res[cfg_attenuateID].data);
+		return -1;
+	}
+
+	if (config_trimUnusedData(cfg_attenuateID, sizeof(mma_atten_t)) != 0) {
+		fprintf(stderr, "config: realloc error\n");
+		free(res[cfg_attenuateID].data);
+		return -1;
+	}
+
+	*atten = res[cfg_attenuateID].data;
+	*sz = res[cfg_attenuateID].sz;
 
 	return 0;
 }
