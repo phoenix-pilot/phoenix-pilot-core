@@ -338,10 +338,10 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 		return -1;
 	}
 
-	ekflog_write(EKFLOG_SENSC, "SI %lld %d %d %d %d %d %d\n", *timestamp, accEvt.accels.accelX, accEvt.accels.accelY, accEvt.accels.accelZ, gyrEvt.gyro.gyroX,  gyrEvt.gyro.gyroY,  gyrEvt.gyro.gyroZ);
-
 	/* these timestamps do not need to be very accurate */
-	*timestamp = (accEvt.timestamp + gyrEvt.timestamp + magEvt.timestamp) / 3;
+	*timestamp = gyrEvt.timestamp;
+
+	ekflog_write(EKFLOG_SENSC, "SI %lld %d %d %d %d %d %d\n", *timestamp, accEvt.accels.accelX, accEvt.accels.accelY, accEvt.accels.accelZ, gyrEvt.gyro.gyroX,  gyrEvt.gyro.gyroY,  gyrEvt.gyro.gyroZ);
 
 	meas_acc2si(&accEvt, accels); /* accelerations from mm/s^2 -> m/s^2 */
 	meas_mag2si(&magEvt, mags);   /* only magnitude matters from geomagnetism */
