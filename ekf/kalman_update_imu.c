@@ -145,7 +145,7 @@ static void imuUpdateInitializations(matrix_t *H, matrix_t *R)
 	*matrix_at(R, MGX, MGX) = *matrix_at(R, MGY, MGY) = *matrix_at(R, MGZ, MGZ) = imu_common.inits->R_astdev * imu_common.inits->R_astdev / (EARTH_G * EARTH_G);
 
 	/* Noise terms of east versor measurement */
-	*matrix_at(R, MEX, MEX) = *matrix_at(R, MEY, MEY) = *matrix_at(R, MEZ, MEZ) = imu_common.inits->R_mstdev * imu_common.inits->R_mstdev / (EARTH_G * EARTH_G);
+	*matrix_at(R, MEX, MEX) = *matrix_at(R, MEY, MEY) = *matrix_at(R, MEZ, MEZ) = imu_common.inits->R_mstdev * imu_common.inits->R_mstdev;
 }
 
 

@@ -49,7 +49,7 @@ static const kalman_init_t initTemplate = {
 	.P_rerr = 1,
 
 	.R_astdev = 0.085,     /* standard deviation of accelerometer reading in m/s */
-	.R_mstdev = 0.5,       /* standard deviation of magnetometer reading in milligauss */
+	.R_mstdev = 10,       /* standard deviation of magnetometer reading in milligauss */
 	.R_bwstdev = 0.0001, /* standard deviation of gyroscope bias estimation in radians */
 
 	.R_hstdev = 0.025, /* standard deviation of change in height in meters */
