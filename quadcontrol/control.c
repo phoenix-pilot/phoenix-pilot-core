@@ -62,7 +62,7 @@
 #define RC_OVRD_THROTTLE (1 << 2)
 
 #define ABORT_FRAMES_THRESH 5 /* number of correct abort frames from RC transmitter to initiate abort sequence */
-#define LOG_PERIOD 100        /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
+#define LOG_PERIOD 1000        /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
 
 /* Flight modes magic numbers */
 #define QCTRL_ALTHOLD_JUMP   5000  /* altitude step (millimeters) for two-height althold mode in quad_manual */
@@ -162,7 +162,6 @@ static int quad_motorsCtrl(float throttle, int32_t alt, const quad_att_t *att, c
 
 	dt = now - quad_common.lastTime;
 	quad_common.lastTime = now;
-
 
 	log_print("EKFE: %lld %.1f %.1f %.1f\n", now, measure->yaw * RAD2DEG, measure->pitch * RAD2DEG, measure->roll * RAD2DEG);
 	log_print("EKFX: %.2f %.2f\n", measure->enuZ, measure->veloZ);
