@@ -73,6 +73,7 @@ typedef enum { mode_rc = 0, mode_auto } control_mode_t;
 
 struct {
 	pid_ctx_t *pids;
+	mma_atten_t atten;
 
 	handle_t rcbusLock;
 	uint16_t rcChannels[RC_CHANNELS_CNT];
@@ -208,9 +209,9 @@ static void quad_rcOverride(quad_att_t *att, float *throttle, uint32_t flags)
 		att->yaw += (float)(rcYaw - ((MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) / 2)) / 1000.f;
 	}
 
-	/* throttle now in range (0.5, 1.5) of hover throttle */
+	/* throttle override between throttle.min and throttle.max */
 	if ((flags & RC_OVRD_THROTTLE) != 0 && throttle != NULL) {
-		*throttle = quad_common.throttle.max * ((float)rcThrottle / (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE) + 0.5f);
+		*throttle = quad_common.throttle.min + (quad_common.throttle.max - quad_common.throttle.min) * ((float)rcThrottle / (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE));
 	}
 }
 
@@ -704,10 +705,12 @@ static int quad_config(void)
 {
 	int res;
 	quad_throttle_t *throttleTmp;
+	mma_atten_t *attenTmp;
 #if TEST_ATTITUDE
 	quad_att_t *attTmp;
 #endif
 
+	/* Reading PID configs*/
 	if (config_pidRead(PATH_QUAD_CONFIG, &quad_common.pids, &res) != 0) {
 		fprintf(stderr, "quadcontrol: cannot parse PIDs from %s\n", PATH_QUAD_CONFIG);
 		return -1;
@@ -719,6 +722,7 @@ static int quad_config(void)
 		return -1;
 	}
 
+	/* Reading throttle configs*/
 	if (config_throttleRead(PATH_QUAD_CONFIG, &throttleTmp, &res) != 0) {
 		fprintf(stderr, "quadcontrol: cannot parse throttle from %s\n", PATH_QUAD_CONFIG);
 		free(quad_common.pids);
@@ -734,6 +738,23 @@ static int quad_config(void)
 
 	quad_common.throttle = *throttleTmp;
 	free(throttleTmp);
+
+	/* Reading pid attenuation configs*/
+	if (config_attenRead(PATH_QUAD_CONFIG, &attenTmp, &res) != 0) {
+		fprintf(stderr, "quadcontrol: cannot parse pid attenuation from %s\n", PATH_QUAD_CONFIG);
+		free(quad_common.pids);
+		return -1;
+	}
+
+	if (res != 1) {
+		fprintf(stderr, "quadcontrol: wrong number of attenuation configs in %s", PATH_QUAD_CONFIG);
+		free(quad_common.pids);
+		free(attenTmp);
+		return -1;
+	}
+
+	quad_common.atten = *attenTmp;
+	free(attenTmp);
 
 #if TEST_ATTITUDE
 	if (config_attitudeRead(PATH_QUAD_CONFIG, &attTmp, &res) != 0) {
@@ -797,7 +818,7 @@ static int quad_init(void)
 	ekf_boundsGet(&quad_common.pids[pwm_yaw].errBound, &quad_common.pids[pwm_roll].errBound, &quad_common.pids[pwm_pitch].errBound);
 
 	/* MMA initialization */
-	if (mma_init(&quadCoeffs) < 0) {
+	if (mma_init(&quadCoeffs, &quad_common.atten) < 0) {
 		fprintf(stderr, "quadcontrol: cannot initialize mma module\n");
 		resourceDestroy(quad_common.rcbusLock);
 		free(quad_common.scenario);

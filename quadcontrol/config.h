@@ -16,6 +16,7 @@
 
 #include "control.h"
 #include "pid.h"
+#include "mma.h"
 
 
 /* Parses file from `path` with saved mission scenario. If succeeded returns 0 and `scenario` is array with length equal to `sz`. In other case returns -1.  */
@@ -33,5 +34,8 @@ extern int config_throttleRead(const char *path, quad_throttle_t **throttle, int
 /* Parser all attitude config structures from file defined by `path`. If succeeded returns 0 and `attitude` is array with length equal to `sz`. In other case returns -1. */
 extern int config_attitudeRead(const char *path, quad_att_t **attitude, int *sz);
 
+
+/* Parses attenuation config structures from file defined by `path`. If succeeded returns 0 and `atten` is array with length equal to one. In other case returns -1. */
+extern int config_attenRead(const char *path, mma_atten_t **atten, int *sz);
 
 #endif

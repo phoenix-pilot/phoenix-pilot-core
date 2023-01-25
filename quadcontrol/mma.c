@@ -31,6 +31,11 @@
 
 #define NUMBER_MOTORS 4
 
+#define PID_ATTEN_FACTOR_MAX 2.f
+#define PID_ATTEN_FACTOR_MIN 0.f
+#define PID_ATTEN_MIDDLE_MAX 0.9f
+#define PID_ATTEN_MIDDLE_MIN 0.1f
+
 
 static const char *motorPaths[] = {
 	PWM_MOTOR1, /* path to front left motor */
@@ -44,6 +49,7 @@ struct {
 	handle_t lock;
 	quad_coeffs_t coeffs;
 
+	mma_atten_t atten;
 	calib_data_t calib;
 } mma_common;
 
@@ -54,10 +60,24 @@ static inline void mma_calib(float *val, int motor)
 }
 
 
+static void mma_pidAtten(mma_atten_t *atten, float throttle, float *val)
+{
+	if (throttle < atten->midArg) {
+		throttle *= mma_common.atten.startVal + throttle * mma_common.atten.slope[0];
+	}
+	else {
+		throttle *= mma_common.atten.midVal + (throttle - mma_common.atten.midVal) * mma_common.atten.slope[1];
+	}
+}
+
+
 int mma_control(float palt, float proll, float ppitch, float pyaw)
 {
 	unsigned int i;
 	float pwm[NUMBER_MOTORS];
+
+	mma_pidAtten(&mma_common.atten, palt, &ppitch);
+	mma_pidAtten(&mma_common.atten, palt, &proll);
 
 	pwm[0] = palt + proll + ppitch + pyaw;
 	pwm[1] = palt - proll - ppitch + pyaw;
@@ -127,7 +147,7 @@ void mma_done(void)
 }
 
 
-int mma_init(const quad_coeffs_t *coeffs)
+int mma_init(const quad_coeffs_t *coeffs, const mma_atten_t *atten)
 {
 	int err;
 
@@ -135,6 +155,23 @@ int mma_init(const quad_coeffs_t *coeffs)
 		printf("mma: cannot initialize motlin calibration\n");
 		return -1;
 	}
+
+	if (atten->startVal < PID_ATTEN_FACTOR_MIN || atten->midVal < PID_ATTEN_FACTOR_MIN || atten->endVal < PID_ATTEN_FACTOR_MIN) {
+		printf("mma: attenuation curve below %f\n", PID_ATTEN_FACTOR_MIN);
+		return -1;
+	}
+	if (atten->startVal > PID_ATTEN_FACTOR_MAX || atten->midVal > PID_ATTEN_FACTOR_MAX || atten->endVal > PID_ATTEN_FACTOR_MAX) {
+		printf("mma: attenuation curve above %f\n", PID_ATTEN_FACTOR_MAX);
+		return -1;
+	}
+	if (atten->midArg < PID_ATTEN_MIDDLE_MIN || atten->midArg > PID_ATTEN_MIDDLE_MAX) {
+		printf("mma: illegal attenuation middle point\n");
+		return -1;
+	}
+	mma_common.atten = *atten;
+	mma_common.atten.slope[0] = (mma_common.atten.midVal - mma_common.atten.startVal) / mma_common.atten.midArg;
+	mma_common.atten.slope[1] = (mma_common.atten.endVal - mma_common.atten.midVal) / (1 - mma_common.atten.midArg);
+
 
 	err = mutexCreate(&mma_common.lock);
 	if (err < 0) {
