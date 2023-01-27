@@ -45,6 +45,9 @@
 #define ACC_BIAS_SIZE    3
 #define ACC_NONORTHO_SIZE 9
 
+#define MAX_U32_DELTAANGLE 0x7fffffff /* Half of the u32 buffer span is max delta angle expected in one step (roughly 2147 radians) */
+#define GYRO_MAX_SENSIBLE_READ  157   /* 50 pi radians per second is the largest absolute value of angular speed deemed possible */
+
 static struct {
 	meas_calib_t calib;
 } meas_common;
@@ -204,6 +207,44 @@ static void meas_gyr2si(sensor_event_t *evt, vec_t *vec)
 }
 
 
+static int meas_dAngle2si(sensor_event_t *evtNew, sensor_event_t *evtOld, vec_t *vec)
+{
+	uint32_t dif;
+	time_t delta;
+	vec_t tmp;
+
+	delta = evtNew->timestamp - evtOld->timestamp;
+
+	if (evtNew->timestamp == 0 || evtOld->timestamp == 0 || delta == 0) {
+		return -1;
+	}
+
+	/* delta angle overflow/underflow calculations */
+	dif = evtNew->gyro.dAngleX - evtOld->gyro.dAngleX;
+	tmp.x = (dif < MAX_U32_DELTAANGLE) ? dif : -(float)(uint32_t)(-dif);
+
+	dif = evtNew->gyro.dAngleY - evtOld->gyro.dAngleY;
+	tmp.y = (dif < MAX_U32_DELTAANGLE) ? dif : -(float)(uint32_t)(-dif);
+
+	dif = evtNew->gyro.dAngleZ - evtOld->gyro.dAngleZ;
+	tmp.z = (dif < MAX_U32_DELTAANGLE) ? dif : -(float)(uint32_t)(-dif);
+
+	/* values initially in [urad]. Divided by time in [us] gives output in [rad/s] */
+	tmp.x /= (float)delta;
+	tmp.y /= (float)delta;
+	tmp.z /= (float)delta;
+
+	/* Abort calculation of angular speed if outcome is above maximum value */
+	if (fabs(tmp.x) > GYRO_MAX_SENSIBLE_READ || fabs(tmp.y) > GYRO_MAX_SENSIBLE_READ || fabs(tmp.z) > GYRO_MAX_SENSIBLE_READ) {
+		return -1;
+	}
+
+	*vec = tmp;
+
+	return 0;
+}
+
+
 static void meas_mag2si(sensor_event_t *evt, vec_t *vec)
 {
 	vec->x = evt->mag.magX;
@@ -288,6 +329,8 @@ void meas_baroCalib(void)
 
 int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 {
+	static sensor_event_t gyrEvtOld = { 0 };
+
 	sensor_event_t accEvt, gyrEvt, magEvt;
 
 	if (sensc_imuGet(&accEvt, &gyrEvt, &magEvt) < 0) {
@@ -300,8 +343,12 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 	*timestamp = (accEvt.timestamp + gyrEvt.timestamp + magEvt.timestamp) / 3;
 
 	meas_acc2si(&accEvt, accels); /* accelerations from mm/s^2 -> m/s^2 */
-	meas_gyr2si(&gyrEvt, gyros);  /* angulars from mrad/s -> rad/s */
 	meas_mag2si(&magEvt, mags);   /* only magnitude matters from geomagnetism */
+
+	/* If sensorhub integral values produce wrongful data (too long/short timestep) use direct gyro output */
+	if (meas_dAngle2si(&gyrEvt, &gyrEvtOld, gyros) != 0) {
+		meas_gyr2si(&gyrEvt, gyros);
+	}
 
 	meas_ellipCompensate(accels, accCalib);
 
