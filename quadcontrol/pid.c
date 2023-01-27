@@ -78,8 +78,6 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, ti
 	pid->prevErr = err;
 	pid->lastPid = out;
 
-	log_print("%.4f %.4f %.4f %.4f ", p, i, d, out);
-
 	return out;
 }
 
