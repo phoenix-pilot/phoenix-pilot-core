@@ -166,14 +166,11 @@ static int quad_motorsCtrl(float throttle, int32_t alt, const quad_att_t *att, c
 
 	log_print("EKFE: %lld %.1f %.1f %.1f\n", now, measure->yaw * RAD2DEG, measure->pitch * RAD2DEG, measure->roll * RAD2DEG);
 	log_print("EKFX: %.2f %.2f\n", measure->enuZ, measure->veloZ);
-	log_print("PID: ");
-
 
 	palt = pid_calc(&quad_common.pids[pwm_alt], alt / 1000.f, measure->enuZ, measure->veloZ, dt);
 	proll = pid_calc(&quad_common.pids[pwm_roll], att->roll, measure->roll, measure->rollDot, dt);
 	ppitch = pid_calc(&quad_common.pids[pwm_pitch], att->pitch, measure->pitch, measure->pitchDot, dt);
 	pyaw = pid_calc(&quad_common.pids[pwm_yaw], att->yaw, measure->yaw, measure->yawDot, dt);
-	log_print("\n");
 
 	if (mma_control(throttle + palt, proll, ppitch, pyaw) < 0) {
 		return -1;

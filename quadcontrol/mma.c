@@ -93,12 +93,6 @@ int mma_control(float palt, float proll, float ppitch, float pyaw)
 		return -1;
 	}
 
-	/*
-	* Printing PWM before per-motor calibration
-	* We want information about pid impact on control step, not hardware step
-	*/
-	log_print("PWM: %.3f %.3f %.3f %.3f\n", pwm[0], pwm[1], pwm[2], pwm[3]);
-
 	for (i = 0; i < NUMBER_MOTORS; ++i) {
 		mma_calib(&pwm[i], i);
 
