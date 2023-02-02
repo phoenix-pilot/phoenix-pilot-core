@@ -29,6 +29,10 @@ enum thrtlTempo { tempoInst = 0, tempoSlow = 1, tempoHigh = 2 };
 enum armMode { armMode_user, armMode_auto };
 
 
+/* sets values of all initialized throttles to `throttles`. `n` is length of `throttles` */
+int mctl_thrtlBatchSet(const float *throttles, int n);
+
+
 /* changes engine throttle (in range [0.0, 1.0]) with given tempo */
 int mctl_thrtlSet(unsigned int motorIdx, float targetThrottle, enum thrtlTempo tempo);
 

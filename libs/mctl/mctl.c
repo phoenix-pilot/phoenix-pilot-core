@@ -95,7 +95,6 @@ static inline int mctl_motOff(mctl_channel_t *channel)
 	return 0;
 }
 
-
 static int mctl_charChoice(char expected)
 {
 	char c;
@@ -115,6 +114,51 @@ static inline void mctl_printRed(const char *msg)
 {
 	fprintf(stdout, "%s%s%s", "\033[1;31m", msg, "\033[0m");
 	fflush(stdout);
+}
+
+
+int mctl_thrtlBatchSet(const float *throttles, int n)
+{
+	int i;
+	float thrtl;
+	mctl_channel_t *channel;
+	uint8_t maskSum;
+
+	if (throttles == NULL || n != mctl_common.mNb) {
+		return -1;
+	}
+
+	if (!mctl_common.init || !mctl_common.armed) {
+		fprintf(stderr, "Motors not prepared!\n");
+		return -1;
+	}
+
+	maskSum = 0;
+	for (i = 0; i < n; i++) {
+		channel = &mctl_common.motChannel[i];
+
+		thrtl = throttles[i];
+		if (thrtl > 1.f) {
+			thrtl = 1.f;
+		}
+		else if (thrtl < 0.f) {
+			thrtl = 0.f;
+		}
+
+		mctl_common.pwm[channel->oid.id] = mctl_flt2pwm(thrtl);
+		maskSum |= channel->mask;
+	}
+
+	/* using oid of the first initialized channel as there is no global/superior one */
+	if (zynq7000pwm_set(&mctl_common.motChannel->oid, mctl_common.pwm, maskSum) < 0) {
+		return -1;
+	}
+
+	for (i = 0; i < n; i++) {
+		mctl_common.motChannel[i].fval = throttles[i];
+	}
+
+	return 0;
 }
 
 
