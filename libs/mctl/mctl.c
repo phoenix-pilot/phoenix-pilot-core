@@ -14,13 +14,16 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <math.h>
+#include <sys/msg.h>
 
 #include <board_config.h>
+#include <zynq7000-pwm-msg.h>
 
 #include "mctl.h"
 
@@ -29,13 +32,20 @@
 #define THROTTLE_SCALER 100000 /* base thrtl->pwm scaling factor */
 #define PWM_MSG_LEN     7      /* length of PWM message sent to pwm driver files + newline */
 
+typedef struct {
+	oid_t oid;        /* oid of pwm file associated with this channel */
+	uint8_t mask;     /* mask associated with this pwm channel in pwm driver */
+	float fval;       /* floating point value in range 0 to 1 of pwm signal */
+	uint32_t *outVal; /* channel's associated element of batch transport table */
+} mctl_channel_t;
+
 
 struct {
-	FILE **pwmFiles;   /* motors pwm files descriptors */
-	float *mThrottles; /* motors current throttle value */
-	bool init;         /* motors descriptors initialization flag */
-	bool armed;        /* motors armed/disarmed flag */
-	unsigned int mNb;  /* number of motors */
+	mctl_channel_t *motChannel;          /* initialized pwm channels */
+	uint32_t pwm[ZYNQ7000_PWM_CHANNELS]; /* all ZYNQ7000_PWM_CHANNELS data storage for batch writing */
+	bool init;                           /* motors initialization flag */
+	bool armed;                          /* motors armed/disarmed flag */
+	unsigned int mNb;                    /* number of motors */
 } mctl_common;
 
 
@@ -43,14 +53,14 @@ struct {
 static const float mctl_tempoVals[] = { 0, 0.006f, 0.002f };
 
 
-static int mctl_motWrite(unsigned int id, float thrtl)
+/* Converts floating point pwm representation in range [0, 1] into driver understandable value. Doesn't clip the value! */
+static inline unsigned int mctl_flt2pwm(float thrtl) {
+	return (unsigned int)((thrtl + 1.0f) * (float)THROTTLE_SCALER);
+}
+
+
+static int mctl_motWrite(mctl_channel_t *channel, float thrtl)
 {
-	unsigned int thrtlVal;
-
-	if (id >= mctl_common.mNb) {
-		return -1;
-	}
-
 	if (thrtl > 1.f) {
 		thrtl = 1.f;
 	}
@@ -58,35 +68,33 @@ static int mctl_motWrite(unsigned int id, float thrtl)
 		thrtl = 0.f;
 	}
 
-	thrtlVal = (unsigned int)((thrtl + 1.0f) * (float)THROTTLE_SCALER);
+	*channel->outVal = mctl_flt2pwm(thrtl);
 
-	/* check for fprintf() fail, or partial success one PWM message write */
-	if (fprintf(mctl_common.pwmFiles[id], "%u\n", thrtlVal) < PWM_MSG_LEN) {
-		fprintf(stderr, "mctl: cannot set PWM for motor: %d\n", id);
+	if (zynq7000pwm_set(&channel->oid, mctl_common.pwm, channel->mask) < 0) {
 		return -1;
 	}
-	fflush(mctl_common.pwmFiles[id]);
-
-	mctl_common.mThrottles[id] = thrtl;
+	channel->fval = thrtl;
 
 	return 0;
 }
 
 
-static inline int mctl_motOff(unsigned int id)
+static inline int mctl_motOff(mctl_channel_t *channel)
 {
-	if (id >= mctl_common.mNb) {
+	if (channel == NULL) {
 		return -1;
 	}
 
-	/* check for fprintf() fail, or partial success on one sign write */
-	if (fprintf(mctl_common.pwmFiles[id], "0") < 1) {
+	*channel->outVal = 0;
+
+	if (zynq7000pwm_set(&channel->oid, mctl_common.pwm, channel->mask) < 0) {
 		return -1;
 	}
-	fflush(mctl_common.pwmFiles[id]);
+	channel->fval = 0;
 
 	return 0;
 }
+
 
 static int mctl_charChoice(char expected)
 {
@@ -128,7 +136,7 @@ int mctl_thrtlSet(unsigned int motorIdx, float targetThrottle, enum thrtlTempo t
 	if (tempo != tempoInst) {
 		rate = mctl_tempoVals[tempo];
 
-		currThrtl = mctl_common.mThrottles[motorIdx];
+		currThrtl = mctl_common.motChannel[motorIdx].fval;
 		change = targetThrottle - currThrtl;
 		if (fabs(change) < 0.0001) {
 			return 0;
@@ -138,7 +146,7 @@ int mctl_thrtlSet(unsigned int motorIdx, float targetThrottle, enum thrtlTempo t
 		uchange = change / steps;
 		for (; steps > 0; steps--) {
 			currThrtl += uchange;
-			if (mctl_motWrite(motorIdx, currThrtl) < 0) {
+			if (mctl_motWrite(&mctl_common.motChannel[motorIdx], currThrtl) < 0) {
 				return -1;
 			}
 
@@ -146,7 +154,7 @@ int mctl_thrtlSet(unsigned int motorIdx, float targetThrottle, enum thrtlTempo t
 		}
 	}
 
-	return mctl_motWrite(motorIdx, targetThrottle);
+	return mctl_motWrite(&mctl_common.motChannel[motorIdx], targetThrottle);
 }
 
 
@@ -163,7 +171,7 @@ int mctl_disarm(void)
 
 	/* 1) Stop the motors by setting throttle to 0 (motors still are armed after this step) */
 	for (i = 0; i < mctl_common.mNb; i++) {
-		if (mctl_motWrite(i, 0) < 0) {
+		if (mctl_motWrite(&mctl_common.motChannel[i], 0) < 0) {
 			err = true;
 		}
 	}
@@ -171,7 +179,7 @@ int mctl_disarm(void)
 
 	/* 2) Disarm motors by disabling PWM generation (motors are disarmed after this step) */
 	for (i = 0; i < mctl_common.mNb; i++) {
-		if (mctl_motOff(i) < 0) {
+		if (mctl_motOff(&mctl_common.motChannel[i]) < 0) {
 			err = true;
 		}
 	}
@@ -211,7 +219,7 @@ int mctl_arm(enum armMode mode)
 
 	mctl_printRed("Arming engines... \n");
 	for (i = 0; i < mctl_common.mNb; i++) {
-		if (mctl_motWrite(i, THROTTLE_DOWN) < 0) {
+		if (mctl_motWrite(&mctl_common.motChannel[i], THROTTLE_DOWN) < 0) {
 			fprintf(stderr, "Failed to arm\n");
 			return -1;
 		}
@@ -228,7 +236,7 @@ int mctl_arm(enum armMode mode)
 
 void mctl_deinit(void)
 {
-	unsigned int i, rep, flag;
+	unsigned int rep, flag;
 
 	if (mctl_common.armed) {
 		rep = 10;
@@ -245,67 +253,37 @@ void mctl_deinit(void)
 	if (mctl_common.init) {
 		mctl_common.init = false;
 
-		for (i = 0; i < mctl_common.mNb; i++) {
-			if (mctl_common.pwmFiles[i] != NULL) {
-				fclose(mctl_common.pwmFiles[i]);
-			}
-		}
-
-		free(mctl_common.pwmFiles);
-		free(mctl_common.mThrottles);
+		free(mctl_common.motChannel);
 	}
 }
 
 
 int mctl_init(unsigned int motors, const char **motFiles)
 {
-	int id, cnt;
-	bool err;
+	int i;
 
-	if (motors == 0) {
+	if (motors == 0 || motors > ZYNQ7000_PWM_CHANNELS) {
 		return -1;
 	}
 	mctl_common.mNb = motors;
 
-	mctl_common.pwmFiles = calloc(mctl_common.mNb, sizeof(FILE *));
-	mctl_common.mThrottles = calloc(mctl_common.mNb, sizeof(float));
-	if (mctl_common.pwmFiles == NULL || mctl_common.mThrottles == NULL) {
-		free(mctl_common.pwmFiles);
-		free(mctl_common.mThrottles);
+	mctl_common.motChannel = calloc(mctl_common.mNb, sizeof(mctl_channel_t));
+	if (mctl_common.motChannel == NULL) {
+		printf("mctl: allocating channels error. Errno: %d\n", errno);
 		return -1;
 	}
 
-	err = false;
-	for (id = 0; (id < mctl_common.mNb) && (err == false); id++) {
-		cnt = 0;
-
-		mctl_common.pwmFiles[id] = fopen(motFiles[id], "r+");
-		while (mctl_common.pwmFiles[id] == NULL && !err) {
-			usleep(10 * 1000);
-			++cnt;
-
-			if (cnt > 10000) {
-				fprintf(stderr, "mctl: timeout waiting on %s \n", motFiles[id]);
-				err = true;
-				break;
-			}
-
-			mctl_common.pwmFiles[id] = fopen(motFiles[id], "r+");
-		}
-	}
-
-
-	/* handle error at files opening */
-	if (err) {
-		/* close all files previous to the failed one */
-		for (id--; id >= 0; id--) {
-			fclose(mctl_common.pwmFiles[id]);
+	/* Validate all given paths and prepare their masks */
+	for (i = 0; i < mctl_common.mNb; i++) {
+		if (lookup(motFiles[i], NULL, &mctl_common.motChannel[i].oid) < 0) {
+			free(mctl_common.motChannel);
+			printf("mctl: cannot lookup %s\n", motFiles[i]);
+			return -1;
 		}
 
-		free(mctl_common.pwmFiles);
-		free(mctl_common.mThrottles);
-
-		return -1;
+		mctl_common.motChannel[i].mask = (1 << mctl_common.motChannel[i].oid.id);
+		mctl_common.motChannel[i].outVal = &mctl_common.pwm[mctl_common.motChannel[i].oid.id];
+		mctl_common.motChannel[i].fval = 0;
 	}
 
 	mctl_common.init = true;
