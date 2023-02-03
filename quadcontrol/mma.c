@@ -88,10 +88,10 @@ int mma_control(float palt, float proll, float ppitch, float pyaw)
 		else if (pwm[i] < 0) {
 			pwm[i] = 0.0f;
 		}
+	}
 
-		if (mctl_thrtlSet(i, pwm[i], tempoInst) < 0) {
-			fprintf(stderr, "mma: cannot set PWM for motor: %u\n", i);
-		}
+	if (mctl_thrtlBatchSet(pwm, NUMBER_MOTORS) < 0) {
+		fprintf(stderr, "mma: cannot set PWM for motor: %u\n", i);
 	}
 
 	mutexUnlock(mma_common.lock);
