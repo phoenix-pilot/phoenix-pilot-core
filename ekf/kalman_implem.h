@@ -91,10 +91,10 @@ int verbose;
 
 extern void kmn_configRead(kalman_init_t *initVals);
 
-/* Reads from a matrix like from a untransposed column vector directly */
+/* Reads from a matrix like from a untransposed column vector directly. Invalid read returns 0.f */
 static inline float kmn_vecAt(const matrix_t *M, unsigned int i)
 {
-	return M->data[i];
+	return (i < M->rows && M->cols == 1) ? M->data[i] : 0.f;
 }
 
 
