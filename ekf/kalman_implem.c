@@ -125,7 +125,7 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	/* quaternionized angular rate and rotation quaternion estimates */
 	quat_t qEst, qtmp;
 
-	float dt = (float)timeStep / 1000000.f;
+	const float dt = (float)timeStep / 1000000.f;
 
 	/* quaternion estimation: q = q * ( q_iden + h/2 * (wMeas - bw) ) */
 	quat_dif(&wMeas, &bwState, &qtmp);
@@ -196,7 +196,7 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeSt
 
 	/* d(f_q)/d(q) variables */
 	float dfqdqData[4 * 4];
-	matrix_t dfqdq = { .data = dfqdqData, .rows = 3, .cols = 3, .transposed = 0 };
+	matrix_t dfqdq = { .data = dfqdqData, .rows = 4, .cols = 4, .transposed = 0 };
 	quat_t p; /* quaternion derivative product second term */
 
 	/* d(f_q)/d(bw) variables */
