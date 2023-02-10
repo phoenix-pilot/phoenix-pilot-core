@@ -34,12 +34,12 @@
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
-	static uint64_t lastTstamp = 0;
+	static time_t lastTstamp = 0;
 	static float lastAlt = 0;
 	static float lpfAltChange = 0;
 
 	float pressure, temp, alt;
-	uint64_t currTstamp;
+	time_t currTstamp;
 
 	/* if there is no pressure measurement available return NULL */
 	if (meas_baroGet(&pressure, &temp, &currTstamp) < 0) {

@@ -55,21 +55,26 @@ static inline void printUavAcc(ekf_state_t *uavState)
 int main(int argc, char **argv)
 {
 	ekf_state_t uavState;
-	enum printMode mode = prntVersor;
+	enum printMode mode;
 
 	if (argc != 2) {
 		printf("Wrong arguments count!\n");
 		return EXIT_FAILURE;
 	}
 
-	if (atoi(argv[1]) == 1) {
-		mode = prntAtt;
-	}
-	if (atoi(argv[1]) == 2) {
-		mode = printAcc;
-	}
-	if (atoi(argv[1]) == 3) {
-		mode = silent;
+	switch (argv[1][0]) {
+		case '1':
+			mode = prntAtt;
+			break;
+		case '2':
+			mode = printAcc;
+			break;
+		case '3':
+			mode = silent;
+			break;
+		default:
+			mode = prntVersor;
+			break;
 	}
 
 	if (ekf_init() == 0) {
