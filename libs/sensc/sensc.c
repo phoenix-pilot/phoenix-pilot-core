@@ -204,7 +204,7 @@ int sensc_gpsGet(sensor_event_t *gpsEvt)
 	data = (sensors_data_t *)(sensc_common.buff);
 
 	/* read from sensorhub */
-	if (read(sensc_common.fd[fd_baroId], sensc_common.buff, sizeof(sensc_common.buff)) < 0) {
+	if (read(sensc_common.fd[fd_gpsId], sensc_common.buff, sizeof(sensc_common.buff)) < 0) {
 		return -1;
 	}
 
