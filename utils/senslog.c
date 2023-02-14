@@ -33,6 +33,7 @@ struct {
 		bool gyro;
 		bool mag;
 		bool baro;
+		bool gps;
 	} flags;
 } senslog_common;
 
@@ -42,11 +43,12 @@ static void senslog_help(const char *progname)
 	printf("Usage: %s [options]\n options:\n", progname);
 	printf("  -t,\tlogging time in full seconds\n");
 	printf("  -s,\tsampling interval in milliseconds\n");
-	printf("  -d [agmb]\tdevices to be logged as string\n");
+	printf("  -d [agmbp]\tdevices to be logged as string\n");
 	printf("     a - accelerometer\n");
 	printf("     g - gyroscope\n");
 	printf("     m - magnetometer\n");
 	printf("     b - barometer\n");
+	printf("     p - gps\n");
 	printf("  -r raw mode, don`t use calib.conf corrections\n");
 }
 
@@ -63,6 +65,7 @@ static int senslog_parseDevices(const char *devs)
 	senslog_common.flags.gyro = false;
 	senslog_common.flags.mag = false;
 	senslog_common.flags.baro = false;
+	senslog_common.flags.gps = false;
 
 	while (*devs != '\0' && !err) {
 		switch (*devs) {
@@ -80,6 +83,10 @@ static int senslog_parseDevices(const char *devs)
 
 			case 'b':
 				senslog_common.flags.baro = true;
+				break;
+
+			case 'p':
+				senslog_common.flags.gps = true;
 				break;
 
 			default:
@@ -159,8 +166,8 @@ static int senslog_parseArgs(int argc, char **argv)
 int main(int argc, char **argv)
 {
 	FILE *file;
-	sensor_event_t accelEvt, gyroEvt, magEvt, baroEvt;
-	char buf[128];
+	sensor_event_t accelEvt, gyroEvt, magEvt, baroEvt, gpsEvt;
+	char buf[256];
 	time_t t0, now, diff;
 	int res, cnt;
 
@@ -200,39 +207,52 @@ int main(int argc, char **argv)
 		if (senslog_common.flags.baro) {
 			sensc_baroGet(&baroEvt);
 		}
+
+		if (senslog_common.flags.gps) {
+			sensc_gpsGet(&gpsEvt);
+		}
 		/* Above ifs to be expanded with new sensors */
 
 		memset(buf, 0, sizeof(buf));
 		cnt = 0;
 
 		/* printing time as a fake float value */
-		res = sprintf(&buf[cnt], "%lli.%06lli ", diff / 1000000, (diff - 1000000 * (diff / 1000000)));
+		res = sprintf(&buf[cnt], "%lli.%06lli ", diff / 1000000, (diff - 1000000 * (diff / 1000000))); /* Max 28 characters */
 		cnt = (res < 0) ? -1 : cnt + res;
 
 		if (senslog_common.flags.accel && cnt >= 0) {
-			res = sprintf(&buf[cnt], "%d %d %d ", accelEvt.accels.accelX, accelEvt.accels.accelY, accelEvt.accels.accelZ);
+			res = sprintf(&buf[cnt], "%d %d %d ", accelEvt.accels.accelX, accelEvt.accels.accelY, accelEvt.accels.accelZ); /* Max 36 characters */
 			cnt = (res < 0) ? -1 : cnt + res;
 		}
 
 		if (senslog_common.flags.gyro && cnt >= 0) {
-			res = sprintf(&buf[cnt], "%d %d %d ", gyroEvt.gyro.gyroX, gyroEvt.gyro.gyroY, gyroEvt.gyro.gyroZ);
+			res = sprintf(&buf[cnt], "%d %d %d ", gyroEvt.gyro.gyroX, gyroEvt.gyro.gyroY, gyroEvt.gyro.gyroZ); /* Max 36 characters */
 			cnt = (res < 0) ? -1 : cnt + res;
 		}
 
 		if (senslog_common.flags.mag && cnt >= 0) {
-			res = sprintf(&buf[cnt], "%d %d %d ", magEvt.mag.magX, magEvt.mag.magY, magEvt.mag.magZ);
+			res = sprintf(&buf[cnt], "%d %d %d ", magEvt.mag.magX, magEvt.mag.magY, magEvt.mag.magZ); /* Max 36 characters */
 			cnt = (res < 0) ? -1 : cnt + res;
 		}
 
 		if (senslog_common.flags.baro && cnt >= 0) {
-			res = sprintf(&buf[cnt], "%d %d ", baroEvt.baro.pressure, baroEvt.baro.temp);
+			res = sprintf(&buf[cnt], "%d %d ", baroEvt.baro.pressure, baroEvt.baro.temp); /* Max 24 characters */
+			cnt = (res < 0) ? -1 : cnt + res;
+		}
+
+		if (senslog_common.flags.gps && cnt >= 0) {
+			res = sprintf(&buf[cnt], "%d %d %u %u ", gpsEvt.gps.lat, gpsEvt.gps.lon, gpsEvt.gps.satsNb, gpsEvt.gps.fix); /* Max 46 characters */
 			cnt = (res < 0) ? -1 : cnt + res;
 		}
 
 		if (cnt >= 0) {
-			res = sprintf(&buf[cnt], "\n");
+			res = sprintf(&buf[cnt], "\n"); /* Max 2 characters ("\n\0") */
 			cnt = (res < 0) ? -1 : cnt + res;
 		}
+
+		/*
+		* Worst-case scenario for maximum characters printed is 208 now. Change the `buf` size accordingly when adding new sensors!
+		*/
 
 		if (cnt >= 0) {
 			fprintf(file, "%s", buf);
