@@ -59,6 +59,7 @@ static inline unsigned int mctl_flt2pwm(float thrtl) {
 }
 
 
+/* Writes `thrtl` to pwm channel specified by `channel`. Clips `thrtl` to [0, 1]. */
 static int mctl_motWrite(mctl_channel_t *channel, float thrtl)
 {
 	if (thrtl > 1.f) {
@@ -79,21 +80,51 @@ static int mctl_motWrite(mctl_channel_t *channel, float thrtl)
 }
 
 
-static inline int mctl_motOff(mctl_channel_t *channel)
+/*
+ * Sets pwm throttle to `val` to all initialized engines.
+ * No boundary checks are made! No arm/disarm check!
+*/
+static int mctl_allWrite(uint32_t val)
 {
-	if (channel == NULL) {
+	int i;
+	uint8_t mask = 0;
+
+	for (i = 0; i < mctl_common.mNb; i++) {
+		*mctl_common.motChannel[i].outVal = val;
+		mask |= mctl_common.motChannel[i].mask;
+	}
+
+	if (zynq7000pwm_set(&mctl_common.motChannel[0].oid, mctl_common.pwm, mask) < 0) {
 		return -1;
 	}
 
-	*channel->outVal = 0;
-
-	if (zynq7000pwm_set(&channel->oid, mctl_common.pwm, channel->mask) < 0) {
-		return -1;
+	for (i = 0; i < mctl_common.mNb; i++) {
+		mctl_common.motChannel[i].fval = 0;
 	}
-	channel->fval = 0;
 
 	return 0;
 }
+
+
+/*
+ * Turns all motors off. Should work as if pwm signal was disconnected from the engine.
+ * No boundary checks are made! No arm/disarm check!
+*/
+static inline int mctl_allOff(void)
+{
+	return mctl_allWrite(0);
+}
+
+
+/*
+ * Stops all motors by sending pwm signal of 1ms.
+ * No boundary checks are made! No arm/disarm check!
+*/
+static inline int mctl_allStop(void)
+{
+	return mctl_allWrite(mctl_flt2pwm(THROTTLE_DOWN));
+}
+
 
 static int mctl_charChoice(char expected)
 {
@@ -210,22 +241,17 @@ bool mctl_isArmed(void)
 
 int mctl_disarm(void)
 {
-	int i;
 	bool err = false;
 
 	/* 1) Stop the motors by setting throttle to 0 (motors still are armed after this step) */
-	for (i = 0; i < mctl_common.mNb; i++) {
-		if (mctl_motWrite(&mctl_common.motChannel[i], 0) < 0) {
-			err = true;
-		}
+	if (mctl_allStop() < 0) {
+		err = true;
 	}
 	usleep(200 * 1000); /* This sleep ensures that ESCs are not fed with no signal (next step) too quickly */
 
 	/* 2) Disarm motors by disabling PWM generation (motors are disarmed after this step) */
-	for (i = 0; i < mctl_common.mNb; i++) {
-		if (mctl_motOff(&mctl_common.motChannel[i]) < 0) {
-			err = true;
-		}
+	if (mctl_allOff() < 0) {
+		err = true;
 	}
 
 	usleep(1000 * 1000); /* wait one second; ESC time dependencies */
@@ -244,8 +270,6 @@ int mctl_disarm(void)
 
 int mctl_arm(enum armMode mode)
 {
-	unsigned int i;
-
 	if (mctl_common.armed) {
 		return 0;
 	}
@@ -262,11 +286,9 @@ int mctl_arm(enum armMode mode)
 	}
 
 	mctl_printRed("Arming engines... \n");
-	for (i = 0; i < mctl_common.mNb; i++) {
-		if (mctl_motWrite(&mctl_common.motChannel[i], THROTTLE_DOWN) < 0) {
-			fprintf(stderr, "Failed to arm\n");
-			return -1;
-		}
+	if (mctl_allStop() < 0) {
+		fprintf(stderr, "Failed to arm\n");
+		return -1;
 	}
 
 	sleep(2);
