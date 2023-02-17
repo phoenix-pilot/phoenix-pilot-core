@@ -5,7 +5,7 @@
  * 
  * Control over engines, arming and disarmig procedures. No thread safety imposed.
  *
- * Copyright 2022 Phoenix Systems
+ * Copyright 2022-2023 Phoenix Systems
  * Author: Mateusz Niewiadomski
  *
  * This file is part of Phoenix-Pilot software
@@ -20,6 +20,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <math.h>
+#include <string.h>
+#include <libgen.h>
 #include <sys/msg.h>
 
 #include <board_config.h>
@@ -54,7 +56,8 @@ static const float mctl_tempoVals[] = { 0, 0.006f, 0.002f };
 
 
 /* Converts floating point pwm representation in range [0, 1] into driver understandable value. Doesn't clip the value! */
-static inline unsigned int mctl_flt2pwm(float thrtl) {
+static inline unsigned int mctl_flt2pwm(float thrtl)
+{
 	return (unsigned int)((thrtl + 1.0f) * (float)THROTTLE_SCALER);
 }
 
@@ -176,7 +179,7 @@ int mctl_thrtlBatchSet(const float *throttles, int n)
 			thrtl = 0.f;
 		}
 
-		mctl_common.pwm[channel->oid.id] = mctl_flt2pwm(thrtl);
+		*channel->outVal = mctl_flt2pwm(thrtl);
 		maskSum |= channel->mask;
 	}
 
@@ -326,7 +329,9 @@ void mctl_deinit(void)
 
 int mctl_init(unsigned int motors, const char **motFiles)
 {
-	int i;
+	int i, chId = -1;
+	const char *ptr;
+	char buf[128];
 
 	if (motors == 0 || motors > ZYNQ7000_PWM_CHANNELS) {
 		return -1;
@@ -339,6 +344,9 @@ int mctl_init(unsigned int motors, const char **motFiles)
 		return -1;
 	}
 
+	/* Preparing errno for usage in `strtol` */
+	errno = EOK;
+
 	/* Validate all given paths and prepare their masks */
 	for (i = 0; i < mctl_common.mNb; i++) {
 		if (lookup(motFiles[i], NULL, &mctl_common.motChannel[i].oid) < 0) {
@@ -347,8 +355,22 @@ int mctl_init(unsigned int motors, const char **motFiles)
 			return -1;
 		}
 
-		mctl_common.motChannel[i].mask = (1 << mctl_common.motChannel[i].oid.id);
-		mctl_common.motChannel[i].outVal = &mctl_common.pwm[mctl_common.motChannel[i].oid.id];
+		/* With current api we expect pwm file name to be of type `pwmx` where x is the channel ID */
+		strncpy(buf, motFiles[i], sizeof(buf));
+		ptr = basename(buf);
+		chId = -1;
+		if (strlen(ptr) >= 4) {
+			chId = strtol(&ptr[3], NULL, 10);
+		}
+
+		if (chId < 0 || (chId == 0 && errno == EINVAL) || chId >= ZYNQ7000_PWM_CHANNELS) {
+			free(mctl_common.motChannel);
+			printf("mctl: invalid pwm ID %d from %s\n", chId, ptr);
+			return -1;
+		}
+
+		mctl_common.motChannel[i].mask = (1 << chId);
+		mctl_common.motChannel[i].outVal = &mctl_common.pwm[chId];
 		mctl_common.motChannel[i].fval = 0;
 	}
 
