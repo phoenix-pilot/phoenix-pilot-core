@@ -81,7 +81,7 @@ extern float meas_calibPressGet(void);
 /* MEASUREMENT ACQUISITION */
 
 /* Returns prepared IMU data in SI units */
-extern int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp);
+extern int meas_imuGet(vec_t *accels, vec_t *accelsRaw, vec_t *gyros, vec_t *mags, uint64_t *timestamp);
 
 /* Returns prepared barometer data in SI units */
 extern int meas_baroGet(float *pressure, float *temperature, uint64_t *dtBaroUs);

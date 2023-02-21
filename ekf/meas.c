@@ -328,7 +328,7 @@ void meas_baroCalib(void)
 }
 
 
-int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
+int meas_imuGet(vec_t *accels, vec_t *accelsRaw, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 {
 	static sensor_event_t gyrEvtOld = { 0 };
 
@@ -343,7 +343,7 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 
 	ekflog_write(EKFLOG_SENSC, "SI %lld %d %d %d %d %d %d\n", *timestamp, accEvt.accels.accelX, accEvt.accels.accelY, accEvt.accels.accelZ, gyrEvt.gyro.gyroX,  gyrEvt.gyro.gyroY,  gyrEvt.gyro.gyroZ);
 
-	meas_acc2si(&accEvt, accels); /* accelerations from mm/s^2 -> m/s^2 */
+	meas_acc2si(&accEvt, accelsRaw); /* accelerations from mm/s^2 -> m/s^2 */
 	meas_mag2si(&magEvt, mags);   /* only magnitude matters from geomagnetism */
 
 	/* If sensorhub integral values produce wrongful data (too long/short timestep) use direct gyro output */
@@ -351,11 +351,12 @@ int meas_imuGet(vec_t *accels, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
 		meas_gyr2si(&gyrEvt, gyros);
 	}
 
-	meas_ellipCompensate(accels, accCalib);
+	meas_ellipCompensate(accelsRaw, accCalib);
 
 	/* gyro niveling */
 	vec_sub(gyros, &meas_common.calib.imu.gyroBias);
 
+	*accels = *accelsRaw;
 	fltr_accLpf(accels);
 	fltr_gyroLpf(gyros);
 
