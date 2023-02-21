@@ -37,6 +37,10 @@
 /* This factor achieves 90% step response of about 20-60 seconds if gyro is sampled between 1000Hz and 300Hz */
 #define GYRO_BIAS_IIR_FACTOR 0.9999
 
+/* If the difference between EARTH_G and acceleration length is beyond ACC_SIGMA_THRESHOLD the accelSigma is multiplied by ACC_SIGMA_STEP_FACTOR */
+#define ACC_SIGMA_STEP_THRESHOLD 3.f
+#define ACC_SIGMA_STEP_FACTOR    50
+
 /* */
 /* Kalman filter index defines */
 /* */

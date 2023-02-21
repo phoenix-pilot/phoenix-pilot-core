@@ -48,14 +48,14 @@ static const kalman_init_t initTemplate = {
 	.P_bwerr = 1,
 	.P_rerr = 1,
 
-	.R_astdev = 0.085,     /* standard deviation of accelerometer reading in m/s */
-	.R_mstdev = 10,       /* standard deviation of magnetometer reading in milligauss */
+	.R_astdev = 0.4,    /* standard deviation of accelerometer reading in m/s */
+	.R_mstdev = 100,     /* standard deviation of magnetometer reading in milligauss */
 	.R_bwstdev = 0.0001, /* standard deviation of gyroscope bias estimation in radians */
 
 	.R_hstdev = 0.025, /* standard deviation of change in height in meters */
 
-	.Q_astdev = 1, /* 1m/s^2 process noise of velocity */
-	.Q_wstdev = 0.9,
+	.Q_astdev = 3.0, /* 1m/s^2 process noise of velocity */
+	.Q_wstdev = 0.1,
 	.Q_baDotstdev = 0.001,
 	.Q_bwDotstdev = 0.001
 };
@@ -109,10 +109,10 @@ void kmn_configRead(kalman_init_t *initVals)
 
 static matrix_t *kmn_getCtrl(matrix_t *U)
 {
-	vec_t accel, gyro, mag;
+	vec_t accel, gyro, mag, accelRaw;
 	time_t tstamp;
 
-	meas_imuGet(&accel, &gyro, &mag, &tstamp);
+	meas_imuGet(&accel, &accelRaw, &gyro, &mag, &tstamp);
 
 	*matrix_at(U, UWX, 0) = gyro.x;
 	*matrix_at(U, UWY, 0) = gyro.y;
