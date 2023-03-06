@@ -42,7 +42,7 @@
 #define BARO_CALIB_AVG 100
 
 /* different accelerometer biases sizes */
-#define ACC_BIAS_SIZE    3
+#define ACC_BIAS_SIZE     3
 #define ACC_NONORTHO_SIZE 9
 
 #define MAX_U32_DELTAANGLE 0x7fffffff /* Half of the u32 buffer span is max delta angle expected in one step (roughly 2147 radians) */
@@ -65,8 +65,8 @@ static const float accCalib[ACC_BIAS_SIZE + ACC_NONORTHO_SIZE] = {
 
 static void meas_gps2geo(const sensor_event_t *gpsEvt, meas_geodetic_t *geo)
 {
-	geo->lat = (float)gpsEvt->gps.lat / 1e7;
-	geo->lon = (float)gpsEvt->gps.lon / 1e7;
+	geo->lat = (double)gpsEvt->gps.lat / 1e9;
+	geo->lon = (double)gpsEvt->gps.lon / 1e9;
 	geo->h = (float)gpsEvt->gps.alt / 1e3;
 
 	geo->sinLat = sin(geo->lat * DEG2RAD);
@@ -87,8 +87,8 @@ static void meas_geo2ecef(const meas_geodetic_t *geo, vec_t *ecef)
 }
 
 
-/* convert gps geodetic coordinates `geo` into `enu` (east/north/up) vector with help of `refGeo` and `refEcef` coordinates */
-static void meas_geo2enu(const meas_geodetic_t *geo, const meas_geodetic_t *refGeo, const vec_t *refEcef, vec_t *enu)
+/* convert gps geodetic coordinates `geo` into `ned` (north/east/down) vector with help of `refGeo` and `refEcef` coordinates */
+static void meas_geo2ned(const meas_geodetic_t *geo, const meas_geodetic_t *refGeo, const vec_t *refEcef, vec_t *ned)
 {
 	float rot_data[9], dif_data[3], enu_data[3];
 	matrix_t rot = { .rows = 3, .cols = 3, .transposed = 0, .data = rot_data };
@@ -116,9 +116,10 @@ static void meas_geo2enu(const meas_geodetic_t *geo, const meas_geodetic_t *refG
 	/* perform ECEF to ENU by calculating matrix product (rot * dif) */
 	matrix_prod(&rot, &dif, &enuMatrix);
 
-	enu->x = enuMatrix.data[0];
-	enu->y = enuMatrix.data[1];
-	enu->z = enuMatrix.data[2];
+	/* convert ENU -> NED coordinates by switching the elements */
+	ned->x = enuMatrix.data[1];
+	ned->y = enuMatrix.data[0];
+	ned->z = -enuMatrix.data[2];
 }
 
 
@@ -131,7 +132,7 @@ void meas_gpsCalib(void)
 	/* Assuring gps fix */
 	while (1) {
 		sensc_gpsGet(&gpsEvt);
-		if (gpsEvt.gps.lat != 0 && gpsEvt.gps.lon != 0 && gpsEvt.gps.groundSpeed > 0) {
+		if (gpsEvt.gps.fix > 0) {
 			break;
 		}
 		printf("Awaiting GPS fix...\n");
@@ -141,7 +142,7 @@ void meas_gpsCalib(void)
 	/* Assuring gps fix */
 	while (1) {
 		sensc_gpsGet(&gpsEvt);
-		if (gpsEvt.gps.hdop < 20) {
+		if (gpsEvt.gps.hdop < 500) {
 			break;
 		}
 		printf("Awaiting good quality GPS (current hdop = %d)\n", gpsEvt.gps.hdop);
@@ -155,8 +156,8 @@ void meas_gpsCalib(void)
 			continue;
 		}
 		printf("Sampling gps position: sample %d/%d\n", i+1, avg);
-		refPos.lat += (float)gpsEvt.gps.lat / 1e7;
-		refPos.lon += (float)gpsEvt.gps.lon / 1e7;
+		refPos.lat += (double)gpsEvt.gps.lat / 1e9;
+		refPos.lon += (double)gpsEvt.gps.lon / 1e9;
 		refPos.h += gpsEvt.gps.alt / 1e3;
 		i++;
 	}
@@ -382,25 +383,31 @@ int meas_baroGet(float *pressure, float *temperature, uint64_t *timestamp)
 }
 
 
-int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop)
+int meas_gpsGet(meas_gps_t *gpsData)
 {
 	sensor_event_t gpsEvt;
 	meas_geodetic_t geo;
+	time_t timestamp;
 
 	if (sensc_gpsGet(&gpsEvt) < 0) {
 		return -1;
 	}
 
+	gettime(&timestamp, NULL);
+
+	/* Transformation from sensor data -> geodetic -> enu data */
 	meas_gps2geo(&gpsEvt, &geo);
+	meas_geo2ned(&geo, &meas_common.calib.gps.refGeodetic, &meas_common.calib.gps.refEcef, &gpsData->pos);
 
-	meas_geo2enu(&geo, &meas_common.calib.gps.refGeodetic, &meas_common.calib.gps.refEcef, enu);
-
-	/* speed conversion to m/s */
-	enu_speed->x = (float)gpsEvt.gps.velEast / 1e3;
-	enu_speed->y = (float)gpsEvt.gps.velNorth / 1e3;
-	enu_speed->z = -(float)gpsEvt.gps.velDown / 1e3;
-
-	*hdop = (float)(gpsEvt.gps.hdop) / 100;
+	gpsData->lat = geo.lat;
+	gpsData->lon = geo.lon;
+	gpsData->eph = (float)(gpsEvt.gps.eph) / 1000.f;
+	gpsData->epv = (float)(gpsEvt.gps.evel) / 1000.f;
+	gpsData->fix = gpsEvt.gps.fix;
+	gpsData->satsNb = gpsEvt.gps.satsNb;
+	gpsData->vel.x = (float)gpsEvt.gps.velNorth / 1e3;
+	gpsData->vel.y = (float)gpsEvt.gps.velEast / 1e3;
+	gpsData->vel.z = -(float)gpsEvt.gps.velDown / 1e3;
 
 	return 0;
 }
