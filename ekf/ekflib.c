@@ -39,6 +39,7 @@ struct {
 
 	update_engine_t imuEngine;
 	update_engine_t baroEngine;
+	update_engine_t gpsEngine;
 	state_engine_t stateEngine;
 
 	matrix_t state;
@@ -79,6 +80,7 @@ int ekf_init(void)
 	err |= kalman_predictAlloc(&ekf_common.stateEngine, STATE_LENGTH, CTRL_LENGTH);
 	err |= kalman_updateAlloc(&ekf_common.imuEngine, STATE_LENGTH, MEAS_IMU_LENGTH);
 	err |= kalman_updateAlloc(&ekf_common.baroEngine, STATE_LENGTH, MEAS_BARO_LENGTH);
+	err |= kalman_updateAlloc(&ekf_common.gpsEngine, STATE_LENGTH, MEAS_GPS_LENGTH);
 
 	err |= kmn_configRead(EKF_CONFIG_FILE, &ekf_common.initVals);
 
@@ -113,16 +115,19 @@ int ekf_init(void)
 		kalman_predictDealloc(&ekf_common.stateEngine);
 		kalman_updateDealloc(&ekf_common.imuEngine);
 		kalman_updateDealloc(&ekf_common.baroEngine);
+		kalman_updateDealloc(&ekf_common.gpsEngine);
 
 		return -1;
 	}
 
 	meas_imuCalib();
 	meas_baroCalib();
+	meas_gpsCalib();
 
 	kmn_predInit(&ekf_common.stateEngine, meas_calibGet(), &ekf_common.initVals);
 	kmn_imuEngInit(&ekf_common.imuEngine, &ekf_common.initVals);
 	kmn_baroEngInit(&ekf_common.baroEngine, &ekf_common.initVals);
+	kmn_gpsEngInit(&ekf_common.gpsEngine, &ekf_common.initVals);
 
 	return 0;
 }
@@ -142,7 +147,7 @@ static time_t ekf_dtGet(void)
 
 static void ekf_thread(void *arg)
 {
-	static time_t lastBaroUpdate = 0;
+	static time_t lastBaroUpdate = 0, lastGpsUpdate = 0;
 	time_t timeStep;
 	update_engine_t *currUpdate;
 	int i = 0;
@@ -155,6 +160,7 @@ static void ekf_thread(void *arg)
 	gettime(&ekf_common.lastTime, NULL);
 
 	lastBaroUpdate = ekf_common.lastTime;
+	lastGpsUpdate = ekf_common.lastTime;
 
 	while (ekf_common.run == 1) {
 		usleep(1000);
@@ -164,7 +170,12 @@ static void ekf_thread(void *arg)
 		kalman_predict(&ekf_common.stateEngine, timeStep, 0);
 
 		/* Select current update engine and adjust timestep if necessary */
-		if (ekf_common.currTime - lastBaroUpdate > BARO_UPDATE_TIMEOUT) {
+		if (ekf_common.currTime - lastGpsUpdate > GPS_UPDATE_TIMEOUT) {
+			currUpdate = &ekf_common.gpsEngine;
+			timeStep = ekf_common.currTime - lastGpsUpdate;
+			lastGpsUpdate = ekf_common.currTime;
+		}
+		else if (ekf_common.currTime - lastBaroUpdate > BARO_UPDATE_TIMEOUT) {
 			currUpdate = &ekf_common.baroEngine;
 			timeStep = ekf_common.currTime - lastBaroUpdate;
 			lastBaroUpdate = ekf_common.currTime;
