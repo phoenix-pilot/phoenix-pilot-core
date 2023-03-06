@@ -24,15 +24,15 @@
 
 
 typedef struct {
-	float lat;
-	float lon;
+	double lat;
+	double lon;
 	float h;
 
-	float sinLat;
-	float sinLon;
+	double sinLat;
+	double sinLon;
 
-	float cosLat;
-	float cosLon;
+	double cosLat;
+	double cosLon;
 } meas_geodetic_t;
 
 
@@ -55,6 +55,23 @@ typedef struct {
 		meas_geodetic_t refGeodetic; /* reference point geodetic coordinates */
 	} gps;
 } meas_calib_t;
+
+/* General structure type to return gps measurements of GPS in SI units */
+typedef struct {
+	/* Geodetic coordinates */
+	double lat;
+	double lon;
+
+	/* Local NED coordinates */
+	vec_t pos;
+	vec_t vel;
+
+	float eph;
+	float epv;
+
+	uint8_t satsNb;
+	uint8_t fix;
+} meas_gps_t;
 
 
 /* CALIBRATION INITIALIZERS */
@@ -87,6 +104,6 @@ extern int meas_imuGet(vec_t *accels, vec_t *accelsRaw, vec_t *gyros, vec_t *mag
 extern int meas_baroGet(float *pressure, float *temperature, uint64_t *dtBaroUs);
 
 /* Returns prepared GPS data in SI units */
-extern int meas_gpsGet(vec_t *enu, vec_t *enu_speed, float *hdop);
+extern int meas_gpsGet(meas_gps_t *gpsData);
 
 #endif
