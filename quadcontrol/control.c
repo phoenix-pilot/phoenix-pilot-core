@@ -713,7 +713,7 @@ static int quad_config(void)
 	}
 
 	if (res != PID_NUMBERS) {
-		fprintf(stderr, "quadcontrol: wrong number of PIDs in %s", PATH_QUAD_CONFIG);
+		fprintf(stderr, "quadcontrol: wrong number of PIDs in %s\n", PATH_QUAD_CONFIG);
 		free(quad_common.pids);
 		return -1;
 	}
@@ -726,7 +726,7 @@ static int quad_config(void)
 	}
 
 	if (res != 1) {
-		fprintf(stderr, "quadcontrol: wrong number of throttle configs in %s", PATH_QUAD_CONFIG);
+		fprintf(stderr, "quadcontrol: wrong number of throttle configs in %s\n", PATH_QUAD_CONFIG);
 		free(quad_common.pids);
 		free(throttleTmp);
 		return -1;
@@ -743,7 +743,7 @@ static int quad_config(void)
 	}
 
 	if (res != 1) {
-		fprintf(stderr, "quadcontrol: wrong number of attenuation configs in %s", PATH_QUAD_CONFIG);
+		fprintf(stderr, "quadcontrol: wrong number of attenuation configs in %s\n", PATH_QUAD_CONFIG);
 		free(quad_common.pids);
 		free(attenTmp);
 		return -1;
@@ -760,7 +760,7 @@ static int quad_config(void)
 	}
 
 	if (res != 1) {
-		fprintf(stderr, "quadcontrol: wrong number of attitude configs in %s", PATH_QUAD_CONFIG);
+		fprintf(stderr, "quadcontrol: wrong number of attitude configs in %s\n", PATH_QUAD_CONFIG);
 		free(quad_common.pids);
 		free(attTmp);
 		return -1;

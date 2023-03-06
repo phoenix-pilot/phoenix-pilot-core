@@ -113,6 +113,16 @@ static int config_trimUnusedData(int parserType, size_t dataTypeSize)
 {
 	void *tmp;
 
+	/* Due to implementation-defined behavior of realloc when space requested is zero */
+	if (res[parserType].invCnt == 0) {
+		free(res[parserType].data);
+		res[parserType].data = NULL;
+		res[parserType].sz = 0;
+
+		/* Returns zero, because not finding a header in particular file is not an error */
+		return 0;
+	}
+
 	if (res[parserType].invCnt < res[parserType].sz) {
 		tmp = realloc(res[parserType].data, dataTypeSize * res[parserType].invCnt);
 		if (tmp == NULL) {
