@@ -378,8 +378,8 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeSt
 	*matrix_at(F, BAX, BAX) = *matrix_at(F, BAY, BAY) = *matrix_at(F, BAZ, BAZ) = 1;
 
 	/* d(f_r)/d(r) and d(f_r)/d(v) */
-	*matrix_at(F, RX, RX) = *matrix_at(F, RY, RY), *matrix_at(F, RZ, RZ) = 1;
-	*matrix_at(F, RX, VX) = *matrix_at(F, RY, VY), *matrix_at(F, RZ, VZ) = dt;
+	*matrix_at(F, RX, RX) = *matrix_at(F, RY, RY) = *matrix_at(F, RZ, RZ) = 1;
+	*matrix_at(F, RX, VX) = *matrix_at(F, RY, VY) = *matrix_at(F, RZ, VZ) = dt;
 }
 
 
@@ -420,8 +420,7 @@ static void kmn_getNoiseQ(matrix_t *state, matrix_t *U, matrix_t *Q, time_t time
 	/* ACCEL BIAS PROCESS NOISE */
 	*matrix_at(Q, BWX, BWX) = *matrix_at(Q, BWY, BWY) = *matrix_at(Q, BWZ, BWZ) = pred_common.inits->Q_baDotstdev * pred_common.inits->Q_baDotstdev * dtSq;
 
-
-	*matrix_at(Q, RX, RX) = *matrix_at(Q, RY, RY), *matrix_at(Q, RZ, RZ) = (dtSq * pred_common.inits->Q_astdev) * (dtSq * pred_common.inits->Q_astdev);
+	*matrix_at(Q, RX, RX) = *matrix_at(Q, RY, RY) = *matrix_at(Q, RZ, RZ) = (dtSq * pred_common.inits->Q_astdev) * (dtSq * pred_common.inits->Q_astdev);
 }
 
 
@@ -450,6 +449,33 @@ static void kmn_initState(matrix_t *state, const meas_calib_t *calib)
 }
 
 
+static void kmn_initCov(matrix_t *cov, const kalman_init_t *inits)
+{
+	matrix_zeroes(cov);
+
+	*matrix_at(cov, QA, QA) = inits->P_qerr;
+	*matrix_at(cov, QB, QB) = inits->P_qerr;
+	*matrix_at(cov, QC, QC) = inits->P_qerr;
+	*matrix_at(cov, QD, QD) = inits->P_qerr;
+
+	*matrix_at(cov, BWX, BWX) = inits->P_bwerr;
+	*matrix_at(cov, BWY, BWY) = inits->P_bwerr;
+	*matrix_at(cov, BWZ, BWZ) = inits->P_bwerr;
+
+	*matrix_at(cov, BAX, BAX) = inits->P_baerr;
+	*matrix_at(cov, BAY, BAY) = inits->P_baerr;
+	*matrix_at(cov, BAZ, BAZ) = inits->P_baerr;
+
+	*matrix_at(cov, RX, RX) = inits->P_verr;
+	*matrix_at(cov, RY, RY) = inits->P_verr;
+	*matrix_at(cov, RZ, RZ) = inits->P_verr;
+
+	*matrix_at(cov, VX, VX) = inits->P_verr;
+	*matrix_at(cov, VY, VY) = inits->P_verr;
+	*matrix_at(cov, VZ, VZ) = inits->P_verr;
+}
+
+
 /* initialization of prediction step matrix values */
 void kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman_init_t *inits)
 {
@@ -462,6 +488,7 @@ void kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalma
 	pred_common.gLength = vec_len(&calib->imu.initAcc);
 
 	kmn_initState(&engine->state, calib);
+	kmn_initCov(&engine->cov, inits);
 
 	/* prepare noise matrix Q */
 	matrix_zeroes(&engine->Q);
