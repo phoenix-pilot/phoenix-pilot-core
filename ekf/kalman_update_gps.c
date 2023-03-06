@@ -24,6 +24,7 @@
 #include <sys/msg.h>
 
 #include "kalman_implem.h"
+#include "log.h"
 
 #include <vec.h>
 #include <quat.h>
@@ -46,6 +47,11 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 
 	Z->data[MGPSVX] = gpsData.vel.x;
 	Z->data[MGPSVY] = gpsData.vel.y;
+
+	ekflog_write(
+		EKFLOG_GPS_POS,
+		"EG %.6f %.6f %.1f %.1f %.1f %.1f %.1f %.1f %u %u\n",
+		gpsData.lat, gpsData.lon, gpsData.pos.x, gpsData.pos.y, kmn_vecAt(state, RX), kmn_vecAt(state, RY), gpsData.vel.x, gpsData.vel.y, gpsData.satsNb, gpsData.fix);
 
 	return Z;
 }
