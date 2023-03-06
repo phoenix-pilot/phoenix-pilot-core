@@ -49,6 +49,7 @@
 #define CTRL_LENGTH      6
 #define MEAS_IMU_LENGTH  6
 #define MEAS_BARO_LENGTH 2
+#define MEAS_GPS_LENGTH  4
 
 /* STATE VECTOR */
 /* Attitude quaternion rotates vectors from body frame of reference to inertial frame of reference */
@@ -94,6 +95,11 @@
 #define MDZ 0 /* Measurement of change in height (NED z component change) */
 #define MRZ 1 /* Measurement of vertical position (NED height) */
 
+/* GPS measurement */
+#define MGPSRX 0 /* NED x position */
+#define MGPSRY 1 /* NED y position */
+#define MGPSVX 2 /* NED x speed */
+#define MGPSVY 3 /* NED y speed */
 
 typedef struct {
 	int verbose;
@@ -113,6 +119,9 @@ typedef struct {
 
 	/* Baro measurement model standard deviations */
 	float R_hstdev;
+
+	float R_gpsxstdev;
+	float R_gpsvstdev;
 
 	/* State process noise values */
 	float Q_astdev;
