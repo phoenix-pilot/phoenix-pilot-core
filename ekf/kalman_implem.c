@@ -162,8 +162,8 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	vec_t aMeas = {.x = kmn_vecAt(U, UAX), .y = kmn_vecAt(U, UAY), .z = kmn_vecAt(U, UAZ)};
 
 	/* quaternionized angular rate and rotation quaternion estimates */
-	quat_t qEst, qtmp, qChange;
-	vec_t vEst;
+	quat_t qEst, qTmp;
+	vec_t aEst;
 
 	const float dt = (float)timeStep / 1000000.f;
 
@@ -179,10 +179,10 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	quat_sub(&wMeas, &gyroBiasLpf);
 
 	/* quaternion estimation: q = q * ( q_iden + h/2 * (wMeas - bw) ) */
-	quat_dif(&wMeas, &bwState, &qtmp);
-	quat_times(&qtmp, dt / 2);
-	qtmp.a += 1;
-	quat_mlt(&qState, &qtmp, &qEst);
+	quat_dif(&wMeas, &bwState, &qTmp);
+	quat_times(&qTmp, dt / 2);
+	qTmp.a += 1;
+	quat_mlt(&qState, &qTmp, &qEst);
 	quat_normalize(&qEst);
 
 	*matrix_at(state_est, QA, 0) = qEst.a;
@@ -196,15 +196,13 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	*matrix_at(state_est, BWZ, 0) = kmn_vecAt(state, BWZ);
 
 	/* velocity estimation */
-	vec_dif(&aMeas, &baState, &vEst);
-	quat_vecRot(&vEst, &qState);
-	vEst.z += pred_common.gLength; /* Cancel out earth acceleration */
-	vec_times(&vEst, dt);
-	vec_add(&vEst, &vState);
+	vec_dif(&aMeas, &baState, &aEst);
+	quat_vecRot(&aEst, &qState);
+	aEst.z += pred_common.gLength; /* Cancel out earth acceleration */
 
-	*matrix_at(state_est, VX, 0) = 0;
-	*matrix_at(state_est, VY, 0) = 0;
-	*matrix_at(state_est, VZ, 0) = vEst.z;
+	*matrix_at(state_est, VX, 0) = kmn_vecAt(state, VX) + aEst.x * dt;
+	*matrix_at(state_est, VY, 0) = kmn_vecAt(state, VY) + aEst.y * dt;
+	*matrix_at(state_est, VZ, 0) = kmn_vecAt(state, VZ) + aEst.z * dt;
 
 	/* accelerometer bias estimation: SIMPLIFICATION: we use constant value as prediction */
 	*matrix_at(state_est, BAX, 0) = 0;
@@ -212,8 +210,8 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	*matrix_at(state_est, BAZ, 0) = 0;
 
 	/* position estimation */
-	*matrix_at(state_est, RX, 0) = 0;
-	*matrix_at(state_est, RY, 0) = 0;
+	*matrix_at(state_est, RX, 0) = kmn_vecAt(state, RX) + dt * vState.x;
+	*matrix_at(state_est, RY, 0) = kmn_vecAt(state, RY) + dt * vState.y;
 	*matrix_at(state_est, RZ, 0) = kmn_vecAt(state, RZ) + dt * vState.z;
 }
 
@@ -491,9 +489,9 @@ static void kmn_initCov(matrix_t *cov, const kalman_init_t *inits)
 	*matrix_at(cov, RY, RY) = inits->P_verr;
 	*matrix_at(cov, RZ, RZ) = inits->P_verr;
 
-	*matrix_at(cov, VX, VX) = inits->P_verr;
-	*matrix_at(cov, VY, VY) = inits->P_verr;
-	*matrix_at(cov, VZ, VZ) = inits->P_verr;
+	*matrix_at(cov, RX, RX) = inits->P_rerr;
+	*matrix_at(cov, RY, RY) = inits->P_rerr;
+	*matrix_at(cov, RZ, RZ) = inits->P_rerr;
 }
 
 
