@@ -33,24 +33,19 @@
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
-	vec_t enu_pos, enu_speed;
-	float hdop;
+	meas_gps_t gpsData;
 
 	/* if there is no gps measurement available return NULL */
-	if (meas_gpsGet(&enu_pos, &enu_speed, &hdop) < 0) {
+	if (meas_gpsGet(&gpsData) < 0) {
 		return NULL;
 	}
 
-	Z->data[IMGPSXX] = enu_pos.x;
-	Z->data[IMGPSXY] = enu_pos.y;
-	Z->data[IMGPSVX] = enu_speed.x;
-	Z->data[IMGPSVY] = enu_speed.y;
+	/* NED frame of reference is used by both `gpsData` and ekf measurement model */
+	Z->data[MGPSRX] = gpsData.pos.x;
+	Z->data[MGPSRY] = gpsData.pos.y;
 
-	memset(R->data, 0, sizeof(R->rows * R->cols * sizeof(float)));
-	R->data[R->cols * IMGPSXX + IMGPSXX] = 3 * hdop;
-	R->data[R->cols * IMGPSXY + IMGPSXY] = 3 * hdop;
-	R->data[R->cols * IMGPSVX + IMGPSVX] = 2;
-	R->data[R->cols * IMGPSVY + IMGPSVY] = 2;
+	Z->data[MGPSVX] = gpsData.vel.x;
+	Z->data[MGPSVY] = gpsData.vel.y;
 
 	return Z;
 }
@@ -58,13 +53,11 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 
 static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, time_t timestep)
 {
-	matrix_t *state = state_est; /* aliasing for macros usage */
-	matrix_zeroes(hx);
+	hx->data[MGPSRX] = kmn_vecAt(state_est, RX);
+	hx->data[MGPSRY] = kmn_vecAt(state_est, RY);
 
-	hx->data[IMGPSXX] = XX;
-	hx->data[IMGPSXY] = XY;
-	hx->data[IMGPSVX] = VX;
-	hx->data[IMGPSVY] = VY;
+	hx->data[MGPSVX] = kmn_vecAt(state_est, VX);
+	hx->data[MGPSVY] = kmn_vecAt(state_est, VY);
 
 	return hx;
 }
@@ -72,17 +65,28 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 
 static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_t timeStep)
 {
-	memset(H->data, 0, sizeof(H->rows * H->cols * sizeof(float)));
-	H->data[H->cols * IMGPSXX + IXX] = 1;
-	H->data[H->cols * IMGPSXY + IXY] = 1;
-	H->data[H->cols * IMGPSVX + IVX] = 1;
-	H->data[H->cols * IMGPSVY + IVY] = 1;
+	*matrix_at(H, MGPSRX, RX) = 1;
+	*matrix_at(H, MGPSRY, RY) = 1;
+
+	*matrix_at(H, MGPSVX, VX) = 1;
+	*matrix_at(H, MGPSVY, VY) = 1;
+
+	return;
 }
 
 
 static void gpsUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_init_t *inits)
 {
-	/* covariance is live-updated with each gps measurement */
+	matrix_zeroes(R);
+	matrix_zeroes(H);
+
+	/* Ugly and hardcoded - use hdop from inits */
+	*matrix_at(R, MGPSRX, MGPSRX) = inits->R_gpsxstdev * inits->R_gpsxstdev;
+	*matrix_at(R, MGPSRY, MGPSRY) = inits->R_gpsxstdev * inits->R_gpsxstdev;
+
+	*matrix_at(R, MGPSVX, MGPSVX) = inits->R_gpsvstdev * inits->R_gpsvstdev;
+	*matrix_at(R, MGPSVY, MGPSVY) = inits->R_gpsvstdev * inits->R_gpsvstdev;
+
 	return;
 }
 
