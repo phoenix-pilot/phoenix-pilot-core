@@ -31,6 +31,9 @@
 
 #include "ekflib.h"
 
+#define EKF_CONFIG_FILE "/etc/ekf.conf"
+
+
 struct {
 	kalman_init_t initVals;
 
@@ -77,17 +80,13 @@ int ekf_init(void)
 	err |= kalman_updateAlloc(&ekf_common.imuEngine, STATE_LENGTH, MEAS_IMU_LENGTH);
 	err |= kalman_updateAlloc(&ekf_common.baroEngine, STATE_LENGTH, MEAS_BARO_LENGTH);
 
+	err |= kmn_configRead(EKF_CONFIG_FILE, &ekf_common.initVals);
+
 	if (err != 0) {
 		sensc_deinit();
 		resourceDestroy(ekf_common.lock);
 		return -1;
 	}
-
-	/* TODO: config read should utilize parser, and default values should be stored in /etc/calib.conf */
-	kmn_configRead(&ekf_common.initVals); /* only for development process */
-
-	/* TODO: reimplement this nasty cast below */
-	ekf_common.initVals.log = (int)(*((float*)(&ekf_common.initVals.log)));
 
 	/* Choose ekf log mode */
 	switch (ekf_common.initVals.log) {
@@ -201,7 +200,7 @@ static void ekf_thread(void *arg)
 
 int ekf_run(void)
 {
-	int res =  beginthreadex(ekf_thread, 3, ekf_common.stack, sizeof(ekf_common.stack), NULL, &ekf_common.tid);
+	int res = beginthreadex(ekf_thread, 3, ekf_common.stack, sizeof(ekf_common.stack), NULL, &ekf_common.tid);
 
 	/* Wait to stabilize data in covariance matrixes */
 	sleep(3);

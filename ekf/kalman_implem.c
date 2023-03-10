@@ -1,8 +1,8 @@
 /*
  * Phoenix-Pilot
  *
- * Extended kalman Filter 
- * 
+ * Extended kalman Filter
+ *
  * EKF implementation specific code. Defines:
  *  - prediction engine functions and initializations
  *  - measurement engines initializations
@@ -28,6 +28,10 @@
 #include <vec.h>
 #include <quat.h>
 #include <matrix.h>
+#include <parser.h>
+
+#define KMN_CONFIG_HEADERS_CNT    4
+#define KMN_CONFIG_MAX_FIELDS_CNT 9
 
 
 struct {
@@ -37,73 +41,90 @@ struct {
 } pred_common;
 
 
-/* NOTE: must be kept in the same order as 'configNames' */
-static const kalman_init_t initTemplate = {
-	.verbose = 0,
-	.log = 0,
-
-	.P_qerr = 10 * DEG2RAD,   /* 10 degrees */
-	.P_verr = 1,
-	.P_baerr = 1,
-	.P_bwerr = 1,
-	.P_rerr = 1,
-
-	.R_astdev = 0.4,    /* standard deviation of accelerometer reading in m/s */
-	.R_mstdev = 100,     /* standard deviation of magnetometer reading in milligauss */
-	.R_bwstdev = 0.0001, /* standard deviation of gyroscope bias estimation in radians */
-
-	.R_hstdev = 0.025, /* standard deviation of change in height in meters */
-
-	.Q_astdev = 3.0, /* 1m/s^2 process noise of velocity */
-	.Q_wstdev = 0.1,
-	.Q_baDotstdev = 0.001,
-	.Q_bwDotstdev = 0.001
-};
+static kalman_init_t *converterResult;
 
 
-/* NOTE: must be kept in the same order as 'init_values' */
-static const char *configNames[] = {
-	"verbose", "log",
-	"P_qerr", "P_verr", "P_baerr", "P_bwerr", "P_rerr",
-	"R_astdev", "R_mstdev", "R_bwstdev",
-	"R_hstdev",
-	"Q_astdev", "Q_wstdev", "Q_baDotstdev", "Q_bwDotstdev"
-};
+static int kmn_PMatrixConverter(const hmap_t *h)
+{
+	int err = 0;
+
+	err |= parser_fieldGet(h, "qerr", &converterResult->P_qerr, parser_float);
+	err |= parser_fieldGet(h, "verr", &converterResult->P_verr, parser_float);
+	err |= parser_fieldGet(h, "baerr", &converterResult->P_baerr, parser_float);
+	err |= parser_fieldGet(h, "rerr", &converterResult->P_rerr, parser_float);
+
+	return err;
+}
+
+
+static int kmn_RMatrixConverter(const hmap_t *h)
+{
+	int err = 0;
+
+	err |= parser_fieldGet(h, "astdev", &converterResult->R_astdev, parser_float);
+	err |= parser_fieldGet(h, "mstdev", &converterResult->R_mstdev, parser_float);
+	err |= parser_fieldGet(h, "bwstdev", &converterResult->R_bwstdev, parser_float);
+	err |= parser_fieldGet(h, "hstdev", &converterResult->R_hstdev, parser_float);
+
+	return err;
+}
+
+
+static int kmn_QMatrixConverter(const hmap_t *h)
+{
+	int err = 0;
+
+	err |= parser_fieldGet(h, "astdev", &converterResult->Q_astdev, parser_float);
+	err |= parser_fieldGet(h, "wstdev", &converterResult->Q_wstdev, parser_float);
+	err |= parser_fieldGet(h, "baDotstdev", &converterResult->Q_baDotstdev, parser_float);
+	err |= parser_fieldGet(h, "bwDotstdev", &converterResult->Q_bwDotstdev, parser_float);
+
+	return err;
+}
+
+
+static int kmn_loggingConverter(const hmap_t *h)
+{
+	int err = 0;
+
+	err |= parser_fieldGet(h, "verbose", &converterResult->verbose, parser_int);
+	err |= parser_fieldGet(h, "log", &converterResult->log, parser_int);
+
+	return err;
+}
 
 
 /* reads config file named "config" from filesystem */
-void kmn_configRead(kalman_init_t *initVals)
+int kmn_configRead(const char *configFile, kalman_init_t *initVals)
 {
-	char buf[32], *p, *v;
-	int i;
-	float val;
-	FILE *fd = fopen("config", "r");
-	kalman_init_t inits = initTemplate;
+	int err = 0;
+	parser_t *p;
 
-	if (fd == NULL) {
-		printf("No config file found!\n");
-	}
-	else {
-		while (fgets(buf, sizeof(buf), fd)) {
-			p = strtok(buf, " ");
-			v = strtok(NULL, " ");
-			val = atof(v);
-			for (i = 0; i < sizeof(inits) / sizeof(float); i++) {
-				if (memcmp(p, configNames[i], strlen(configNames[i])) == 0) {
-					((float *)&inits)[i] = (float)val;
-					break;
-				}
-			}
-		}
-		fclose(fd);
+	converterResult = initVals;
+
+	p = parser_alloc(KMN_CONFIG_HEADERS_CNT, KMN_CONFIG_MAX_FIELDS_CNT);
+	if (p == NULL) {
+		return -1;
 	}
 
-	printf("config:\n");
-	for (i = 0; i < sizeof(inits) / sizeof(float); i++) {
-		printf("%s = %f\n", configNames[i], ((float *)&inits)[i]);
+	err |= parser_headerAdd(p, "P_MATRIX", kmn_PMatrixConverter);
+	err |= parser_headerAdd(p, "R_MATRIX", kmn_RMatrixConverter);
+	err |= parser_headerAdd(p, "Q_MATRIX", kmn_QMatrixConverter);
+	err |= parser_headerAdd(p, "LOGGING", kmn_loggingConverter);
+
+	if (err != 0) {
+		parser_free(p);
+		return -1;
 	}
 
-	*initVals = inits;
+	err = parser_execute(p, configFile, PARSER_IGN_UNKNOWN_HEADERS);
+	parser_free(p);
+
+	if (err != 0) {
+		return -1;
+	}
+
+	return 0;
 }
 
 
