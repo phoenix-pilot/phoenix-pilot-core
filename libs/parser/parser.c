@@ -26,7 +26,7 @@
  *
  * If you have changed these patterns check if these function work properly:
  * - parser_headerGet
- * - parser_fieldGet
+ * - parser_fieldFill
  *
  * Especially be aware of `regmatch_t` structures.
  */
@@ -74,10 +74,7 @@ struct parser_t {
 };
 
 
-enum parser_lineType { type_Header,
-	type_Field,
-	type_Comment,
-	type_InvalidLine };
+enum parser_lineType { type_Header, type_Field, type_Comment, type_InvalidLine };
 
 
 parser_t *parser_alloc(int maxHeadersNb, int maxFieldsNb)
@@ -262,7 +259,7 @@ static int parser_headerGet(char *line, char *result)
 
 
 /* Fills `parser_result_t` structure. If succeeded returns 0. */
-static int parser_fieldGet(char *line, parser_field_t *result)
+static int parser_fieldFill(char *line, parser_field_t *result)
 {
 	regmatch_t regmatch[FIELD_SUBEXPRESSIONS];
 	size_t fieldLen, valueLen;
@@ -357,7 +354,7 @@ int parser_execute(parser_t *p, const char *path, unsigned int mode)
 					break;
 				}
 
-				if (parser_fieldGet(line, &p->fields[fieldsCnt]) != 0) {
+				if (parser_fieldFill(line, &p->fields[fieldsCnt]) != 0) {
 					fprintf(stderr, "%s: error on field parsing \"%s\"\n", __FUNCTION__, line);
 					err = -1;
 					break;
@@ -450,4 +447,40 @@ __attribute__((destructor)) static void parser_regexFree(void)
 		regfree(&parser_common.headerRegex);
 		regfree(&parser_common.headerNameRegex);
 	}
+}
+
+
+int parser_fieldGet(const hmap_t *h, const char *fieldName, void *target, parser_fieldType fieldType)
+{
+	char *valueStr, *endptr;
+
+	if (target == NULL) {
+		fprintf(stderr, "%s: argument `target` cannot be NULL\n", __FUNCTION__);
+	}
+
+	valueStr = hmap_get(h, fieldName);
+	if (valueStr == NULL) {
+		fprintf(stderr, "%s: no \"%s\" field in header\n", __FUNCTION__, fieldName);
+		return -1;
+	}
+
+	switch (fieldType) {
+		case parser_int:
+			*(int *)target = strtol(valueStr, &endptr, 10);
+			break;
+		case parser_float:
+			*(float *)target = strtof(valueStr, &endptr);
+			break;
+		default:
+			fprintf(stderr, "%s: invalid field type\n", __FUNCTION__);
+			return -1;
+	}
+
+	/* Checking if field was parsed successfully */
+	if (endptr[0] != '\0') {
+		fprintf(stderr, "%s: invalid \"%s\" value in header\n", __FUNCTION__, fieldName);
+		return -1;
+	}
+
+	return 0;
 }
