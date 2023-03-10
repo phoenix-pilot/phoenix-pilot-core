@@ -7,12 +7,12 @@
 # EKF development application
 NAME := devekf
 LOCAL_SRCS := devekf.c
-DEP_LIBS := libekf libalgeb libsensc libcalib
+DEP_LIBS := libekf libparser libhmap libalgeb libsensc libcalib
 include $(binary.mk)
 
 NAME := sensortest
 LOCAL_SRCS := sensortest.c
-DEP_LIBS := libekf libalgeb libsensc libcalib
+DEP_LIBS := libekf libparser libhmap libalgeb libsensc libcalib
 include $(binary.mk)
 
 NAME := senslog
