@@ -9,5 +9,5 @@
 #
 
 NAME := libalgeb
-LOCAL_SRCS := vec.c quat.c matrix.c
+LOCAL_SRCS := vec.c quat.c matrix.c qdiff.c
 include $(static-lib.mk)
