@@ -95,7 +95,6 @@
 #define MRZ 1 /* Measurement of vertical position (NED height) */
 
 
-/* IMPORTANT: must be kept in order with 'char * configNames' in 'kalman.inits.c' */
 typedef struct {
 	int verbose;
 	int log;
@@ -126,7 +125,8 @@ typedef struct {
 int verbose;
 
 
-extern void kmn_configRead(kalman_init_t *initVals);
+/* Function reads ekf configuration file under `path` and fills structure pointed by `initVals`  */
+extern int kmn_configRead(const char *configFile, kalman_init_t *initVals);
 
 /* Reads from a matrix like from a untransposed column vector directly. Invalid read returns 0.f */
 static inline float kmn_vecAt(const matrix_t *M, unsigned int i)
