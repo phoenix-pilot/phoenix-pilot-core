@@ -23,6 +23,11 @@ typedef struct {
 	float *data;
 } matrix_t;
 
+
+/* Direct access macro. works only for untransposed matrices */
+#define MATRIX_DATA(m, x, y) (m)->data[((x) * (m)->cols) + (y)]
+
+
 /* sets all matrix to zeroes */
 extern void matrix_zeroes(matrix_t *A);
 
