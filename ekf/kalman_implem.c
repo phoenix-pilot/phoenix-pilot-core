@@ -205,9 +205,9 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	*matrix_at(state_est, VZ, 0) = kmn_vecAt(state, VZ) + aEst.z * dt;
 
 	/* accelerometer bias estimation: SIMPLIFICATION: we use constant value as prediction */
-	*matrix_at(state_est, BAX, 0) = 0;
-	*matrix_at(state_est, BAY, 0) = 0;
-	*matrix_at(state_est, BAZ, 0) = 0;
+	*matrix_at(state_est, BAX, 0) = kmn_vecAt(state, BAX);
+	*matrix_at(state_est, BAY, 0) = kmn_vecAt(state, BAY);
+	*matrix_at(state_est, BAZ, 0) = kmn_vecAt(state, BAZ);
 
 	/* position estimation */
 	*matrix_at(state_est, RX, 0) = kmn_vecAt(state, RX) + dt * vState.x;
@@ -377,18 +377,23 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeSt
 	/* d(f_bw)/d(bw) calculations */
 	*matrix_at(F, BWX, BWX) = *matrix_at(F, BWY, BWY) = *matrix_at(F, BWZ, BWZ) = 1;
 
+	/*
+	* SOMETHING IS WRONG in dfvdq or dfvdba!!! Disabling it as it is not position crucial derivative.
+	* It must be taken care of!!
+	*/
+
 	/* d(f_v)/d(q) calculations */
 	vec_dif(&aMeas, &baState, &aTrue);
 	kmn_qpqDiffQ(&qState, &aTrue, &dfvdq);
 	matrix_times(&dfvdq, 2 * dt);
 	/* d(f_v)/d(q) write into F */
-	matrix_writeSubmatrix(F, VX, QA, &dfvdq);
+	/* matrix_writeSubmatrix(F, VX, QA, &dfvdq); */
 
 	/* d(f_v)/d(ba) calculations */
 	kmn_qpqDiffP(&qState, &dfvdba);
 	matrix_times(&dfvdba, -dt);
 	/* d(f_v)/d(ba) write into F */
-	matrix_writeSubmatrix(F, VX, BAX, &dfvdba);
+	/* matrix_writeSubmatrix(F, VX, BAX, &dfvdba); */
 
 	/* d(f_v)/d(v) calculations */
 	*matrix_at(F, VX, VX) = *matrix_at(F, VY, VY) = *matrix_at(F, VZ, VZ) = 1;
@@ -485,9 +490,9 @@ static void kmn_initCov(matrix_t *cov, const kalman_init_t *inits)
 	*matrix_at(cov, BAY, BAY) = inits->P_baerr;
 	*matrix_at(cov, BAZ, BAZ) = inits->P_baerr;
 
-	*matrix_at(cov, RX, RX) = inits->P_verr;
-	*matrix_at(cov, RY, RY) = inits->P_verr;
-	*matrix_at(cov, RZ, RZ) = inits->P_verr;
+	*matrix_at(cov, RX, RX) = inits->P_rerr;
+	*matrix_at(cov, RY, RY) = inits->P_rerr;
+	*matrix_at(cov, RZ, RZ) = inits->P_rerr;
 
 	*matrix_at(cov, RX, RX) = inits->P_rerr;
 	*matrix_at(cov, RY, RY) = inits->P_rerr;
