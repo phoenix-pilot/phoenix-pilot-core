@@ -241,7 +241,7 @@ int main(int argc, char **argv)
 		}
 
 		if (senslog_common.flags.gps && cnt >= 0) {
-			res = sprintf(&buf[cnt], "%d %d %u %u ", gpsEvt.gps.lat, gpsEvt.gps.lon, gpsEvt.gps.satsNb, gpsEvt.gps.fix); /* Max 46 characters */
+			res = sprintf(&buf[cnt], "%lld %lld %u %u ", gpsEvt.gps.lat, gpsEvt.gps.lon, gpsEvt.gps.satsNb, gpsEvt.gps.fix); /* Max 62 characters */
 			cnt = (res < 0) ? -1 : cnt + res;
 		}
 
@@ -251,7 +251,7 @@ int main(int argc, char **argv)
 		}
 
 		/*
-		* Worst-case scenario for maximum characters printed is 208 now. Change the `buf` size accordingly when adding new sensors!
+		* Worst-case scenario for maximum characters printed is 224 now. Change the `buf` size accordingly when adding new sensors!
 		*/
 
 		if (cnt >= 0) {
