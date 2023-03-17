@@ -29,8 +29,6 @@
 
 typedef struct parser_t parser_t;
 
-typedef enum { parser_int = 0, parser_float } parser_fieldType;
-
 
 /* Returns a pointer to correctly allocated parser object. `headerNo` - max number of headers to add to this parser. */
 extern parser_t *parser_alloc(int maxHeadersNb, int maxFieldsNb);
@@ -51,7 +49,12 @@ extern int parser_execute(parser_t *p, const char *path, unsigned int mode);
 /* Removes all added headers */
 extern void parser_clear(parser_t *p);
 
-/* Should be used in converters. Parses field from `h` with name `fieldName` to variable called `target`. `fieldType` defines what is the expected type of this field. */
-extern int parser_fieldGet(const hmap_t *h, const char *fieldName, void *target, parser_fieldType fieldType);
+
+/* Should be used in converters. Parses field from `h` with name `fieldName` to int. On success returns 0 and `target` is equal to parsed value. In other case returns non zero. */
+extern int parser_fieldGetInt(const hmap_t *h, const char *fieldName, int *target);
+
+
+/* Should be used in converters. Parses field from `h` with name `fieldName` to float. On success returns 0 and `target` is equal to parsed value. In other case returns non zero. */
+extern int parser_fieldGetFloat(const hmap_t *h, const char *fieldName, float *target);
 
 #endif /* PARSER_H */

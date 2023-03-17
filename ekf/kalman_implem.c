@@ -48,10 +48,10 @@ static int kmn_PMatrixConverter(const hmap_t *h)
 {
 	int err = 0;
 
-	err |= parser_fieldGet(h, "qerr", &converterResult->P_qerr, parser_float);
-	err |= parser_fieldGet(h, "verr", &converterResult->P_verr, parser_float);
-	err |= parser_fieldGet(h, "baerr", &converterResult->P_baerr, parser_float);
-	err |= parser_fieldGet(h, "rerr", &converterResult->P_rerr, parser_float);
+	err |= parser_fieldGetFloat(h, "qerr", &converterResult->P_qerr);
+	err |= parser_fieldGetFloat(h, "verr", &converterResult->P_verr);
+	err |= parser_fieldGetFloat(h, "baerr", &converterResult->P_baerr);
+	err |= parser_fieldGetFloat(h, "rerr", &converterResult->P_rerr);
 
 	return err;
 }
@@ -61,10 +61,10 @@ static int kmn_RMatrixConverter(const hmap_t *h)
 {
 	int err = 0;
 
-	err |= parser_fieldGet(h, "astdev", &converterResult->R_astdev, parser_float);
-	err |= parser_fieldGet(h, "mstdev", &converterResult->R_mstdev, parser_float);
-	err |= parser_fieldGet(h, "bwstdev", &converterResult->R_bwstdev, parser_float);
-	err |= parser_fieldGet(h, "hstdev", &converterResult->R_hstdev, parser_float);
+	err |= parser_fieldGetFloat(h, "astdev", &converterResult->R_astdev);
+	err |= parser_fieldGetFloat(h, "mstdev", &converterResult->R_mstdev);
+	err |= parser_fieldGetFloat(h, "bwstdev", &converterResult->R_bwstdev);
+	err |= parser_fieldGetFloat(h, "hstdev", &converterResult->R_hstdev);
 
 	return err;
 }
@@ -74,10 +74,10 @@ static int kmn_QMatrixConverter(const hmap_t *h)
 {
 	int err = 0;
 
-	err |= parser_fieldGet(h, "astdev", &converterResult->Q_astdev, parser_float);
-	err |= parser_fieldGet(h, "wstdev", &converterResult->Q_wstdev, parser_float);
-	err |= parser_fieldGet(h, "baDotstdev", &converterResult->Q_baDotstdev, parser_float);
-	err |= parser_fieldGet(h, "bwDotstdev", &converterResult->Q_bwDotstdev, parser_float);
+	err |= parser_fieldGetFloat(h, "astdev", &converterResult->Q_astdev);
+	err |= parser_fieldGetFloat(h, "wstdev", &converterResult->Q_wstdev);
+	err |= parser_fieldGetFloat(h, "baDotstdev", &converterResult->Q_baDotstdev);
+	err |= parser_fieldGetFloat(h, "bwDotstdev", &converterResult->Q_bwDotstdev);
 
 	return err;
 }
@@ -87,8 +87,8 @@ static int kmn_loggingConverter(const hmap_t *h)
 {
 	int err = 0;
 
-	err |= parser_fieldGet(h, "verbose", &converterResult->verbose, parser_int);
-	err |= parser_fieldGet(h, "log", &converterResult->log, parser_int);
+	err |= parser_fieldGetInt(h, "verbose", &converterResult->verbose);
+	err |= parser_fieldGetInt(h, "log", &converterResult->log);
 
 	return err;
 }

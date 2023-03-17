@@ -450,13 +450,9 @@ __attribute__((destructor)) static void parser_regexFree(void)
 }
 
 
-int parser_fieldGet(const hmap_t *h, const char *fieldName, void *target, parser_fieldType fieldType)
+int parser_fieldGetInt(const hmap_t *h, const char *fieldName, int *target)
 {
 	char *valueStr, *endptr;
-
-	if (target == NULL) {
-		fprintf(stderr, "%s: argument `target` cannot be NULL\n", __FUNCTION__);
-	}
 
 	valueStr = hmap_get(h, fieldName);
 	if (valueStr == NULL) {
@@ -464,21 +460,31 @@ int parser_fieldGet(const hmap_t *h, const char *fieldName, void *target, parser
 		return -1;
 	}
 
-	switch (fieldType) {
-		case parser_int:
-			*(int *)target = strtol(valueStr, &endptr, 10);
-			break;
-		case parser_float:
-			*(float *)target = strtof(valueStr, &endptr);
-			break;
-		default:
-			fprintf(stderr, "%s: invalid field type\n", __FUNCTION__);
-			return -1;
+	*target = strtol(valueStr, &endptr, 10);
+
+	if (*endptr != '\0') {
+		fprintf(stderr, "%s: cannot parser value of \"%s\" - %s - to int.\n", __FUNCTION__, fieldName, valueStr);
+		return -1;
 	}
 
-	/* Checking if field was parsed successfully */
-	if (endptr[0] != '\0') {
-		fprintf(stderr, "%s: invalid \"%s\" value in header\n", __FUNCTION__, fieldName);
+	return 0;
+}
+
+
+int parser_fieldGetFloat(const hmap_t *h, const char *fieldName, float *target)
+{
+	char *valueStr, *endptr;
+
+	valueStr = hmap_get(h, fieldName);
+	if (valueStr == NULL) {
+		fprintf(stderr, "%s: no \"%s\" field in header\n", __FUNCTION__, fieldName);
+		return -1;
+	}
+
+	*target = strtof(valueStr, &endptr);
+
+	if (*endptr != '\0') {
+		fprintf(stderr, "%s: cannot parser value of \"%s\" - %s - to float.\n", __FUNCTION__, fieldName, valueStr);
 		return -1;
 	}
 
