@@ -75,7 +75,7 @@ extern void matrix_trp(matrix_t *A);
 
 
 /* overwrites C with A * B */
-extern int matrix_prod(matrix_t *A, matrix_t *B, matrix_t *C);
+extern int matrix_prod(const matrix_t *A, const matrix_t *B, matrix_t *C);
 
 
 /* overwrites C with A * B, optimized for sparse A matrix */

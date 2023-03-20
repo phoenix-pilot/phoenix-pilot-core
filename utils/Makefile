@@ -24,3 +24,8 @@ NAME := rclog
 LOCAL_SRCS := rclog.c
 DEP_LIBS := librcbus
 include $(binary.mk)
+
+NAME := lmatest
+LOCAL_SRCS := lmatest.c
+DEP_LIBS := libalgeb
+include $(binary.mk)
