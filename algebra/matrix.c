@@ -55,7 +55,7 @@ void matrix_bufFree(matrix_t *matrix)
 }
 
 
-void matrix_print(matrix_t *A)
+void matrix_print(const matrix_t *A)
 {
 	unsigned int row, col;
 
@@ -184,7 +184,7 @@ int matrix_prod(const matrix_t *A, const matrix_t *B, matrix_t *C)
 }
 
 
-int matrix_sparseProd(matrix_t *A, matrix_t *B, matrix_t *C)
+int matrix_sparseProd(const matrix_t *A, const matrix_t *B, matrix_t *C)
 {
 	unsigned int row, col; /* represent position in output A matrix */
 	unsigned int step;     /* represent stepping down over rows/columns in A and B */
@@ -278,7 +278,7 @@ int matrix_sparseProd(matrix_t *A, matrix_t *B, matrix_t *C)
 }
 
 
-static inline int matrix_sandwitchValid(matrix_t *A, matrix_t *B, matrix_t *C, matrix_t *tempC)
+static inline int matrix_sandwitchValid(const matrix_t *A, const matrix_t *B, const matrix_t *C, const matrix_t *tempC)
 {
 	unsigned int colsA = matrix_colsGet(A), rowsA = matrix_rowsGet(A);
 	unsigned int colsB = matrix_colsGet(B), rowsB = matrix_rowsGet(B);
@@ -290,30 +290,30 @@ static inline int matrix_sandwitchValid(matrix_t *A, matrix_t *B, matrix_t *C, m
 }
 
 
-int matrix_sparseSandwitch(matrix_t *A, matrix_t *B, matrix_t *C, matrix_t *tempC)
+int matrix_sparseSandwitch(const matrix_t *A, const matrix_t *B, matrix_t *C, matrix_t *tempC)
 {
+	const matrix_t trpA = { .data = A->data, .rows = A->rows, .cols = A->cols, .transposed = 1 };
+
 	if (!matrix_sandwitchValid(A, B, C, tempC)) {
 		return -1;
 	}
 
 	matrix_sparseProd(A, B, tempC);
-	matrix_trp(A);
-	matrix_sparseProd(tempC, A, C);
-	matrix_trp(A);
+	matrix_sparseProd(tempC, &trpA, C);
 	return 0;
 }
 
 
-int matrix_sandwitch(matrix_t *A, matrix_t *B, matrix_t *C, matrix_t *tempC)
+int matrix_sandwitch(const matrix_t *A, const matrix_t *B, matrix_t *C, matrix_t *tempC)
 {
+	const matrix_t trpA = { .data = A->data, .rows = A->rows, .cols = A->cols, .transposed = 1 };
+
 	if (!matrix_sandwitchValid(A, B, C, tempC)) {
 		return -1;
 	}
 
 	matrix_prod(A, B, tempC);
-	matrix_trp(A);
-	matrix_prod(tempC, A, C);
-	matrix_trp(A);
+	matrix_prod(tempC, &trpA, C);
 	return 0;
 }
 
@@ -330,7 +330,7 @@ void matrix_diag(matrix_t *A)
 
 
 /* performs A + B = C, or A +=B if C is NULL */
-int matrix_add(matrix_t *A, matrix_t *B, matrix_t *C)
+int matrix_add(matrix_t *A, const matrix_t *B, matrix_t *C)
 {
 	unsigned int row, col; /* represent position in output C matrix */
 	unsigned int rowsC = A->rows, colsC = A->cols;
@@ -378,7 +378,7 @@ int matrix_add(matrix_t *A, matrix_t *B, matrix_t *C)
 }
 
 /* performs A + B = C, or A -=B if C is NULL */
-int matrix_sub(matrix_t *A, matrix_t *B, matrix_t *C)
+int matrix_sub(matrix_t *A, const matrix_t *B, matrix_t *C)
 {
 	unsigned int row, col; /* represent position in output C matrix */
 	unsigned int rowsC = A->rows, colsC = A->cols;
@@ -491,7 +491,7 @@ int matrix_cmp(const matrix_t *A, const matrix_t *B)
 }
 
 
-int matrix_inv(matrix_t *A, matrix_t *B, float *buf, int buflen)
+int matrix_inv(const matrix_t *A, matrix_t *B, float *buf, int buflen)
 {
 	matrix_t C = { 0 };
 	int rows, cols, row, col, step;
@@ -567,7 +567,7 @@ int matrix_inv(matrix_t *A, matrix_t *B, float *buf, int buflen)
 	return 0;
 }
 
-int matrix_writeSubmatrix(matrix_t *dst, unsigned int row, unsigned int col, matrix_t *src)
+int matrix_writeSubmatrix(matrix_t *dst, unsigned int row, unsigned int col, const matrix_t *src)
 {
 	int cprow;
 
