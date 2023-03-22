@@ -46,13 +46,13 @@ static inline float *matrix_at(const matrix_t *A, unsigned int row, unsigned int
 }
 
 
-static inline unsigned int matrix_rowsGet(matrix_t *A)
+static inline unsigned int matrix_rowsGet(const matrix_t *A)
 {
 	return (A->transposed) ? A->cols : A->rows;
 }
 
 
-static inline unsigned int matrix_colsGet(matrix_t *A)
+static inline unsigned int matrix_colsGet(const matrix_t *A)
 {
 	return (A->transposed) ? A->rows : A->cols;
 }
@@ -67,7 +67,7 @@ extern void matrix_times(matrix_t *A, float scalar);
 
 
 /* prints matrix A to standard output */
-extern void matrix_print(matrix_t *A);
+extern void matrix_print(const matrix_t *A);
 
 
 /* transposes matrix A */
@@ -79,23 +79,23 @@ extern int matrix_prod(const matrix_t *A, const matrix_t *B, matrix_t *C);
 
 
 /* overwrites C with A * B, optimized for sparse A matrix */
-extern int matrix_sparseProd(matrix_t *A, matrix_t *B, matrix_t *C);
+extern int matrix_sparseProd(const matrix_t *A, const matrix_t *B, matrix_t *C);
 
 
 /* overwrites C with A * B * transposed(A), optimized for sparse A */
-extern int matrix_sandwitch(matrix_t *A, matrix_t *B, matrix_t *C, matrix_t *tempC);
+extern int matrix_sandwitch(const matrix_t *A, const matrix_t *B, matrix_t *C, matrix_t *tempC);
 
 
 /* matrix_sandwitch() optimized for sparse A matrix */
-extern int matrix_sparseSandwitch(matrix_t *A, matrix_t *B, matrix_t *C, matrix_t *tempC);
+extern int matrix_sparseSandwitch(const matrix_t *A, const matrix_t *B, matrix_t *C, matrix_t *tempC);
 
 
 /* if C is not null perform C = A + B, otherwise A += B */
-extern int matrix_add(matrix_t *A, matrix_t *B, matrix_t *C);
+extern int matrix_add(matrix_t *A, const matrix_t *B, matrix_t *C);
 
 
 /* if C is not null perform C = A - B, otherwise A -= B */
-extern int matrix_sub(matrix_t *A, matrix_t *B, matrix_t *C);
+extern int matrix_sub(matrix_t *A, const matrix_t *B, matrix_t *C);
 
 
 /* compares contents of A and B */
@@ -103,11 +103,11 @@ extern int matrix_cmp(const matrix_t *A, const matrix_t *B);
 
 
 /* calculates inverse matrix, `buf` have to be twice as big as matrix `A`, bufLen >= A->rows * A->cols * 2 */
-extern int matrix_inv(matrix_t *A, matrix_t *B, float *buf, int buflen);
+extern int matrix_inv(const matrix_t *A, matrix_t *B, float *buf, int buflen);
 
 
 /* writes submatrix `src` into matrix `dst` beginning from position dst(row, col). Works only for non-transposed matrices */
-extern int matrix_writeSubmatrix(matrix_t *dst, unsigned int row, unsigned int col, matrix_t *src);
+extern int matrix_writeSubmatrix(matrix_t *dst, unsigned int row, unsigned int col, const matrix_t *src);
 
 
 #endif /* PHMATRIX_H */
