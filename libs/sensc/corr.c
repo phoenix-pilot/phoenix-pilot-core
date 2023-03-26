@@ -41,6 +41,7 @@ struct {
 	calib_data_t magmot;
 	calib_data_t magiron;
 	calib_data_t accrot;
+	calib_data_t accorth;
 
 	/* for magmot correction */
 	FILE *pwmFiles[NUM_OF_MOTORS];
@@ -95,7 +96,7 @@ void corr_done(void)
 
 int corr_init(void)
 {
-	int magironRet, magmotRet, accrotRet;
+	int magironRet, magmotRet, accrotRet, accorthRet;
 	int i;
 	bool err = false;
 
@@ -121,6 +122,7 @@ int corr_init(void)
 	magironRet = calib_readFile(CALIB_PATH, typeMagiron, &corr_common.magiron);
 	magmotRet = calib_readFile(CALIB_PATH, typeMagmot, &corr_common.magmot);
 	accrotRet = calib_readFile(CALIB_PATH, typeAccrot, &corr_common.accrot);
+	accorthRet = calib_readFile(CALIB_PATH, typeAccorth, &corr_common.accorth);
 
 	/* error checking */
 	if (magironRet != 0 || magmotRet != 0 || accrotRet != 0) {
@@ -128,6 +130,7 @@ int corr_init(void)
 		(magmotRet == 0) ? calib_free(&corr_common.magiron) : fprintf(stderr, "corr: magmot init failed\n");
 		(magironRet == 0) ? calib_free(&corr_common.magiron) : fprintf(stderr, "corr: magiron init failed\n");
 		(accrotRet == 0) ? calib_free(&corr_common.magiron) : fprintf(stderr, "corr: accrot init failed\n");
+		(accorthRet == 0) ? calib_free(&corr_common.accorth) : fprintf(stderr, "corr: accorth init failed\n");
 
 		for (i = 0; i < NUM_OF_MOTORS; i++) {
 			fclose(corr_common.pwmFiles[i]);
@@ -231,9 +234,9 @@ void corr_accrot(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 	vec_t gyro = { .x = gyroEvt->gyro.gyroX, .y = gyroEvt->gyro.gyroY, .z = gyroEvt->gyro.gyroZ };
 	vec_t mag = { .x = magEvt->mag.magX, .y = magEvt->mag.magY, .z = magEvt->mag.magZ };
 
-	quat_vecRot(&accel, &corr_common.accrot.params.accrot.frameQ);
-	quat_vecRot(&gyro, &corr_common.accrot.params.accrot.frameQ);
-	quat_vecRot(&mag, &corr_common.accrot.params.accrot.frameQ);
+	quat_vecRot(&accel, &corr_common.accorth.params.accorth.frameQ);
+	quat_vecRot(&gyro, &corr_common.accorth.params.accorth.frameQ);
+	quat_vecRot(&mag, &corr_common.accorth.params.accorth.frameQ);
 
 	accelEvt->accels.accelX = accel.x;
 	accelEvt->accels.accelY = accel.y;
@@ -246,4 +249,20 @@ void corr_accrot(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 	magEvt->mag.magX = mag.x;
 	magEvt->mag.magY = mag.y;
 	magEvt->mag.magZ = mag.z;
+}
+
+
+void corr_accorth(sensor_event_t *accelEvt)
+{
+	float dataFinal[3];
+	float dataTmp[3] = { accelEvt->accels.accelX, accelEvt->accels.accelY, accelEvt->accels.accelZ };
+	matrix_t tmp = { .data = dataTmp, .rows = 3, .cols = 1, .transposed = 0 };
+	matrix_t final = { .data = dataFinal, .rows = 3, .cols = 1, .transposed = 0 };
+
+	matrix_sub(&tmp, &corr_common.accorth.params.accorth.offset, NULL);
+	matrix_prod(&corr_common.accorth.params.accorth.ortho, &tmp, &final);
+
+	accelEvt->accels.accelX = MATRIX_DATA(&final, 0, 0);
+	accelEvt->accels.accelY = MATRIX_DATA(&final, 1, 0);
+	accelEvt->accels.accelZ = MATRIX_DATA(&final, 2, 0);
 }
