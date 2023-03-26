@@ -250,6 +250,168 @@ static int calib_magironRead(FILE *file, calib_data_t *cal)
 }
 
 
+/* Returns 0 if new value `val` was successfully saved to `cal` as `paramName` parameter. -1 otherwise */
+static int calib_accorthEnter(const char *paramName, calib_data_t *cal, float val)
+{
+	matrix_t *mat = NULL;
+	unsigned int row, col;
+	float *slot;
+
+	if (strlen(paramName) != 3) {
+		return -1;
+	}
+
+	row = (uint8_t)(paramName[1] - '0'); /* convert character to unsigned int digit */
+	col = (uint8_t)(paramName[2] - '0'); /* convert character to unsigned int digit */
+
+	/* matrix type get through character check */
+	switch (paramName[0]) {
+		case ACC_CHAR_ORTHO:
+			if (row > 9 || col > 9) {
+				return -1;
+			}
+			mat = &cal->params.accorth.ortho;
+			break;
+
+		case ACC_CHAR_OFFSET:
+			if (row > 3 || col > 3) {
+				return -1;
+			}
+			mat = &cal->params.accorth.offset;
+			break;
+
+		case ACC_CHAR_QUAT:
+			if (col > 0) {
+				return -1;
+			}
+			/* Saving quaternion */
+			switch (row) {
+				case 0:
+					cal->params.accorth.frameQ.a = val;
+					break;
+				case 1:
+					cal->params.accorth.frameQ.i = val;
+					break;
+				case 2:
+					cal->params.accorth.frameQ.j = val;
+					break;
+				case 3:
+					cal->params.accorth.frameQ.k = val;
+					break;
+				default:
+					return -1;
+			}
+			return 0;
+
+		default:
+			return -1;
+	}
+
+	/* matrix boundary checks performed by matrix_at() */
+	slot = matrix_at(mat, row, col);
+
+	if (slot == NULL) {
+		return -1;
+	}
+
+	*slot = val;
+
+	return 0;
+}
+
+
+static inline void calib_accorthDefaults(calib_data_t *cal)
+{
+	/* Creating constant aliases of matrices */
+	const matrix_t offset = cal->params.accorth.offset;
+	const matrix_t ortho = cal->params.accorth.ortho;
+
+	/* ellipsoid center offset matrix */
+	*matrix_at(&offset, 0, 0) = 0;
+	*matrix_at(&offset, 1, 0) = 0;
+	*matrix_at(&offset, 2, 0) = 0;
+
+	/* ellipsoid deformation matrix */
+	*matrix_at(&ortho, 0, 0) = 1;
+	*matrix_at(&ortho, 0, 1) = 0;
+	*matrix_at(&ortho, 0, 2) = 0;
+	*matrix_at(&ortho, 1, 0) = 0;
+	*matrix_at(&ortho, 1, 1) = 1;
+	*matrix_at(&ortho, 1, 2) = 0;
+	*matrix_at(&ortho, 2, 0) = 0;
+	*matrix_at(&ortho, 2, 1) = 0;
+	*matrix_at(&ortho, 2, 2) = 1;
+
+	/* Accelerometer frame of reference rotatation */
+	cal->params.accorth.frameQ.a = 1;
+	cal->params.accorth.frameQ.i = 0;
+	cal->params.accorth.frameQ.j = 0;
+	cal->params.accorth.frameQ.k = 0;
+}
+
+
+static int calib_accorthRead(FILE *file, calib_data_t *cal)
+{
+	char *line, *name;
+	size_t lineSz;
+	float val = 0, diff;
+	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
+
+	/* allocate matrix buffers */
+	if (matrix_bufAlloc(&cal->params.accorth.offset, ACC_OFFSET_ROWSPAN, ACC_OFFSET_COLSPAN) != 0) {
+		return -1;
+	}
+	if (matrix_bufAlloc(&cal->params.accorth.ortho, ACC_ORTHO_ROWSPAN, ACC_ORTHO_COLSPAN) != 0) {
+		matrix_bufFree(&cal->params.accorth.offset);
+		return -1;
+	}
+
+	calib_accorthDefaults(cal);
+
+	if (file == NULL) {
+		fprintf(stderr, "No calibration file. '%s' going default.\n", ACCORTH_TAG);
+		return 0;
+	}
+
+	/* Scroll to 'accortho' tag */
+	if (calib_file2tag(file, ACCORTH_TAG) != 0) {
+		fprintf(stderr, "Calibration not done yet. '%s' going default.\n", ACCORTH_TAG);
+		return 0;
+	}
+
+	line = NULL;
+	while (calib_getline(&line, &lineSz, file, &name, &val) == 0) {
+		if (calib_accorthEnter(name, cal, val) != 0) {
+			break;
+		}
+		params++;
+	}
+	free(line);
+
+	if (params != ACCORTH_PARAMS) {
+		calib_accorthDefaults(cal);
+		fprintf(stderr, "Failed to read `%s` calibration. Going default.\n", ACCORTH_TAG);
+	}
+
+	diff = 1.f - quat_len(&cal->params.accorth.frameQ);
+	if (diff > ACC_QUAT_ERR || diff < -ACC_QUAT_ERR) {
+		fprintf(stderr, "calib %s: wrong quaternion norm of %f\n", ACCORTH_TAG, 1.f - diff);
+		matrix_bufFree(&cal->params.accorth.offset);
+		matrix_bufFree(&cal->params.accorth.ortho);
+		return -1;
+	}
+
+	if (MATRIX_DATA(&cal->params.accorth.ortho, 0, 0) < 0 || MATRIX_DATA(&cal->params.accorth.ortho, 1, 1) < 0, MATRIX_DATA(&cal->params.accorth.ortho, 2, 2) < 0) {
+		fprintf(stderr, "calib %s: invalid S matrix\n");
+		matrix_bufFree(&cal->params.accorth.offset);
+		matrix_bufFree(&cal->params.accorth.ortho);
+		return -1;
+	}
+
+	return 0;
+}
+
+
 static void calib_motlinDefaults(calib_data_t *cal)
 {
 	cal->params.motlin.motorEq[0][0] = 0.968600;
@@ -426,6 +588,11 @@ void calib_free(calib_data_t *cal)
 			matrix_bufFree(&cal->params.magiron.softCal);
 			break;
 
+		case typeAccorth:
+			matrix_bufFree(&cal->params.accorth.offset);
+			matrix_bufFree(&cal->params.accorth.ortho);
+			break;
+
 		case typeMagmot:
 		case typeMotlin:
 		case typeAccrot:
@@ -461,6 +628,10 @@ int calib_readFile(const char *path, calibType_t type, calib_data_t *cal)
 
 		case typeAccrot:
 			ret = calib_accrotRead(file, cal);
+			break;
+
+		case typeAccorth:
+			ret = calib_accorthRead(file, cal);
 			break;
 
 		default:

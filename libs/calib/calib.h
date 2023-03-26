@@ -33,6 +33,17 @@
 #define HARDCAL_ROWSPAN 3
 #define HARDCAL_COLSPAN 1
 
+#define ACCORTH_TAG        "accorth"
+#define ACCORTH_PARAMS     16
+#define ACC_CHAR_ORTHO     'o'
+#define ACC_CHAR_OFFSET    'h'
+#define ACC_CHAR_QUAT      'q'
+#define ACC_ORTHO_ROWSPAN  3
+#define ACC_ORTHO_COLSPAN  3
+#define ACC_OFFSET_ROWSPAN 3
+#define ACC_OFFSET_COLSPAN 1
+#define ACC_QUAT_ERR       0.001f
+
 #define MOTLIN_TAG    "motlin"
 #define MOTLIN_PARAMS 8
 
@@ -41,7 +52,7 @@
 #define ACCROT_QUAT_ERR 0.001f
 
 
-typedef enum { typeMagmot = 0, typeMagiron, typeMotlin, typeAccrot } calibType_t;
+typedef enum { typeMagmot = 0, typeMagiron, typeMotlin, typeAccrot, typeAccorth } calibType_t;
 
 
 typedef struct {
@@ -51,6 +62,12 @@ typedef struct {
 			matrix_t softCal; /* 3x3 matrix for soft iron calib. parameters. */
 			matrix_t hardCal; /* 3x1 matrix for hard iron calibration */
 		} magiron;
+
+		struct {
+			matrix_t ortho;  /* 3x3 nonorthogonality parameters matrix */
+			matrix_t offset; /* 3x1 measurement offset matrix */
+			quat_t frameQ;   /* initial rotation quaternion of accelerometer in relation to body frame */
+		} accorth;
 
 		struct {
 			float motorEq[NUM_OF_MOTORS][3][3]; /* motorEq[motorId 0/1/2...NUM_OF_MOTORS][axisId x/y/z][equation_param a/b/c] */
