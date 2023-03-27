@@ -502,7 +502,7 @@ int parser_fieldGetTime(const hmap_t *h, const char *fieldName, time_t *target)
 		return -1;
 	}
 
-	*target = strtol(valueStr, &endptr, 10);
+	*target = strtoull(valueStr, &endptr, 10);
 
 	if (*endptr != '\0') {
 		fprintf(stderr, "%s: cannot parser value of \"%s\" - %s - to int.\n", __FUNCTION__, fieldName, valueStr);

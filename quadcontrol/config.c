@@ -29,65 +29,6 @@ static struct {
 } res[cfg_end];
 
 
-static int config_parseInt32(const hmap_t *h, char *fieldName, int32_t *target)
-{
-	char *valueStr, *endptr;
-
-	valueStr = hmap_get(h, fieldName);
-	if (valueStr == NULL) {
-		fprintf(stderr, "config: no \"%s\" field in header\n", fieldName);
-		return -1;
-	}
-
-	*target = strtol(valueStr, &endptr, 10);
-	if (endptr[0] != '\0') {
-		fprintf(stderr, "config: invalid \"%s\" value in header\n", fieldName);
-		return -1;
-	}
-
-	return 0;
-}
-
-
-static int config_parseFloat(const hmap_t *h, char *fieldName, float *target)
-{
-	char *valueStr, *endptr;
-
-	valueStr = hmap_get(h, fieldName);
-	if (valueStr == NULL) {
-		fprintf(stderr, "config: no \"%s\" field in header\n", fieldName);
-		return -1;
-	}
-
-	*target = strtof(valueStr, &endptr);
-	if (endptr[0] != '\0') {
-		fprintf(stderr, "config: invalid \"%s\" value in header\n", fieldName);
-		return -1;
-	}
-
-	return 0;
-}
-
-static int config_parseTime(const hmap_t *h, char *fieldName, time_t *target)
-{
-	char *valueStr, *endptr;
-
-	valueStr = hmap_get(h, fieldName);
-	if (valueStr == NULL) {
-		fprintf(stderr, "config: no \"%s\" field in header\n", fieldName);
-		return -1;
-	}
-
-	*target = strtoull(valueStr, &endptr, 10);
-	if (endptr[0] != '\0') {
-		fprintf(stderr, "config: invalid \"%s\" value in header\n", fieldName);
-		return -1;
-	}
-
-	return 0;
-}
-
-
 /* Doubles the `res[parserType]` buffer if necessary  */
 static int config_reallocData(int parserType, size_t dataTypeSize)
 {
@@ -142,22 +83,22 @@ static int config_takeoffParse(const hmap_t *h, flight_mode_t *mode)
 	int err = 0;
 
 	/* obligatory parameters */
-	err |= config_parseInt32(h, "alt", &mode->takeoff.alt);
+	err |= parser_fieldGetInt(h, "alt", &mode->takeoff.alt);
 
 	if (err != 0) {
 		return -1;
 	}
 
 	/* optional parameters */
-	if (config_parseTime(h, "idleT", &mode->takeoff.idleTime) != 0) {
+	if (parser_fieldGetTime(h, "idleT", &mode->takeoff.idleTime) != 0) {
 		mode->takeoff.idleTime = 3000;
 	}
 
-	if (config_parseTime(h, "spoolT", &mode->takeoff.spoolTime) != 0) {
+	if (parser_fieldGetTime(h, "spoolT", &mode->takeoff.spoolTime) != 0) {
 		mode->takeoff.idleTime = 3000;
 	}
 
-	if (config_parseTime(h, "liftT", &mode->takeoff.liftTime) != 0) {
+	if (parser_fieldGetTime(h, "liftT", &mode->takeoff.liftTime) != 0) {
 		mode->takeoff.idleTime = 2000;
 	}
 
@@ -171,9 +112,9 @@ static int config_positionParse(const hmap_t *h, flight_mode_t *mode)
 {
 	int err = 0;
 
-	err |= config_parseInt32(h, "alt", &mode->pos.alt);
-	err |= config_parseInt32(h, "lat", &mode->pos.lat);
-	err |= config_parseInt32(h, "lon", &mode->pos.lon);
+	err |= parser_fieldGetInt(h, "alt", &mode->pos.alt);
+	err |= parser_fieldGetInt(h, "lat", &mode->pos.lat);
+	err |= parser_fieldGetInt(h, "lon", &mode->pos.lon);
 
 	if (err != 0) {
 		return -1;
@@ -190,8 +131,8 @@ static int config_hoverParse(const hmap_t *h, flight_mode_t *mode)
 	int err = 0;
 	int32_t alt;
 
-	err |= config_parseInt32(h, "alt", &alt);
-	err |= config_parseTime(h, "time", &mode->hover.time);
+	err |= parser_fieldGetInt(h, "alt", &alt);
+	err |= parser_fieldGetTime(h, "time", &mode->hover.time);
 
 	if (err != 0 || alt < 0) {
 		return -1;
@@ -207,15 +148,15 @@ static int config_hoverParse(const hmap_t *h, flight_mode_t *mode)
 
 static int config_landingParse(const hmap_t *h, flight_mode_t *mode)
 {
-	if (config_parseInt32(h, "descent", &mode->landing.descent) != 0) {
+	if (parser_fieldGetInt(h, "descent", &mode->landing.descent) != 0) {
 		mode->landing.descent = 250;
 	}
 
-	if (config_parseInt32(h, "diff", &mode->landing.diff) != 0) {
+	if (parser_fieldGetInt(h, "diff", &mode->landing.diff) != 0) {
 		mode->landing.diff = 4000;
 	}
 
-	if (config_parseTime(h, "timeout", &mode->landing.timeout) != 0) {
+	if (parser_fieldGetTime(h, "timeout", &mode->landing.timeout) != 0) {
 		mode->landing.timeout = 5000;
 	}
 
@@ -346,13 +287,13 @@ static int config_pidConverter(const hmap_t *h)
 
 	pid = (pid_ctx_t *)res[cfg_pidID].data + id;
 
-	err |= config_parseFloat(h, "P", &pid->kp);
-	err |= config_parseFloat(h, "I", &pid->ki);
-	err |= config_parseFloat(h, "D", &pid->kd);
-	err |= config_parseFloat(h, "MIN", &pid->min);
-	err |= config_parseFloat(h, "MAX", &pid->max);
-	err |= config_parseFloat(h, "IMAX", &pid->maxInteg);
-	err |= config_parseFloat(h, "IMIN", &pid->minInteg);
+	err |= parser_fieldGetFloat(h, "P", &pid->kp);
+	err |= parser_fieldGetFloat(h, "I", &pid->ki);
+	err |= parser_fieldGetFloat(h, "D", &pid->kd);
+	err |= parser_fieldGetFloat(h, "MIN", &pid->min);
+	err |= parser_fieldGetFloat(h, "MAX", &pid->max);
+	err |= parser_fieldGetFloat(h, "IMAX", &pid->maxInteg);
+	err |= parser_fieldGetFloat(h, "IMIN", &pid->minInteg);
 
 	if (err != 0) {
 		return -1;
@@ -430,8 +371,8 @@ static int config_throttleConverter(const hmap_t *h)
 
 	throttle = (quad_throttle_t *)res[cfg_throttleID].data + id;
 
-	err |= config_parseFloat(h, "MAX", &throttle->max);
-	err |= config_parseFloat(h, "MIN", &throttle->min);
+	err |= parser_fieldGetFloat(h, "MAX", &throttle->max);
+	err |= parser_fieldGetFloat(h, "MIN", &throttle->min);
 
 	if (err != 0) {
 		return -1;
@@ -508,10 +449,10 @@ static int config_attenConverter(const hmap_t *h)
 
 	atten = (mma_atten_t *)res[cfg_attenuateID].data;
 
-	err |= config_parseFloat(h, "startVal", &atten->startVal);
-	err |= config_parseFloat(h, "endVal", &atten->endVal);
-	err |= config_parseFloat(h, "midVal", &atten->midVal);
-	err |= config_parseFloat(h, "midArg", &atten->midArg);
+	err |= parser_fieldGetFloat(h, "startVal", &atten->startVal);
+	err |= parser_fieldGetFloat(h, "endVal", &atten->endVal);
+	err |= parser_fieldGetFloat(h, "midVal", &atten->midVal);
+	err |= parser_fieldGetFloat(h, "midArg", &atten->midArg);
 
 	if (err != 0) {
 		return -1;
@@ -589,9 +530,9 @@ static int config_attitudeConverter(const hmap_t *h)
 
 	attitude = (quad_att_t *)res[cfg_attitudeID].data + id;
 
-	err |= config_parseFloat(h, "PITCH", &attitude->pitch);
-	err |= config_parseFloat(h, "ROLL", &attitude->roll);
-	err |= config_parseFloat(h, "YAW", &attitude->yaw);
+	err |= parser_fieldGetFloat(h, "PITCH", &attitude->pitch);
+	err |= parser_fieldGetFloat(h, "ROLL", &attitude->roll);
+	err |= parser_fieldGetFloat(h, "YAW", &attitude->yaw);
 
 	if (err != 0) {
 		return -1;
