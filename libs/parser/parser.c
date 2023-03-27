@@ -490,3 +490,24 @@ int parser_fieldGetFloat(const hmap_t *h, const char *fieldName, float *target)
 
 	return 0;
 }
+
+
+int parser_fieldGetTime(const hmap_t *h, const char *fieldName, time_t *target)
+{
+	char *valueStr, *endptr;
+
+	valueStr = hmap_get(h, fieldName);
+	if (valueStr == NULL) {
+		fprintf(stderr, "%s: no \"%s\" field in header\n", __FUNCTION__, fieldName);
+		return -1;
+	}
+
+	*target = strtol(valueStr, &endptr, 10);
+
+	if (*endptr != '\0') {
+		fprintf(stderr, "%s: cannot parser value of \"%s\" - %s - to int.\n", __FUNCTION__, fieldName, valueStr);
+		return -1;
+	}
+
+	return 0;
+}
