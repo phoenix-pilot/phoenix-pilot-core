@@ -491,95 +491,6 @@ static int calib_motlinRead(FILE *file, calib_data_t *cal)
 }
 
 
-static int calib_accrotEnter(const char *paramName, calib_data_t *cal, float val)
-{
-	unsigned int qParam;
-
-	if (strlen(paramName) != 5) {
-		return -1;
-	}
-
-	if (strncmp(paramName, "accq", strlen("accq")) != 0) {
-		return -1;
-	}
-
-	qParam = (uint8_t)(paramName[4] - '0'); /* convert character to unsigned int digit */
-
-	/* quaternion variable select */
-	switch (qParam) {
-		case 0:
-			cal->params.accrot.frameQ.a = val;
-			break;
-		case 1:
-			cal->params.accrot.frameQ.i = val;
-			break;
-		case 2:
-			cal->params.accrot.frameQ.j = val;
-			break;
-		case 3:
-			cal->params.accrot.frameQ.k = val;
-			break;
-		default:
-			/* only support for "accq0", "accq1", "accq2", "accq3" */
-			fprintf(stderr, "%s: wrong quaternion variable\n", ACCROT_TAG);
-			return -1;
-	}
-
-	return 0;
-}
-
-
-static inline void calib_accrotDefaults(calib_data_t *cal)
-{
-	/* Identity quaternion as default (no ratation) */
-	quat_idenWrite(&cal->params.accrot.frameQ);
-}
-
-
-static int calib_accrotRead(FILE *file, calib_data_t *cal)
-{
-	char *line, *name;
-	size_t lineSz;
-	float val = 0, diff;
-	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
-
-	calib_accrotDefaults(cal);
-
-	if (file == NULL) {
-		fprintf(stderr, "No calibration file. '%s' going default.\n", ACCROT_TAG);
-		return 0;
-	}
-
-	/* Scroll to 'magiron' tag */
-	if (calib_file2tag(file, ACCROT_TAG) != 0) {
-		fprintf(stderr, "Calibration not done yet. '%s' going default.\n", ACCROT_TAG);
-		return 0;
-	}
-
-	line = NULL;
-	while (calib_getline(&line, &lineSz, file, &name, &val) == 0) {
-		if (calib_accrotEnter(name, cal, val) != 0) {
-			break;
-		}
-		params++;
-	}
-	free(line);
-
-	if (params != ACCROT_PARAMS) {
-		calib_accrotDefaults(cal);
-		fprintf(stderr, "Failed to read `%s` calibration. Going default.\n", ACCROT_TAG);
-	}
-
-	diff = 1.f - quat_len(&cal->params.accrot.frameQ);
-	if (diff > ACCROT_QUAT_ERR || diff < -ACCROT_QUAT_ERR) {
-		fprintf(stderr, "calib %s: wrong quaternion norm of %f\n", ACCROT_TAG, 1.f - diff);
-		return -1;
-	}
-
-	return 0;
-}
-
-
 void calib_free(calib_data_t *cal)
 {
 	switch (cal->type) {
@@ -595,7 +506,6 @@ void calib_free(calib_data_t *cal)
 
 		case typeMagmot:
 		case typeMotlin:
-		case typeAccrot:
 		default:
 			return;
 	}
@@ -624,10 +534,6 @@ int calib_readFile(const char *path, calibType_t type, calib_data_t *cal)
 
 		case typeMotlin:
 			ret = calib_motlinRead(file, cal);
-			break;
-
-		case typeAccrot:
-			ret = calib_accrotRead(file, cal);
 			break;
 
 		case typeAccorth:

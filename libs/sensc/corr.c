@@ -40,7 +40,6 @@ static const char *motorFiles[] = {
 struct {
 	calib_data_t magmot;
 	calib_data_t magiron;
-	calib_data_t accrot;
 	calib_data_t accorth;
 
 	/* for magmot correction */
@@ -96,7 +95,7 @@ void corr_done(void)
 
 int corr_init(void)
 {
-	int magironRet, magmotRet, accrotRet, accorthRet;
+	int magironRet, magmotRet, accorthRet;
 	int i;
 	bool err = false;
 
@@ -121,15 +120,13 @@ int corr_init(void)
 
 	magironRet = calib_readFile(CALIB_PATH, typeMagiron, &corr_common.magiron);
 	magmotRet = calib_readFile(CALIB_PATH, typeMagmot, &corr_common.magmot);
-	accrotRet = calib_readFile(CALIB_PATH, typeAccrot, &corr_common.accrot);
 	accorthRet = calib_readFile(CALIB_PATH, typeAccorth, &corr_common.accorth);
 
 	/* error checking */
-	if (magironRet != 0 || magmotRet != 0 || accrotRet != 0) {
+	if (magironRet != 0 || magmotRet != 0 || accorthRet != 0) {
 
 		(magmotRet == 0) ? calib_free(&corr_common.magiron) : fprintf(stderr, "corr: magmot init failed\n");
 		(magironRet == 0) ? calib_free(&corr_common.magiron) : fprintf(stderr, "corr: magiron init failed\n");
-		(accrotRet == 0) ? calib_free(&corr_common.magiron) : fprintf(stderr, "corr: accrot init failed\n");
 		(accorthRet == 0) ? calib_free(&corr_common.accorth) : fprintf(stderr, "corr: accorth init failed\n");
 
 		for (i = 0; i < NUM_OF_MOTORS; i++) {
