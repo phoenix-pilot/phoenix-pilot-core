@@ -57,4 +57,8 @@ extern int parser_fieldGetInt(const hmap_t *h, const char *fieldName, int *targe
 /* Should be used in converters. Parses field from `h` with name `fieldName` to float. On success returns 0 and `target` is equal to parsed value. In other case returns non zero. */
 extern int parser_fieldGetFloat(const hmap_t *h, const char *fieldName, float *target);
 
+
+/* Should be used in converters. Parses field from `h` with name `fieldName` to time_t. On success returns 0 and `target` is equal to parsed value. In other case returns non zero. */
+extern int parser_fieldGetTime(const hmap_t *h, const char *fieldName, time_t *target);
+
 #endif /* PARSER_H */
