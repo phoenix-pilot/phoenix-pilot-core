@@ -36,8 +36,6 @@
 
 struct {
 	const kalman_init_t *inits;
-	vec_t gyroBiasBypass;
-	float gLength;
 } pred_common;
 
 
@@ -64,7 +62,11 @@ static int kmn_RMatrixConverter(const hmap_t *h)
 	err |= parser_fieldGetFloat(h, "astdev", &converterResult->R_astdev);
 	err |= parser_fieldGetFloat(h, "mstdev", &converterResult->R_mstdev);
 	err |= parser_fieldGetFloat(h, "bwstdev", &converterResult->R_bwstdev);
+
 	err |= parser_fieldGetFloat(h, "hstdev", &converterResult->R_hstdev);
+
+	err |= parser_fieldGetFloat(h, "gpsxstdev", &converterResult->R_gpsxstdev);
+	err |= parser_fieldGetFloat(h, "gpsvstdev", &converterResult->R_gpsvstdev);
 
 	return err;
 }
@@ -198,7 +200,7 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	/* velocity estimation */
 	vec_dif(&aMeas, &baState, &aEst);
 	quat_vecRot(&aEst, &qState);
-	aEst.z += pred_common.gLength; /* Cancel out earth acceleration */
+	aEst.z += EARTH_G;
 
 	*matrix_at(state_est, VX, 0) = kmn_vecAt(state, VX) + aEst.x * dt;
 	*matrix_at(state_est, VY, 0) = kmn_vecAt(state, VY) + aEst.y * dt;
@@ -504,12 +506,6 @@ static void kmn_initCov(matrix_t *cov, const kalman_init_t *inits)
 void kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman_init_t *inits)
 {
 	pred_common.inits = inits;
-
-	/* Storing calibration bias as constant value of gyroscope bias */
-	pred_common.gyroBiasBypass = calib->imu.gyroBias;
-
-	/* Storing length of calibration acceleration measured as measured earth acceleration. This imposes small but negligible error on velocity */
-	pred_common.gLength = vec_len(&calib->imu.initAcc);
 
 	kmn_initState(&engine->state, calib);
 	kmn_initCov(&engine->cov, inits);
