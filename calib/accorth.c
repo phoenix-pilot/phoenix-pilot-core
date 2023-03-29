@@ -70,13 +70,13 @@
 #include "calibtool.h"
 #include "ellcal.h"
 
-#define DANGLE_MIN         (M_PI / 36)         /* Minimum delta angle to take sample */
-#define MAX_SAMPLES        256                 /* Samples to be taken for ellipsoid fitting */
-#define MAX_SAMPLES_FINE   (MAX_SAMPLES / 8)   /* Samples to be taken for ellipsoid fine fitting. Must be smaller or equal to MAX_SAMPLES */
-#define MAX_ACCEL_OFFSET   10000               /* Maximum acceptable accelerometer offset (mm/s^2) */
-#define LMA_FITTING_EPOCHS 100                 /* LMA epochs for parameters fitting */
-#define LMA_JACOBIAN_STEP  0.0001f             /* Step for jacobian calculation in LMA */
-#define MIN_TILT_COSINE    (M_SQRT2 / 2.f)     /* minimal cosine of tilt angle between down and front measurement (45 degrees) */
+#define DANGLE_MIN         (M_PI / 36)       /* Minimum delta angle to take sample */
+#define MAX_SAMPLES        256               /* Samples to be taken for ellipsoid fitting */
+#define MAX_SAMPLES_FINE   (MAX_SAMPLES / 8) /* Samples to be taken for ellipsoid fine fitting. Must be smaller or equal to MAX_SAMPLES */
+#define MAX_ACCEL_OFFSET   10000             /* Maximum acceptable accelerometer offset (mm/s^2) */
+#define LMA_FITTING_EPOCHS 100               /* LMA epochs for parameters fitting */
+#define LMA_JACOBIAN_STEP  0.0001f           /* Step for jacobian calculation in LMA */
+#define MIN_TILT_COSINE    (M_SQRT2 / 2.f)   /* minimal cosine of tilt angle between down and front measurement (45 degrees) */
 
 #define EARTH_G_MM 9806.65 /* Earth acceleration (in mm/s^2) according to 1901 General Conference on Weights and Measures */
 
@@ -247,7 +247,7 @@ static void accorth_meshGet(vec_t *buf, size_t n)
 	fflush(stdin);
 
 	for (i = 0; i < n; i++) {
-		printf("Stored samles: %u/%u. Press [Enter] to sample...", i, n);
+		printf("Stored samples: %u/%u. Press [Enter] to sample...", i, n);
 		fflush(stdout);
 		getchar();
 		accorth_accelAvg(&buf[i], 1000);

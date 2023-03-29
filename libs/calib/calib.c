@@ -149,14 +149,14 @@ static int calib_magironEnter(const char *paramName, calib_data_t *cal, float va
 	/* matrix type get through character check */
 	switch (paramName[0]) {
 		case CHAR_SOFTIRON:
-			if (row > (unsigned int)'9' || col > (unsigned int)'9') {
+			if (row > 9 || col > 9) {
 				return -1;
 			}
 			mat = &cal->params.magiron.softCal;
 			break;
 
 		case CHAR_HARDIRON:
-			if (row > (unsigned int)'3' || col > (unsigned int)'3') {
+			if (row > 3 || col > 3) {
 				return -1;
 			}
 			mat = &cal->params.magiron.hardCal;
@@ -401,8 +401,8 @@ static int calib_accorthRead(FILE *file, calib_data_t *cal)
 		return -1;
 	}
 
-	if (MATRIX_DATA(&cal->params.accorth.ortho, 0, 0) < 0 || MATRIX_DATA(&cal->params.accorth.ortho, 1, 1) < 0, MATRIX_DATA(&cal->params.accorth.ortho, 2, 2) < 0) {
-		fprintf(stderr, "calib %s: invalid S matrix\n");
+	if (MATRIX_DATA(&cal->params.accorth.ortho, 0, 0) < 0 || MATRIX_DATA(&cal->params.accorth.ortho, 1, 1) < 0 || MATRIX_DATA(&cal->params.accorth.ortho, 2, 2) < 0) {
+		fprintf(stderr, "calib %s: invalid S matrix\n", ACCORTH_TAG);
 		matrix_bufFree(&cal->params.accorth.offset);
 		matrix_bufFree(&cal->params.accorth.ortho);
 		return -1;
@@ -430,20 +430,16 @@ static void calib_motlinDefaults(calib_data_t *cal)
 
 static int calib_motlinEnter(const char *paramName, calib_data_t *cal, float val)
 {
-	int motor, param;
+	unsigned int motor, param;
 
 	if (strlen(paramName) != 4) {
 		return -1;
 	}
 
-	motor = (int8_t)(paramName[2] - '0'); /* convert character to unsigned int digit */
-	param = (int8_t)(paramName[3] - 'a'); /* convert character to unsigned int digit, expected range [a, b] -> [0, 1] */
+	motor = (uint8_t)(paramName[2] - '0'); /* convert character to unsigned int digit */
+	param = (uint8_t)(paramName[3] - 'a'); /* convert character to unsigned int digit, expected range [a, b] -> [0, 1] */
 
-
-	if (motor >= NUM_OF_MOTORS || motor < 0) {
-		return -1;
-	}
-	if (param < 0 || param > 1) {
+	if (param > 1 || motor >= NUM_OF_MOTORS) {
 		return -1;
 	}
 
