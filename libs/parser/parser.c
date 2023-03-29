@@ -453,6 +453,7 @@ __attribute__((destructor)) static void parser_regexFree(void)
 int parser_fieldGetInt(const hmap_t *h, const char *fieldName, int *target)
 {
 	char *valueStr, *endptr;
+	int tmp;
 
 	valueStr = hmap_get(h, fieldName);
 	if (valueStr == NULL) {
@@ -460,12 +461,14 @@ int parser_fieldGetInt(const hmap_t *h, const char *fieldName, int *target)
 		return -1;
 	}
 
-	*target = strtol(valueStr, &endptr, 10);
+	tmp = strtol(valueStr, &endptr, 10);
 
 	if (*endptr != '\0') {
 		fprintf(stderr, "%s: cannot parser value of \"%s\" - %s - to int.\n", __FUNCTION__, fieldName, valueStr);
 		return -1;
 	}
+
+	*target = tmp;
 
 	return 0;
 }
@@ -474,6 +477,7 @@ int parser_fieldGetInt(const hmap_t *h, const char *fieldName, int *target)
 int parser_fieldGetFloat(const hmap_t *h, const char *fieldName, float *target)
 {
 	char *valueStr, *endptr;
+	float tmp;
 
 	valueStr = hmap_get(h, fieldName);
 	if (valueStr == NULL) {
@@ -488,6 +492,8 @@ int parser_fieldGetFloat(const hmap_t *h, const char *fieldName, float *target)
 		return -1;
 	}
 
+	*target = tmp;
+
 	return 0;
 }
 
@@ -495,6 +501,7 @@ int parser_fieldGetFloat(const hmap_t *h, const char *fieldName, float *target)
 int parser_fieldGetTime(const hmap_t *h, const char *fieldName, time_t *target)
 {
 	char *valueStr, *endptr;
+	time_t tmp;
 
 	valueStr = hmap_get(h, fieldName);
 	if (valueStr == NULL) {
@@ -502,12 +509,14 @@ int parser_fieldGetTime(const hmap_t *h, const char *fieldName, time_t *target)
 		return -1;
 	}
 
-	*target = strtoull(valueStr, &endptr, 10);
+	tmp = strtoull(valueStr, &endptr, 10);
 
 	if (*endptr != '\0') {
 		fprintf(stderr, "%s: cannot parser value of \"%s\" - %s - to int.\n", __FUNCTION__, fieldName, valueStr);
 		return -1;
 	}
+
+	*target = tmp;
 
 	return 0;
 }
