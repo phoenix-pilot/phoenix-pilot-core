@@ -41,26 +41,12 @@
 #define IMU_CALIB_AVG  1000
 #define BARO_CALIB_AVG 100
 
-/* different accelerometer biases sizes */
-#define ACC_BIAS_SIZE     3
-#define ACC_NONORTHO_SIZE 9
-
 #define MAX_U32_DELTAANGLE 0x7fffffff /* Half of the u32 buffer span is max delta angle expected in one step (roughly 2147 radians) */
 #define GYRO_MAX_SENSIBLE_READ  157   /* 50 pi radians per second is the largest absolute value of angular speed deemed possible */
 
 static struct {
 	meas_calib_t calib;
 } meas_common;
-
-/* accelerometer calibration data */
-static const float accCalib[ACC_BIAS_SIZE + ACC_NONORTHO_SIZE] = {
-	/* sphere offset in m/s^2 */
-	0.237000, 0.120545, 0.022396,
-	/* sphere deformation */
-	1.00246374e+00,  1.82159288e-04,  8.18160423e-04,
-	1.82159288e-04,  9.95663211e-01, -1.46614579e-04,
-	8.18160423e-04, -1.46614579e-04,  1.00188801e+00
-};
 
 
 static void meas_gps2geo(const sensor_event_t *gpsEvt, meas_geodetic_t *geo)
@@ -179,18 +165,6 @@ void meas_gpsCalib(void)
 
 }
 
-static void meas_ellipCompensate(vec_t *v, const float *calib)
-{
-	float tx, ty, tz;
-
-	tx = v->x - calib[0];
-	ty = v->y - calib[1];
-	tz = v->z - calib[2];
-	v->x = tx * calib[3] + ty * calib[4] + tz * calib[5];
-	v->y = tx * calib[6] + ty * calib[7] + tz * calib[8];
-	v->z = tx * calib[9] + ty * calib[10] + tz * calib[11];
-}
-
 
 static void meas_acc2si(sensor_event_t *evt, vec_t *vec)
 {
@@ -276,8 +250,6 @@ void meas_imuCalib(void)
 			meas_gyr2si(&gyrEvt, &gyr);
 			meas_mag2si(&magEvt, &mag);
 
-			meas_ellipCompensate(&acc, accCalib);
-
 			vec_add(&accAvg, &acc);
 			vec_add(&gyrAvg, &gyr);
 			vec_add(&magAvg, &mag);
@@ -294,7 +266,6 @@ void meas_imuCalib(void)
 
 	meas_common.calib.imu.gyroBias = gyrAvg; /* save gyro drift parameters */
 	meas_common.calib.imu.initMag = magAvg;  /* save initial magnetometer reading */
-	meas_common.calib.imu.initAcc = accAvg;
 
 	/* calculate initial rotation */
 	vec_normalize(&accAvg);
@@ -352,8 +323,6 @@ int meas_imuGet(vec_t *accels, vec_t *accelsRaw, vec_t *gyros, vec_t *mags, uint
 		meas_gyr2si(&gyrEvt, gyros);
 	}
 
-	meas_ellipCompensate(accelsRaw, accCalib);
-
 	/* gyro niveling */
 	vec_sub(gyros, &meas_common.calib.imu.gyroBias);
 
@@ -395,7 +364,7 @@ int meas_gpsGet(meas_gps_t *gpsData)
 
 	gettime(&timestamp, NULL);
 
-	/* Transformation from sensor data -> geodetic -> enu data */
+	/* Transformation from sensor data -> geodetic -> ned data */
 	meas_gps2geo(&gpsEvt, &geo);
 	meas_geo2ned(&geo, &meas_common.calib.gps.refGeodetic, &meas_common.calib.gps.refEcef, &gpsData->pos);
 
