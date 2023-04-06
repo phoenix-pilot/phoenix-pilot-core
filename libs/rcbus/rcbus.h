@@ -22,13 +22,21 @@
 typedef enum { rc_typeIbus = 0, rc_typeSbus } rcbus_type_t;
 
 
+typedef enum {
+	rc_err_ok = 0,  /* no error */
+	rc_err_silence, /* radio is silent, signal lost */
+	rc_err_readerr, /* device read error */
+	rc_err_gibber   /* malformed data */
+} rcbus_err_t;
+
+
 typedef struct {
 	size_t channelsCnt;
 	uint16_t *channels;
 } rcbus_msg_t;
 
 
-typedef void (*RcMsgHandler)(const rcbus_msg_t *msg);
+typedef void (*RcMsgHandler)(const rcbus_msg_t *msg, rcbus_err_t err);
 
 
 /* New thread for reading data is launched. If the correct packet is received, the handler is invoked.
