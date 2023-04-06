@@ -129,6 +129,7 @@ static void rcbus_rcvThread(void *arg)
 	rcbus_msg_t msg;
 	fd_set rfds;
 	struct timeval tv;
+	rcbus_err_t rcerr;
 
 	uint8_t data[max(SIZE_PACKET_SBUS, SIZE_PACKET_IBUS)];
 	int (*parser)(const uint8_t *, size_t, rcbus_msg_t *);
@@ -172,17 +173,23 @@ static void rcbus_rcvThread(void *arg)
 		if (err > 0) {
 			res = read(rcbus_common.fd, data, sz);
 			if (res > 0) {
-				err = parser(data, res, &msg);
-				if (err == 0) {
-					handler((const rcbus_msg_t *)&msg);
-				}
+				rcerr = (parser(data, res, &msg) == 0) ? rc_err_ok : rc_err_gibber;
 			}
 		}
 		else if (err == 0) {
+			rcerr = rc_err_silence;
 			perror("bus: timeout occurred.");
 		}
 		else {
+			rcerr = rc_err_readerr;
 			perror("bus: select error occurred.");
+		}
+
+		if (rcerr == rc_err_ok) {
+			handler((const rcbus_msg_t *)&msg, rcerr);
+		}
+		else {
+			handler(NULL, rcerr);
 		}
 	}
 
