@@ -67,7 +67,7 @@ int ellcal_lmaResiduum(const matrix_t *P, const matrix_t *V, float *res, bool lo
 	}
 
 	/* Length difference between transformed vector and a unit sphere radius is the residuum */
-	*res = (float)(sqrt(r) - 1);
+	*res = sqrtf(r) - 1;
 
 	return 0;
 }

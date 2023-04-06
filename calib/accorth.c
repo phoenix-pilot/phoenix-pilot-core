@@ -127,6 +127,19 @@ static int accorth_write(FILE *file)
 }
 
 
+/* Accorth prompt utility, `prompt` must be nul-terminated */
+static void accorth_prompt(const char *prompt, bool block)
+{
+	printf("%s", prompt);
+	fflush(stdout);
+
+	if (block) {
+		fflush(stdin);
+		getchar();
+	}
+}
+
+
 /* Get average accelerometer reading over `n` samples */
 static void accorth_accelAvg(vec_t *out, unsigned int n)
 {
@@ -187,10 +200,7 @@ static int accorth_accRot(matrix_t *S, matrix_t *H, quat_t *rotQuat)
 	* Using NED frame of reference means that earth acceleration is parallel to NED z versor, but of opposite direction.
 	* Taking negative earth acceleration as NED z versor.
 	*/
-	printf("Place drone precisely horizontal and press [Enter]");
-	fflush(stdout);
-	fflush(stdin);
-	getchar();
+	accorth_prompt("Place drone precisely horizontal and press [Enter]", true);
 
 	sleep(1); /* Sleep for any vibration to disperse */
 	accorth_accelAvg(&bodyZ, 1500);
@@ -202,9 +212,7 @@ static int accorth_accRot(matrix_t *S, matrix_t *H, quat_t *rotQuat)
 	* - parallel to NED x axis versor
 	* - of common direction to NED x axis versor.
 	*/
-	printf("Tilt drone precisely nose up and press [Enter]");
-	fflush(stdout);
-	getchar();
+	accorth_prompt("Tilt drone precisely nose up and press [Enter]", true);
 
 	sleep(1); /* Sleep for any vibration to disperse */
 	accorth_accelAvg(&accX, 1500);
@@ -241,15 +249,14 @@ static int accorth_accRot(matrix_t *S, matrix_t *H, quat_t *rotQuat)
 static void accorth_meshGet(vec_t *buf, size_t n)
 {
 	size_t i;
+	char msg[128];
 
-	printf("Place the drone in %u unique positions. Positions should be very stable.\n", n);
-	fflush(stdout);
-	fflush(stdin);
+	sprintf(msg, "Place the drone in %u unique positions. Positions should be very stable.\n", n);
+	accorth_prompt(msg, false);
 
 	for (i = 0; i < n; i++) {
-		printf("Stored samples: %u/%u. Press [Enter] to sample...", i, n);
-		fflush(stdout);
-		getchar();
+		sprintf(msg, "Stored samples: %u/%u. Press [Enter] to sample...", i, n);
+		accorth_prompt(msg, true);
 		accorth_accelAvg(&buf[i], 1000);
 	}
 }
@@ -262,7 +269,7 @@ static int accorth_paramsCombine(const matrix_t *S1, const matrix_t *H1, const m
 	matrix_t tmp = { .data = dataTmp, .rows = 3, .cols = 1, .transposed = 0 };
 
 	/* Using S3 as temporary storage for inv(S1) */
-	if (matrix_inv(S1, S3, invBuf, 18) < 0) {
+	if (matrix_inv(S1, S3, invBuf, sizeof(invBuf) / sizeof(*invBuf)) < 0) {
 		printf("Cannot calculate S1 inverse\n");
 		return -1;
 	}
@@ -393,7 +400,7 @@ static int accorth_run(void)
 	measAvgLen = MATRIX_DATA(&H3, 0, 0) * MATRIX_DATA(&H3, 0, 0);
 	measAvgLen += MATRIX_DATA(&H3, 1, 0) * MATRIX_DATA(&H3, 1, 0);
 	measAvgLen += MATRIX_DATA(&H3, 2, 0) * MATRIX_DATA(&H3, 2, 0);
-	measAvgLen = sqrt(measAvgLen);
+	measAvgLen = sqrtf(measAvgLen);
 	if (measAvgLen > MAX_ACCEL_OFFSET) {
 		fprintf(stderr, "%s: hard iron exceeds expectations: x:%f y:%f z:%f\n\n", ACCORTH_TAG, MATRIX_DATA(&H3, 0, 0), MATRIX_DATA(&H3, 1, 0), MATRIX_DATA(&H3, 2, 0));
 		return -1;
