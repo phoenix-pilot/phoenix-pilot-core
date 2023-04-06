@@ -22,7 +22,14 @@
 void corr_mag(sensor_event_t *magEvt);
 
 
-/* performs initial data rotation based on accelerometer initial attitude quaternion */
+/* Performs orthogonality calibration for accelerometer. Raw acceleomrter data should be passed */
+void corr_accorth(sensor_event_t *accelEvt);
+
+
+/*
+* Performs initial data rotation based on accelerometer initial attitude quaternion.
+* Orthogonal calibrated data should be passed.
+*/
 void corr_accrot(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt);
 
 

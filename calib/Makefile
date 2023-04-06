@@ -8,8 +8,8 @@
 
 # Magnetometer calibration tool
 NAME := calibtool
-CALIBS := magmot.c magiron.c motesc.c motlin.c accrot.c
-LOCAL_SRCS := main.c $(CALIBS)
+CALIBS := magmot.c magiron.c motesc.c motlin.c accorth.c
+LOCAL_SRCS := main.c ellcal.c $(CALIBS)
 DEP_LIBS := libsensc libmctl libalgeb libcalib libhmap
 LIBS := libzynq7000pwm
 include $(binary.mk)

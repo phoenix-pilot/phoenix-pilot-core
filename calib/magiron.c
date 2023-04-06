@@ -27,6 +27,7 @@
 #include <sensc.h>
 
 #include "calibtool.h"
+#include "ellcal.h"
 
 
 #define DANGLE_MIN          (M_PI / 9) /* Minimum delta angle to take sample */
@@ -42,99 +43,6 @@ struct {
 	calib_data_t data;
 	vec_t *meas;
 } magiron_common;
-
-
-/*
-* Target function has a form  of: || S(X - H) || = 1 where:
-*
-* X -> 3x1 matrix of (x,y,z) uncalibrated measurement
-* S -> 3x3 soft iron calibration matrix of form:
-*    | p0, p1, p2 |
-*    | p3, p4, p5 |
-*    | p6, p7, p8 |
-* H -> 3x1 hard iron offset calibration matrix of form: (p9, p10, p11)^T
-*
-* We want this function to transform data from some ellipsoid into a unit radius sphere.
-* This function does not check any conic function equalities for ellipsoid.
-*
-* Works well if data is placed around (0,0,0) +- (1,1,1) and the biggest ellipsoid semiaxis is of length ~1.
-*/
-static int magiron_lmaResiduum(const matrix_t *P, const matrix_t *V, float *res, bool log)
-{
-	const matrix_t S = { .data = &P->data[0], .rows = 3, .cols = 3, .transposed = 0 };
-	const matrix_t H = { .data = &P->data[9], .rows = 3, .cols = 1, .transposed = 0 };
-
-	int i;
-	float r = 0;
-	float dataX[3], dataTmpX[3];
-	matrix_t X = { .data = dataX, .rows = 3, .cols = 1, .transposed = 0 };
-	matrix_t tmpX = { .data = dataTmpX, .rows = 3, .cols = 1, .transposed = 0 };
-
-	for (i = 0; i < 3; i++) {
-		MATRIX_DATA(&X, i, 0) = MATRIX_DATA(V, 0, i); /* Copy V into X matrix */
-	}
-
-	matrix_sub(&X, &H, NULL);   /* apply hard iron offset */
-	matrix_prod(&S, &X, &tmpX); /* apply soft iron matrix */
-
-	/* calculate length of produced vector */
-	for (i = 0; i < 3; i++) {
-		r += MATRIX_DATA(&tmpX, i, 0) * MATRIX_DATA(&tmpX, i, 0);
-	}
-
-	/* Length difference between transformed vector and a unit sphere radius is the residuum */
-	*res = (float)(sqrt(r) - 1);
-
-	return 0;
-}
-
-
-/*
-* Jacobian is calculated numerically by calculating differences of residuum after step in parameters.
-* Steps are taken for each parameter at a time. Step size is
-*/
-static int magiron_lmaJacobian(const matrix_t *P, const matrix_t *V, matrix_t *J, bool log)
-{
-	float dataPtmp[12] = { 0 };
-	matrix_t Ptmp = { .data = dataPtmp, .rows = 1, .cols = 12, .transposed = 0 };
-	float baseRes, newRes;
-	int i;
-
-	magiron_lmaResiduum(P, V, &baseRes, false);
-
-	/* Numeric jacobian solving for each parameter */
-	for (i = 0; i < 12; i++) {
-		memcpy(Ptmp.data, P->data, 12 * sizeof(float));
-
-		/* Increment, get new residuum and calculate the slope of change */
-		MATRIX_DATA(&Ptmp, 0, i) += LMA_JACOBIAN_STEP;
-		magiron_lmaResiduum(&Ptmp, V, &newRes, false);
-		MATRIX_DATA(J, 0, i) = (newRes - baseRes) / LMA_JACOBIAN_STEP;
-	}
-
-	return 0;
-}
-
-
-/* Initial guess is unit radius sphere at (0,0,0) */
-void magiron_lmaGuess(matrix_t *P)
-{
-	/* soft iron calibration guess */
-	MATRIX_DATA(P, 0, 0) = 1;
-	MATRIX_DATA(P, 0, 1) = 0;
-	MATRIX_DATA(P, 0, 2) = 0;
-	MATRIX_DATA(P, 0, 3) = 0;
-	MATRIX_DATA(P, 0, 4) = 1;
-	MATRIX_DATA(P, 0, 5) = 0;
-	MATRIX_DATA(P, 0, 6) = 0;
-	MATRIX_DATA(P, 0, 7) = 0;
-	MATRIX_DATA(P, 0, 8) = 1;
-
-	/* hard iron calibration guess */
-	MATRIX_DATA(P, 0, 9) = 0;
-	MATRIX_DATA(P, 0, 10) = 0;
-	MATRIX_DATA(P, 0, 11) = 0;
-}
 
 
 /* Returns pointer to internal parameters for read purposes */
@@ -200,86 +108,20 @@ static int magiron_done(void)
 */
 static int magiron_run(void)
 {
-	/* sensor-interfacing variables */
-	sensor_event_t accelEvt, magEvt, gyroEvt;
-	vec_t gyroBias, angle = { 0 };
-
 	/* measurement/fitting variables */
 	fit_lma_t lma;
 	vec_t measAvg;
-	time_t lastT, currT;
-	float deltaT, measAvgLen;
+	float measAvgLen;
 	int i;
 
 	/* final data variables */
-	float dataSfinal[9];
+	float dataSfinal[9], dataHfinal[3];
 	matrix_t Sfinal = { .data = dataSfinal, .rows = 3, .cols = 3, .transposed = 0 };
-	vec_t hFinal;
+	matrix_t hFinal = { .data = dataHfinal, .rows = 3, .cols = 3, .transposed = 0 };
 
-	printf("Do not rotate the device for 1s after pressing [Enter]\n");
-	printf("Press [Enter] to continue...");
-	fflush(stdout);
-	getchar();
-
-	/* Calculating gyroscope bias */
-	for (i = 0; i < 1000; i++) {
-		if (sensc_imuGet(&accelEvt, &gyroEvt, &magEvt) < 0) {
-			fprintf(stderr, "%s: sensc_imuGet() fail\n", MAGIRON_TAG);
-			return -1;
-		}
-
-		/* Conversion from mrad/s -> rad/s */
-		gyroBias.x += gyroEvt.gyro.gyroX / 1000.f;
-		gyroBias.y += gyroEvt.gyro.gyroY / 1000.f;
-		gyroBias.z += gyroEvt.gyro.gyroZ / 1000.f;
-		usleep(1000);
-	}
-	vec_times(&gyroBias, 0.001);
-
-	printf("Rotate the device until all samples are taken\n");
-	printf("Press [Enter] to begin sampling...");
-	fflush(stdout);
-	getchar();
-	printf("Rotate...\n");
-
-	/*
-	* Taking samples each time we rotate more than DANGLE_MIN radians.
-	* Angle integration implemented to assure correct angles of rotation.
-	*
-	* Assumed constant gyroscope bias and neglecting gyroscope drift.
-	*/
-	gettime(&lastT, NULL);
-	currT = lastT;
-	i = 0;
-	while (i < MAX_SAMPLES) {
-		usleep(1000);
-		gettime(&currT, NULL);
-
-		if (sensc_imuGet(&accelEvt, &gyroEvt, &magEvt) < 0) {
-			fprintf(stderr, "%s: sensc_imuGet() fail\n", MAGIRON_TAG);
-		}
-
-		deltaT = (float)(currT - lastT) / 1000000.f;
-
-		/* Conversion from mrad/s -> rad/s */
-		angle.x += (gyroEvt.gyro.gyroX / 1000.f - gyroBias.x) * deltaT;
-		angle.y += (gyroEvt.gyro.gyroY / 1000.f - gyroBias.y) * deltaT;
-		angle.z += (gyroEvt.gyro.gyroZ / 1000.f - gyroBias.z) * deltaT;
-
-		if (vec_len(&angle) > DANGLE_MIN) {
-			magiron_common.meas[i].x = magEvt.mag.magX;
-			magiron_common.meas[i].y = magEvt.mag.magY;
-			magiron_common.meas[i].z = magEvt.mag.magZ;
-
-			if (i % (MAX_SAMPLES / 100) == (MAX_SAMPLES / 100) - 1) {
-				printf("%s: Taken samples: %u/%u\n", MAGIRON_TAG, i, MAX_SAMPLES);
-			}
-
-			angle = (vec_t) { .x = 0, .y = 0, .z = 0 };
-			i++;
-		}
-
-		lastT = currT;
+	/* Obtain rotational samples of magnetometer */
+	if (ellcal_rotDataGet(magiron_common.meas, MAX_SAMPLES, DANGLE_MIN, SENSOR_TYPE_MAG) < 0) {
+		return -1;
 	}
 
 	/* Calculate mean offset of samples (rough estimate of ellipsoid center) */
@@ -302,7 +144,7 @@ static int magiron_run(void)
 		vec_times(&magiron_common.meas[i], 1.f / measAvgLen);
 	}
 
-	if (lma_init(3, 12, MAX_SAMPLES, magiron_lmaJacobian, magiron_lmaResiduum, magiron_lmaGuess, &lma) < 0) {
+	if (lma_init(3, 12, MAX_SAMPLES, ellcal_lmaJacobian, ellcal_lmaResiduum, ellcal_lmaGuess, &lma) < 0) {
 		printf("%s: failed to init LMA\n", MAGIRON_TAG);
 		return -1;
 	}
@@ -315,6 +157,10 @@ static int magiron_run(void)
 	}
 
 	lma_fit(LMA_FITTING_EPOCHS, &lma, LMALOG_NONE);
+
+	ellcal_lma2matrices(&lma.paramsVec, &Sfinal, &hFinal);
+
+	lma_done(&lma);
 
 	/*
 	* Measurements used in fitting were shifted and scaled:
@@ -330,33 +176,22 @@ static int magiron_run(void)
 	*
 	* DISCLAIMER: we want S matrix to scale data as low as possible
 	* so we IGNORE division by avgLen(m_shift), thus preserving the magnitude.
-	*/
-	MATRIX_DATA(&Sfinal, 0, 0) = MATRIX_DATA(&lma.paramsVec, 0, 0);
-	MATRIX_DATA(&Sfinal, 0, 1) = MATRIX_DATA(&lma.paramsVec, 0, 1);
-	MATRIX_DATA(&Sfinal, 0, 2) = MATRIX_DATA(&lma.paramsVec, 0, 2);
-	MATRIX_DATA(&Sfinal, 1, 0) = MATRIX_DATA(&lma.paramsVec, 0, 3);
-	MATRIX_DATA(&Sfinal, 1, 1) = MATRIX_DATA(&lma.paramsVec, 0, 4);
-	MATRIX_DATA(&Sfinal, 1, 2) = MATRIX_DATA(&lma.paramsVec, 0, 5);
-	MATRIX_DATA(&Sfinal, 2, 0) = MATRIX_DATA(&lma.paramsVec, 0, 6);
-	MATRIX_DATA(&Sfinal, 2, 1) = MATRIX_DATA(&lma.paramsVec, 0, 7);
-	MATRIX_DATA(&Sfinal, 2, 2) = MATRIX_DATA(&lma.paramsVec, 0, 8);
-
-	hFinal.x = MATRIX_DATA(&lma.paramsVec, 0, 9);
-	hFinal.y = MATRIX_DATA(&lma.paramsVec, 0, 10);
-	hFinal.z = MATRIX_DATA(&lma.paramsVec, 0, 11);
-
-	/* 
-	 * This is left commented intentionally - we should scale S matrix by avgLen(m_shift) 
-	 * but we ignore it according to DISCLAIMER above.
+	* The scaling of matrix S is left commented intentionally.
 	*/
 	/* matrix_times(&Sfinal, 1.f / measAvgLen); */
+	matrix_times(&hFinal, measAvgLen);
+	MATRIX_DATA(&hFinal, 0, 0) += measAvg.x;
+	MATRIX_DATA(&hFinal, 1, 0) += measAvg.y;
+	MATRIX_DATA(&hFinal, 2, 0) += measAvg.z;
 
-	vec_times(&hFinal, measAvgLen);
-	vec_add(&hFinal, &measAvg);
+	measAvgLen = MATRIX_DATA(&hFinal, 0, 0) * MATRIX_DATA(&hFinal, 0, 0);
+	measAvgLen += MATRIX_DATA(&hFinal, 1, 0) * MATRIX_DATA(&hFinal, 1, 0);
+	measAvgLen += MATRIX_DATA(&hFinal, 2, 0) * MATRIX_DATA(&hFinal, 2, 0);
+	measAvgLen = sqrt(measAvgLen);
 
 	/* Vaidity check: offset should be inside expected limits */
-	if (vec_len(&hFinal) > MAX_HARDIRON_LENGTH) {
-		fprintf(stderr, "%s: hard iron exceeds expectations: x:%f y:%f z:%f\n\n", MAGIRON_TAG, hFinal.x, hFinal.y, hFinal.z);
+	if (measAvgLen > MAX_HARDIRON_LENGTH) {
+		fprintf(stderr, "%s: hard iron exceeds expectations: x:%f y:%f z:%f\n\n", MAGIRON_TAG, MATRIX_DATA(&hFinal, 0, 0), MATRIX_DATA(&hFinal, 1, 0), MATRIX_DATA(&hFinal, 2, 0));
 		return -1;
 	}
 
@@ -368,12 +203,10 @@ static int magiron_run(void)
 
 	/* Saving calibration parameters to common structure */
 	matrix_writeSubmatrix(&magiron_common.data.params.magiron.softCal, 0, 0, &Sfinal);
-	MATRIX_DATA(&magiron_common.data.params.magiron.hardCal, 0, 0) = hFinal.x;
-	MATRIX_DATA(&magiron_common.data.params.magiron.hardCal, 1, 0) = hFinal.y;
-	MATRIX_DATA(&magiron_common.data.params.magiron.hardCal, 2, 0) = hFinal.z;
+	matrix_writeSubmatrix(&magiron_common.data.params.magiron.hardCal, 0, 0, &hFinal);
 
-	printf("Hard iron: %fmG %fmG %fmG\n", hFinal.x, hFinal.y, hFinal.z);
-	printf("Soft iron:\n");
+	printf("%s: Hard iron: %fmG %fmG %fmG\n", MAGIRON_TAG, MATRIX_DATA(&hFinal, 0, 0), MATRIX_DATA(&hFinal, 1, 0), MATRIX_DATA(&hFinal, 2, 0));
+	printf("%s: Soft iron:\n", MAGIRON_TAG);
 	matrix_print(&Sfinal);
 
 	return 0;
