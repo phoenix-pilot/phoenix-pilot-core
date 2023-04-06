@@ -485,7 +485,7 @@ int parser_fieldGetFloat(const hmap_t *h, const char *fieldName, float *target)
 		return -1;
 	}
 
-	*target = strtof(valueStr, &endptr);
+	tmp = strtof(valueStr, &endptr);
 
 	if (*endptr != '\0') {
 		fprintf(stderr, "%s: cannot parser value of \"%s\" - %s - to float.\n", __FUNCTION__, fieldName, valueStr);
