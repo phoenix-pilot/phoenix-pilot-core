@@ -9,16 +9,22 @@
 
 
 struct {
-	bool run;
+	volatile bool run;
 } rclog_common;
 
 
-static void rclog_rcbusHandler(const rcbus_msg_t *msg)
+static void rclog_rcbusHandler(const rcbus_msg_t *msg, rcbus_err_t err)
 {
 	const static uint16_t maxTriggerVal = MIN_CHANNEL_VALUE + ((95 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) / 100);
 
 	int i;
 	time_t now;
+
+	if (err != rc_err_ok) {
+		fprintf(stderr, "rclog: signal lost; error %d\n", err);
+		rclog_common.run = 0;
+		return;
+	}
 
 	if (msg->channelsCnt < RC_CHANNELS_CNT) {
 		fprintf(stderr, "rclog: rcbus supports insufficient number of channels\n");

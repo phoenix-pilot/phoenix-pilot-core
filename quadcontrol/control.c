@@ -631,10 +631,24 @@ static int quad_run(void)
 }
 
 
-static void quad_rcbusHandler(const rcbus_msg_t *msg)
+static void quad_rcbusHandler(const rcbus_msg_t *msg, rcbus_err_t err)
 {
 	/* abort frame counting variable*/
 	static unsigned int abortCnt = 0;
+	static unsigned int rcErrCnt = 0;
+
+	/* rcbus error signal handling */
+	if (err != rc_err_ok) {
+		rcErrCnt++;
+		printf("rcerr: f_abort called %i\n", rcErrCnt);
+
+		if (rcErrCnt >= ABORT_FRAMES_THRESH) {
+			printf("rcerr: f_abort reached %i\n", rcErrCnt);
+			quad_common.currFlight = flight_manualAbort;
+		}
+
+		return;
+	}
 
 	if (msg->channelsCnt < RC_CHANNELS_CNT) {
 		fprintf(stderr, "quad-control: rcbus supports insufficient number of channels\n");
@@ -676,6 +690,7 @@ static void quad_rcbusHandler(const rcbus_msg_t *msg)
 
 	/* Reset abort counter if new frame does not call for abort */
 	abortCnt = 0;
+	rcErrCnt = 0;
 
 	mutexLock(quad_common.rcbusLock);
 	memcpy(quad_common.rcChannels, msg->channels, sizeof(quad_common.rcChannels));
