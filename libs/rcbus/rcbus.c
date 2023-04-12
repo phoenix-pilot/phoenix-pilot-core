@@ -169,6 +169,7 @@ static void rcbus_rcvThread(void *arg)
 		tv.tv_sec = rcbus_common.timeout / 1000;
 		tv.tv_usec = (rcbus_common.timeout % 1000) * 1000;
 
+		rcerr = rc_err_gibber;
 		err = select(rcbus_common.fd + 1, &rfds, NULL, NULL, &tv);
 		if (err > 0) {
 			res = read(rcbus_common.fd, data, sz);
