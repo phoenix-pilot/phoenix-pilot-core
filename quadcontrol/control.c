@@ -48,6 +48,8 @@
 #define PATH_SCENARIO_CONFIG "/etc/q_mission.conf"
 
 #define HOVER_THROTTLE 0.27
+#define HOVER_ALTCAP_MAX (30 * 1000)                   /* maximum allowed altitude (millimeters) */
+#define HOVER_ALTCAP_MIN (HOVER_ALTCAP_MAX - 5 * 1000) /* altitude from which altcap takes actions (millimeters) */
 
 #define ANGLE_THRESHOLD_LOW  (M_PI / 4) /* low threshold for landing safety */
 #define ANGLE_THRESHOLD_HIGH (M_PI / 2) /* high threshold for maneuvers */
@@ -148,10 +150,25 @@ static inline bool quad_periodLogEnable(time_t now)
 }
 
 
+/* Enforcing maximum allowed altitude by throttle attenuation */
+static inline float quad_altCap(float throttle, int32_t alt)
+{
+	if (alt >= HOVER_ALTCAP_MIN) {
+		if (alt >= HOVER_ALTCAP_MAX) {
+			return quad_common.throttle.min;
+		}
+		/* expression below is derived from: y = (1 - a) * x1 + a * x2 to y = x1 + (x2 - x1) * a */
+		return throttle + (quad_common.throttle.min - throttle) * (alt - HOVER_ALTCAP_MIN) / (float)(HOVER_ALTCAP_MAX - HOVER_ALTCAP_MIN);
+	}
+
+	return throttle;
+}
+
+
 static int quad_motorsCtrl(float throttle, int32_t alt, const quad_att_t *att, const ekf_state_t *measure)
 {
 	time_t dt, now;
-	float palt, proll, ppitch, pyaw;
+	float palt, proll, ppitch, pyaw, throttleSum;
 
 	if (fabs(measure->pitch) > ANGLE_THRESHOLD_HIGH || fabs(measure->roll) > ANGLE_THRESHOLD_HIGH) {
 		fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors stop.\n", measure->roll, measure->pitch);
@@ -172,7 +189,9 @@ static int quad_motorsCtrl(float throttle, int32_t alt, const quad_att_t *att, c
 	ppitch = pid_calc(&quad_common.pids[pwm_pitch], att->pitch, measure->pitch, measure->pitchDot, dt);
 	pyaw = pid_calc(&quad_common.pids[pwm_yaw], att->yaw, measure->yaw, measure->yawDot, dt);
 
-	if (mma_control(throttle + palt, proll, ppitch, pyaw) < 0) {
+	throttleSum = quad_altCap(throttle + palt, alt);
+
+	if (mma_control(throttleSum, proll, ppitch, pyaw) < 0) {
 		return -1;
 	}
 
