@@ -1,7 +1,7 @@
 /*
  * Phoenix-Pilot
  *
- * Unit tests for matrix library
+ * Unit tests for quaternions library
  *
  * Copyright 2022 Phoenix Systems
  * Author: Piotr Nieciecki
