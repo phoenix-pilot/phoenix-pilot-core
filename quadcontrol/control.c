@@ -226,6 +226,35 @@ static inline bool quad_rcChHgh(int32_t ch)
 }
 
 
+/* Handling maintenance modes */
+
+static int quad_idle(void)
+{
+	int16_t swa, swb, swc, swd, stickThrtl;
+
+	while (quad_common.currFlight == flight_idle) {
+		mutexLock(quad_common.rcbusLock);
+		swa = quad_common.rcChannels[RC_SWA_CH];
+		swb = quad_common.rcChannels[RC_SWB_CH];
+		swc = quad_common.rcChannels[RC_SWC_CH];
+		swd = quad_common.rcChannels[RC_SWD_CH];
+		stickThrtl = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
+		mutexUnlock(quad_common.rcbusLock);
+
+		if (quad_rcChLow(swa) && quad_rcChLow(swb) && quad_rcChLow(swc) && quad_rcChLow(swd) && quad_rcChLow(stickThrtl)) {
+			printf("quad_idle: f_idle->f_disarm\n");
+			quad_common.currFlight = flight_disarm;
+			break;
+		}
+
+		sleep(1);
+		printf("quad_idle: idling...\n");
+	}
+
+	return 0;
+}
+
+
 /* Handling flight modes */
 
 static int quad_takeoff(const flight_mode_t *mode)
@@ -559,7 +588,7 @@ static int quad_run(void)
 					armed = 0;
 				}
 				log_print("f_idle: idling...\n");
-				sleep(1);
+				quad_idle();
 				break;
 
 			case flight_disarm:
@@ -673,14 +702,8 @@ static void quad_rcbusHandler(const rcbus_msg_t *msg, rcbus_err_t err)
 		return;
 	}
 
-	/* Manual Disarm: SWA == MIN, SWB == MIN, SWC == MIN, SWD == MIN, Throttle == 0 && mode_rc */
-	if (quad_rcChLow(msg->channels[RC_SWA_CH]) && quad_rcChLow(msg->channels[RC_SWB_CH]) && quad_rcChLow(msg->channels[RC_SWC_CH]) && quad_rcChLow(msg->channels[RC_SWD_CH])
-			&& quad_rcChLow(msg->channels[RC_LEFT_VSTICK_CH]) && quad_common.currFlight == flight_idle) {
-		printf("rc: set f_disarm\n");
-		quad_common.currFlight = flight_disarm;
-	}
 	/* Manual Arm: SWA == MAX, SWB == MIN and Throttle == 0 and scenario cannot be launched */
-	else if (quad_rcChHgh(msg->channels[RC_SWA_CH]) && quad_rcChLow(msg->channels[RC_LEFT_VSTICK_CH]) && quad_common.currFlight == flight_disarm) {
+	if (quad_rcChHgh(msg->channels[RC_SWA_CH]) && quad_rcChLow(msg->channels[RC_LEFT_VSTICK_CH]) && quad_common.currFlight == flight_disarm) {
 		printf("rc: set f_arm\n");
 		quad_common.currFlight = flight_arm;
 	}
