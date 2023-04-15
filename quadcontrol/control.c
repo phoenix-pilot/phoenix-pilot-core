@@ -214,6 +214,18 @@ static void quad_rcOverride(quad_att_t *att, float *throttle, uint32_t flags)
 }
 
 
+static inline bool quad_rcChLow(int32_t ch)
+{
+	return (ch <= RC_CHANNEL_THR_LOW);
+}
+
+
+static inline bool quad_rcChHgh(int32_t ch)
+{
+	return (ch >= RC_CHANNEL_THR_HIGH);
+}
+
+
 /* Handling flight modes */
 
 static int quad_takeoff(const flight_mode_t *mode)
@@ -629,18 +641,6 @@ static int quad_run(void)
 	}
 
 	return err;
-}
-
-
-static inline bool quad_rcChLow(int32_t ch)
-{
-	return (ch <= RC_CHANNEL_THR_LOW);
-}
-
-
-static inline bool quad_rcChHgh(int32_t ch)
-{
-	return (ch >= RC_CHANNEL_THR_HIGH);
 }
 
 
