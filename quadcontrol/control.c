@@ -255,6 +255,57 @@ static int quad_idle(void)
 }
 
 
+static int quad_disarm(void)
+{
+	const time_t armPosMin = 3000000;
+
+	int16_t swa, swb, swc, swd, stickThrtl, stickYaw;
+	time_t currTime, armReqTime = 0;
+
+	while (quad_common.currFlight == flight_disarm) {
+		mutexLock(quad_common.rcbusLock);
+		swa = quad_common.rcChannels[RC_SWA_CH];
+		swb = quad_common.rcChannels[RC_SWB_CH];
+		swc = quad_common.rcChannels[RC_SWC_CH];
+		swd = quad_common.rcChannels[RC_SWD_CH];
+		stickThrtl = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
+		stickYaw = quad_common.rcChannels[RC_LEFT_HSTICK_CH];
+		mutexUnlock(quad_common.rcbusLock);
+
+		/* assesing default switches configuration */
+		if (!quad_rcChLow(swa) || !quad_rcChLow(swb) || !quad_rcChLow(swc) || !quad_rcChLow(swd) || !quad_rcChLow(stickThrtl)) {
+			printf("quad_idle: f_disarm->f_idle\n");
+			quad_common.currFlight = flight_idle;
+			break;
+		}
+
+		/* assesing yaw stick in arm position */
+		if (quad_rcChHgh(stickYaw)) {
+			if (armReqTime != 0) {
+				gettime(&currTime, NULL);
+				if ((currTime - armReqTime) > armPosMin) {
+					/* yaw stick hold in arm position long enough for arm procedure */
+					printf("quad_disarm: f_disarm->f_arm\n");
+					quad_common.currFlight = flight_arm;
+					break;
+				}
+			}
+			else {
+				gettime(&armReqTime, NULL);
+			}
+		}
+		else {
+			armReqTime = 0;
+		}
+
+		sleep(1);
+		printf("quad_disarm: idling...\n");
+	}
+
+	return 0;
+}
+
+
 /* Handling flight modes */
 
 static int quad_takeoff(const flight_mode_t *mode)
@@ -598,7 +649,7 @@ static int quad_run(void)
 					armed = 0;
 				}
 				log_print("f_disarm: idling...\n");
-				sleep(1);
+				quad_disarm();
 				break;
 
 			case flight_arm:
@@ -702,13 +753,8 @@ static void quad_rcbusHandler(const rcbus_msg_t *msg, rcbus_err_t err)
 		return;
 	}
 
-	/* Manual Arm: SWA == MAX, SWB == MIN and Throttle == 0 and scenario cannot be launched */
-	if (quad_rcChHgh(msg->channels[RC_SWA_CH]) && quad_rcChLow(msg->channels[RC_LEFT_VSTICK_CH]) && quad_common.currFlight == flight_disarm) {
-		printf("rc: set f_arm\n");
-		quad_common.currFlight = flight_arm;
-	}
 	/* Emergency abort: SWA == MAX, SWB == MAX, SWC == MAX, SWD == MAX */
-	else if (quad_rcChHgh(msg->channels[RC_SWA_CH]) && quad_rcChHgh(msg->channels[RC_SWB_CH]) && quad_rcChHgh(msg->channels[RC_SWC_CH]) && quad_rcChHgh(msg->channels[RC_SWD_CH])
+	if (quad_rcChHgh(msg->channels[RC_SWA_CH]) && quad_rcChHgh(msg->channels[RC_SWB_CH]) && quad_rcChHgh(msg->channels[RC_SWC_CH]) && quad_rcChHgh(msg->channels[RC_SWD_CH])
 			&& quad_common.currFlight < flight_manualAbort) {
 		abortCnt++;
 		printf("rc: f_abort called %i\n", abortCnt);
