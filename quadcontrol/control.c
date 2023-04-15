@@ -61,8 +61,9 @@
 #define RC_OVRD_YAW      (1 << 1)
 #define RC_OVRD_THROTTLE (1 << 2)
 
-#define ABORT_FRAMES_THRESH 5 /* number of correct abort frames from RC transmitter to initiate abort sequence */
-#define LOG_PERIOD 1000        /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
+#define ABORT_FRAMES_THRESH 5       /* number of correct abort frames from RC transmitter to initiate abort sequence */
+#define RC_ERROR_TIMEOUT    2000000 /* number of microseconds of continuous rc error that causes flight abort */
+#define LOG_PERIOD          1000    /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
 
 /* Flight modes magic numbers */
 #define QCTRL_ALTHOLD_JUMP   5000  /* altitude step (millimeters) for two-height althold mode in quad_manual */
@@ -647,20 +648,25 @@ static void quad_rcbusHandler(const rcbus_msg_t *msg, rcbus_err_t err)
 {
 	/* abort frame counting variable*/
 	static unsigned int abortCnt = 0;
-	static unsigned int rcErrCnt = 0;
+	static time_t rcErrTime = 0;
+
+	time_t currTime;
 
 	/* rcbus error signal handling */
 	if (err != rc_err_ok) {
-		rcErrCnt++;
-		printf("rcerr: f_abort called %i\n", rcErrCnt);
-
-		if (rcErrCnt >= ABORT_FRAMES_THRESH) {
-			printf("rcerr: f_abort reached %i\n", rcErrCnt);
-			quad_common.currFlight = flight_manualAbort;
+		if (rcErrTime == 0) {
+			gettime(&rcErrTime, NULL);
 		}
-
+		else {
+			gettime(&currTime, NULL);
+			if (currTime - rcErrTime > RC_ERROR_TIMEOUT) {
+				printf("rcerr: f_abort reached\n");
+				quad_common.currFlight = flight_manualAbort;
+			}
+		}
 		return;
 	}
+	rcErrTime = 0;
 
 	if (msg->channelsCnt < RC_CHANNELS_CNT) {
 		fprintf(stderr, "quad-control: rcbus supports insufficient number of channels\n");
@@ -699,7 +705,6 @@ static void quad_rcbusHandler(const rcbus_msg_t *msg, rcbus_err_t err)
 
 	/* Reset abort counter if new frame does not call for abort */
 	abortCnt = 0;
-	rcErrCnt = 0;
 
 	mutexLock(quad_common.rcbusLock);
 	memcpy(quad_common.rcChannels, msg->channels, sizeof(quad_common.rcChannels));
