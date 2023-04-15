@@ -292,7 +292,7 @@ static inline int matrix_sandwitchValid(const matrix_t *A, const matrix_t *B, co
 
 int matrix_sparseSandwitch(const matrix_t *A, const matrix_t *B, matrix_t *C, matrix_t *tempC)
 {
-	const matrix_t trpA = { .data = A->data, .rows = A->rows, .cols = A->cols, .transposed = 1 };
+	const matrix_t trpA = { .data = A->data, .rows = A->rows, .cols = A->cols, .transposed = !A->transposed };
 
 	if (!matrix_sandwitchValid(A, B, C, tempC)) {
 		return -1;
@@ -306,7 +306,7 @@ int matrix_sparseSandwitch(const matrix_t *A, const matrix_t *B, matrix_t *C, ma
 
 int matrix_sandwitch(const matrix_t *A, const matrix_t *B, matrix_t *C, matrix_t *tempC)
 {
-	const matrix_t trpA = { .data = A->data, .rows = A->rows, .cols = A->cols, .transposed = 1 };
+	const matrix_t trpA = { .data = A->data, .rows = A->rows, .cols = A->cols, .transposed = !A->transposed };
 
 	if (!matrix_sandwitchValid(A, B, C, tempC)) {
 		return -1;

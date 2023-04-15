@@ -82,7 +82,7 @@ extern int matrix_prod(const matrix_t *A, const matrix_t *B, matrix_t *C);
 extern int matrix_sparseProd(const matrix_t *A, const matrix_t *B, matrix_t *C);
 
 
-/* overwrites C with A * B * transposed(A), optimized for sparse A */
+/* overwrites C with A * B * transposed(A) */
 extern int matrix_sandwitch(const matrix_t *A, const matrix_t *B, matrix_t *C, matrix_t *tempC);
 
 
