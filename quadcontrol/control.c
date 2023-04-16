@@ -306,6 +306,43 @@ static int quad_disarm(void)
 }
 
 
+static flight_type_t quad_arm(void)
+{
+	const time_t maxArmTime = 30 * 1000000;
+
+	time_t armBeginTime, currTime;
+	int16_t swa, stickThrtl;
+
+	gettime(&currTime, NULL);
+	armBeginTime = currTime;
+
+	printf("Use SWA to start scenario, or throttle for manual mode\n");
+
+	while (quad_common.currFlight == flight_arm && (currTime - armBeginTime) < maxArmTime) {
+		gettime(&currTime, NULL);
+
+		mutexLock(quad_common.rcbusLock);
+		swa = quad_common.rcChannels[RC_SWA_CH];
+		stickThrtl = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
+		mutexUnlock(quad_common.rcbusLock);
+
+		if (!quad_rcChLow(swa)) {
+			printf("quad_arm: scenario\n");
+			return flight_arm;
+		}
+		else if (!quad_rcChLow(stickThrtl)) {
+			printf("quad_arm: f_arm->f_manual\n");
+			return flight_manual;
+		}
+
+		sleep(1);
+	}
+
+	printf("quad_arm: inactivity disarm\n");
+	return flight_disarm;
+}
+
+
 /* Handling flight modes */
 
 static int quad_takeoff(const flight_mode_t *mode)
@@ -653,6 +690,7 @@ static int quad_run(void)
 				break;
 
 			case flight_arm:
+				log_print("f_arm\n");
 				if (armed == 0) {
 					log_print("f_arm: arming motors...\n");
 					mma_start();
@@ -661,9 +699,7 @@ static int quad_run(void)
 				/* TODO: enable buzzer */
 				sleep(1);
 
-				if (quad_common.mode == mode_rc) {
-					quad_common.currFlight = flight_manual;
-				}
+				quad_common.currFlight = quad_arm();
 				break;
 
 			/* Handling auto modes: */
