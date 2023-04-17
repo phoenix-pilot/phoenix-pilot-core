@@ -100,7 +100,7 @@ TEST_TEAR_DOWN(group_matrix_zeroes)
 TEST(group_matrix_zeroes, matrix_zeroes_std)
 {
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, ROWS, COLS));
-	algebraTests_buffFill(&M1, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M1, initVal, BUFFILL_WRITE_ALL));
 
 	matrix_zeroes(&M1);
 
@@ -115,7 +115,7 @@ TEST(group_matrix_zeroes, matrix_zeroes_std)
 TEST(group_matrix_zeroes, matrix_zeroes_stdTrp)
 {
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, ROWS, COLS));
-	algebraTests_buffFill(&M1, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M1, initVal, BUFFILL_WRITE_ALL));
 	matrix_trp(&M1);
 
 	matrix_zeroes(&M1);
@@ -173,7 +173,7 @@ TEST_TEAR_DOWN(group_matrix_diag)
 TEST(group_matrix_diag, matrix_diag_squareMat)
 {
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
-	algebraTests_buffFill(&M1, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M1, initVal, BUFFILL_WRITE_ALL));
 
 	matrix_diag(&M1);
 
@@ -185,7 +185,7 @@ TEST(group_matrix_diag, matrix_diag_squareMatTrp)
 {
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, SQUARE_MAT_SIZE, SQUARE_MAT_SIZE));
 	matrix_trp(&M1);
-	algebraTests_buffFill(&M1, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M1, initVal, BUFFILL_WRITE_ALL));
 
 	matrix_diag(&M1);
 
@@ -196,7 +196,7 @@ TEST(group_matrix_diag, matrix_diag_squareMatTrp)
 TEST(group_matrix_diag, matrix_diag_notSquareMat)
 {
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, ROWS, COLS));
-	algebraTests_buffFill(&M1, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M1, initVal, BUFFILL_WRITE_ALL));
 
 	matrix_diag(&M1);
 
@@ -208,7 +208,7 @@ TEST(group_matrix_diag, matrix_diag_notSquareMatTrp)
 {
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M1, ROWS, COLS));
 	matrix_trp(&M1);
-	algebraTests_buffFill(&M1, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M1, initVal, BUFFILL_WRITE_ALL));
 
 	matrix_diag(&M1);
 

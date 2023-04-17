@@ -68,6 +68,12 @@
 /* Define for `vec_cmp` results */
 #define QUAT_CMP_OK 0
 
+/* ----------------        defines used in tools functions       ---------------- */
+
+#define BUFFILL_WRITE_ALL -1
+
+#define MAT_BUFFILL_OK 0
+
 /* ------------------------        general defines       ------------------------ */
 
 /* Defines for functions that validate object parameters */
@@ -139,11 +145,11 @@ extern void test_assert_float_array_within(float delta, float *expected, float *
  * ############################################################################## */
 
 
-/* Fill matrix buffer with n-length array vals. If n=1 whole matrix is filled with vals[0] */
-extern void algebraTests_buffFill(matrix_t *M, const float *vals, unsigned int n);
+/* Fill matrix buffer with n-length array vals. If n=BUFFILL_WRITE_ALL whole matrix is filled with vals[0] */
+extern int algebraTests_buffFill(matrix_t *M, const float *vals, int n);
 
 
-/* Create and fill matrix with n-length array vals. If n=1 whole matrix is filled with vals[0]. M must be uninitialized */
+/* Create and fill matrix with n-length array vals. M must be uninitialized */
 extern int algebraTests_createAndFill(matrix_t *M, unsigned int rows, unsigned int cols, const float *vals, unsigned int n);
 
 

@@ -27,7 +27,7 @@ void test_assert_float_array_within(float delta, float *expected, float *actual,
 }
 
 
-void algebraTests_buffFill(matrix_t *M, const float *vals, unsigned int n)
+int algebraTests_buffFill(matrix_t *M, const float *vals, int n)
 {
 	int rowsNum, colsNum, row, col;
 	int i = 0;
@@ -35,11 +35,17 @@ void algebraTests_buffFill(matrix_t *M, const float *vals, unsigned int n)
 	rowsNum = matrix_rowsGet(M);
 	colsNum = matrix_colsGet(M);
 
+	if (n != rowsNum * colsNum && n != BUFFILL_WRITE_ALL) {
+		return -1;
+	}
+
 	for (row = 0; row < rowsNum; row++) {
 		for (col = 0; col < colsNum; col++) {
-			*matrix_at(M, row, col) = (n > 1) ? vals[i++] : vals[i];
+			*matrix_at(M, row, col) = (n == BUFFILL_WRITE_ALL) ? vals[i] : vals[i++];
 		}
 	}
+
+	return 0;
 }
 
 
@@ -49,8 +55,7 @@ int algebraTests_createAndFill(matrix_t *M, unsigned int rows, unsigned int cols
 		return MAT_BUF_ALLOC_FAIL;
 	}
 
-	algebraTests_buffFill(M, vals, n);
-	return MAT_BUF_ALLOC_OK;
+	return algebraTests_buffFill(M, vals, n);
 }
 
 

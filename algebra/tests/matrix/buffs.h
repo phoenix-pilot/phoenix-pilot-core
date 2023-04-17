@@ -18,7 +18,6 @@
 
 /* Value for initiating matrices. Must be different than zero and one. */
 static const float initVal[] = {4.5f};
-static const int initValLen = 1;
 
 /* A - small square matrix with integer values */
 static const unsigned int buffs_rowsA = 3, buffs_colsA = 3;
