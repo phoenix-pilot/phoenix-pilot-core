@@ -52,7 +52,7 @@ TEST_SETUP(group_matrix_sandwitch_stdMat)
 
 	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
-	algebraTests_buffFill(&M3, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M3, initVal, BUFFILL_WRITE_ALL));
 
 	/* Allocating temporary matrix */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&tmp, M1.rows, M2.cols));
@@ -172,7 +172,7 @@ TEST_SETUP(group_matrix_sandwitch_bigMat)
 
 	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
-	algebraTests_buffFill(&M3, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M3, initVal, BUFFILL_WRITE_ALL));
 
 	/* Allocating temporary matrix */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&tmp, M1.rows, M2.cols));
@@ -460,7 +460,7 @@ TEST_SETUP(group_matrix_sparseSandwitch_stdMat)
 
 	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
-	algebraTests_buffFill(&M3, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M3, initVal, BUFFILL_WRITE_ALL));
 
 	/* Allocating temporary matrix */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&tmp, M1.rows, M2.cols));
@@ -579,7 +579,7 @@ TEST_SETUP(group_matrix_sparseSandwitch_bigMat)
 
 	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
-	algebraTests_buffFill(&M3, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M3, initVal, BUFFILL_WRITE_ALL));
 
 	/* Allocating temporary matrix */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&tmp, M1.rows, M2.cols));

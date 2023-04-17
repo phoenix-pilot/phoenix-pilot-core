@@ -50,7 +50,7 @@ TEST_SETUP(group_matrix_inv_stdMat)
 
 	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M2, Expected.rows, Expected.cols));
-	algebraTests_buffFill(&M2, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M2, initVal, BUFFILL_WRITE_ALL));
 
 	bufLen = M1.rows * M1.cols * 2;
 	buf = malloc(sizeof(float) * bufLen);
@@ -152,7 +152,7 @@ TEST_SETUP(group_matrix_inv_bigMat)
 
 	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M2, M1.rows, M1.cols));
-	algebraTests_buffFill(&M2, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M2, initVal, BUFFILL_WRITE_ALL));
 
 	/* Allocating temporary matrix */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, M1.rows, M1.cols));
@@ -272,7 +272,7 @@ TEST(group_matrix_inv_otherMats, matrix_inv_zeroOnDiag)
 
 	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M2, Expected.rows, Expected.cols));
-	algebraTests_buffFill(&M2, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M2, initVal, BUFFILL_WRITE_ALL));
 
 	bufLen = M1.rows * M1.cols * 2;
 	buf = malloc(sizeof(float) * bufLen);
@@ -304,7 +304,7 @@ TEST_SETUP(group_matrix_inv_badMat)
 
 	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M2, M1.rows, M1.cols));
-	algebraTests_buffFill(&M2, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M2, initVal, BUFFILL_WRITE_ALL));
 
 	bufLen = M1.rows * M1.cols * 2;
 	buf = malloc(sizeof(float) * bufLen);

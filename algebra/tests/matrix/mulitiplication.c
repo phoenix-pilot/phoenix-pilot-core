@@ -50,7 +50,7 @@ TEST_SETUP(group_matrix_prod_stdMat)
 
 	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
-	algebraTests_buffFill(&M3, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M3, initVal, BUFFILL_WRITE_ALL));
 }
 
 
@@ -166,7 +166,7 @@ TEST_SETUP(group_matrix_prod_bigMat)
 
 	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
-	algebraTests_buffFill(&M3, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M3, initVal, BUFFILL_WRITE_ALL));
 
 	M4.data = NULL;
 	M5.data = NULL;
@@ -420,7 +420,7 @@ TEST_SETUP(group_matrix_sparseProd_stdMat)
 
 	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
-	algebraTests_buffFill(&M3, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M3, initVal, BUFFILL_WRITE_ALL));
 }
 
 
@@ -536,7 +536,7 @@ TEST_SETUP(group_matrix_sparseProd_bigMat)
 
 	/* Allocating matrix for results and filling with non zero data */
 	TEST_ASSERT_EQUAL_INT(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M3, Expected.rows, Expected.cols));
-	algebraTests_buffFill(&M3, initVal, initValLen);
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK, algebraTests_buffFill(&M3, initVal, BUFFILL_WRITE_ALL));
 
 	M4.data = NULL;
 	M5.data = NULL;
