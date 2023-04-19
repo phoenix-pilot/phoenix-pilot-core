@@ -70,6 +70,54 @@ static const float buffs_BpDiffB[] = {
     -90.3680f,  78.7688f, -18.6179f,  69.3764f
 };
 
+/* Result of differentiation QA*v with respect to v, where v is a pure quaternion (quaternionized vector) */
+static const float buffs_QAvDiffV[] = {
+    0.0f, 0.0f, 0.0f,
+    1.0f, 0.0f, 0.0f,
+    0.0f, 1.0f, 0.0f,
+    0.0f, 0.0f, 1.0f
+};
+
+/* Result of differentiation QI*v with respect to v, where v is a pure quaternion (quaternionized vector) */
+static const float buffs_QIvDiffV[] = {
+    -1.0f, 0.0f,  0.0f,
+     0.0f, 0.0f,  0.0f,
+     0.0f, 0.0f, -1.0f,
+     0.0f, 1.0f,  0.0f
+};
+
+/* Result of differentiation QJ*v with respect to v, where v is a pure quaternion (quaternionized vector) */
+static const float buffs_QJvDiffV[] = {
+     0.0f, -1.0f, 0.0f,
+     0.0f,  0.0f, 1.0f,
+     0.0f,  0.0f, 0.0f,
+    -1.0f,  0.0f, 0.0f
+};
+
+/* Result of differentiation QK*v with respect to v, where v is a pure quaternion (quaternionized vector) */
+static const float buffs_QKvDiffV[] = {
+    0.0f,  0.0f, -1.0f,
+    0.0f, -1.0f,  0.0f,
+    1.0f,  0.0f,  0.0f,
+    0.0f,  0.0f,  0.0f
+};
+
+/* Result of differentiation A*v with respect to v, where v is a pure quaternion (quaternionized vector) */
+static const float buffs_AvDiffV[] = {
+     8.0f, -7.0f, -1.0f,
+    -9.0f, -1.0f,  7.0f,
+     1.0f, -9.0f,  8.0f,
+    -7.0f, -8.0f, -9.0f
+};
+
+/* Result of differentiation B*v with respect to v, where v is a pure quaternion (quaternionized vector) */
+static const float buffs_BvDiffV[] = {
+    -18.6179f, -78.7688f,  90.3680f,
+     69.3764f,  90.3680f,  78.7688f,
+    -90.3680f,  69.3764f, -18.6179f,
+    -78.7688f,  18.6179f,  69.3764f
+};
+
 /* clang-format on */
 
 #endif
