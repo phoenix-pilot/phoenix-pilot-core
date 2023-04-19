@@ -74,6 +74,7 @@ void runner(void)
 
 	/* Quaternions differentiation tests */
 	RUN_TEST_GROUP(group_qvdiff_qpDiffQ);
+	RUN_TEST_GROUP(group_qvdiff_qpDiffP);
 }
 
 
