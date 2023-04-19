@@ -21,18 +21,18 @@
 
 
 /* Calculates derivative: d(q * p *cjg(q)) / dq with assumptions:
-* 1) `out` is 3x4 matrix
-* 2) `q` is rotation quaternion
-* 3) `p` is vector (or pure quaternion vectorial part)
-*/
+ * 1) `out` is 3x4 matrix
+ * 2) `q` is rotation quaternion
+ * 3) `p` is vector (or pure quaternion vectorial part)
+ */
 int qvdiff_qvqDiffQ(const quat_t *q, const vec_t *v, matrix_t *out);
 
 
 /* Calculates derivative: d(q * p * cjg(q)) / d(p) with assumptions:
-* 1) `out` is 3x3, untransposed matrix
-* 2) q is quaternion
-* Note: this derivative does not need value of `p`
-*/
+ * 1) `out` is 3x3, untransposed matrix
+ * 2) q is quaternion
+ * Note: this derivative does not need value of `p`
+ */
 int qvdiff_qvqDiffV(const quat_t *q, matrix_t *out);
 
 
@@ -43,11 +43,11 @@ int qvdiff_qvqDiffV(const quat_t *q, matrix_t *out);
 int qvdiff_qpDiffQ(const quat_t *p, matrix_t *out);
 
 
-/* Calculates derivative: d(q * w) / d(q) with assumptions:
+/* Calculates derivative: d(q * p) / d(q) with assumptions:
  * 1) `out` is 4x3 matrix
  * 2) 'q' is a quaternion
- * 3) 'w' is a quaternionized vector (only imaginary terms are significant)
-*/
+ * 3) 'p' is a quaternionized vector (only imaginary terms are significant)
+ */
 int qvdiff_qpDiffP(const quat_t *q, matrix_t *out);
 
 #endif
