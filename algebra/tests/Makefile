@@ -19,6 +19,7 @@ endif
 SRCS += $(wildcard $(LOCAL_DIR)matrix/*.c)
 SRCS += $(wildcard $(LOCAL_DIR)vec/*.c)
 SRCS += $(wildcard $(LOCAL_DIR)quat/*.c)
+SRCS += $(wildcard $(LOCAL_DIR)qdiff/*.c)
 SRCS += $(LOCAL_DIR)tools_tests.c
 SRCS += $(LOCAL_DIR)tools.c
 

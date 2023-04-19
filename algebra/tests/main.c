@@ -71,6 +71,9 @@ void runner(void)
 	RUN_TEST_GROUP(group_quat_rotQuat);
 	RUN_TEST_GROUP(group_quat_uvec2uvec);
 	RUN_TEST_GROUP(group_quat_frameRot);
+
+	/* Quaternions differentiation tests */
+	RUN_TEST_GROUP(group_qvdiff_qpDiffQ);
 }
 
 
