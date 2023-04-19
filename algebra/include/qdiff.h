@@ -38,9 +38,9 @@ int qvdiff_qvqDiffV(const quat_t *q, matrix_t *out);
 
 /* Calculates derivative: d(q * p) / d(q) with assumptions:
  * 1) `out` is 4x4 matrix
- * 2) 'q' and 'w' are quaternions
-*/
-int qvdiff_qpDiffQ(quat_t *p, matrix_t *out);
+ * 2) 'q' and 'p' are quaternions
+ */
+int qvdiff_qpDiffQ(const quat_t *p, matrix_t *out);
 
 
 /* Calculates derivative: d(q * w) / d(q) with assumptions:
