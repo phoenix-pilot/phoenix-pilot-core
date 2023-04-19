@@ -18,8 +18,8 @@
 
 
 /* Calculates cross product matrix for vector v so that when left-hand-multiplied by a vector p produces cross product (v x p).
-* `out` is assumed to be 3x3, untransposed matrix.
-*/
+ * `out` is assumed to be 3x3, untransposed matrix.
+ */
 static void qvdiff_crossMat(const vec_t *v, matrix_t *out)
 {
 	/* diagonal */
@@ -156,8 +156,14 @@ int qvdiff_qpDiffQ(const quat_t *p, matrix_t *out)
 
 int qvdiff_qpDiffP(const quat_t *q, matrix_t *out)
 {
-	if (matrix_rowsGet(out) != 4 || matrix_colsGet(out) != 3 || out->transposed != 0) {
+	if (matrix_rowsGet(out) != 4 || matrix_colsGet(out) != 3) {
 		return -1;
+	}
+
+	if (out->transposed != 0) {
+		out->transposed = 0;
+		out->cols = 3;
+		out->rows = 4;
 	}
 
 	MATRIX_DATA(out, 1, 0) = q->a;
@@ -174,7 +180,7 @@ int qvdiff_qpDiffP(const quat_t *q, matrix_t *out)
 
 	MATRIX_DATA(out, 2, 0) = q->k;
 	MATRIX_DATA(out, 0, 2) = -q->k;
-	MATRIX_DATA(out, 1, 1) = -q->j;
+	MATRIX_DATA(out, 1, 1) = -q->k;
 
 	return 0;
 }
