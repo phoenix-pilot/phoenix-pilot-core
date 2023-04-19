@@ -122,18 +122,20 @@ int qvdiff_qvqDiffP(const quat_t *q, matrix_t *out)
 }
 
 
-int qvdiff_qpDiffQ(quat_t *p, matrix_t *out)
+int qvdiff_qpDiffQ(const quat_t *p, matrix_t *out)
 {
-	if (matrix_rowsGet(out) != 4 || matrix_colsGet(out) != 4 || out->transposed != 0) {
+	if (out->cols != 4 || out->rows != 4) {
 		return -1;
 	}
+
+	out->transposed = 0;
 
 	MATRIX_DATA(out, 0, 0) = p->a;
 	MATRIX_DATA(out, 1, 1) = p->a;
 	MATRIX_DATA(out, 2, 2) = p->a;
 	MATRIX_DATA(out, 3, 3) = p->a;
 
-	MATRIX_DATA(out, 0, 0) = p->i;
+	MATRIX_DATA(out, 1, 0) = p->i;
 	MATRIX_DATA(out, 2, 3) = p->i;
 	MATRIX_DATA(out, 0, 1) = -p->i;
 	MATRIX_DATA(out, 3, 2) = -p->i;
