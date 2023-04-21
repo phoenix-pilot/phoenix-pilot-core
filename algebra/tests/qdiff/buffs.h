@@ -118,6 +118,41 @@ static const float buffs_BvDiffV[] = {
     -78.7688f,  18.6179f,  69.3764f
 };
 
+/* Result of differentiation QI*v*cjg(QI) with respect to v, where v is a pure quaternion (quaternionized vector) */
+static const float buffs_QIvQIDiffV[] = {
+    1.0f,  0.0f,  0.0f,
+    0.0f, -1.0f,  0.0f,
+    0.0f,  0.0f, -1.0f
+};
+
+/* Result of differentiation QJ*v*cjg(QJ) with respect to v, where v is a pure quaternion (quaternionized vector) */
+static const float buffs_QJvQJDiffV[] = {
+    -1.0f, 0.0f,   0.0f,
+     0.0f, 1.0f,   0.0f,
+     0.0f, 0.0f,  -1.0f
+};
+
+/* Result of differentiation QK*v*cjg(QK) with respect to v, where v is a pure quaternion (quaternionized vector) */
+static const float buffs_QKvQKDiffV[] = {
+    -1.0f,  0.0f,  0.0f,
+     0.0f, -1.0f,  0.0f,
+     0.0f,  0.0f,  1.0f
+};
+
+/* Result of differentiation A*v*cjg(A) with respect to v, where v is a pure quaternion (quaternionized vector) */
+static const float buffs_AvADiffV[] = {
+     95.0f, -94.0f, -142.0f,
+    -130.0f, 65.0f, -130.0f,
+     110.0f, 158.0f, -31.0f
+};
+
+/* Result of differentiation B*v*cjg(B) with respect to v, where v is a pure quaternion (quaternionized vector) */
+static const float buffs_BvBDiffV[] = {
+     -9211.188200069997f,  15471.83231344f,        7564.46677824f,
+     -9605.793747360001f,   2504.6071059900023f, -16819.64359192f,
+    -14294.31632704f,     -11653.07208168f,        6428.310247110001f
+};
+
 /* clang-format on */
 
 #endif
