@@ -81,15 +81,17 @@ int qvdiff_qvqDiffQ(const quat_t *q, const vec_t *v, matrix_t *out)
 }
 
 
-int qvdiff_qvqDiffP(const quat_t *q, matrix_t *out)
+int qvdiff_qvqDiffV(const quat_t *q, matrix_t *out)
 {
 	float qqtData[3 * 3] = { 0 }, tmp;
 	matrix_t qqt = { .data = qqtData, .rows = 3, .cols = 3, .transposed = 0 };
 	const vec_t qVec = { .x = q->i, .y = q->j, .z = q->k };
 
-	if (matrix_rowsGet(out) != 3 || matrix_colsGet(out) != 4 || out->transposed != 0) {
+	if (matrix_rowsGet(out) != 3 || matrix_colsGet(out) != 3) {
 		return -1;
 	}
+
+	out->transposed = 0;
 
 	qvdiff_crossMat(&qVec, out);
 	matrix_times(out, 2 * q->a);
