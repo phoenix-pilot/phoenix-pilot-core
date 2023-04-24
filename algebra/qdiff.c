@@ -42,10 +42,7 @@ int qvdiff_qvqDiffQ(const quat_t *q, const vec_t *v, matrix_t *out)
 	float vCrossData[3 * 3] = { 0 };
 	float buffData[3 * 3] = { 0 };
 	float tmp;
-
-	if (matrix_rowsGet(out) != 3 || matrix_colsGet(out) != 4 || out->transposed != 0) {
-		return -1;
-	}
+	vec_t vxq;
 
 	/* Matrices for cross matrix of p and general matrix for the part of derivative over imaginary components of q */
 	matrix_t vCross = { .data = vCrossData, .rows = 3, .cols = 3, .transposed = 0 };
@@ -53,7 +50,16 @@ int qvdiff_qvqDiffQ(const quat_t *q, const vec_t *v, matrix_t *out)
 
 	/* Vector for cross product (p x q) */
 	const vec_t qVec = { .x = q->i, .y = q->j, .z = q->k };
-	vec_t vxq;
+
+	if (matrix_rowsGet(out) != 3 || matrix_colsGet(out) != 4) {
+		return -1;
+	}
+
+	if (out->transposed != 0) {
+		out->transposed = 0;
+		out->cols = 4;
+		out->rows = 3;
+	}
 
 	vec_cross(v, &qVec, &vxq);
 
