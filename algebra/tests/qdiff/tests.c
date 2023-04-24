@@ -384,3 +384,123 @@ TEST_GROUP_RUNNER(group_qvdiff_qvqDiffV)
 	RUN_TEST_CASE(group_qvdiff_qvqDiffV, qvdiff_qvqDiffV_resTrp);
 	RUN_TEST_CASE(group_qvdiff_qvqDiffV, qvdiff_qvqDiffV_wrongOutputMatrixSize);
 }
+
+
+/* ##############################################################################
+ * -----------------------        qvdiff_qvqDiffQ tests       --------------------
+ * ############################################################################## */
+
+
+TEST_GROUP(group_qvdiff_qvqDiffQ);
+
+
+TEST_SETUP(group_qvdiff_qvqDiffQ)
+{
+	TEST_ASSERT_EQUAL(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M, ROWS_VEC_DIFF, COLS_QUAT_DIFF));
+	TEST_ASSERT_EQUAL(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&Expected, ROWS_VEC_DIFF, COLS_QUAT_DIFF));
+}
+
+
+TEST_TEAR_DOWN(group_qvdiff_qvqDiffQ)
+{
+	matrix_bufFree(&M);
+	matrix_bufFree(&Expected);
+}
+
+
+TEST(group_qvdiff_qvqDiffQ, qvdiff_qvqDiffQ_quaternionVersors)
+{
+	vec_t v = { .x = 1, .y = 1, .z = 1 };
+
+	/* Testing derivative d(q*v*cjg(q)) / d(q) where q = 1 and v is pure quaternion */
+	TEST_ASSERT_EQUAL(0, qvdiff_qvqDiffQ(&QA, &v, &M));
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK,
+		algebraTests_buffFill(&Expected, buffs_QAvQADiffQA, ROWS_QUAT_DIFF * COLS_VEC_DIFF));
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M);
+
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK,
+		algebraTests_buffFill(&M, matInitBuff, BUFFILL_WRITE_ALL));
+
+	/* Testing derivative d(q*v*cjg(q)) / d(q) where q = i and v is pure quaternion */
+	TEST_ASSERT_EQUAL(0, qvdiff_qvqDiffQ(&QI, &v, &M));
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK,
+		algebraTests_buffFill(&Expected, buffs_QIvQIDiffQI, ROWS_QUAT_DIFF * COLS_VEC_DIFF));
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M);
+
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK,
+		algebraTests_buffFill(&M, matInitBuff, BUFFILL_WRITE_ALL));
+
+	/* Testing derivative d(q*v*cjg(q)) / d(q) where q = j and v is pure quaternion */
+	TEST_ASSERT_EQUAL(0, qvdiff_qvqDiffQ(&QJ, &v, &M));
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK,
+		algebraTests_buffFill(&Expected, buffs_QJvQJDiffQJ, ROWS_QUAT_DIFF * COLS_VEC_DIFF));
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M);
+
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK,
+		algebraTests_buffFill(&M, matInitBuff, BUFFILL_WRITE_ALL));
+
+	/* Testing derivative d(q*v*cjg(q)) / d(q) where q = k and v is pure quaternion */
+	TEST_ASSERT_EQUAL(0, qvdiff_qvqDiffQ(&QK, &v, &M));
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK,
+		algebraTests_buffFill(&Expected, buffs_QKvQKDiffQK, ROWS_QUAT_DIFF * COLS_VEC_DIFF));
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M);
+}
+
+
+TEST(group_qvdiff_qvqDiffQ, qvdiff_qvqDiffQ_trivial)
+{
+	TEST_ASSERT_EQUAL(0, qvdiff_qvqDiffQ(&A, &v1, &M));
+
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK,
+		algebraTests_buffFill(&Expected, buffs_Av1ADiffA, ROWS_QUAT_DIFF * COLS_VEC_DIFF));
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M);
+}
+
+
+TEST(group_qvdiff_qvqDiffQ, qvdiff_qvqDiffQ_nontrivial)
+{
+	TEST_ASSERT_EQUAL(0, qvdiff_qvqDiffQ(&B, &v2, &M));
+
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK,
+		algebraTests_buffFill(&Expected, buffs_Bv2BDiffB, ROWS_QUAT_DIFF * COLS_VEC_DIFF));
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M);
+}
+
+
+TEST(group_qvdiff_qvqDiffQ, qvdiff_qvqDiffQ_resTrp)
+{
+	algebraTests_transposeSwap(&M);
+
+	TEST_ASSERT_EQUAL(0, qvdiff_qvqDiffQ(&B, &v2, &M));
+
+	TEST_ASSERT_EQUAL_INT(MAT_BUFFILL_OK,
+		algebraTests_buffFill(&Expected, buffs_Bv2BDiffB, ROWS_QUAT_DIFF * COLS_VEC_DIFF));
+	TEST_ASSERT_EQUAL_MATRIX(Expected, M);
+}
+
+
+TEST(group_qvdiff_qvqDiffQ, qvdiff_qvqDiffQ_wrongOutputMatrixSize)
+{
+	float buff[(ROWS_VEC_DIFF + 1) * (COLS_QUAT_DIFF + 1)];
+	matrix_t mat = { .data = buff, .transposed = 0 };
+
+	/* Too small matrix */
+	mat.rows = ROWS_VEC_DIFF - 1;
+	mat.cols = COLS_QUAT_DIFF - 1;
+	TEST_ASSERT_NOT_EQUAL(0, qvdiff_qvqDiffQ(&B, &v2, &mat));
+
+	/* Too big matrix */
+	mat.rows = ROWS_VEC_DIFF + 1;
+	mat.cols = COLS_QUAT_DIFF + 1;
+	TEST_ASSERT_NOT_EQUAL(0, qvdiff_qvqDiffQ(&B, &v2, &mat));
+}
+
+
+TEST_GROUP_RUNNER(group_qvdiff_qvqDiffQ)
+{
+	RUN_TEST_CASE(group_qvdiff_qvqDiffQ, qvdiff_qvqDiffQ_quaternionVersors);
+	RUN_TEST_CASE(group_qvdiff_qvqDiffQ, qvdiff_qvqDiffQ_trivial);
+	RUN_TEST_CASE(group_qvdiff_qvqDiffQ, qvdiff_qvqDiffQ_nontrivial);
+	RUN_TEST_CASE(group_qvdiff_qvqDiffQ, qvdiff_qvqDiffQ_resTrp);
+	RUN_TEST_CASE(group_qvdiff_qvqDiffQ, qvdiff_qvqDiffQ_wrongOutputMatrixSize);
+}

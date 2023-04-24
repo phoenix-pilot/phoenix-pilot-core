@@ -76,6 +76,7 @@ void runner(void)
 	RUN_TEST_GROUP(group_qvdiff_qpDiffQ);
 	RUN_TEST_GROUP(group_qvdiff_qpDiffP);
 	RUN_TEST_GROUP(group_qvdiff_qvqDiffV);
+	RUN_TEST_GROUP(group_qvdiff_qvqDiffQ);
 }
 
 
