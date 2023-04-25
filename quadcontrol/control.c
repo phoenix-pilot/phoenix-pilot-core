@@ -569,6 +569,7 @@ static int quad_manual(void)
 	float throttle = 0;
 	time_t now;
 	int32_t setAlt, alt, stickSWC, rcThrottle;
+	vec_t setPos;
 
 	/* Initialize yaw and altitude */
 	ekf_stateGet(&measure);
@@ -597,9 +598,11 @@ static int quad_manual(void)
 		quad_common.pids[pwm_alt].flags = PID_FULL;
 
 		/* SWC == LOW (or illegal value) -> stabilize */
-		if (stickSWC < (0.1 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) || stickSWC > MAX_CHANNEL_VALUE) {
+		if (quad_rcChLow(stickSWC) || stickSWC > MAX_CHANNEL_VALUE) {
 			att.yaw = measure.yaw;
 			alt = setAlt = measure.enuZ * 1000;
+
+			setPos = (vec_t) { .x = measure.enuX, .y = measure.enuY, .z = 0 };
 
 			/* We don`t want altitude pid to affect the hover in stabilize mode */
 			quad_common.pids[pwm_alt].flags |= PID_IGNORE_P | PID_IGNORE_I | PID_IGNORE_D;
@@ -616,8 +619,8 @@ static int quad_manual(void)
 			}
 
 		}
-		/* SWC == HIGH -> althold @ curr alt. + 5m */
-		else if (stickSWC > (0.9 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE))) {
+		/* SWC == HIGH -> poshold */
+		else if (quad_rcChHgh(stickSWC)) {
 			/* Do not use I altitude pid if there is too big difference between current alt and set alt */
 			if (fabs(measure.enuZ * 1000 - setAlt) > 1000) {
 				quad_common.pids[pwm_alt].flags |= PID_IGNORE_I;
@@ -626,10 +629,10 @@ static int quad_manual(void)
 				quad_common.pids[pwm_alt].flags &= ~PID_IGNORE_I;
 			}
 
-			setAlt = alt + QCTRL_ALTHOLD_JUMP;
+			setAlt = alt;
 			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 		}
-		/* SWC == MID -> althold @ curr alt. */
+		/* SWC == MID -> althold */
 		else {
 			/* Do not use I altitude pid if there is too big difference between current alt and set alt */
 			if (fabs(measure.enuZ * 1000 - setAlt) > 1000) {
