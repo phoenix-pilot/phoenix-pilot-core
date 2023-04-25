@@ -43,7 +43,7 @@
 #define ALTITUDE_TOLERANCE         500 /* 1E-3 [m] (millimetres) */
 
 #define PATH_QUAD_CONFIG "/etc/quad.conf"
-#define PID_NUMBERS      4
+#define PID_NUMBERS      5
 
 #define PATH_SCENARIO_CONFIG "/etc/q_mission.conf"
 
@@ -94,7 +94,7 @@ struct {
 } quad_common;
 
 
-enum { pwm_alt = 0, pwm_roll, pwm_pitch, pwm_yaw, pwm_max };
+enum { pwm_alt = 0, pwm_roll, pwm_pitch, pwm_yaw, pwm_pos, pwm_max };
 
 
 /* TODO: verify coefficients with test quadcopter */
@@ -121,6 +121,7 @@ static inline void quad_pidRestore(void)
 	quad_common.pids[pwm_roll].flags = PID_FULL;
 	quad_common.pids[pwm_pitch].flags = PID_FULL;
 	quad_common.pids[pwm_yaw].flags = PID_FULL;
+	quad_common.pids[pwm_pos].flags = PID_FULL;
 }
 
 
