@@ -19,6 +19,7 @@
 
 #include <ekflib.h>
 #include <rcbus.h>
+#include <vec.h>
 
 #include <math.h>
 #include <errno.h>
@@ -129,6 +130,34 @@ static inline void quad_levelAtt(quad_att_t *att)
 {
 	att->pitch = 0;
 	att->roll = 0;
+}
+
+
+/* Additive attitude `att` control based on target position `setPos` and current position from `measure` */
+static void quad_attPos(quad_att_t *att, const vec_t *setPos, const ekf_state_t *measure)
+{
+	vec_t currPos = { .x = measure->enuX, .y = measure->enuY, .z = 0 };
+	vec_t currVel = { .x = measure->veloX, .y = measure->veloY, .z = 0 };
+	vec_t target;
+	float posPid, yawCos, yawSin;
+
+	vec_dif(setPos, &currPos, &target);
+
+	/* assuming constant time step for pid controller */
+	posPid = pid_calc(&quad_common.pids[pwm_pos], 0, vec_len(&target), vec_len(&currVel), 1);
+
+	/* use `target` vector as lean direction for PID controller */
+	vec_normalize(&target);
+	vec_times(&target, posPid);
+
+	yawCos = cos(measure->yaw);
+	yawSin = sin(measure->yaw);
+
+	log_print("S %.1f %.1f C %.1f %.1f %.2f %.2f\n", setPos->x, setPos->y, measure->enuX, measure->enuY, measure->veloX, measure->veloY);
+
+	/* Local derivation of 2D rotational matrix (only yaw angle rotation present). Coordinates are in ENU, but YAW angle is taken as in NED. */
+	att->roll += -(target.x * yawCos - target.y * yawSin); /* roll addition is negatively correlated to local ENU east target distance */
+	att->pitch += (target.x * yawSin + target.y * yawCos); /* pitch addition is positively correlated to local ENU north target distance */
 }
 
 
@@ -631,6 +660,9 @@ static int quad_manual(void)
 
 			setAlt = alt;
 			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
+
+			/* Attitude control for position hold */
+			quad_attPos(&att, &setPos, &measure);
 		}
 		/* SWC == MID -> althold */
 		else {
