@@ -189,23 +189,6 @@ static const float fltr_accWindow[FLTR_ACCEL_LEN] = {
 };
 
 
-#define FLTR_GYRO_LEN 11
-
-static const float fltr_gyroWindow[FLTR_GYRO_LEN] = {
-	0.080867462624515052,
-	0.086741445655463434,
-	0.091476727498003868,
-	0.094950333264530992,
-	0.097071580192293394,
-	0.097784901530386506,
-	0.097071580192293394,
-	0.094950333264530992,
-	0.091476727498003868,
-	0.086741445655463434,
-	0.080867462624515052
-};
-
-
 /*
 * Barometer speed data is passed through windowed-sinc FIR filter of following parameters:
  - Cutoff frequency: 1Hz
@@ -337,8 +320,9 @@ void fltr_vBaroLpf(float *raw)
 
 void fltr_gyroLpf(vec_t *raw)
 {
-	static vec_t buf[FLTR_GYRO_LEN] = { 0 };
-	static int bufPos = 0;
+	static vec_t buf = { 0 };
 
-	fltr_windowVec(raw, buf, &bufPos, fltr_gyroWindow, FLTR_GYRO_LEN);
+	vec_times(&buf, 0.5);
+	vec_times(raw, 0.5);
+	vec_add(&buf, raw);
 }
