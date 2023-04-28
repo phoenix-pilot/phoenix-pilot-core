@@ -195,9 +195,6 @@ static int quad_motorsCtrl(float throttle, int32_t alt, const quad_att_t *att, c
 	dt = now - quad_common.lastTime;
 	quad_common.lastTime = now;
 
-	log_print("EKFE: %lld %.1f %.1f %.1f\n", now, measure->yaw * RAD2DEG, measure->pitch * RAD2DEG, measure->roll * RAD2DEG);
-	log_print("EKFX: %.2f %.2f\n", measure->enuZ, measure->veloZ);
-
 	palt = pid_calc(&quad_common.pids[pwm_alt], alt / 1000.f, measure->enuZ, measure->veloZ, dt);
 	proll = pid_calc(&quad_common.pids[pwm_roll], att->roll, measure->roll, measure->rollDot, dt);
 	ppitch = pid_calc(&quad_common.pids[pwm_pitch], att->pitch, measure->pitch, measure->pitchDot, dt);
