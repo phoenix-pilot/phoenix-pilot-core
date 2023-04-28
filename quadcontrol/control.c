@@ -635,6 +635,7 @@ static int quad_manual(void)
 
 			/* We don`t want altitude pid to affect the hover in stabilize mode */
 			quad_common.pids[pwm_alt].flags |= PID_IGNORE_P | PID_IGNORE_I | PID_IGNORE_D;
+			quad_common.pids[pwm_pos].flags |= PID_RESET_I;
 
 			quad_rcOverride(&att, &throttle, RC_OVRD_LEVEL | RC_OVRD_YAW | RC_OVRD_THROTTLE);
 
@@ -659,6 +660,7 @@ static int quad_manual(void)
 			}
 
 			setAlt = alt;
+			quad_common.pids[pwm_pos].flags = PID_FULL;
 			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 
 			/* Attitude control for position hold */
@@ -674,6 +676,7 @@ static int quad_manual(void)
 				quad_common.pids[pwm_alt].flags &= ~PID_IGNORE_I;
 			}
 
+			quad_common.pids[pwm_pos].flags |= PID_RESET_I;
 			setAlt = alt;
 			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 		}
