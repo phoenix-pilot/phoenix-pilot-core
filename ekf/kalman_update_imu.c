@@ -45,12 +45,17 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	/* Get current sensor readings */
 	meas_imuGet(&accel, &accelRaw, &gyro, &mag, &timestamp);
 
-	/* earth acceleration calculations */
-	vec_times(&accel, -1); /* earth acceleration is measured by accelerometer UPWARD, which in NED is negative */
+	/* earth acceleration is measured by accelerometer UPWARD, which in NED is negative */
+	accel.x = -accel.x;
+	accel.y = -accel.y;
+	accel.z = -accel.z;
+	accelRaw.x = -accelRaw.x;
+	accelRaw.y = -accelRaw.y;
+	accelRaw.z = -accelRaw.z;
 
 	/* calculate acceleration uncertainty. Bloat the uncertainty if acceleration value is beyond threshold */
 	accelSigma = imu_common.inits->R_astdev * imu_common.inits->R_astdev / EARTH_G * EARTH_G;
-	accLen = vec_len(&accelRaw);
+	accLen = vec_len(&accel);
 	if (fabs(accLen - EARTH_G) > ACC_SIGMA_STEP_THRESHOLD) {
 		accelSigma *= ACC_SIGMA_STEP_FACTOR;
 	}
@@ -60,13 +65,13 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	*matrix_at(R, MGZ, MGZ) = accelSigma;
 
 	/* east versor calculations */
-	vec_cross(&accel, &mag, &nedMeasE);
+	vec_cross(&accelRaw, &mag, &nedMeasE);
 	vec_normalize(&nedMeasE);
-	vec_normalize(&accel);
+	vec_normalize(&accelRaw);
 
-	Z->data[MGX] = accel.x;
-	Z->data[MGY] = accel.y;
-	Z->data[MGZ] = accel.z;
+	Z->data[MGX] = accelRaw.x;
+	Z->data[MGY] = accelRaw.y;
+	Z->data[MGZ] = accelRaw.z;
 
 	Z->data[MEX] = nedMeasE.x;
 	Z->data[MEY] = nedMeasE.y;
