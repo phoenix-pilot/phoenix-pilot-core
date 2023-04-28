@@ -120,17 +120,18 @@ TEST(group_qvdiff_qpDiffQ, qvdiff_qpDiffQ_resTrp)
 
 TEST(group_qvdiff_qpDiffQ, qvdiff_qpDiffQ_wrongOutputMatrixSize)
 {
-	matrix_bufFree(&M);
+	float buff[(ROWS_QUAT_DIFF + 1) * (COLS_QUAT_DIFF + 1)];
+	matrix_t mat = { .data = buff, .transposed = 0 };
 
 	/* Too small matrix */
-	matrix_bufAlloc(&M, ROWS_QUAT_DIFF - 1, COLS_QUAT_DIFF - 1);
-	TEST_ASSERT_NOT_EQUAL(0, qvdiff_qpDiffQ(&A, &M));
-
-	matrix_bufFree(&M);
+	mat.rows = ROWS_QUAT_DIFF - 1;
+	mat.cols = COLS_QUAT_DIFF - 1;
+	TEST_ASSERT_NOT_EQUAL(0, qvdiff_qpDiffQ(&A, &mat));
 
 	/* Too big matrix */
-	matrix_bufAlloc(&M, ROWS_QUAT_DIFF + 1, COLS_QUAT_DIFF + 1);
-	TEST_ASSERT_NOT_EQUAL(0, qvdiff_qpDiffQ(&A, &M));
+	mat.rows = ROWS_QUAT_DIFF + 1;
+	mat.cols = COLS_QUAT_DIFF + 1;
+	TEST_ASSERT_NOT_EQUAL(0, qvdiff_qpDiffQ(&A, &mat));
 }
 
 
