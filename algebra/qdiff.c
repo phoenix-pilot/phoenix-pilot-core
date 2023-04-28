@@ -39,17 +39,7 @@ static void qvdiff_crossMat(const vec_t *v, matrix_t *out)
 
 int qvdiff_qvqDiffQ(const quat_t *q, const vec_t *v, matrix_t *out)
 {
-	float vCrossData[3 * 3] = { 0 };
-	float buffData[3 * 3] = { 0 };
-	float tmp;
-	vec_t vxq;
-
-	/* Matrices for cross matrix of p and general matrix for the part of derivative over imaginary components of q */
-	matrix_t vCross = { .data = vCrossData, .rows = 3, .cols = 3, .transposed = 0 };
-	matrix_t buf = { .data = buffData, .rows = 3, .cols = 3, .transposed = 0 };
-
-	/* Vector for cross product (p x q) */
-	const vec_t qVec = { .x = q->i, .y = q->j, .z = q->k };
+	float val1, val2, val3, val4;
 
 	if (matrix_rowsGet(out) != 3 || matrix_colsGet(out) != 4) {
 		return -1;
@@ -61,27 +51,26 @@ int qvdiff_qvqDiffQ(const quat_t *q, const vec_t *v, matrix_t *out)
 		out->rows = 3;
 	}
 
-	vec_cross(v, &qVec, &vxq);
+	val1 = 2 * (q->a * v->x + q->j * v->z - q->k * v->y);
+	val2 = 2 * (q->a * v->y + q->k * v->x - q->i * v->z);
+	val3 = 2 * (q->a * v->z + q->i * v->y - q->j * v->x);
+	val4 = 2 * (q->i * v->x + q->j * v->y + q->k * v->z);
 
-	qvdiff_crossMat(v, &vCross);
-	qvdiff_crossMat(&vxq, &buf);
+	MATRIX_DATA(out, 0, 0) = val1;
+	MATRIX_DATA(out, 1, 0) = val2;
+	MATRIX_DATA(out, 2, 0) = val3;
 
-	matrix_times(&vCross, q->a);
-	matrix_sub(&buf, &vCross, NULL); /* discarding return value as assumptions are met */
-	tmp = vec_dot(v, &qVec);
-	MATRIX_DATA(&buf, 0, 0) = tmp;
-	MATRIX_DATA(&buf, 1, 1) = tmp;
-	MATRIX_DATA(&buf, 2, 2) = tmp;
+	MATRIX_DATA(out, 0, 1) = val4;
+	MATRIX_DATA(out, 1, 1) = -val3;
+	MATRIX_DATA(out, 2, 1) = val2;
 
-	if (matrix_writeSubmatrix(out, 0, 1, &buf) < 0) {
-		return -1;
-	}
+	MATRIX_DATA(out, 0, 2) = val3;
+	MATRIX_DATA(out, 1, 2) = val4;
+	MATRIX_DATA(out, 2, 2) = -val1;
 
-	MATRIX_DATA(out, 0, 0) = q->a * v->x - vxq.x;
-	MATRIX_DATA(out, 1, 0) = q->a * v->y - vxq.y;
-	MATRIX_DATA(out, 2, 0) = q->a * v->z - vxq.z;
-
-	matrix_times(out, 2);
+	MATRIX_DATA(out, 0, 3) = -val2;
+	MATRIX_DATA(out, 1, 3) = val1;
+	MATRIX_DATA(out, 2, 3) = val4;
 
 	return 0;
 }
