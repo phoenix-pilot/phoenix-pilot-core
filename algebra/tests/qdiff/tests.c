@@ -154,7 +154,7 @@ TEST_GROUP(group_qvdiff_qpDiffP);
 
 TEST_SETUP(group_qvdiff_qpDiffP)
 {
-	TEST_ASSERT_EQUAL(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M, ROWS_QUAT_DIFF, COLS_QUAT_DIFF));
+	TEST_ASSERT_EQUAL(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&M, ROWS_QUAT_DIFF, COLS_VEC_DIFF));
 
 	TEST_ASSERT_EQUAL(MAT_BUF_ALLOC_OK, matrix_bufAlloc(&Expected, ROWS_QUAT_DIFF, COLS_VEC_DIFF));
 }
@@ -239,17 +239,17 @@ TEST(group_qvdiff_qpDiffP, qvdiff_qpDiffP_resTrp)
 
 TEST(group_qvdiff_qpDiffP, qvdiff_qpDiffP_wrongOutputMatrixSize)
 {
-	float buff[(ROWS_QUAT_DIFF + 1) * (COLS_QUAT_DIFF + 1)];
+	float buff[(ROWS_QUAT_DIFF + 1) * (COLS_VEC_DIFF + 1)];
 	matrix_t mat = { .data = buff, .transposed = 9 };
 
 	/* Too small matrix */
 	mat.rows = ROWS_QUAT_DIFF - 1;
-	mat.cols = COLS_QUAT_DIFF - 1;
+	mat.cols = COLS_VEC_DIFF - 1;
 	TEST_ASSERT_NOT_EQUAL(0, qvdiff_qpDiffP(&A, &mat));
 
 	/* Too big matrix */
 	mat.rows = ROWS_QUAT_DIFF + 1;
-	mat.cols = COLS_QUAT_DIFF + 1;
+	mat.cols = COLS_VEC_DIFF + 1;
 	TEST_ASSERT_NOT_EQUAL(0, qvdiff_qpDiffP(&A, &mat));
 }
 
