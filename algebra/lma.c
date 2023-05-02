@@ -133,7 +133,7 @@ static int lma_solveJacobian(fit_lma_t *lma, bool log)
 * Writes full residua values into R matrix
 * Invalidates contents of lma->varsVec.
 */
-static float lma_solveResidua(matrix_t *R, matrix_t *P, fit_lma_t *lma, float *out, bool log)
+static int lma_solveResidua(matrix_t *R, matrix_t *P, fit_lma_t *lma, float *out, bool log)
 {
 	unsigned int smpl, var;
 	double sum = 0; /* use double for sum to loose less accuracy on addition */
