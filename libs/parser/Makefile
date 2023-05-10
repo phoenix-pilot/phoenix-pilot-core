@@ -9,6 +9,6 @@
 NAME := libparser
 LOCAL_SRCS := parser.c
 LOCAL_HEADERS := parser.h
-DEP := libhmap
+DEPS := libhmap
 
 include $(static-lib.mk)
