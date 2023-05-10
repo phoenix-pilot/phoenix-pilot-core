@@ -243,7 +243,7 @@ TEST(group_qvdiff_qpDiffP, qvdiff_qpDiffP_resTrp)
 TEST(group_qvdiff_qpDiffP, qvdiff_qpDiffP_wrongOutputMatrixSize)
 {
 	float buff[(ROWS_QUAT_DIFF + 1) * (COLS_VEC_DIFF + 1)];
-	matrix_t mat = { .data = buff, .transposed = 9 };
+	matrix_t mat = { .data = buff, .transposed = 0 };
 
 	/* Too small matrix */
 	mat.rows = ROWS_QUAT_DIFF - 1;
@@ -362,7 +362,7 @@ TEST(group_qvdiff_qvqDiffV, qvdiff_qvqDiffV_resTrp)
 TEST(group_qvdiff_qvqDiffV, qvdiff_qvqDiffV_wrongOutputMatrixSize)
 {
 	float buff[(ROWS_VEC_DIFF + 1) * (COLS_VEC_DIFF + 1)];
-	matrix_t mat = { .data = buff, .transposed = 9 };
+	matrix_t mat = { .data = buff, .transposed = 0 };
 
 	/* Too small matrix */
 	mat.rows = ROWS_VEC_DIFF - 1;
