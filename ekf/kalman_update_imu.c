@@ -65,13 +65,13 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	*matrix_at(R, MGZ, MGZ) = accelSigma;
 
 	/* east versor calculations */
-	vec_cross(&accelRaw, &mag, &nedMeasE);
+	vec_cross(&accel, &mag, &nedMeasE);
 	vec_normalize(&nedMeasE);
-	vec_normalize(&accelRaw);
+	vec_normalize(&accel);
 
-	Z->data[MGX] = accelRaw.x;
-	Z->data[MGY] = accelRaw.y;
-	Z->data[MGZ] = accelRaw.z;
+	Z->data[MGX] = accel.x;
+	Z->data[MGY] = accel.y;
+	Z->data[MGZ] = accel.z;
 
 	Z->data[MEX] = nedMeasE.x;
 	Z->data[MEY] = nedMeasE.y;
