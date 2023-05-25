@@ -201,17 +201,21 @@ static void ekf_thread(void *arg)
 		kalman_update(timeStep, 0, currUpdate, &ekf_common.stateEngine); /* baro measurements update procedure */
 		mutexUnlock(ekf_common.lock);
 
-		if (i++ > 10) {
+		if (i++ > 50) {
+			quat_t q = { .a = kmn_vecAt(&ekf_common.stateEngine.state, QA), .i = kmn_vecAt(&ekf_common.stateEngine.state, QB), .j = kmn_vecAt(&ekf_common.stateEngine.state, QC), .k = kmn_vecAt(&ekf_common.stateEngine.state, QD) };
+			vec_t a = { .x = kmn_vecAt(&ekf_common.stateEngine.U, UAX), .y = kmn_vecAt(&ekf_common.stateEngine.U, UAY), .z = kmn_vecAt(&ekf_common.stateEngine.U, UAZ) };
+			vec_t pos = { .x = kmn_vecAt(&ekf_common.stateEngine.state, RX), .y = kmn_vecAt(&ekf_common.stateEngine.state, RY), .z = kmn_vecAt(&ekf_common.stateEngine.state, RZ) };
+			float yaw, pitch, roll;
+
+			quat_quat2euler(&q, &roll, &pitch, &yaw);
+
+			quat_vecRot(&a, &q);
+			a.z += EARTH_G;
+
 			ekflog_write(
 				EKFLOG_EKF_IMU,
-				"%lli %.3f %.3f %.3f %.3f %.3f %.3f\n",
-				ekf_common.currTime,
-				kmn_vecAt(&ekf_common.stateEngine.U, UWX),
-				kmn_vecAt(&ekf_common.stateEngine.U, UWY),
-				kmn_vecAt(&ekf_common.stateEngine.U, UWZ),
-				*matrix_at(&ekf_common.stateEngine.state, BWX, 0) * 1000,
-				*matrix_at(&ekf_common.stateEngine.state, BWY, 0) * 1000,
-				*matrix_at(&ekf_common.stateEngine.state, BWZ, 0) * 1000);
+				"%lli %.3f %.3f %.3f %.2f %.2f %.2f %.3f %.3f  %.3f\n",
+				ekf_common.currTime, a.x, a.y, a.z, pos.x, pos.y, pos.z, yaw, pitch, roll);
 			i = 0;
 		}
 	}
