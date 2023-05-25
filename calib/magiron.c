@@ -30,11 +30,11 @@
 #include "ellcal.h"
 
 
-#define DANGLE_MIN          (M_PI / 9) /* Minimum delta angle to take sample */
-#define MAX_SAMPLES         512        /* Samples to be taken for ellipsoid fitting */
-#define MAX_HARDIRON_LENGTH 5000       /* Maximum acceptable hard iron offset */
-#define LMA_FITTING_EPOCHS  20         /* LMA epochs for parameters fitting */
-#define LMA_JACOBIAN_STEP   0.0001f    /* Step for jacobian calculation in LMA */
+#define DANGLE_MIN          (M_PI / 18) /* Minimum delta angle to take sample */
+#define MAX_SAMPLES         256         /* Samples to be taken for ellipsoid fitting */
+#define MAX_HARDIRON_LENGTH 5000        /* Maximum acceptable hard iron offset */
+#define LMA_FITTING_EPOCHS  20          /* LMA epochs for parameters fitting */
+#define LMA_JACOBIAN_STEP   0.0001f     /* Step for jacobian calculation in LMA */
 
 #define MAX_U32_DELTAANGLE 0x7fffffff
 
@@ -117,7 +117,7 @@ static int magiron_run(void)
 	/* final data variables */
 	float dataSfinal[9], dataHfinal[3];
 	matrix_t Sfinal = { .data = dataSfinal, .rows = 3, .cols = 3, .transposed = 0 };
-	matrix_t hFinal = { .data = dataHfinal, .rows = 3, .cols = 3, .transposed = 0 };
+	matrix_t hFinal = { .data = dataHfinal, .rows = 3, .cols = 1, .transposed = 0 };
 
 	/* Obtain rotational samples of magnetometer */
 	if (ellcal_rotDataGet(magiron_common.meas, MAX_SAMPLES, DANGLE_MIN, SENSOR_TYPE_MAG) < 0) {
