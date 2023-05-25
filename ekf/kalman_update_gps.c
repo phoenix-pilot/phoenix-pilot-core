@@ -35,7 +35,7 @@
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
 	meas_gps_t gpsData;
-	time_t timeGps;
+	time_t timeGps, timeNow;
 
 	/* if there is no gps measurement available return NULL */
 	if (meas_gpsGet(&gpsData, &timeGps) < 0) {
@@ -49,10 +49,12 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	Z->data[MGPSVX] = gpsData.vel.x;
 	Z->data[MGPSVY] = gpsData.vel.y;
 
+	gettime(&timeNow, NULL);
+
 	ekflog_write(
 		EKFLOG_GPS_POS,
-		"EG %.6f %.6f %.1f %.1f %.1f %.1f %.1f %.1f %u %u\n",
-		gpsData.lat, gpsData.lon, gpsData.pos.x, gpsData.pos.y, kmn_vecAt(state, RX), kmn_vecAt(state, RY), gpsData.vel.x, gpsData.vel.y, gpsData.satsNb, gpsData.fix);
+		"EG %lld %lld %.6f %.6f %.1f %.1f %.1f %.1f %.1f %.1f %u %u\n",
+		timeNow, timeGps, gpsData.lat, gpsData.lon, gpsData.pos.x, gpsData.pos.y, kmn_vecAt(state, RX), kmn_vecAt(state, RY), gpsData.vel.x, gpsData.vel.y, gpsData.satsNb, gpsData.fix);
 
 	return Z;
 }
