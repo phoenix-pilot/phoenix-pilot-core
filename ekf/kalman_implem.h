@@ -36,8 +36,8 @@
 #define GPS_UPDATE_TIMEOUT  200000
 
 /* If the difference between EARTH_G and acceleration length is beyond ACC_SIGMA_THRESHOLD the accelSigma is multiplied by ACC_SIGMA_STEP_FACTOR */
-#define ACC_SIGMA_STEP_THRESHOLD 3.f
-#define ACC_SIGMA_STEP_FACTOR    50
+#define ACC_SIGMA_STEP_THRESHOLD 1.f
+#define ACC_SIGMA_STEP_FACTOR    100
 
 #define ACC_DAMP_THRESHOLD 0.5 /* accelerometer damping threshold length (in m/s^2) */
 
