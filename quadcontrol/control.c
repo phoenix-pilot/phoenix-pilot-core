@@ -673,6 +673,8 @@ static int quad_manual(void)
 				quad_common.pids[pwm_alt].flags &= ~PID_IGNORE_I;
 			}
 
+			setPos = (vec_t) { .x = measure.enuX, .y = measure.enuY, .z = 0 };
+
 			quad_common.pids[pwm_pos].flags |= PID_RESET_I;
 			setAlt = alt;
 			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
