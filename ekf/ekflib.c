@@ -107,6 +107,9 @@ int ekf_init(void)
 		case 5:
 			logFlags = EKFLOG_GPS_POS;
 			break;
+		case 6:
+			logFlags = EKFLOG_GPS_MEAS;
+			break;
 		default:
 			logFlags = 0;
 	}

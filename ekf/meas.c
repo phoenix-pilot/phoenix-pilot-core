@@ -352,17 +352,21 @@ int meas_baroGet(float *pressure, float *temperature, uint64_t *timestamp)
 }
 
 
-int meas_gpsGet(meas_gps_t *gpsData)
+int meas_gpsGet(meas_gps_t *gpsData, time_t *timestamp)
 {
 	sensor_event_t gpsEvt;
 	meas_geodetic_t geo;
-	time_t timestamp;
 
 	if (sensc_gpsGet(&gpsEvt) < 0) {
 		return -1;
 	}
 
-	gettime(&timestamp, NULL);
+	ekflog_write(
+		EKFLOG_GPS_MEAS,
+		"MG %lld %lld %lld\n", gpsEvt.timestamp, gpsEvt.gps.lat, gpsEvt.gps.lon);
+
+	/* save timestamp */
+	*timestamp = gpsEvt.timestamp;
 
 	/* Transformation from sensor data -> geodetic -> ned data */
 	meas_gps2geo(&gpsEvt, &geo);
