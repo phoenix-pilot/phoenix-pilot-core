@@ -15,6 +15,7 @@
 
 
 #include <stdio.h>
+#include <sys/types.h>
 
 #include <vec.h>
 #include <quat.h>
@@ -103,6 +104,6 @@ extern int meas_imuGet(vec_t *accels, vec_t *accelsRaw, vec_t *gyros, vec_t *mag
 extern int meas_baroGet(float *pressure, float *temperature, uint64_t *dtBaroUs);
 
 /* Returns prepared GPS data in SI units */
-extern int meas_gpsGet(meas_gps_t *gpsData);
+extern int meas_gpsGet(meas_gps_t *gpsData, time_t *timestamp);
 
 #endif

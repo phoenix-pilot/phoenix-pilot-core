@@ -18,11 +18,12 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#define EKFLOG_SENSC   (1 << 0)
-#define EKFLOG_MEAS    (1 << 1)
-#define EKFLOG_EKF_IMU (1 << 2)
-#define EKFLOG_EKF_POS (1 << 3)
-#define EKFLOG_GPS_POS (1 << 4)
+#define EKFLOG_SENSC    (1 << 0)
+#define EKFLOG_MEAS     (1 << 1)
+#define EKFLOG_EKF_IMU  (1 << 2)
+#define EKFLOG_EKF_POS  (1 << 3)
+#define EKFLOG_GPS_POS  (1 << 4)
+#define EKFLOG_GPS_MEAS (1 << 5)
 
 
 /* Prints `flags` type log message passed as `format` */

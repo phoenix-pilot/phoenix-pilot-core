@@ -35,9 +35,10 @@
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
 	meas_gps_t gpsData;
+	time_t timeGps;
 
 	/* if there is no gps measurement available return NULL */
-	if (meas_gpsGet(&gpsData) < 0) {
+	if (meas_gpsGet(&gpsData, &timeGps) < 0) {
 		return NULL;
 	}
 
