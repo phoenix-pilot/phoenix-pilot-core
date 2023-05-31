@@ -87,6 +87,12 @@ int ekf_init(void)
 	if (err != 0) {
 		sensc_deinit();
 		resourceDestroy(ekf_common.lock);
+
+		kalman_predictDealloc(&ekf_common.stateEngine);
+		kalman_updateDealloc(&ekf_common.imuEngine);
+		kalman_updateDealloc(&ekf_common.baroEngine);
+		kalman_updateDealloc(&ekf_common.gpsEngine);
+
 		return -1;
 	}
 
@@ -243,6 +249,8 @@ void ekf_done(void)
 {
 	kalman_predictDealloc(&ekf_common.stateEngine);
 	kalman_updateDealloc(&ekf_common.imuEngine);
+	kalman_updateDealloc(&ekf_common.baroEngine);
+	kalman_updateDealloc(&ekf_common.gpsEngine);
 
 	sensc_deinit();
 	ekflog_done();
