@@ -325,4 +325,6 @@ void fltr_gyroLpf(vec_t *raw)
 	vec_times(&buf, 0.5);
 	vec_times(raw, 0.5);
 	vec_add(&buf, raw);
+
+	*raw = buf;
 }
