@@ -131,9 +131,6 @@ typedef struct {
 } kalman_init_t;
 
 
-int verbose;
-
-
 /* Function reads ekf configuration file under `path` and fills structure pointed by `initVals`  */
 extern int kmn_configRead(const char *configFile, kalman_init_t *initVals);
 

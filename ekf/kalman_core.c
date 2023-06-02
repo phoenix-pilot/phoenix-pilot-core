@@ -18,7 +18,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
-#include <sys/threads.h>
 
 #include "kalman_implem.h"
 
