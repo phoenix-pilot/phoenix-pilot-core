@@ -70,7 +70,7 @@ struct {
 } ekf_common;
 
 
-int ekf_threadAttrInit()
+static int ekf_threadAttrInit(void)
 {
 #ifdef __phoenix__
 

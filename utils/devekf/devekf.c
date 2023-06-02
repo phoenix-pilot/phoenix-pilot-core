@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 	ekf_state_t uavState;
 	enum printMode mode;
 	pthread_t keyboardHandlerTID;
-	pthread_attr_t attr = PTHREAD_COND_INITIALIZER;
+	pthread_attr_t threadAttr;
 
 	if (argc != 2) {
 		printf("Wrong arguments count!\n");
@@ -132,8 +132,11 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (pthread_create(&keyboardHandlerTID, &attr, keyboardHandler, NULL) != 0) {
+	pthread_attr_init(&threadAttr);
+
+	if (pthread_create(&keyboardHandlerTID, &threadAttr, keyboardHandler, NULL) != 0) {
 		fprintf(stderr, "devekf: cannot run keyboard input handler\n");
+		ekf_stop();
 		ekf_done();
 		return EXIT_FAILURE;
 	}
@@ -158,6 +161,8 @@ int main(int argc, char **argv)
 
 	ekf_stop();
 	ekf_done();
+
+	pthread_attr_destroy(&threadAttr);
 
 	return EXIT_SUCCESS;
 }

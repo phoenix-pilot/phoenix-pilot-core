@@ -29,6 +29,7 @@
 #include <vec.h>
 #include <quat.h>
 #include <matrix.h>
+#include <gettime.h>
 
 
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
