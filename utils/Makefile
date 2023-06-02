@@ -4,12 +4,6 @@
 # Copyright 2022 Phoenix Systems
 #
 
-# EKF development application
-NAME := devekf
-LOCAL_SRCS := devekf.c
-DEP_LIBS := libekf libparser libhmap libalgeb libsensc libcalib
-include $(binary.mk)
-
 NAME := sensortest
 LOCAL_SRCS := sensortest.c
 DEP_LIBS := libekf libparser libhmap libalgeb libsensc libcalib

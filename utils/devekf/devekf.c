@@ -2,11 +2,11 @@
  * Phoenix-Pilot
  *
  * extended kalman filter
- * 
+ *
  * ekf simple client
  *
  * Copyright 2022 Phoenix Systems
- * Author: Mateusz Niewiadomski
+ * Authors: Mateusz Niewiadomski, Piotr Nieciecki
  *
  * This file is part of Phoenix-Pilot software
  *
@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 #include <ekflib.h>
 
@@ -24,6 +25,24 @@
 
 
 enum printMode { prntVersor, prntAtt, printPos, silent };
+
+
+int devekf_run;
+
+
+static void *keyboardHandler(void *args)
+{
+	int input;
+
+	do {
+		input = getchar();
+	} while (input != 'q');
+
+	devekf_run = 0;
+
+	return NULL;
+}
+
 
 /* Printing versors of local NED frame of reference in global ENU frame of reference */
 static void printUavVersors(ekf_state_t *uavState)
@@ -46,27 +65,27 @@ static void printUavVersors(ekf_state_t *uavState)
 
 	/* Print NED versors in ENU frame of reference */
 	printf(
-		"%.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f %.3f ",
+		"%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f ",
 		versx.x, versx.y, versx.z, versy.x, versy.y, versy.z, versz.x, versz.y, versz.z);
 
 	/* Position is already in ENU, just prinitng it */
-	printf("%.3f %.3f %.3f ", pos.x, pos.y, pos.z);
+	printf("%6.3f %6.3f %6.3f ", pos.x, pos.y, pos.z);
 	printf("\n");
 }
 
 
 static inline void printUavAtt(ekf_state_t *uavState)
 {
-	printf("YPR: %.2f %.2f %.3f YPR_DOT %.3f %.3f %.3f NED/DOT: %.2f %.3f\n", uavState->yaw * 180 / 3.1415, uavState->pitch * 180 / 3.1415, uavState->roll * 180 / 3.1415, uavState->yawDot, uavState->pitchDot, uavState->rollDot, uavState->enuZ, uavState->veloZ);
+	printf("YPR: %6.2f %6.2f %6.3f YPR_DOT %6.3f %6.3f %6.3f NED/DOT: %6.2f %6.3f\n", uavState->yaw * 180 / 3.1415, uavState->pitch * 180 / 3.1415, uavState->roll * 180 / 3.1415, uavState->yawDot, uavState->pitchDot, uavState->rollDot, uavState->enuZ, uavState->veloZ);
 }
 
 
 static inline void printUavPos(ekf_state_t *uavState)
 {
-	printf("A %.0f %.1f %.1f ", uavState->yaw * 180 / 3.1415, uavState->pitch * 180 / 3.1415, uavState->roll * 180 / 3.1415);
-	printf("R %.1f %.2f %.2f ", uavState->yawDot, uavState->pitchDot, uavState->rollDot);
-	printf("P %.2f %.2f %.2f ", uavState->enuX, uavState->enuY, uavState->enuZ);
-	printf("V %.2f %.2f %.2f ", uavState->veloX, uavState->veloY, uavState->veloZ);
+	printf("A %6.0f %6.1f %6.1f ", uavState->yaw * 180 / 3.1415, uavState->pitch * 180 / 3.1415, uavState->roll * 180 / 3.1415);
+	printf("R %6.1f %6.2f %6.2f ", uavState->yawDot, uavState->pitchDot, uavState->rollDot);
+	printf("P %6.2f %6.2f %6.2f ", uavState->enuX, uavState->enuY, uavState->enuZ);
+	printf("V %6.2f %6.2f %6.2f ", uavState->veloX, uavState->veloY, uavState->veloZ);
 	printf("\n");
 }
 
@@ -75,6 +94,8 @@ int main(int argc, char **argv)
 {
 	ekf_state_t uavState;
 	enum printMode mode;
+	pthread_t keyboardHandlerTID;
+	pthread_attr_t attr = PTHREAD_COND_INITIALIZER;
 
 	if (argc != 2) {
 		printf("Wrong arguments count!\n");
@@ -96,12 +117,29 @@ int main(int argc, char **argv)
 			break;
 	}
 
-	if (ekf_init() == 0) {
-		ekf_run();
+	devekf_run = 1;
+
+	printf("To exit from program click `q` and confirm with enter key\n");
+
+	if (ekf_init() != 0) {
+		fprintf(stderr, "devekf: error during ekf init\n");
+		return EXIT_FAILURE;
+	}
+
+	if (ekf_run() != 0) {
+		fprintf(stderr, "devekf: cannot start ekf\n");
+		ekf_done();
+		return EXIT_FAILURE;
+	}
+
+	if (pthread_create(&keyboardHandlerTID, &attr, keyboardHandler, NULL) != 0) {
+		fprintf(stderr, "devekf: cannot run keyboard input handler\n");
+		ekf_done();
+		return EXIT_FAILURE;
 	}
 
 	/* This is testing app that may be used to present EKF capabilities and stability, thus no run time is set */
-	while (1) {
+	while (devekf_run == 1) {
 		usleep(1000 * 100);
 		ekf_stateGet(&uavState);
 		if (mode == prntVersor) {
@@ -116,6 +154,9 @@ int main(int argc, char **argv)
 		/* Mode = silent do not invoke any printing function */
 	}
 
+	pthread_join(keyboardHandlerTID, NULL);
+
+	ekf_stop();
 	ekf_done();
 
 	return EXIT_SUCCESS;
