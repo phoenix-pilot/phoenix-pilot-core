@@ -46,6 +46,28 @@
 
 static struct {
 	meas_calib_t calib;
+
+	struct {
+		/* IMU related */
+		vec_t accelRaw;
+		vec_t accelFltr;
+		vec_t gyroRaw;
+		vec_t gyroFltr;
+		time_t timeImu;
+
+		/* Magnetometer */
+		vec_t mag;
+		time_t timeMag;
+
+		/* Baro related */
+		float pressure;
+		float temp;
+		time_t timeBaro;
+
+		/* Gps related */
+		meas_gps_t gps;
+		time_t timeGps;
+	} data;
 } meas_common;
 
 
@@ -114,6 +136,8 @@ void meas_gpsCalib(void)
 	int i, avg = 10;
 	sensor_event_t gpsEvt;
 	meas_geodetic_t refPos = { 0 };
+
+	return;
 
 	/* Assuring gps fix */
 	while (1) {
@@ -300,7 +324,7 @@ void meas_baroCalib(void)
 }
 
 
-int meas_imuGet(vec_t *accels, vec_t *accelsRaw, vec_t *gyros, vec_t *mags, uint64_t *timestamp)
+int meas_imuPoll(void)
 {
 	static sensor_event_t gyrEvtOld = { 0 };
 
@@ -311,32 +335,36 @@ int meas_imuGet(vec_t *accels, vec_t *accelsRaw, vec_t *gyros, vec_t *mags, uint
 	}
 
 	/* these timestamps do not need to be very accurate */
-	*timestamp = gyrEvt.timestamp;
+	meas_common.data.timeImu = gyrEvt.timestamp;
 
-	ekflog_write(EKFLOG_SENSC, "SI %lld %d %d %d %d %d %d\n", *timestamp, accEvt.accels.accelX, accEvt.accels.accelY, accEvt.accels.accelZ, gyrEvt.gyro.gyroX,  gyrEvt.gyro.gyroY,  gyrEvt.gyro.gyroZ);
+	ekflog_write(EKFLOG_SENSC, "SI %lld %d %d %d %d %d %d\n", meas_common.data.timeImu, accEvt.accels.accelX, accEvt.accels.accelY, accEvt.accels.accelZ, gyrEvt.gyro.gyroX, gyrEvt.gyro.gyroY, gyrEvt.gyro.gyroZ);
 
-	meas_acc2si(&accEvt, accelsRaw); /* accelerations from mm/s^2 -> m/s^2 */
-	meas_mag2si(&magEvt, mags);   /* only magnitude matters from geomagnetism */
+	meas_acc2si(&accEvt, &meas_common.data.accelRaw); /* accelerations from mm/s^2 -> m/s^2 */
+	meas_mag2si(&magEvt, &meas_common.data.mag);      /* only magnitude matters from geomagnetism */
 
 	/* If sensorhub integral values produce wrongful data (too long/short timestep) use direct gyro output */
-	if (meas_dAngle2si(&gyrEvt, &gyrEvtOld, gyros) != 0) {
-		meas_gyr2si(&gyrEvt, gyros);
+	if (meas_dAngle2si(&gyrEvt, &gyrEvtOld, &meas_common.data.gyroRaw) != 0) {
+		meas_gyr2si(&gyrEvt, &meas_common.data.gyroRaw);
 	}
 
 	/* gyro niveling */
-	vec_sub(gyros, &meas_common.calib.imu.gyroBias);
+	vec_sub(&meas_common.data.gyroRaw, &meas_common.calib.imu.gyroBias);
 
-	*accels = *accelsRaw;
-	fltr_accLpf(accels);
-	fltr_gyroLpf(gyros);
+	meas_common.data.accelFltr = meas_common.data.accelRaw;
+	meas_common.data.gyroFltr = meas_common.data.gyroRaw;
+	fltr_accLpf(&meas_common.data.accelFltr);
+	fltr_gyroLpf(&meas_common.data.gyroFltr);
 
-	ekflog_write(EKFLOG_MEAS, "MI %lld %.3f %.3f %.3f %.3f %.3f %.3f\n", *timestamp, accels->x, accels->y, accels->z, gyros->x, gyros->y, gyros->z);
+	ekflog_write(
+		EKFLOG_MEAS,
+		"MI %lld %.3f %.3f %.3f %.3f %.3f %.3f\n",
+		meas_common.data.timeImu, meas_common.data.accelFltr.x, meas_common.data.accelFltr.y, meas_common.data.accelFltr.z, meas_common.data.gyroFltr.x, meas_common.data.gyroFltr.y, meas_common.data.gyroFltr.z);
 
 	return 0;
 }
 
 
-int meas_baroGet(float *pressure, float *temperature, uint64_t *timestamp)
+int meas_baroPoll(void)
 {
 	sensor_event_t baroEvt;
 
@@ -344,15 +372,15 @@ int meas_baroGet(float *pressure, float *temperature, uint64_t *timestamp)
 		return -1;
 	}
 
-	*timestamp = baroEvt.timestamp;
-	*temperature = baroEvt.baro.temp;
-	*pressure = baroEvt.baro.pressure;
+	meas_common.data.timeBaro = baroEvt.timestamp;
+	meas_common.data.temp = baroEvt.baro.temp;
+	meas_common.data.pressure = baroEvt.baro.pressure;
 
 	return 0;
 }
 
 
-int meas_gpsGet(meas_gps_t *gpsData, time_t *timestamp)
+int meas_gpsPoll(void)
 {
 	sensor_event_t gpsEvt;
 	meas_geodetic_t geo;
@@ -366,21 +394,66 @@ int meas_gpsGet(meas_gps_t *gpsData, time_t *timestamp)
 		"MG %lld %lld %lld\n", gpsEvt.timestamp, gpsEvt.gps.lat, gpsEvt.gps.lon);
 
 	/* save timestamp */
-	*timestamp = gpsEvt.timestamp;
+	meas_common.data.timeGps = gpsEvt.timestamp;
 
 	/* Transformation from sensor data -> geodetic -> ned data */
 	meas_gps2geo(&gpsEvt, &geo);
-	meas_geo2ned(&geo, &meas_common.calib.gps.refGeodetic, &meas_common.calib.gps.refEcef, &gpsData->pos);
+	meas_geo2ned(&geo, &meas_common.calib.gps.refGeodetic, &meas_common.calib.gps.refEcef, &meas_common.data.gps.pos);
 
-	gpsData->lat = geo.lat;
-	gpsData->lon = geo.lon;
-	gpsData->eph = (float)(gpsEvt.gps.eph) / 1000.f;
-	gpsData->epv = (float)(gpsEvt.gps.evel) / 1000.f;
-	gpsData->fix = gpsEvt.gps.fix;
-	gpsData->satsNb = gpsEvt.gps.satsNb;
-	gpsData->vel.x = (float)gpsEvt.gps.velNorth / 1e3;
-	gpsData->vel.y = (float)gpsEvt.gps.velEast / 1e3;
-	gpsData->vel.z = -(float)gpsEvt.gps.velDown / 1e3;
+	meas_common.data.gps.lat = geo.lat;
+	meas_common.data.gps.lon = geo.lon;
+	meas_common.data.gps.eph = (float)(gpsEvt.gps.eph) / 1000.f;
+	meas_common.data.gps.epv = (float)(gpsEvt.gps.evel) / 1000.f;
+	meas_common.data.gps.fix = gpsEvt.gps.fix;
+	meas_common.data.gps.satsNb = gpsEvt.gps.satsNb;
+	meas_common.data.gps.vel.x = (float)gpsEvt.gps.velNorth / 1e3;
+	meas_common.data.gps.vel.y = (float)gpsEvt.gps.velEast / 1e3;
+	meas_common.data.gps.vel.z = -(float)gpsEvt.gps.velDown / 1e3;
+
+	return 0;
+}
+
+
+int meas_accelGet(vec_t *accels, vec_t *accelsRaw)
+{
+	*accels = meas_common.data.accelFltr;
+	*accelsRaw = meas_common.data.accelRaw;
+
+	return 0;
+}
+
+
+int meas_gyroGet(vec_t *gyro, vec_t *gyroRaw)
+{
+	*gyro = meas_common.data.gyroFltr;
+	*gyroRaw = meas_common.data.gyroRaw;
+
+	return 0;
+}
+
+
+int meas_magGet(vec_t *mag)
+{
+	*mag = meas_common.data.mag;
+
+	return 0;
+}
+
+
+int meas_baroGet(float *pressure, float *temperature, uint64_t *timestamp)
+{
+	*pressure = meas_common.data.pressure;
+	*temperature = meas_common.data.temp;
+	*timestamp = meas_common.data.timeBaro;
+
+	return 0;
+}
+
+
+int meas_gpsGet(meas_gps_t *gpsData, time_t *timestamp)
+{
+	*gpsData = meas_common.data.gps;
+	*timestamp = meas_common.data.timeGps;
 
 	return 0;
 }

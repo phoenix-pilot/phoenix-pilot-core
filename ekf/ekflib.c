@@ -23,6 +23,7 @@
 #include "kalman_core.h"
 #include "kalman_implem.h"
 #include "log.h"
+#include "meas.h"
 
 #include <sensc.h>
 #include <vec.h>
@@ -160,7 +161,7 @@ static time_t ekf_dtGet(void)
 static void ekf_thread(void *arg)
 {
 	static time_t lastBaroUpdate = 0, lastGpsUpdate = 0;
-	time_t timeStep;
+	time_t loopStep, updateStep;
 	update_engine_t *currUpdate;
 	int i = 0;
 
@@ -176,29 +177,35 @@ static void ekf_thread(void *arg)
 
 	while (ekf_common.run == 1) {
 		usleep(1000);
-		timeStep = ekf_dtGet();
+		loopStep = ekf_dtGet();
 
-		/* state prediction procedure */
-		kalman_predict(&ekf_common.stateEngine, timeStep, 0);
+		/* IMU polling is done regardless on update procedure */
+		meas_imuPoll();
+		currUpdate = &ekf_common.imuEngine;
+		updateStep = loopStep;
 
-		/* Select current update engine and adjust timestep if necessary */
+		/* Update step selection */
 		if (ekf_common.currTime - lastGpsUpdate > GPS_UPDATE_TIMEOUT) {
-			currUpdate = &ekf_common.gpsEngine;
-			timeStep = ekf_common.currTime - lastGpsUpdate;
-			lastGpsUpdate = ekf_common.currTime;
+			if (meas_gpsPoll() == 0) {
+				currUpdate = &ekf_common.gpsEngine;
+				updateStep = ekf_common.currTime - lastGpsUpdate;
+				lastGpsUpdate = ekf_common.currTime;
+			}
 		}
 		else if (ekf_common.currTime - lastBaroUpdate > BARO_UPDATE_TIMEOUT) {
-			currUpdate = &ekf_common.baroEngine;
-			timeStep = ekf_common.currTime - lastBaroUpdate;
-			lastBaroUpdate = ekf_common.currTime;
+			if (meas_baroPoll() == 0) {
+				currUpdate = &ekf_common.baroEngine;
+				updateStep = ekf_common.currTime - lastBaroUpdate;
+				lastBaroUpdate = ekf_common.currTime;
+			}
 		}
-		else {
-			currUpdate = &ekf_common.imuEngine;
-		}
+
+		/* State prediction procedure */
+		kalman_predict(&ekf_common.stateEngine, loopStep, 0);
 
 		/* TODO: make critical section smaller and only on accesses to state and cov matrices */
 		mutexLock(ekf_common.lock);
-		kalman_update(timeStep, 0, currUpdate, &ekf_common.stateEngine); /* baro measurements update procedure */
+		kalman_update(updateStep, 0, currUpdate, &ekf_common.stateEngine); /* baro measurements update procedure */
 		mutexUnlock(ekf_common.lock);
 
 		if (i++ > 50) {
