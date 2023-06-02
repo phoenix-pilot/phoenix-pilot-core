@@ -97,8 +97,18 @@ extern float meas_calibPressGet(void);
 
 /* MEASUREMENT ACQUISITION */
 
+extern int meas_imuPoll(void);
+
+extern int meas_baroPoll(void);
+
+extern int meas_gpsPoll(void);
+
 /* Returns prepared IMU data in SI units */
-extern int meas_imuGet(vec_t *accels, vec_t *accelsRaw, vec_t *gyros, vec_t *mags, uint64_t *timestamp);
+extern int meas_accelGet(vec_t *accels, vec_t *accelsRaw);
+
+extern int meas_gyroGet(vec_t *gyro, vec_t *gyroRaw);
+
+extern int meas_magGet(vec_t *mag);
 
 /* Returns prepared barometer data in SI units */
 extern int meas_baroGet(float *pressure, float *temperature, uint64_t *dtBaroUs);

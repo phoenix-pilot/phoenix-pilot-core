@@ -132,10 +132,11 @@ int kmn_configRead(const char *configFile, kalman_init_t *initVals)
 
 static matrix_t *kmn_getCtrl(matrix_t *U)
 {
-	vec_t accel, gyro, mag, accelRaw;
+	vec_t accel, gyro, mag, accelRaw, gyroRaw;
 	time_t tstamp;
 
-	meas_imuGet(&accel, &accelRaw, &gyro, &mag, &tstamp);
+	meas_accelGet(&accel, &accelRaw);
+	meas_gyroGet(&gyro, &gyroRaw);
 
 	*matrix_at(U, UWX, 0) = gyro.x;
 	*matrix_at(U, UWY, 0) = gyro.y;

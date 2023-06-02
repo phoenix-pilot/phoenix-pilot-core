@@ -38,12 +38,13 @@ struct {
 /* Rerurns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
-	vec_t accel, accelRaw, gyro, mag, nedMeasE;
+	vec_t accel, accelRaw, mag, nedMeasE;
 	time_t timestamp;
 	float accelSigma, accLen;
 
 	/* Get current sensor readings */
-	meas_imuGet(&accel, &accelRaw, &gyro, &mag, &timestamp);
+	meas_accelGet(&accel, &accelRaw);
+	meas_magGet(&mag);
 
 	/* earth acceleration is measured by accelerometer UPWARD, which in NED is negative */
 	accel.x = -accel.x;
