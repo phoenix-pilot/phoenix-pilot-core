@@ -20,12 +20,12 @@ DEFAULT_INSTALL_PATH := /usr/bin
 include $(ALL_MAKES)
 
 ifeq ("$(TARGET_FAMILY)-$(TARGET_SUBFAMILY)","host-generic")
-	# create host targets
+	# On host targets only a subset of programs is compiled
 	DEFAULT_COMPONENTS := algebra_tests
 	DEFAULT_COMPONENTS += parser_tests
 	DEFAULT_COMPONENTS += devekf
 else
-	# create generic targets
+	# Create generic targets
 	DEFAULT_COMPONENTS := $(ALL_COMPONENTS)
 endif
 

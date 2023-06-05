@@ -36,11 +36,7 @@
 
 #define EKF_CONFIG_FILE "etc/ekf.conf"
 
-#if defined PTHREAD_STACK_MIN && 8192 < PTHREAD_STACK_MIN
-#define STACK_SIZE PTHREAD_STACK_MIN
-#else
-#define STACK_SIZE 8192
-#endif
+#define STACK_SIZE 16384
 
 
 struct {
@@ -72,6 +68,8 @@ struct {
 
 static int ekf_threadAttrInit(void)
 {
+
+/* On Phoenix-RTOS we want to set thread priority */
 #ifdef __phoenix__
 
 	struct sched_param sched = { .sched_priority = 3 };

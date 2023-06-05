@@ -28,24 +28,15 @@ void sensc_deinit(void)
 }
 
 
-static time_t sensc_getTimestamp(void)
-{
-	time_t res;
-	gettime(&res, NULL);
-
-	return res;
-}
-
-
 int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt)
 {
-	accelEvt->timestamp = sensc_getTimestamp();
+	gettime(&accelEvt->timestamp, NULL);
 	accelEvt->accels.accelX = 0;
 	accelEvt->accels.accelY = 0;
 	accelEvt->accels.accelZ = -9806;
 	accelEvt->type = SENSOR_TYPE_ACCEL;
 
-	gyroEvt->timestamp = sensc_getTimestamp();
+	gettime(&gyroEvt->timestamp, NULL);
 	gyroEvt->gyro.gyroX = 0;
 	gyroEvt->gyro.gyroY = 0;
 	gyroEvt->gyro.gyroZ = 0;
@@ -54,7 +45,7 @@ int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 	gyroEvt->gyro.dAngleZ = 0;
 	gyroEvt->type = SENSOR_TYPE_GYRO;
 
-	magEvt->timestamp = sensc_getTimestamp();
+	gettime(&magEvt->timestamp, NULL);
 	magEvt->mag.magX = 1;
 	magEvt->mag.magY = 0;
 	magEvt->mag.magZ = 0;
@@ -66,7 +57,7 @@ int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 
 int sensc_baroGet(sensor_event_t *baroEvt)
 {
-	baroEvt->timestamp = sensc_getTimestamp();
+	gettime(&baroEvt->timestamp, NULL);
 	baroEvt->baro.pressure = 101325;
 	baroEvt->baro.temp = 273 + 25;
 	baroEvt->type = SENSOR_TYPE_BARO;
@@ -77,7 +68,7 @@ int sensc_baroGet(sensor_event_t *baroEvt)
 
 int sensc_gpsGet(sensor_event_t *gpsEvt)
 {
-	gpsEvt->timestamp = sensc_getTimestamp();
+	gettime(&gpsEvt->timestamp, NULL);
 	gpsEvt->gps.alt = 0;
 	gpsEvt->gps.lon = 0;
 	gpsEvt->gps.lat = 0;

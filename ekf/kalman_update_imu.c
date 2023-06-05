@@ -39,7 +39,6 @@ struct {
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
 	vec_t accel, accelRaw, mag, nedMeasE;
-	time_t timestamp;
 	float accelSigma, accLen;
 
 	/* Get current sensor readings */

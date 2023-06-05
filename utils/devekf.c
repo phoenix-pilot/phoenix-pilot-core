@@ -27,16 +27,12 @@
 enum printMode { prntVersor, prntAtt, printPos, silent };
 
 
-int devekf_run;
+volatile int devekf_run;
 
 
 static void *keyboardHandler(void *args)
 {
-	int input;
-
-	do {
-		input = getchar();
-	} while (input != 'q');
+	while (getchar() != 'q');
 
 	devekf_run = 0;
 
@@ -65,7 +61,7 @@ static void printUavVersors(ekf_state_t *uavState)
 
 	/* Print NED versors in ENU frame of reference */
 	printf(
-		"%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f ",
+		"%4.3f %4.3f %4.3f %4.3f %4.3f %4.3f %4.3f %4.3f %4.3f ",
 		versx.x, versx.y, versx.z, versy.x, versy.y, versy.z, versz.x, versz.y, versz.z);
 
 	/* Position is already in ENU, just prinitng it */
@@ -76,14 +72,14 @@ static void printUavVersors(ekf_state_t *uavState)
 
 static inline void printUavAtt(ekf_state_t *uavState)
 {
-	printf("YPR: %6.2f %6.2f %6.3f YPR_DOT %6.3f %6.3f %6.3f NED/DOT: %6.2f %6.3f\n", uavState->yaw * 180 / 3.1415, uavState->pitch * 180 / 3.1415, uavState->roll * 180 / 3.1415, uavState->yawDot, uavState->pitchDot, uavState->rollDot, uavState->enuZ, uavState->veloZ);
+	printf("YPR: %5.2f %5.2f %5.2f YPR_DOT %6.3f %6.3f %6.3f NED/DOT: %5.2f %6.3f\n", uavState->yaw * 180 / 3.1415, uavState->pitch * 180 / 3.1415, uavState->roll * 180 / 3.1415, uavState->yawDot, uavState->pitchDot, uavState->rollDot, uavState->enuZ, uavState->veloZ);
 }
 
 
 static inline void printUavPos(ekf_state_t *uavState)
 {
-	printf("A %6.0f %6.1f %6.1f ", uavState->yaw * 180 / 3.1415, uavState->pitch * 180 / 3.1415, uavState->roll * 180 / 3.1415);
-	printf("R %6.1f %6.2f %6.2f ", uavState->yawDot, uavState->pitchDot, uavState->rollDot);
+	printf("A %3.0f %4.1f %4.1f ", uavState->yaw * 180 / 3.1415, uavState->pitch * 180 / 3.1415, uavState->roll * 180 / 3.1415);
+	printf("R %3.1f %4.2f %4.2f ", uavState->yawDot, uavState->pitchDot, uavState->rollDot);
 	printf("P %6.2f %6.2f %6.2f ", uavState->enuX, uavState->enuY, uavState->enuZ);
 	printf("V %6.2f %6.2f %6.2f ", uavState->veloX, uavState->veloY, uavState->veloZ);
 	printf("\n");
@@ -119,7 +115,7 @@ int main(int argc, char **argv)
 
 	devekf_run = 1;
 
-	printf("To exit from program click `q` and confirm with enter key\n");
+	printf("Press 'q' and confirm with enter to exit\n");
 
 	if (ekf_init() != 0) {
 		fprintf(stderr, "devekf: error during ekf init\n");
@@ -136,6 +132,7 @@ int main(int argc, char **argv)
 
 	if (pthread_create(&keyboardHandlerTID, &threadAttr, keyboardHandler, NULL) != 0) {
 		fprintf(stderr, "devekf: cannot run keyboard input handler\n");
+		pthread_attr_destroy(&threadAttr);
 		ekf_stop();
 		ekf_done();
 		return EXIT_FAILURE;

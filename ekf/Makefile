@@ -13,6 +13,7 @@ LOCAL_SRCS := ekflib.c $(KALMAN_SRCS) meas.c filters.c log.c
 LOCAL_HEADERS := ekflib.h
 DEPS := libalgeb libsensc libcalib libparser libhmap libgettime
 
+# Additional compilation flag for pthreads is needed if host target is compiling
 ifeq ("$(TARGET)","host-generic-pilot")
 	LOCAL_LDFLAGS := -lpthread
 endif
