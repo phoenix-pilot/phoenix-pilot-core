@@ -17,8 +17,9 @@
 #include <unistd.h>
 #include <math.h>
 #include <errno.h>
-#include <sys/time.h>
-#include <sys/threads.h>
+#include <pthread.h>
+#include <sched.h>
+#include <errno.h>
 
 #include "kalman_core.h"
 #include "kalman_implem.h"
@@ -29,10 +30,13 @@
 #include <vec.h>
 #include <quat.h>
 #include <matrix.h>
+#include <gettime.h>
 
 #include "ekflib.h"
 
-#define EKF_CONFIG_FILE "/etc/ekf.conf"
+#define EKF_CONFIG_FILE "etc/ekf.conf"
+
+#define STACK_SIZE 16384
 
 
 struct {
@@ -50,15 +54,47 @@ struct {
 	matrix_t F;
 	matrix_t Q;
 
-	unsigned int tid;
+	pthread_t tid;
 	volatile unsigned int run; /* proceed with ekf loop */
 	time_t lastTime;           /* last kalman loop time */
 	time_t currTime;           /* current kalman loop time */
 
-	handle_t lock;
+	pthread_mutex_t lock;
+	pthread_attr_t threadAttr;
 
-	char stack[8192] __attribute__((aligned(8)));
+	char stack[STACK_SIZE] __attribute__((aligned(8)));
 } ekf_common;
+
+
+static int ekf_threadAttrInit(void)
+{
+
+/* On Phoenix-RTOS we want to set thread priority */
+#ifdef __phoenix__
+
+	struct sched_param sched = { .sched_priority = 3 };
+
+	if (pthread_attr_setschedparam(&ekf_common.threadAttr, &sched) != 0) {
+		printf("Set schedule failed\n");
+		pthread_attr_destroy(&ekf_common.threadAttr);
+		return -1;
+	}
+
+#endif
+
+	if (pthread_attr_init(&ekf_common.threadAttr) != 0) {
+		printf("Attribute init failed\n");
+		pthread_attr_destroy(&ekf_common.threadAttr);
+		return -1;
+	}
+
+	if (pthread_attr_setstack(&ekf_common.threadAttr, ekf_common.stack, sizeof(ekf_common.stack)) != 0) {
+		pthread_attr_destroy(&ekf_common.threadAttr);
+		return -1;
+	}
+
+	return 0;
+}
 
 
 int ekf_init(void)
@@ -66,14 +102,20 @@ int ekf_init(void)
 	uint32_t logFlags;
 	int err;
 
-	if (mutexCreate(&ekf_common.lock) < 0) {
+	if (ekf_threadAttrInit() != 0) {
+		return -1;
+	}
+
+	if (pthread_mutex_init(&ekf_common.lock, NULL) < 0) {
 		printf("Cannot create mutex for ekf\n");
+		pthread_attr_destroy(&ekf_common.threadAttr);
 		return -1;
 	}
 
 	ekf_common.run = 0;
 	if (sensc_init("/dev/sensors", true) < 0) {
-		resourceDestroy(ekf_common.lock);
+		pthread_mutex_destroy(&ekf_common.lock);
+		pthread_attr_destroy(&ekf_common.threadAttr);
 		return -1;
 	}
 
@@ -87,7 +129,8 @@ int ekf_init(void)
 
 	if (err != 0) {
 		sensc_deinit();
-		resourceDestroy(ekf_common.lock);
+		pthread_mutex_destroy(&ekf_common.lock);
+		pthread_attr_destroy(&ekf_common.threadAttr);
 
 		kalman_predictDealloc(&ekf_common.stateEngine);
 		kalman_updateDealloc(&ekf_common.imuEngine);
@@ -122,7 +165,8 @@ int ekf_init(void)
 	}
 
 	if (ekflog_init("ekf_log.txt", logFlags) != 0) {
-		resourceDestroy(ekf_common.lock);
+		pthread_mutex_destroy(&ekf_common.lock);
+		pthread_attr_destroy(&ekf_common.threadAttr);
 		sensc_deinit();
 
 		kalman_predictDealloc(&ekf_common.stateEngine);
@@ -158,7 +202,7 @@ static time_t ekf_dtGet(void)
 }
 
 
-static void ekf_thread(void *arg)
+static void *ekf_thread(void *arg)
 {
 	static time_t lastBaroUpdate = 0, lastGpsUpdate = 0;
 	time_t loopStep, updateStep;
@@ -204,9 +248,9 @@ static void ekf_thread(void *arg)
 		kalman_predict(&ekf_common.stateEngine, loopStep, 0);
 
 		/* TODO: make critical section smaller and only on accesses to state and cov matrices */
-		mutexLock(ekf_common.lock);
+		pthread_mutex_lock(&ekf_common.lock);
 		kalman_update(updateStep, 0, currUpdate, &ekf_common.stateEngine); /* baro measurements update procedure */
-		mutexUnlock(ekf_common.lock);
+		pthread_mutex_unlock(&ekf_common.lock);
 
 		if (i++ > 50) {
 			quat_t q = { .a = kmn_vecAt(&ekf_common.stateEngine.state, QA), .i = kmn_vecAt(&ekf_common.stateEngine.state, QB), .j = kmn_vecAt(&ekf_common.stateEngine.state, QC), .k = kmn_vecAt(&ekf_common.stateEngine.state, QD) };
@@ -228,13 +272,16 @@ static void ekf_thread(void *arg)
 	}
 
 	ekf_common.run = -1;
-	endthread();
+
+	return NULL;
 }
 
 
 int ekf_run(void)
 {
-	int res = beginthreadex(ekf_thread, 3, ekf_common.stack, sizeof(ekf_common.stack), NULL, &ekf_common.tid);
+	int res = pthread_create(&ekf_common.tid, &ekf_common.threadAttr, ekf_thread, NULL);
+
+	pthread_attr_destroy(&ekf_common.threadAttr);
 
 	/* Wait to stabilize data in covariance matrixes */
 	sleep(3);
@@ -245,17 +292,11 @@ int ekf_run(void)
 
 int ekf_stop(void)
 {
-	int err = EOK;
-
 	if (ekf_common.run == 1) {
 		ekf_common.run = 0;
 	}
 
-	do {
-		err = threadJoin(ekf_common.tid, 0);
-	} while (err == -EINTR);
-
-	return err;
+	return pthread_join(ekf_common.tid, NULL);
 }
 
 
@@ -268,7 +309,7 @@ void ekf_done(void)
 
 	sensc_deinit();
 	ekflog_done();
-	resourceDestroy(ekf_common.lock);
+	pthread_mutex_destroy(&ekf_common.lock);
 }
 
 
@@ -283,7 +324,7 @@ void ekf_boundsGet(float *bYaw, float *bRoll, float *bPitch)
 void ekf_stateGet(ekf_state_t *ekfState)
 {
 	quat_t q;
-	mutexLock(ekf_common.lock);
+	pthread_mutex_lock(&ekf_common.lock);
 
 	/* save quaternion attitude */
 	q.a = ekfState->q0 = ekf_common.stateEngine.state.data[QA];
@@ -310,7 +351,7 @@ void ekf_stateGet(ekf_state_t *ekfState)
 
 	ekfState->accelBiasZ = 0;
 
-	mutexUnlock(ekf_common.lock);
+	pthread_mutex_unlock(&ekf_common.lock);
 
 	/* calculate and save euler attitude */
 	quat_quat2euler(&q, &ekfState->roll, &ekfState->pitch, &ekfState->yaw);

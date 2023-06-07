@@ -39,7 +39,7 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	static float lpfAltChange = 0;
 
 	float pressure, temp, alt;
-	time_t currTstamp;
+	uint64_t currTstamp;
 
 	/* if there is no pressure measurement available return NULL */
 	if (meas_baroGet(&pressure, &temp, &currTstamp) < 0) {

@@ -7,7 +7,12 @@
 # EKF development application
 NAME := devekf
 LOCAL_SRCS := devekf.c
-DEP_LIBS := libekf libparser libhmap libalgeb libsensc libcalib
+DEP_LIBS := libekf libparser libhmap libalgeb libsensc libcalib libgettime
+
+ifeq ("$(TARGET)","host-generic-pilot")
+	LOCAL_LDFLAGS += -lm
+endif
+
 include $(binary.mk)
 
 NAME := sensortest
