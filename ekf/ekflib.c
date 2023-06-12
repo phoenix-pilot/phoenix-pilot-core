@@ -229,18 +229,19 @@ static void *ekf_thread(void *arg)
 		updateStep = loopStep;
 
 		/* Update step selection */
+		if (ekf_common.currTime - lastBaroUpdate > BARO_UPDATE_TIMEOUT) {
+			if (meas_baroPoll() == 0) {
+				currUpdate = &ekf_common.baroEngine;
+				updateStep = ekf_common.currTime - lastBaroUpdate;
+				lastBaroUpdate = ekf_common.currTime;
+			}
+		}
+
 		if (ekf_common.currTime - lastGpsUpdate > GPS_UPDATE_TIMEOUT) {
 			if (meas_gpsPoll() == 0) {
 				currUpdate = &ekf_common.gpsEngine;
 				updateStep = ekf_common.currTime - lastGpsUpdate;
 				lastGpsUpdate = ekf_common.currTime;
-			}
-		}
-		else if (ekf_common.currTime - lastBaroUpdate > BARO_UPDATE_TIMEOUT) {
-			if (meas_baroPoll() == 0) {
-				currUpdate = &ekf_common.baroEngine;
-				updateStep = ekf_common.currTime - lastBaroUpdate;
-				lastBaroUpdate = ekf_common.currTime;
 			}
 		}
 
