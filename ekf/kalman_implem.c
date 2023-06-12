@@ -454,7 +454,7 @@ static void kmn_getNoiseQ(matrix_t *state, matrix_t *U, matrix_t *Q, time_t time
 	*matrix_at(Q, VX, VX) = *matrix_at(Q, VY, VY) = *matrix_at(Q, VZ, VZ) = dtSq * pred_common.inits->Q_astdev * pred_common.inits->Q_astdev;
 
 	/* ACCEL BIAS PROCESS NOISE */
-	*matrix_at(Q, BWX, BWX) = *matrix_at(Q, BWY, BWY) = *matrix_at(Q, BWZ, BWZ) = pred_common.inits->Q_baDotstdev * pred_common.inits->Q_baDotstdev * dtSq;
+	*matrix_at(Q, BAX, BAX) = *matrix_at(Q, BAY, BAY) = *matrix_at(Q, BAZ, BAZ) = pred_common.inits->Q_baDotstdev * pred_common.inits->Q_baDotstdev * dtSq;
 
 	*matrix_at(Q, RX, RX) = *matrix_at(Q, RY, RY) = *matrix_at(Q, RZ, RZ) = (dtSq * pred_common.inits->Q_astdev) * (dtSq * pred_common.inits->Q_astdev);
 }
@@ -502,9 +502,9 @@ static void kmn_initCov(matrix_t *cov, const kalman_init_t *inits)
 	*matrix_at(cov, BAY, BAY) = inits->P_baerr;
 	*matrix_at(cov, BAZ, BAZ) = inits->P_baerr;
 
-	*matrix_at(cov, RX, RX) = inits->P_rerr;
-	*matrix_at(cov, RY, RY) = inits->P_rerr;
-	*matrix_at(cov, RZ, RZ) = inits->P_rerr;
+	*matrix_at(cov, VX, VX) = inits->P_verr;
+	*matrix_at(cov, VY, VY) = inits->P_verr;
+	*matrix_at(cov, VZ, VZ) = inits->P_verr;
 
 	*matrix_at(cov, RX, RX) = inits->P_rerr;
 	*matrix_at(cov, RY, RY) = inits->P_rerr;
