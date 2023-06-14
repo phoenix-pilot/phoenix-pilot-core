@@ -89,7 +89,7 @@ static int kmn_QMatrixConverter(const hmap_t *h)
 
 static int kmn_loggingConverter(const hmap_t *h)
 {
-	char *logStr;
+	char *str;
 	const char *separators = ",";
 
 	/* Parsing field `verbose` */
@@ -98,50 +98,62 @@ static int kmn_loggingConverter(const hmap_t *h)
 	}
 
 	/* Parsing field `log` */
-	logStr = hmap_get(h, "log");
-	if (logStr == NULL) {
+	str = hmap_get(h, "log");
+	if (str == NULL) {
 		fprintf(stderr, "Ekf config: cannot find \"log\" field in config file\n");
 		return -1;
 	}
 
 	converterResult->log = 0;
 
-	logStr = strtok(logStr, separators);
-	while (logStr != NULL) {
-		if (strcmp(logStr, "SENSC") == 0) {
+	str = strtok(str, separators);
+	while (str != NULL) {
+		if (strcmp(str, "SENSC") == 0) {
 			converterResult->log |= EKFLOG_SENSC;
 		}
-		else if (strcmp(logStr, "MEAS") == 0) {
+		else if (strcmp(str, "MEAS") == 0) {
 			converterResult->log |= EKFLOG_MEAS;
 		}
-		else if (strcmp(logStr, "EKF_IMU") == 0) {
+		else if (strcmp(str, "EKF_IMU") == 0) {
 			converterResult->log |= EKFLOG_EKF_IMU;
 		}
-		else if (strcmp(logStr, "EKF_POS") == 0) {
+		else if (strcmp(str, "EKF_POS") == 0) {
 			converterResult->log |= EKFLOG_EKF_POS;
 		}
-		else if (strcmp(logStr, "GPS_POS") == 0) {
+		else if (strcmp(str, "GPS_POS") == 0) {
 			converterResult->log |= EKFLOG_GPS_POS;
 		}
-		else if (strcmp(logStr, "GPS_MEAS") == 0) {
+		else if (strcmp(str, "GPS_MEAS") == 0) {
 			converterResult->log |= EKFLOG_GPS_MEAS;
 		}
-		else if (strcmp(logStr, "ALL") == 0) {
+		else if (strcmp(str, "ALL") == 0) {
 			/* Setting all bits to 1 */
 			converterResult->log = ~(uint32_t)0;
 			break;
 		}
-		else if (strcmp(logStr, "NONE") == 0) {
+		else if (strcmp(str, "NONE") == 0) {
 			/* Setting all bits to 1 */
 			converterResult->log = 0;
 			break;
 		}
 		else {
-			fprintf(stderr, "Invalid log specifier: %s\n", logStr);
+			fprintf(stderr, "Invalid log specifier: %s\n", str);
 			return -1;
 		}
 
-		logStr = strtok(NULL, separators);
+		str = strtok(NULL, separators);
+	}
+
+	/* Parsing field `mode` */
+	str = hmap_get(h, "mode");
+	if (str == NULL) {
+		converterResult->log_mode = EKFLOG_DEFAULT_MODE;
+	}
+	else if (strcmp(str, "DEFAULT") == 0) {
+		converterResult->log_mode = EKFLOG_DEFAULT_MODE;
+	}
+	else if (strcmp(str, "STRICT") == 0) {
+		converterResult->log_mode = EKFLOG_STRICT_MODE;
 	}
 
 	return 0;
@@ -174,11 +186,7 @@ int kmn_configRead(const char *configFile, kalman_init_t *initVals)
 	err = parser_execute(p, configFile, PARSER_IGN_UNKNOWN_HEADERS);
 	parser_free(p);
 
-	if (err != 0) {
-		return -1;
-	}
-
-	return 0;
+	return err == 0 ? 0 : -1;
 }
 
 

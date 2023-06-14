@@ -20,12 +20,12 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define BUFF_LEN    1024
-#define MAX_MSG_LEN 80
+#define BUFF_LEN 1024
 
 
 struct {
 	uint32_t logFlags;
+	uint32_t mode;
 	FILE *file;
 
 	char buff[BUFF_LEN];
@@ -74,6 +74,7 @@ static void *ekflog_thread(void *args)
 
 		pthread_mutex_lock(&ekflog_common.lock);
 		ekflog_common.tail = next_msg + strlen(&ekflog_common.buff[next_msg]);
+		pthread_cond_signal(&ekflog_common.buff_event);
 	}
 
 	pthread_mutex_unlock(&ekflog_common.lock);
@@ -99,15 +100,26 @@ int ekflog_write(uint32_t flags, const char *format, ...)
 		ekflog_common.head++;
 	}
 	else if (MAX_MSG_LEN <= ekflog_common.tail) {
-		/* new message goes to the beginning of buffer */
+		/* New message goes to the beginning of buffer */
 		ekflog_common.buff_end = ekflog_common.head;
 		ekflog_common.head = 0;
 	}
 	else {
 		/* No place in buffer for new message */
-		ekflog_common.missing_logs = true;
-		pthread_mutex_unlock(&ekflog_common.lock);
-		return -1;
+		if ((ekflog_common.mode & EKFLOG_STRICT_MODE) != 0) {
+			/* Waiting for a place in queue */
+			while (MAX_MSG_LEN <= ekflog_common.tail) {
+				pthread_cond_wait(&ekflog_common.buff_event, &ekflog_common.lock);
+			}
+			ekflog_common.buff_end = ekflog_common.head;
+			ekflog_common.head = 0;
+		}
+		else {
+			/* Drop the log */
+			ekflog_common.missing_logs = true;
+			pthread_mutex_unlock(&ekflog_common.lock);
+			return -1;
+		}
 	}
 
 	va_start(args, format);
@@ -150,6 +162,7 @@ int ekflog_done(void)
 	if (ekflog_common.missing_logs == true) {
 		fprintf(ekflog_common.file, "\nWARNING\n");
 		fprintf(ekflog_common.file, "Logging module have missed some of the messages\n");
+		fprintf(ekflog_common.file, "It is possible to use EKFLOG_STRICT_MODE to avoid this behaviour\n");
 	}
 
 	err |= fclose(ekflog_common.file);
@@ -160,7 +173,7 @@ int ekflog_done(void)
 }
 
 
-int ekflog_init(const char *path, uint32_t flags)
+int ekflog_init(const char *path, uint32_t flags, uint32_t mode)
 {
 #ifdef __phoenix__
 	struct sched_param sched = { .sched_priority = 5 };
@@ -205,6 +218,7 @@ int ekflog_init(const char *path, uint32_t flags)
 	ekflog_common.run = 1;
 	ekflog_common.missing_logs = false;
 	ekflog_common.logs_enabled = true;
+	ekflog_common.mode = mode;
 
 	if (pthread_attr_init(&attr) != 0) {
 		fprintf(stderr, "ekflog: cannot initialize conditional variable\n");
