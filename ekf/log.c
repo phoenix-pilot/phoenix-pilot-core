@@ -3,8 +3,8 @@
  *
  * Ekf-specific log module
  *
- * Copyright 2022 Phoenix Systems
- * Author: Mateusz Niewiadomski
+ * Copyright 2022, 2023 Phoenix Systems
+ * Author: Mateusz Niewiadomski, Piotr Nieciecki
  *
  * This file is part of Phoenix-Pilot software
  *
@@ -21,7 +21,7 @@
 #include <string.h>
 
 #define BUFF_LEN    1024
-#define MAX_MSG_LEN 128
+#define MAX_MSG_LEN 80
 
 
 struct {
@@ -162,6 +162,10 @@ int ekflog_done(void)
 
 int ekflog_init(const char *path, uint32_t flags)
 {
+#ifdef __phoenix__
+	struct sched_param sched = { .sched_priority = 5 };
+#endif
+
 	pthread_attr_t attr;
 	int ret;
 
@@ -209,6 +213,20 @@ int ekflog_init(const char *path, uint32_t flags)
 		pthread_cond_destroy(&ekflog_common.buff_event);
 		return -1;
 	}
+
+/* On Phoenix-RTOS we want to set thread priority */
+#ifdef __phoenix__
+
+	if (pthread_attr_setschedparam(&attr, &sched) != 0) {
+		printf("ekflog: cannot set thread priority\n");
+		fclose(ekflog_common.file);
+		pthread_mutex_destroy(&ekflog_common.lock);
+		pthread_cond_destroy(&ekflog_common.buff_event);
+		pthread_attr_destroy(&attr);
+		return -1;
+	}
+
+#endif
 
 	ret = pthread_create(&ekflog_common.tid, &attr, ekflog_thread, NULL);
 	pthread_attr_destroy(&attr);
