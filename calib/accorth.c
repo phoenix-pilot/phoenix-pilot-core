@@ -70,13 +70,13 @@
 #include "calibtool.h"
 #include "ellcal.h"
 
-#define DANGLE_MIN         (M_PI / 36)       /* Minimum delta angle to take sample */
-#define MAX_SAMPLES        256               /* Samples to be taken for ellipsoid fitting */
-#define MAX_SAMPLES_FINE   (MAX_SAMPLES / 8) /* Samples to be taken for ellipsoid fine fitting. Must be smaller or equal to MAX_SAMPLES */
-#define MAX_ACCEL_OFFSET   10000             /* Maximum acceptable accelerometer offset (mm/s^2) */
-#define LMA_FITTING_EPOCHS 100               /* LMA epochs for parameters fitting */
-#define LMA_JACOBIAN_STEP  0.0001f           /* Step for jacobian calculation in LMA */
-#define MIN_TILT_COSINE    (M_SQRT2 / 2.f)   /* minimal cosine of tilt angle between down and front measurement (45 degrees) */
+#define DANGLE_MIN         (M_PI / 36)        /* Minimum delta angle to take sample */
+#define MAX_SAMPLES        256                /* Samples to be taken for ellipsoid fitting */
+#define MAX_SAMPLES_FINE   (MAX_SAMPLES / 16) /* Samples to be taken for ellipsoid fine fitting. Must be smaller or equal to MAX_SAMPLES */
+#define MAX_ACCEL_OFFSET   10000              /* Maximum acceptable accelerometer offset (mm/s^2) */
+#define LMA_FITTING_EPOCHS 100                /* LMA epochs for parameters fitting */
+#define LMA_JACOBIAN_STEP  0.0001f            /* Step for jacobian calculation in LMA */
+#define MIN_TILT_COSINE    (M_SQRT2 / 2.f)    /* minimal cosine of tilt angle between down and front measurement (45 degrees) */
 
 #define EARTH_G_MM 9806.65 /* Earth acceleration (in mm/s^2) according to 1901 General Conference on Weights and Measures */
 
@@ -123,6 +123,11 @@ static int accorth_write(FILE *file)
 	fprintf(file, "%c%u%u %f\n", ACC_CHAR_QUAT, 2, 0, accorth_common.data.params.accorth.frameQ.j);
 	fprintf(file, "%c%u%u %f\n", ACC_CHAR_QUAT, 3, 0, accorth_common.data.params.accorth.frameQ.k);
 
+	fprintf(file, "%c%c0 %d\n", ACC_CHAR_SWAP, ACC_CHAR_SWAP_ORDR, accorth_common.data.params.accorth.swapOrder);
+
+	fprintf(file, "%c%c0 %d\n", ACC_CHAR_SWAP, ACC_CHAR_SWAP_SIGN, accorth_common.data.params.accorth.axisInv[0]);
+	fprintf(file, "%c%c1 %d\n", ACC_CHAR_SWAP, ACC_CHAR_SWAP_SIGN, accorth_common.data.params.accorth.axisInv[1]);
+	fprintf(file, "%c%c2 %d\n", ACC_CHAR_SWAP, ACC_CHAR_SWAP_SIGN, accorth_common.data.params.accorth.axisInv[2]);
 	return 0;
 }
 
@@ -184,16 +189,19 @@ static void accorth_calibApply(const matrix_t *S, const matrix_t *H, const vec_t
 
 /*
 * Calculates rotation quaternion that transforms measurements from IMU frame of reference
-* to the droe frame of reference and saves it to `rotQuat`. Returns 0 on success, -1 otherwise.
+* to the drone frame of reference and saves it to `rotQuat`. Returns 0 on success, -1 otherwise.
 */
-static int accorth_accRot(matrix_t *S, matrix_t *H, quat_t *rotQuat)
+static int accorth_accRot(matrix_t *S, matrix_t *H, quat_t *rotQuat, accSwap_t *swapOrder, int swapSign[3])
 {
 	static const vec_t nedZ = { .x = 0, .y = 0, .z = 1 }; /* z versor of NED frame of reference */
 	static const vec_t nedY = { .x = 0, .y = 1, .z = 0 }; /* y versor of NED frame of reference */
 	static const quat_t idenQ = { .a = 1, .i = 0, .j = 0, .k = 0 };
 
 	vec_t bodyZ, accX, bodyY = { 0 };
-	quat_t q;
+	quat_t q, minQuat;
+	vec_t bodyOrgY, bodyOrgZ, swapVec, swapVecMin;
+	int comb[3];
+	float imLen, minImLen = 2;
 
 	/*
 	* Body frame placed on flat surface should provide a measurement of acceleration pointing upward.
@@ -230,8 +238,129 @@ static int accorth_accRot(matrix_t *S, matrix_t *H, quat_t *rotQuat)
 	vec_cross(&bodyZ, &accX, &bodyY);
 	vec_normalize(&bodyY);
 
-	/* Calculate rotation */
-	quat_frameRot(&bodyZ, &bodyY, &nedZ, &nedY, &q, &idenQ);
+	/*
+	 * Quaternion imaginary part minimization via axis switching/inversion
+	 *
+	 * Direct IMU rotation quaternion calculation ends up with high error if the total rotation angle is big.
+	 * If rotation is somewhat along the IMU axis and greater than pi/4 it is better to switch axis order and/or negate some axis.
+	 * This way rotation quaternion only handles missalignment of axis and not the whole rotation.
+	 *
+	 * Axis switching search is done by bruteforcing all combinations, 24 total.
+	 * Axis switching conserves right-hand-rule of axis. Swapping combnations:
+	 *
+	 * Searching has three steps, each described as `comb[3]` values:
+	 * Step 1): begin with one of the 2 combinations:
+	 *   (comb[0] = 0) leave as is
+	 *   (comb[0] = 1) [-x,-z,-y]
+	 * Step 2): Perform one of the 3 operations:
+	 *   (comb[1] = 0) leave as is
+	 *   (comb[1] = 1) circullar shift left [a, b, c] -> [b, c, a]
+	 *   (comb[1] = 2) circullar shift right: [a, b, c] -> [c, a, b]
+	 * Step 3): Perform one of 4 operations:
+	 *   (comb[2] = 0): leave as is
+	 *   (comb[2] = 1): negate lateral [a, b, c] -> [a, -b, -c]
+	 *   (comb[2] = 2): swap lateral, negate middle [a, b, c] -> [a, -c, b]
+	 *   (comb[2] = 3): swap lateral, negate last [a, b, c] -> [a, c, -b]
+	 */
+
+	/* Store original bodyY and bodyZ measurements */
+	bodyOrgY = bodyY;
+	bodyOrgZ = bodyZ;
+
+	/* starting with any quaternion with complex part length > 1 */
+	minQuat = (quat_t) { .a = 0, .i = 1, .j = 1, .k = 1 };
+	swapVecMin = (vec_t) { .x = 1, .y = 2, .z = 3 };
+
+	/* Search through switch dombinations */
+	for (comb[0] = 0; comb[0] < 2; comb[0]++) {
+		for (comb[1] = 0; comb[1] < 3; comb[1]++) {
+			for (comb[2] = 0; comb[2] < 4; comb[2]++) {
+				bodyY = bodyOrgY;
+				bodyZ = bodyOrgZ;
+
+				/* swapVec keeps track of switching and negations */
+				swapVec = (vec_t) { .x = 1, .y = 2, .z = 3 };
+
+				/* Step 1) */
+				switch (comb[0]) {
+					case 1:
+						/* Begin with [-x,-z,-y] */
+						bodyY = (vec_t) { .x = -bodyY.x, .y = -bodyY.z, .z = -bodyY.y };
+						bodyZ = (vec_t) { .x = -bodyZ.x, .y = -bodyZ.z, .z = -bodyZ.y };
+						swapVec = (vec_t) { .x = -swapVec.x, .y = -swapVec.z, .z = -swapVec.y };
+						break;
+
+					case 0:
+					default:
+						/* leave as is */
+						break;
+				}
+
+				/* Step 2) */
+				switch (comb[1]) {
+					case 1:
+						/* circullar shift left [a, b, c] -> [b, c, a] */
+						bodyY = (vec_t) { .x = bodyY.y, .y = bodyY.z, bodyY.z = bodyY.x };
+						bodyZ = (vec_t) { .x = bodyZ.y, .y = bodyZ.z, bodyZ.z = bodyZ.x };
+						swapVec = (vec_t) { .x = swapVec.y, .y = swapVec.z, swapVec.z = swapVec.x };
+						break;
+
+					case 2:
+						/* circullar shift right [a, b, c] -> [c, a, b] */
+						bodyY = (vec_t) { .x = bodyY.z, .y = bodyY.x, .z = bodyY.y };
+						bodyZ = (vec_t) { .x = bodyZ.z, .y = bodyZ.x, .z = bodyZ.y };
+						swapVec = (vec_t) { .x = swapVec.z, .y = swapVec.x, .z = swapVec.y };
+						break;
+
+					case 0:
+					default:
+						/* leave as is */
+						break;
+				}
+
+				/* Step 3) */
+				switch (comb[2]) {
+					case 1:
+						/* negate lateral [a, b, c] -> [a, -b, -c] */
+						bodyY = (vec_t) { .x = bodyY.x, .y = -bodyY.y, .z = -bodyY.z };
+						bodyZ = (vec_t) { .x = bodyZ.x, .y = -bodyZ.y, .z = -bodyZ.z };
+						swapVec = (vec_t) { .x = swapVec.x, .y = -swapVec.y, .z = -swapVec.z };
+						break;
+
+					case 2:
+						/* swap lateral, negate middle [a, b, c] -> [a, -c, b] */
+						bodyY = (vec_t) { .x = bodyY.x, .y = -bodyY.z, .z = bodyY.y };
+						bodyZ = (vec_t) { .x = bodyZ.x, .y = -bodyZ.z, .z = bodyZ.y };
+						swapVec = (vec_t) { .x = swapVec.x, .y = -swapVec.z, .z = swapVec.y };
+						break;
+
+					case 3:
+						/* swap lateral, negate last [a, b, c] -> [a, c, -b]*/
+						bodyY = (vec_t) { .x = bodyY.x, .y = bodyY.z, .z = -bodyY.y };
+						bodyZ = (vec_t) { .x = bodyZ.x, .y = bodyZ.z, .z = -bodyZ.y };
+						swapVec = (vec_t) { .x = swapVec.x, .y = swapVec.z, .z = -swapVec.y };
+						break;
+
+					case 0:
+					default:
+						/* leave as is */
+						break;
+				}
+
+				/* Find quaternion for current axis switch and compare to current minimal */
+				quat_frameRot(&bodyZ, &bodyY, &nedZ, &nedY, &q, &idenQ);
+				imLen = sqrt(q.i * q.i + q.j * q.j + q.k * q.k);
+				if (imLen <= minImLen) {
+					minQuat = q;
+					minImLen = imLen;
+					swapVecMin = swapVec;
+				}
+			}
+		}
+	}
+
+	q = minQuat;
+	fprintf(stderr, "Switching scenario: %f %f %f which gives quat=(%f %f %f %f) of imLen %f\n", swapVecMin.x, swapVecMin.y, swapVecMin.z, q.a, q.i, q.j, q.k, minImLen);
 
 	/* Quaternion validity check */
 	if ((1 - quat_len(&q)) >= ACC_QUAT_ERR) {
@@ -240,6 +369,29 @@ static int accorth_accRot(matrix_t *S, matrix_t *H, quat_t *rotQuat)
 	}
 
 	*rotQuat = q;
+
+	/* Encode swapping order into `accSwap_t` enum */
+	switch (abs((int)swapVecMin.x)) {
+		case 1:
+			*swapOrder = (abs((int)swapVecMin.y) == 2) ? accSwapXYZ : accSwapXZY;
+			break;
+
+		case 2:
+			*swapOrder = (abs((int)swapVecMin.y) == 1) ? accSwapYXZ : accSwapYZX;
+			break;
+
+		case 3:
+			*swapOrder = (abs((int)swapVecMin.y) == 1) ? accSwapZXY : accSwapZYX;
+			break;
+
+		default:
+			return -1;
+	}
+
+	/* Encode sign inversions after swapping into `swapSign` array */
+	swapSign[0] = (swapVecMin.x < 0) ? 1 : 0;
+	swapSign[1] = (swapVecMin.y < 0) ? 1 : 0;
+	swapSign[2] = (swapVecMin.z < 0) ? 1 : 0;
 
 	return EOK;
 }
@@ -317,6 +469,8 @@ static int accorth_run(void)
 	vec_t measAvg;
 	float measAvgLen;
 	quat_t frameQ;
+	int swapSign[3] = { 0 };
+	accSwap_t swapOrder = accSwapXYZ;
 	int i;
 
 	/* Matrices preparation */
@@ -416,7 +570,7 @@ static int accorth_run(void)
 	* (3) ACCELEROMETER ROTATION CALIBRATION
 	*/
 
-	if (accorth_accRot(&S3, &H3, &frameQ) < 0) {
+	if (accorth_accRot(&S3, &H3, &frameQ, &swapOrder, swapSign) < 0) {
 		printf("%s: accelerometer rotation failed\n", ACCORTH_TAG);
 	}
 
@@ -425,11 +579,16 @@ static int accorth_run(void)
 	*/
 
 	printf("%s: frameQ: %f %f %f %f\n", ACCORTH_TAG, frameQ.a, frameQ.i, frameQ.j, frameQ.k);
+	printf("%s: axisSwap: %d [%d, %d, %d]\n", ACCORTH_TAG, swapOrder, swapSign[0], swapSign[1], swapSign[2]);
 	printf("%s: offset: %f %f %f\n", ACCORTH_TAG, MATRIX_DATA(&H3, 0, 0), MATRIX_DATA(&H3, 1, 0), MATRIX_DATA(&H3, 2, 0));
 	printf("%s: nonortho:\n", ACCORTH_TAG);
 	matrix_print(&S3);
 
 	accorth_common.data.params.accorth.frameQ = frameQ;
+	accorth_common.data.params.accorth.swapOrder = swapOrder;
+	accorth_common.data.params.accorth.axisInv[0] = swapSign[0];
+	accorth_common.data.params.accorth.axisInv[1] = swapSign[1];
+	accorth_common.data.params.accorth.axisInv[2] = swapSign[2];
 	matrix_writeSubmatrix(&accorth_common.data.params.accorth.offset, 0, 0, &H3);
 	matrix_writeSubmatrix(&accorth_common.data.params.accorth.ortho, 0, 0, &S3);
 

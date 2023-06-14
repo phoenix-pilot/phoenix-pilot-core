@@ -69,7 +69,7 @@ typedef struct {
 			matrix_t ortho;      /* 3x3 nonorthogonality parameters matrix */
 			matrix_t offset;     /* 3x1 measurement offset matrix */
 			quat_t frameQ;       /* initial rotation quaternion of accelerometer in relation to body frame */
-			accSwap_t swapOrder; /* axis swap order: e.g 312 means that [x,y,z] will be read as [z, x, y] */
+			accSwap_t swapOrder; /* axis swap order; according to `accSwap_t` enum */
 			int axisInv[3];      /* x,y,z axis inversion flags. 1 means that axis should be inverted after swapping is performed */
 		} accorth;
 
