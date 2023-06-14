@@ -34,10 +34,13 @@
 #define HARDCAL_COLSPAN 1
 
 #define ACCORTH_TAG        "accorth"
-#define ACCORTH_PARAMS     16
+#define ACCORTH_PARAMS     20
 #define ACC_CHAR_ORTHO     'o'
 #define ACC_CHAR_OFFSET    'h'
 #define ACC_CHAR_QUAT      'q'
+#define ACC_CHAR_SWAP      's'
+#define ACC_CHAR_SWAP_SIGN 's'
+#define ACC_CHAR_SWAP_ORDR 'o'
 #define ACC_ORTHO_ROWSPAN  3
 #define ACC_ORTHO_COLSPAN  3
 #define ACC_OFFSET_ROWSPAN 3
@@ -47,9 +50,12 @@
 #define MOTLIN_TAG    "motlin"
 #define MOTLIN_PARAMS 8
 
-
+/* clang-format off */
 typedef enum { typeMagmot = 0, typeMagiron, typeMotlin, typeAccorth } calibType_t;
 
+
+typedef enum { accSwapXYZ = 0, accSwapXZY, accSwapYXZ, accSwapYZX, accSwapZXY, accSwapZYX } accSwap_t;
+/* clang-format on */
 
 typedef struct {
 	calibType_t type;
@@ -60,9 +66,11 @@ typedef struct {
 		} magiron;
 
 		struct {
-			matrix_t ortho;  /* 3x3 nonorthogonality parameters matrix */
-			matrix_t offset; /* 3x1 measurement offset matrix */
-			quat_t frameQ;   /* initial rotation quaternion of accelerometer in relation to body frame */
+			matrix_t ortho;      /* 3x3 nonorthogonality parameters matrix */
+			matrix_t offset;     /* 3x1 measurement offset matrix */
+			quat_t frameQ;       /* initial rotation quaternion of accelerometer in relation to body frame */
+			accSwap_t swapOrder; /* axis swap order: e.g 312 means that [x,y,z] will be read as [z, x, y] */
+			int axisInv[3];      /* x,y,z axis inversion flags. 1 means that axis should be inverted after swapping is performed */
 		} accorth;
 
 		struct {

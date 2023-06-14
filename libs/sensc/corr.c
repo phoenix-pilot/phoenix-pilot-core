@@ -225,11 +225,58 @@ void corr_mag(sensor_event_t *magEvt)
 }
 
 
+void corr_accrotVecSwap(vec_t *v)
+{
+	switch (corr_common.accorth.params.accorth.swapOrder) {
+		case accSwapXZY:
+			*v = (vec_t) { .x = v->x, .y = v->z, .z = v->y };
+			break;
+
+		case accSwapYXZ:
+			*v = (vec_t) { .x = v->y, .y = v->x, .z = v->z };
+			break;
+
+		case accSwapYZX:
+			*v = (vec_t) { .x = v->y, .y = v->z, .z = v->x };
+			break;
+
+		case accSwapZXY:
+			*v = (vec_t) { .x = v->z, .y = v->x, .z = v->y };
+			break;
+
+		case accSwapZYX:
+			*v = (vec_t) { .x = v->z, .y = v->y, .z = v->x };
+			break;
+
+		case accSwapXYZ:
+		default:
+			/* no swap */
+			break;
+	}
+
+	if (corr_common.accorth.params.accorth.axisInv[0] == 1) {
+		v->x = -v->x;
+	}
+
+	if (corr_common.accorth.params.accorth.axisInv[1] == 1) {
+		v->y = -v->y;
+	}
+
+	if (corr_common.accorth.params.accorth.axisInv[2] == 1) {
+		v->z = -v->z;
+	}
+}
+
+
 void corr_accrot(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt)
 {
 	vec_t accel = { .x = accelEvt->accels.accelX, .y = accelEvt->accels.accelY, .z = accelEvt->accels.accelZ };
 	vec_t gyro = { .x = gyroEvt->gyro.gyroX, .y = gyroEvt->gyro.gyroY, .z = gyroEvt->gyro.gyroZ };
 	vec_t mag = { .x = magEvt->mag.magX, .y = magEvt->mag.magY, .z = magEvt->mag.magZ };
+
+	corr_accrotVecSwap(&accel);
+	corr_accrotVecSwap(&gyro);
+	corr_accrotVecSwap(&mag);
 
 	quat_vecRot(&accel, &corr_common.accorth.params.accorth.frameQ);
 	quat_vecRot(&gyro, &corr_common.accorth.params.accorth.frameQ);
