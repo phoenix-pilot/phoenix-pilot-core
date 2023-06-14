@@ -255,7 +255,8 @@ static int calib_magironRead(FILE *file, calib_data_t *cal)
 static int calib_accorthEnter(const char *paramName, calib_data_t *cal, float val)
 {
 	matrix_t *mat = NULL;
-	unsigned int row, col;
+	unsigned int row, col, axis;
+	char swapVal;
 	float *slot;
 
 	if (strlen(paramName) != 3) {
@@ -264,6 +265,9 @@ static int calib_accorthEnter(const char *paramName, calib_data_t *cal, float va
 
 	row = (uint8_t)(paramName[1] - '0'); /* convert character to unsigned int digit */
 	col = (uint8_t)(paramName[2] - '0'); /* convert character to unsigned int digit */
+
+	swapVal = paramName[1];
+	axis = (uint8_t)(paramName[2] - '0'); /* convert character to unsigned int digit */
 
 	/* matrix type get through character check */
 	switch (paramName[0]) {
@@ -299,6 +303,25 @@ static int calib_accorthEnter(const char *paramName, calib_data_t *cal, float va
 				case 3:
 					cal->params.accorth.frameQ.k = val;
 					break;
+				default:
+					return -1;
+			}
+			return 0;
+
+		case ACC_CHAR_SWAP:
+			switch (swapVal) {
+				case ACC_CHAR_SWAP_ORDR:
+					cal->params.accorth.swapOrder = val;
+					break;
+
+				case ACC_CHAR_SWAP_SIGN:
+					if ((val != 0 && val != 1) || axis > 2 || axis < 0) {
+						fprintf(stderr, "accorth invalid swap sign\n");
+						return -1;
+					}
+					cal->params.accorth.axisInv[axis] = val;
+					break;
+
 				default:
 					return -1;
 			}
@@ -348,6 +371,12 @@ static inline void calib_accorthDefaults(calib_data_t *cal)
 	cal->params.accorth.frameQ.i = 0;
 	cal->params.accorth.frameQ.j = 0;
 	cal->params.accorth.frameQ.k = 0;
+
+	/* By default no swapping is performed */
+	cal->params.accorth.axisInv[0] = 0;
+	cal->params.accorth.axisInv[1] = 0;
+	cal->params.accorth.axisInv[2] = 0;
+	cal->params.accorth.swapOrder = 123;
 }
 
 
