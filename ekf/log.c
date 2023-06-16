@@ -28,18 +28,18 @@ struct {
 	uint32_t mode;
 	FILE *file;
 
-	char buff[BUFF_LEN];
+	char queue[BUFF_LEN];
 	int head;
 	int tail;
-	int buff_end;
+	int queueEnd;
 	pthread_mutex_t lock;
-	pthread_cond_t buff_event;
+	pthread_cond_t queueEvent;
 	pthread_t tid;
 
 	int run;
-	bool logs_enabled;
+	bool logsEnabled;
 
-	bool missing_logs;
+	bool lost;
 } ekflog_common;
 
 
@@ -51,14 +51,14 @@ static void *ekflog_thread(void *args)
 
 	while (true) {
 		while (ekflog_common.head == ekflog_common.tail && ekflog_common.run != 0) {
-			pthread_cond_wait(&ekflog_common.buff_event, &ekflog_common.lock);
+			pthread_cond_wait(&ekflog_common.queueEvent, &ekflog_common.lock);
 		}
 
 		if (ekflog_common.head == ekflog_common.tail && ekflog_common.run == 0) {
 			break;
 		}
 
-		if (ekflog_common.tail == ekflog_common.buff_end) {
+		if (ekflog_common.tail == ekflog_common.queueEnd) {
 			next_msg = 0;
 		}
 		else {
@@ -67,14 +67,14 @@ static void *ekflog_thread(void *args)
 
 		pthread_mutex_unlock(&ekflog_common.lock);
 
-		if (fputs(&ekflog_common.buff[next_msg], ekflog_common.file) <= 0) {
+		if (fputs(&ekflog_common.queue[next_msg], ekflog_common.file) <= 0) {
 			fprintf(stderr, "ekflogs: error while writing to file\n");
 		}
 
 
 		pthread_mutex_lock(&ekflog_common.lock);
-		ekflog_common.tail = next_msg + strlen(&ekflog_common.buff[next_msg]);
-		pthread_cond_signal(&ekflog_common.buff_event);
+		ekflog_common.tail = next_msg + strlen(&ekflog_common.queue[next_msg]);
+		pthread_cond_signal(&ekflog_common.queueEvent);
 	}
 
 	pthread_mutex_unlock(&ekflog_common.lock);
@@ -101,7 +101,7 @@ int ekflog_write(uint32_t flags, const char *format, ...)
 	}
 	else if (MAX_MSG_LEN <= ekflog_common.tail) {
 		/* New message goes to the beginning of buffer */
-		ekflog_common.buff_end = ekflog_common.head;
+		ekflog_common.queueEnd = ekflog_common.head;
 		ekflog_common.head = 0;
 	}
 	else {
@@ -109,21 +109,21 @@ int ekflog_write(uint32_t flags, const char *format, ...)
 		if ((ekflog_common.mode & EKFLOG_STRICT_MODE) != 0) {
 			/* Waiting for a place in queue */
 			while (MAX_MSG_LEN <= ekflog_common.tail) {
-				pthread_cond_wait(&ekflog_common.buff_event, &ekflog_common.lock);
+				pthread_cond_wait(&ekflog_common.queueEvent, &ekflog_common.lock);
 			}
-			ekflog_common.buff_end = ekflog_common.head;
+			ekflog_common.queueEnd = ekflog_common.head;
 			ekflog_common.head = 0;
 		}
 		else {
 			/* Drop the log */
-			ekflog_common.missing_logs = true;
+			ekflog_common.lost = true;
 			pthread_mutex_unlock(&ekflog_common.lock);
 			return -1;
 		}
 	}
 
 	va_start(args, format);
-	ret = vsnprintf(&ekflog_common.buff[ekflog_common.head], MAX_MSG_LEN, format, args);
+	ret = vsnprintf(&ekflog_common.queue[ekflog_common.head], MAX_MSG_LEN, format, args);
 	va_end(args);
 
 	if (ret < 0) {
@@ -133,7 +133,7 @@ int ekflog_write(uint32_t flags, const char *format, ...)
 		ekflog_common.head += ret;
 	}
 
-	pthread_cond_signal(&ekflog_common.buff_event);
+	pthread_cond_signal(&ekflog_common.queueEvent);
 	pthread_mutex_unlock(&ekflog_common.lock);
 
 	return ret < 0 ? -1 : 0;
@@ -144,7 +144,7 @@ int ekflog_done(void)
 {
 	int err = 0;
 
-	if (ekflog_common.logs_enabled == false) {
+	if (ekflog_common.logsEnabled == false) {
 		return 0;
 	}
 
@@ -152,14 +152,14 @@ int ekflog_done(void)
 	ekflog_common.run = 0;
 	pthread_mutex_unlock(&ekflog_common.lock);
 
-	pthread_cond_signal(&ekflog_common.buff_event);
+	pthread_cond_signal(&ekflog_common.queueEvent);
 
 	if (pthread_join(ekflog_common.tid, NULL) != 0) {
 		fprintf(stderr, "ekflog: cannot join logging thread\n");
 		return -1;
 	}
 
-	if (ekflog_common.missing_logs == true) {
+	if (ekflog_common.lost == true) {
 		fprintf(ekflog_common.file, "\nWARNING\n");
 		fprintf(ekflog_common.file, "Logging module have missed some of the messages\n");
 		fprintf(ekflog_common.file, "It is possible to use EKFLOG_STRICT_MODE to avoid this behaviour\n");
@@ -167,7 +167,7 @@ int ekflog_done(void)
 
 	err |= fclose(ekflog_common.file);
 	err |= pthread_mutex_destroy(&ekflog_common.lock);
-	err |= pthread_cond_destroy(&ekflog_common.buff_event);
+	err |= pthread_cond_destroy(&ekflog_common.queueEvent);
 
 	return err;
 }
@@ -183,7 +183,7 @@ int ekflog_init(const char *path, uint32_t flags, uint32_t mode)
 	int ret;
 
 	if (flags == 0) {
-		ekflog_common.logs_enabled = false;
+		ekflog_common.logsEnabled = false;
 		return 0;
 	}
 
@@ -204,7 +204,7 @@ int ekflog_init(const char *path, uint32_t flags, uint32_t mode)
 		return -1;
 	}
 
-	if (pthread_cond_init(&ekflog_common.buff_event, NULL) != 0) {
+	if (pthread_cond_init(&ekflog_common.queueEvent, NULL) != 0) {
 		fprintf(stderr, "ekflog: cannot initialize conditional variable\n");
 		fclose(ekflog_common.file);
 		pthread_mutex_destroy(&ekflog_common.lock);
@@ -214,17 +214,17 @@ int ekflog_init(const char *path, uint32_t flags, uint32_t mode)
 	ekflog_common.logFlags = flags;
 	ekflog_common.head = -1;
 	ekflog_common.tail = -1;
-	ekflog_common.buff_end = BUFF_LEN;
+	ekflog_common.queueEnd = BUFF_LEN;
 	ekflog_common.run = 1;
-	ekflog_common.missing_logs = false;
-	ekflog_common.logs_enabled = true;
+	ekflog_common.lost = false;
+	ekflog_common.logsEnabled = true;
 	ekflog_common.mode = mode;
 
 	if (pthread_attr_init(&attr) != 0) {
 		fprintf(stderr, "ekflog: cannot initialize conditional variable\n");
 		fclose(ekflog_common.file);
 		pthread_mutex_destroy(&ekflog_common.lock);
-		pthread_cond_destroy(&ekflog_common.buff_event);
+		pthread_cond_destroy(&ekflog_common.queueEvent);
 		return -1;
 	}
 
@@ -235,7 +235,7 @@ int ekflog_init(const char *path, uint32_t flags, uint32_t mode)
 		printf("ekflog: cannot set thread priority\n");
 		fclose(ekflog_common.file);
 		pthread_mutex_destroy(&ekflog_common.lock);
-		pthread_cond_destroy(&ekflog_common.buff_event);
+		pthread_cond_destroy(&ekflog_common.queueEvent);
 		pthread_attr_destroy(&attr);
 		return -1;
 	}
@@ -248,7 +248,7 @@ int ekflog_init(const char *path, uint32_t flags, uint32_t mode)
 		fprintf(stderr, "ekflog: cannot start a log thread\n");
 		fclose(ekflog_common.file);
 		pthread_mutex_destroy(&ekflog_common.lock);
-		pthread_cond_destroy(&ekflog_common.buff_event);
+		pthread_cond_destroy(&ekflog_common.queueEvent);
 		return -1;
 	}
 
