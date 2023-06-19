@@ -36,7 +36,7 @@ struct {
 	pthread_cond_t queueEvent;
 	pthread_t tid;
 
-	int run;
+	volatile int run;
 	bool logsEnabled;
 
 	bool lost;
@@ -45,41 +45,68 @@ struct {
 
 static void *ekflog_thread(void *args)
 {
-	int next_msg;
-
 	pthread_mutex_lock(&ekflog_common.lock);
 
-	while (true) {
+	do {
 		while (ekflog_common.head == ekflog_common.tail && ekflog_common.run != 0) {
 			pthread_cond_wait(&ekflog_common.queueEvent, &ekflog_common.lock);
 		}
 
-		if (ekflog_common.head == ekflog_common.tail && ekflog_common.run == 0) {
-			break;
+		while (ekflog_common.head != ekflog_common.tail) {
+			if (ekflog_common.tail == ekflog_common.queueEnd) {
+				ekflog_common.tail = 0;
+			}
+			else {
+				ekflog_common.tail++;
+			}
+
+			pthread_mutex_unlock(&ekflog_common.lock);
+
+			if (fputs(&ekflog_common.queue[ekflog_common.tail], ekflog_common.file) <= 0) {
+				fprintf(stderr, "ekflogs: error while writing to file\n");
+			}
+
+
+			pthread_mutex_lock(&ekflog_common.lock);
+			ekflog_common.tail += strlen(&ekflog_common.queue[ekflog_common.tail]);
+			pthread_cond_signal(&ekflog_common.queueEvent);
 		}
-
-		if (ekflog_common.tail == ekflog_common.queueEnd) {
-			next_msg = 0;
-		}
-		else {
-			next_msg = ekflog_common.tail + 1;
-		}
-
-		pthread_mutex_unlock(&ekflog_common.lock);
-
-		if (fputs(&ekflog_common.queue[next_msg], ekflog_common.file) <= 0) {
-			fprintf(stderr, "ekflogs: error while writing to file\n");
-		}
-
-
-		pthread_mutex_lock(&ekflog_common.lock);
-		ekflog_common.tail = next_msg + strlen(&ekflog_common.queue[next_msg]);
-		pthread_cond_signal(&ekflog_common.queueEvent);
-	}
+	} while (ekflog_common.run != 0);
 
 	pthread_mutex_unlock(&ekflog_common.lock);
 
 	return NULL;
+}
+
+
+static int ekflog_newMsgPlaceFind(void)
+{
+	if (ekflog_common.head < ekflog_common.tail) {
+		if (ekflog_common.tail - ekflog_common.head - 1 > MAX_MSG_LEN) {
+			/* Adding new message after previous one */
+			ekflog_common.head++;
+			return 0;
+		}
+
+		return -1;
+	}
+
+	/* ekflog_common.head >= ekflog_common.tail */
+
+	if (BUFF_LEN - ekflog_common.head > MAX_MSG_LEN) {
+		/* Adding new message after previous one */
+		ekflog_common.head++;
+		return 0;
+	}
+
+	if (ekflog_common.tail - 1 > MAX_MSG_LEN) {
+		/* New message goes to the beginning of buffer */
+		ekflog_common.queueEnd = ekflog_common.head;
+		ekflog_common.head = 0;
+		return 0;
+	}
+
+	return -1;
 }
 
 
@@ -95,24 +122,12 @@ int ekflog_write(uint32_t flags, const char *format, ...)
 
 	pthread_mutex_lock(&ekflog_common.lock);
 
-	if (ekflog_common.head + MAX_MSG_LEN < BUFF_LEN) {
-		/* Adding new message after previous one */
-		ekflog_common.head++;
-	}
-	else if (MAX_MSG_LEN <= ekflog_common.tail) {
-		/* New message goes to the beginning of buffer */
-		ekflog_common.queueEnd = ekflog_common.head;
-		ekflog_common.head = 0;
-	}
-	else {
-		/* No place in buffer for new message */
+	if (ekflog_newMsgPlaceFind() != 0) {
 		if ((ekflog_common.mode & EKFLOG_STRICT_MODE) != 0) {
 			/* Waiting for a place in queue */
-			while (MAX_MSG_LEN <= ekflog_common.tail) {
+			do {
 				pthread_cond_wait(&ekflog_common.queueEvent, &ekflog_common.lock);
-			}
-			ekflog_common.queueEnd = ekflog_common.head;
-			ekflog_common.head = 0;
+			} while (ekflog_newMsgPlaceFind() != 0);
 		}
 		else {
 			/* Drop the log */
@@ -123,7 +138,7 @@ int ekflog_write(uint32_t flags, const char *format, ...)
 	}
 
 	va_start(args, format);
-	ret = vsnprintf(&ekflog_common.queue[ekflog_common.head], MAX_MSG_LEN, format, args);
+	ret = vsnprintf(&ekflog_common.queue[ekflog_common.head], MAX_MSG_LEN + 1, format, args);
 	va_end(args);
 
 	if (ret < 0) {
