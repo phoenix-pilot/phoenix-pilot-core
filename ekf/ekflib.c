@@ -139,7 +139,7 @@ int ekf_init(void)
 		return -1;
 	}
 
-	if (ekflog_init("ekf_log.txt", ekf_common.initVals.log, ekf_common.initVals.log_mode) != 0) {
+	if (ekflog_init("ekf_log.txt", ekf_common.initVals.log | ekf_common.initVals.logMode) != 0) {
 		pthread_mutex_destroy(&ekf_common.lock);
 		pthread_attr_destroy(&ekf_common.threadAttr);
 		sensc_deinit();

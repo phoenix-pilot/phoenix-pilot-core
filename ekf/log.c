@@ -20,18 +20,17 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define BUFF_LEN 1024
+#define BUFF_LEN            1024
+#define PHOENIX_THREAD_PRIO 5
 
 
 struct {
 	uint32_t logFlags;
-	uint32_t mode;
 	FILE *file;
 
-	char queue[BUFF_LEN];
+	char buff[BUFF_LEN];
 	int head;
 	int tail;
-	int queueEnd;
 	pthread_mutex_t lock;
 	pthread_cond_t queueEvent;
 	pthread_t tid;
@@ -53,7 +52,8 @@ static void *ekflog_thread(void *args)
 		}
 
 		while (ekflog_common.head != ekflog_common.tail) {
-			if (ekflog_common.tail == ekflog_common.queueEnd) {
+			/* Writing thread assumes max message length */
+			if (BUFF_LEN - ekflog_common.tail - 2 < MAX_MSG_LEN) {
 				ekflog_common.tail = 0;
 			}
 			else {
@@ -62,13 +62,12 @@ static void *ekflog_thread(void *args)
 
 			pthread_mutex_unlock(&ekflog_common.lock);
 
-			if (fputs(&ekflog_common.queue[ekflog_common.tail], ekflog_common.file) <= 0) {
+			if (fputs(&ekflog_common.buff[ekflog_common.tail], ekflog_common.file) <= 0) {
 				fprintf(stderr, "ekflogs: error while writing to file\n");
 			}
 
-
 			pthread_mutex_lock(&ekflog_common.lock);
-			ekflog_common.tail += strlen(&ekflog_common.queue[ekflog_common.tail]);
+			ekflog_common.tail += strlen(&ekflog_common.buff[ekflog_common.tail]);
 			pthread_cond_signal(&ekflog_common.queueEvent);
 		}
 	} while (ekflog_common.run != 0);
@@ -79,7 +78,12 @@ static void *ekflog_thread(void *args)
 }
 
 
-static int ekflog_newMsgPlaceFind(void)
+/*
+ * Sets head to the beginning of new message slot.
+ * Assumes that the length of a message is equal to MAX_MSG_LEN.
+ * Tries to find place for the longest possible message.
+ */
+static int ekflog_slotGet(void)
 {
 	if (ekflog_common.head < ekflog_common.tail) {
 		if (ekflog_common.tail - ekflog_common.head - 1 > MAX_MSG_LEN) {
@@ -93,7 +97,7 @@ static int ekflog_newMsgPlaceFind(void)
 
 	/* ekflog_common.head >= ekflog_common.tail */
 
-	if (BUFF_LEN - ekflog_common.head > MAX_MSG_LEN) {
+	if (BUFF_LEN - ekflog_common.head - 2 >= MAX_MSG_LEN) {
 		/* Adding new message after previous one */
 		ekflog_common.head++;
 		return 0;
@@ -101,7 +105,6 @@ static int ekflog_newMsgPlaceFind(void)
 
 	if (ekflog_common.tail - 1 > MAX_MSG_LEN) {
 		/* New message goes to the beginning of buffer */
-		ekflog_common.queueEnd = ekflog_common.head;
 		ekflog_common.head = 0;
 		return 0;
 	}
@@ -122,12 +125,12 @@ int ekflog_write(uint32_t flags, const char *format, ...)
 
 	pthread_mutex_lock(&ekflog_common.lock);
 
-	if (ekflog_newMsgPlaceFind() != 0) {
-		if ((ekflog_common.mode & EKFLOG_STRICT_MODE) != 0) {
-			/* Waiting for a place in queue */
+	if (ekflog_slotGet() != 0) {
+		if ((ekflog_common.logFlags & EKFLOG_STRICT_MODE) != 0) {
+			/* Waiting for a place in buff */
 			do {
 				pthread_cond_wait(&ekflog_common.queueEvent, &ekflog_common.lock);
-			} while (ekflog_newMsgPlaceFind() != 0);
+			} while (ekflog_slotGet() != 0);
 		}
 		else {
 			/* Drop the log */
@@ -138,7 +141,7 @@ int ekflog_write(uint32_t flags, const char *format, ...)
 	}
 
 	va_start(args, format);
-	ret = vsnprintf(&ekflog_common.queue[ekflog_common.head], MAX_MSG_LEN + 1, format, args);
+	ret = vsnprintf(&ekflog_common.buff[ekflog_common.head], MAX_MSG_LEN + 1, format, args);
 	va_end(args);
 
 	if (ret < 0) {
@@ -188,12 +191,8 @@ int ekflog_done(void)
 }
 
 
-int ekflog_init(const char *path, uint32_t flags, uint32_t mode)
+int ekflog_init(const char *path, uint32_t flags)
 {
-#ifdef __phoenix__
-	struct sched_param sched = { .sched_priority = 5 };
-#endif
-
 	pthread_attr_t attr;
 	int ret;
 
@@ -229,11 +228,9 @@ int ekflog_init(const char *path, uint32_t flags, uint32_t mode)
 	ekflog_common.logFlags = flags;
 	ekflog_common.head = -1;
 	ekflog_common.tail = -1;
-	ekflog_common.queueEnd = BUFF_LEN;
 	ekflog_common.run = 1;
 	ekflog_common.lost = false;
 	ekflog_common.logsEnabled = true;
-	ekflog_common.mode = mode;
 
 	if (pthread_attr_init(&attr) != 0) {
 		fprintf(stderr, "ekflog: cannot initialize conditional variable\n");
@@ -246,7 +243,7 @@ int ekflog_init(const char *path, uint32_t flags, uint32_t mode)
 /* On Phoenix-RTOS we want to set thread priority */
 #ifdef __phoenix__
 
-	if (pthread_attr_setschedparam(&attr, &sched) != 0) {
+	if (pthread_attr_setschedparam(&attr, &((struct sched_param) { .sched_priority = 5 })) != 0) {
 		printf("ekflog: cannot set thread priority\n");
 		fclose(ekflog_common.file);
 		pthread_mutex_destroy(&ekflog_common.lock);

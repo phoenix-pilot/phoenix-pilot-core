@@ -127,8 +127,12 @@ static int kmn_loggingConverter(const hmap_t *h)
 			converterResult->log |= EKFLOG_GPS_MEAS;
 		}
 		else if (strcmp(str, "ALL") == 0) {
-			/* Setting all bits to 1 */
-			converterResult->log = ~(uint32_t)0;
+			converterResult->log |= EKFLOG_SENSC;
+			converterResult->log |= EKFLOG_GPS_MEAS;
+			converterResult->log |= EKFLOG_EKF_IMU;
+			converterResult->log |= EKFLOG_EKF_POS;
+			converterResult->log |= EKFLOG_GPS_POS;
+			converterResult->log |= EKFLOG_GPS_MEAS;
 			break;
 		}
 		else if (strcmp(str, "NONE") == 0) {
@@ -147,13 +151,13 @@ static int kmn_loggingConverter(const hmap_t *h)
 	/* Parsing field `mode` */
 	str = hmap_get(h, "mode");
 	if (str == NULL) {
-		converterResult->log_mode = EKFLOG_DEFAULT_MODE;
+		converterResult->logMode = 0;
 	}
 	else if (strcmp(str, "DEFAULT") == 0) {
-		converterResult->log_mode = EKFLOG_DEFAULT_MODE;
+		converterResult->logMode = 0;
 	}
 	else if (strcmp(str, "STRICT") == 0) {
-		converterResult->log_mode = EKFLOG_STRICT_MODE;
+		converterResult->logMode = EKFLOG_STRICT_MODE;
 	}
 
 	return 0;

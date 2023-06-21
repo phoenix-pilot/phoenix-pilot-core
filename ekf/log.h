@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#define MAX_MSG_LEN 80
+#define MAX_MSG_LEN 80 /* Without terminating NUL character */
 
 #define EKFLOG_SENSC    (1 << 0)
 #define EKFLOG_MEAS     (1 << 1)
@@ -27,12 +27,14 @@
 #define EKFLOG_GPS_POS  (1 << 4)
 #define EKFLOG_GPS_MEAS (1 << 5)
 
-/* Faster implementation, but it's possible to lose logs. */
-/* It that case file with logs have a appropriate warning */
-#define EKFLOG_DEFAULT_MODE 0
-
-/* All logs must be saved in a file */
-#define EKFLOG_STRICT_MODE (1 << 0)
+/*
+ * Potentially slower implementation, but with no possibility to lose logs.
+ *
+ * By default log module priorities execution speed over logs consistency.
+ * It is possible that not all logs will be stored in result file.
+ * It that case appropriate warning is added to file.
+ */
+#define EKFLOG_STRICT_MODE (1 << 30)
 
 
 /* Prints `flags` type log message passed as `format` */
@@ -44,7 +46,7 @@ extern int ekflog_done(void);
 
 
 /* Initialize log module for `flags` log messages and `path` destination file. Returns 0 on success */
-extern int ekflog_init(const char *path, uint32_t flags, uint32_t mode);
+extern int ekflog_init(const char *path, uint32_t flags);
 
 
 #endif

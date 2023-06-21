@@ -95,7 +95,7 @@ TEST_TEAR_DOWN(group_log)
 
 TEST(group_log, ekflog_simpleWrite)
 {
-	TEST_ASSERT_EQUAL(0, ekflog_init(EKFLOG_TEST_FILE, EKFLOG_SENSC, EKFLOG_STRICT_MODE));
+	TEST_ASSERT_EQUAL(0, ekflog_init(EKFLOG_TEST_FILE, EKFLOG_SENSC | EKFLOG_STRICT_MODE));
 	TEST_ASSERT_EQUAL(0, ekflog_write(EKFLOG_SENSC, ekflog_test_testData[0]));
 	TEST_ASSERT_EQUAL(0, ekflog_done());
 
@@ -108,7 +108,7 @@ TEST(group_log, ekflog_multipleWrites)
 {
 	int i;
 
-	TEST_ASSERT_EQUAL(0, ekflog_init(EKFLOG_TEST_FILE, EKFLOG_SENSC, EKFLOG_STRICT_MODE));
+	TEST_ASSERT_EQUAL(0, ekflog_init(EKFLOG_TEST_FILE, EKFLOG_SENSC | EKFLOG_STRICT_MODE));
 
 	for (i = 0; i < EKFLOG_TEST_DATA_LEN; i++) {
 		TEST_ASSERT_EQUAL(0, ekflog_write(EKFLOG_SENSC, ekflog_test_testData[i]));
@@ -128,7 +128,7 @@ TEST(group_log, ekflog_flagsWorkingCheck)
 {
 	int i;
 
-	TEST_ASSERT_EQUAL(0, ekflog_init(EKFLOG_TEST_FILE, EKFLOG_SENSC, EKFLOG_STRICT_MODE));
+	TEST_ASSERT_EQUAL(0, ekflog_init(EKFLOG_TEST_FILE, EKFLOG_SENSC | EKFLOG_STRICT_MODE));
 
 	for (i = 0; i < EKFLOG_TEST_DATA_LEN / 2; i++) {
 		TEST_ASSERT_EQUAL(0, ekflog_write(EKFLOG_SENSC, ekflog_test_testData[i]));
@@ -155,7 +155,7 @@ TEST(group_log, ekflog_stressTest)
 	int i, j;
 	const int repeats = 100;
 
-	TEST_ASSERT_EQUAL(0, ekflog_init(EKFLOG_TEST_FILE, EKFLOG_SENSC, EKFLOG_STRICT_MODE));
+	TEST_ASSERT_EQUAL(0, ekflog_init(EKFLOG_TEST_FILE, EKFLOG_SENSC | EKFLOG_STRICT_MODE));
 
 	for (i = 0; i < repeats; i++) {
 		for (j = 0; j < EKFLOG_TEST_DATA_LEN; j++) {
