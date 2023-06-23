@@ -24,6 +24,7 @@
 
 #include "kalman_implem.h"
 #include "meas.h"
+#include "log.h"
 
 #include <vec.h>
 #include <quat.h>
@@ -88,12 +89,78 @@ static int kmn_QMatrixConverter(const hmap_t *h)
 
 static int kmn_loggingConverter(const hmap_t *h)
 {
-	int err = 0;
+	char *str;
+	const char *separators = ",";
 
-	err |= parser_fieldGetInt(h, "verbose", &converterResult->verbose);
-	err |= parser_fieldGetInt(h, "log", &converterResult->log);
+	/* Parsing field `verbose` */
+	if (parser_fieldGetInt(h, "verbose", &converterResult->verbose) != 0) {
+		return -1;
+	}
 
-	return err;
+	/* Parsing field `log` */
+	str = hmap_get(h, "log");
+	if (str == NULL) {
+		fprintf(stderr, "Ekf config: cannot find \"log\" field in config file\n");
+		return -1;
+	}
+
+	converterResult->log = 0;
+
+	str = strtok(str, separators);
+	while (str != NULL) {
+		if (strcmp(str, "SENSC") == 0) {
+			converterResult->log |= EKFLOG_SENSC;
+		}
+		else if (strcmp(str, "MEAS") == 0) {
+			converterResult->log |= EKFLOG_MEAS;
+		}
+		else if (strcmp(str, "EKF_IMU") == 0) {
+			converterResult->log |= EKFLOG_EKF_IMU;
+		}
+		else if (strcmp(str, "EKF_POS") == 0) {
+			converterResult->log |= EKFLOG_EKF_POS;
+		}
+		else if (strcmp(str, "GPS_POS") == 0) {
+			converterResult->log |= EKFLOG_GPS_POS;
+		}
+		else if (strcmp(str, "GPS_MEAS") == 0) {
+			converterResult->log |= EKFLOG_GPS_MEAS;
+		}
+		else if (strcmp(str, "ALL") == 0) {
+			converterResult->log |= EKFLOG_SENSC;
+			converterResult->log |= EKFLOG_GPS_MEAS;
+			converterResult->log |= EKFLOG_EKF_IMU;
+			converterResult->log |= EKFLOG_EKF_POS;
+			converterResult->log |= EKFLOG_GPS_POS;
+			converterResult->log |= EKFLOG_GPS_MEAS;
+			break;
+		}
+		else if (strcmp(str, "NONE") == 0) {
+			/* Setting all bits to 1 */
+			converterResult->log = 0;
+			break;
+		}
+		else {
+			fprintf(stderr, "Invalid log specifier: %s\n", str);
+			return -1;
+		}
+
+		str = strtok(NULL, separators);
+	}
+
+	/* Parsing field `mode` */
+	str = hmap_get(h, "mode");
+	if (str == NULL) {
+		converterResult->logMode = 0;
+	}
+	else if (strcmp(str, "DEFAULT") == 0) {
+		converterResult->logMode = 0;
+	}
+	else if (strcmp(str, "STRICT") == 0) {
+		converterResult->logMode = EKFLOG_STRICT_MODE;
+	}
+
+	return 0;
 }
 
 
@@ -123,11 +190,7 @@ int kmn_configRead(const char *configFile, kalman_init_t *initVals)
 	err = parser_execute(p, configFile, PARSER_IGN_UNKNOWN_HEADERS);
 	parser_free(p);
 
-	if (err != 0) {
-		return -1;
-	}
-
-	return 0;
+	return err == 0 ? 0 : -1;
 }
 
 
@@ -172,14 +235,14 @@ float kmn_accelDamp(vec_t *accel)
 static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time_t timeStep)
 {
 	/* values from state vector */
-	const quat_t qState = {.a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD)};
-	const quat_t bwState = {.a = 0, .i = kmn_vecAt(state, BWX), .j = kmn_vecAt(state, BWY), .k = kmn_vecAt(state, BWZ)}; /* quaternionized vector */
-	const vec_t vState = {.x = kmn_vecAt(state, VX), .y = kmn_vecAt(state, VY), .z = kmn_vecAt(state, VZ)};
-	const vec_t baState = {.x = kmn_vecAt(state, BAX), .y = kmn_vecAt(state, BAY), .z = kmn_vecAt(state, BAZ)};
+	const quat_t qState = { .a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD) };
+	const quat_t bwState = { .a = 0, .i = kmn_vecAt(state, BWX), .j = kmn_vecAt(state, BWY), .k = kmn_vecAt(state, BWZ) }; /* quaternionized vector */
+	const vec_t vState = { .x = kmn_vecAt(state, VX), .y = kmn_vecAt(state, VY), .z = kmn_vecAt(state, VZ) };
+	const vec_t baState = { .x = kmn_vecAt(state, BAX), .y = kmn_vecAt(state, BAY), .z = kmn_vecAt(state, BAZ) };
 
 	/* quaternionized angular rate from U vector */
-	quat_t wMeas = {.a = 0, .i = kmn_vecAt(U, UWX), .j = kmn_vecAt(U, UWY), .k = kmn_vecAt(U, UWZ)}; /* quaternionized vector */
-	vec_t aMeas = {.x = kmn_vecAt(U, UAX), .y = kmn_vecAt(U, UAY), .z = kmn_vecAt(U, UAZ)};
+	quat_t wMeas = { .a = 0, .i = kmn_vecAt(U, UWX), .j = kmn_vecAt(U, UWY), .k = kmn_vecAt(U, UWZ) }; /* quaternionized vector */
+	vec_t aMeas = { .x = kmn_vecAt(U, UAX), .y = kmn_vecAt(U, UAY), .z = kmn_vecAt(U, UAZ) };
 
 	/* quaternionized angular rate and rotation quaternion estimates */
 	quat_t qEst, qTmp;
@@ -232,12 +295,12 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 /* prediction step jacobian calculation function */
 static void kmn_predJcb(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeStep)
 {
-	const quat_t qState = {.a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD)};
-	const quat_t bwState = {.a = 0, .i = kmn_vecAt(state, BWX), .j = kmn_vecAt(state, BWY), .k = kmn_vecAt(state, BWZ)};
-	const vec_t baState = {.x = kmn_vecAt(state, BAX), .y = kmn_vecAt(state, BAY), .z = kmn_vecAt(state, BAZ)};
+	const quat_t qState = { .a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD) };
+	const quat_t bwState = { .a = 0, .i = kmn_vecAt(state, BWX), .j = kmn_vecAt(state, BWY), .k = kmn_vecAt(state, BWZ) };
+	const vec_t baState = { .x = kmn_vecAt(state, BAX), .y = kmn_vecAt(state, BAY), .z = kmn_vecAt(state, BAZ) };
 
-	const quat_t wMeas = {.a = 0, .i = kmn_vecAt(U, UWX), .j = kmn_vecAt(U, UWY), .k = kmn_vecAt(U, UWZ)};
-	const vec_t aMeas = {.x = kmn_vecAt(U, UAX), .y = kmn_vecAt(U, UAY), .z = kmn_vecAt(U, UAZ)};
+	const quat_t wMeas = { .a = 0, .i = kmn_vecAt(U, UWX), .j = kmn_vecAt(U, UWY), .k = kmn_vecAt(U, UWZ) };
+	const vec_t aMeas = { .x = kmn_vecAt(U, UAX), .y = kmn_vecAt(U, UAY), .z = kmn_vecAt(U, UAZ) };
 
 	const float dt = (float)timeStep / 1000000;
 
@@ -310,9 +373,9 @@ static void kmn_getNoiseQ(matrix_t *state, matrix_t *U, matrix_t *Q, time_t time
 {
 	/* Submatrix for quaternion process noise */
 	float qNoiseData[4 * 4] = { 0 };
-	matrix_t qNoise = {.data = qNoiseData, .rows = 4, .cols = 4, .transposed = 0};
+	matrix_t qNoise = { .data = qNoiseData, .rows = 4, .cols = 4, .transposed = 0 };
 
-	const quat_t q = {.a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD)};
+	const quat_t q = { .a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD) };
 	const float dtSq = ((float)timestep / 1000000.f) * ((float)timestep / 1000000.f);
 
 	matrix_zeroes(Q);

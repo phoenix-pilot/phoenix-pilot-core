@@ -103,7 +103,8 @@
 
 typedef struct {
 	int verbose;
-	int log;
+	uint32_t log;
+	uint32_t logMode;
 
 	/* State covariance error initialization values */
 	float P_qerr;

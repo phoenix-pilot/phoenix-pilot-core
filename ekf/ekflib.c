@@ -99,7 +99,6 @@ static int ekf_threadAttrInit(void)
 
 int ekf_init(void)
 {
-	uint32_t logFlags;
 	int err;
 
 	if (ekf_threadAttrInit() != 0) {
@@ -140,31 +139,7 @@ int ekf_init(void)
 		return -1;
 	}
 
-	/* Choose ekf log mode */
-	switch (ekf_common.initVals.log) {
-		case 1:
-			logFlags = EKFLOG_SENSC;
-			break;
-		case 2:
-			logFlags = EKFLOG_MEAS;
-			break;
-		case 3:
-			logFlags = EKFLOG_EKF_IMU;
-			break;
-		case 4:
-			logFlags = EKFLOG_EKF_POS;
-			break;
-		case 5:
-			logFlags = EKFLOG_GPS_POS;
-			break;
-		case 6:
-			logFlags = EKFLOG_GPS_MEAS;
-			break;
-		default:
-			logFlags = 0;
-	}
-
-	if (ekflog_init("ekf_log.txt", logFlags) != 0) {
+	if (ekflog_init("ekf_log.txt", ekf_common.initVals.log | ekf_common.initVals.logMode) != 0) {
 		pthread_mutex_destroy(&ekf_common.lock);
 		pthread_attr_destroy(&ekf_common.threadAttr);
 		sensc_deinit();
