@@ -39,6 +39,23 @@ static char *ekflog_test_testData[EKFLOG_TEST_DATA_LEN] = {
 	"ut labore et dolore magna aliqua.\n"
 };
 
+static char maxLenMsg[MAX_MSG_LEN + 1];
+
+
+__attribute__((constructor(101))) static void ekflog_test_maxLenMsgFill(void)
+{
+	memset(maxLenMsg, 'a', MAX_MSG_LEN - 1);
+	maxLenMsg[MAX_MSG_LEN - 1] = '\n';
+	maxLenMsg[MAX_MSG_LEN] = '\0';
+}
+
+
+static int ekflog_test_fileEnd(void)
+{
+	return fgetc(ekflog_test_common.testFile) != EOF;
+}
+
+
 static int ekflog_test_fileLineCheck(const char *expectedLine)
 {
 	if (ekflog_test_common.testFile == NULL) {
@@ -50,17 +67,24 @@ static int ekflog_test_fileLineCheck(const char *expectedLine)
 	}
 
 	if (getline(&ekflog_test_common.lineBuf, &ekflog_test_common.bufLen, ekflog_test_common.testFile) < 0) {
-		fprintf(stderr, "ekflog error while reading file\n");
+		if (ekflog_test_fileEnd() == 0) {
+			fprintf(stderr, "ekflog test: unexpected EOF encountered\n");
+		}
+		else {
+			fprintf(stderr, "ekflog tests: unknown error while reading file\n");
+		}
+
 		return -1;
 	}
 
-	return strcmp(ekflog_test_common.lineBuf, expectedLine) == 0 ? 0 : -1;
-}
+	if (strcmp(ekflog_test_common.lineBuf, expectedLine) != 0) {
+		fprintf(stderr, "ekflog tests: invalid line in file.\n");
+		fprintf(stderr, "Expected: %s\n", expectedLine);
+		fprintf(stderr, "Actual:   %s\n", ekflog_test_common.lineBuf);
+		return -1;
+	}
 
-
-static int ekflog_test_fileEnd(void)
-{
-	return fgetc(ekflog_test_common.testFile) != EOF;
+	return 0;
 }
 
 
@@ -72,6 +96,8 @@ TEST_SETUP(group_log)
 	ekflog_test_common.testFile = NULL;
 	ekflog_test_common.lineBuf = NULL;
 	ekflog_test_common.bufLen = 0;
+
+	TEST_ASSERT_EQUAL(0, ekflog_init(EKFLOG_TEST_FILE, EKFLOG_SENSC | EKFLOG_STRICT_MODE));
 }
 
 
@@ -95,7 +121,6 @@ TEST_TEAR_DOWN(group_log)
 
 TEST(group_log, ekflog_simpleWrite)
 {
-	TEST_ASSERT_EQUAL(0, ekflog_init(EKFLOG_TEST_FILE, EKFLOG_SENSC | EKFLOG_STRICT_MODE));
 	TEST_ASSERT_EQUAL(0, ekflog_write(EKFLOG_SENSC, ekflog_test_testData[0]));
 	TEST_ASSERT_EQUAL(0, ekflog_done());
 
@@ -104,11 +129,19 @@ TEST(group_log, ekflog_simpleWrite)
 }
 
 
+TEST(group_log, ekflog_singleMaxLenWrite)
+{
+	TEST_ASSERT_EQUAL(0, ekflog_write(EKFLOG_SENSC, maxLenMsg));
+	TEST_ASSERT_EQUAL(0, ekflog_done());
+
+	TEST_ASSERT_EQUAL(0, ekflog_test_fileLineCheck(maxLenMsg));
+	TEST_ASSERT_EQUAL(0, ekflog_test_fileEnd());
+}
+
+
 TEST(group_log, ekflog_multipleWrites)
 {
 	int i;
-
-	TEST_ASSERT_EQUAL(0, ekflog_init(EKFLOG_TEST_FILE, EKFLOG_SENSC | EKFLOG_STRICT_MODE));
 
 	for (i = 0; i < EKFLOG_TEST_DATA_LEN; i++) {
 		TEST_ASSERT_EQUAL(0, ekflog_write(EKFLOG_SENSC, ekflog_test_testData[i]));
@@ -127,8 +160,6 @@ TEST(group_log, ekflog_multipleWrites)
 TEST(group_log, ekflog_flagsWorkingCheck)
 {
 	int i;
-
-	TEST_ASSERT_EQUAL(0, ekflog_init(EKFLOG_TEST_FILE, EKFLOG_SENSC | EKFLOG_STRICT_MODE));
 
 	for (i = 0; i < EKFLOG_TEST_DATA_LEN / 2; i++) {
 		TEST_ASSERT_EQUAL(0, ekflog_write(EKFLOG_SENSC, ekflog_test_testData[i]));
@@ -155,8 +186,6 @@ TEST(group_log, ekflog_stressTest)
 	int i, j;
 	const int repeats = 100;
 
-	TEST_ASSERT_EQUAL(0, ekflog_init(EKFLOG_TEST_FILE, EKFLOG_SENSC | EKFLOG_STRICT_MODE));
-
 	for (i = 0; i < repeats; i++) {
 		for (j = 0; j < EKFLOG_TEST_DATA_LEN; j++) {
 			TEST_ASSERT_EQUAL(0, ekflog_write(EKFLOG_SENSC, ekflog_test_testData[j]));
@@ -175,10 +204,31 @@ TEST(group_log, ekflog_stressTest)
 }
 
 
+TEST(group_log, ekflog_multipleMaxLenMsgWrites)
+{
+	int i;
+	const int repeats = 100;
+
+	for (i = 0; i < repeats; i++) {
+		TEST_ASSERT_EQUAL(0, ekflog_write(EKFLOG_SENSC, maxLenMsg));
+	}
+
+	TEST_ASSERT_EQUAL(0, ekflog_done());
+
+	for (i = 0; i < repeats; i++) {
+		TEST_ASSERT_EQUAL(0, ekflog_test_fileLineCheck(maxLenMsg));
+	}
+
+	TEST_ASSERT_EQUAL(0, ekflog_test_fileEnd());
+}
+
+
 TEST_GROUP_RUNNER(group_log)
 {
 	RUN_TEST_CASE(group_log, ekflog_simpleWrite);
+	RUN_TEST_CASE(group_log, ekflog_singleMaxLenWrite);
 	RUN_TEST_CASE(group_log, ekflog_multipleWrites);
 	RUN_TEST_CASE(group_log, ekflog_flagsWorkingCheck);
 	RUN_TEST_CASE(group_log, ekflog_stressTest);
+	RUN_TEST_CASE(group_log, ekflog_multipleMaxLenMsgWrites);
 }
