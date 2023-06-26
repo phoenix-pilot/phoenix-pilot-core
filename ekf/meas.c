@@ -2,7 +2,7 @@
  * Phoenix-Pilot
  *
  * extended kalman filter
- * 
+ *
  * data acquisition logic/calibration
  *
  * Copyright 2022 Phoenix Systems
@@ -42,8 +42,8 @@
 #define IMU_CALIB_AVG  1000
 #define BARO_CALIB_AVG 100
 
-#define MAX_U32_DELTAANGLE 0x7fffffff /* Half of the u32 buffer span is max delta angle expected in one step (roughly 2147 radians) */
-#define GYRO_MAX_SENSIBLE_READ  157   /* 50 pi radians per second is the largest absolute value of angular speed deemed possible */
+#define MAX_U32_DELTAANGLE     0x7fffffff /* Half of the u32 buffer span is max delta angle expected in one step (roughly 2147 radians) */
+#define GYRO_MAX_SENSIBLE_READ 157        /* 50 pi radians per second is the largest absolute value of angular speed deemed possible */
 
 static struct {
 	meas_calib_t calib;
@@ -162,11 +162,11 @@ void meas_gpsCalib(void)
 
 	i = 0;
 	while (i < avg) {
-		if (sensc_gpsGet(&gpsEvt) < 0){
+		if (sensc_gpsGet(&gpsEvt) < 0) {
 			sleep(1);
 			continue;
 		}
-		printf("Sampling gps position: sample %d/%d\n", i+1, avg);
+		printf("Sampling gps position: sample %d/%d\n", i + 1, avg);
 		refPos.lat += (double)gpsEvt.gps.lat / 1e9;
 		refPos.lon += (double)gpsEvt.gps.lon / 1e9;
 		refPos.h += gpsEvt.gps.alt / 1e3;
@@ -187,7 +187,6 @@ void meas_gpsCalib(void)
 	meas_geo2ecef(&meas_common.calib.gps.refGeodetic, &meas_common.calib.gps.refEcef);
 
 	printf("Acquired GPS position of (lat/lon/h): %f/%f/%f\n", meas_common.calib.gps.refEcef.x, meas_common.calib.gps.refEcef.y, meas_common.calib.gps.refEcef.z);
-
 }
 
 
@@ -338,7 +337,9 @@ int meas_imuPoll(void)
 	/* these timestamps do not need to be very accurate */
 	meas_common.data.timeImu = gyrEvt.timestamp;
 
-	ekflog_write(EKFLOG_SENSC, "SI %lld %d %d %d %d %d %d\n", meas_common.data.timeImu, accEvt.accels.accelX, accEvt.accels.accelY, accEvt.accels.accelZ, gyrEvt.gyro.gyroX, gyrEvt.gyro.gyroY, gyrEvt.gyro.gyroZ);
+	ekflog_write(EKFLOG_SENSC, "ACC SENSC %lld, %d, %d, %d\n", accEvt.timestamp, accEvt.accels.accelX, accEvt.accels.accelY, accEvt.accels.accelZ);
+	ekflog_write(EKFLOG_SENSC, "GYRO SENSC %lld, %d, %d, %d, %d, %d, %d\n", gyrEvt.timestamp, gyrEvt.gyro.gyroX, gyrEvt.gyro.gyroY, gyrEvt.gyro.gyroZ, gyrEvt.gyro.dAngleX, gyrEvt.gyro.dAngleY, gyrEvt.gyro.dAngleZ);
+	ekflog_write(EKFLOG_SENSC, "MAG SENSC %lld, %d, %d, %d\n", magEvt.timestamp, magEvt.mag.magX, magEvt.mag.magY, magEvt.mag.magZ);
 
 	meas_acc2si(&accEvt, &meas_common.data.accelRaw); /* accelerations from mm/s^2 -> m/s^2 */
 	meas_mag2si(&magEvt, &meas_common.data.mag);      /* only magnitude matters from geomagnetism */
@@ -359,7 +360,13 @@ int meas_imuPoll(void)
 	ekflog_write(
 		EKFLOG_MEAS,
 		"MI %lld %.3f %.3f %.3f %.3f %.3f %.3f\n",
-		meas_common.data.timeImu, meas_common.data.accelFltr.x, meas_common.data.accelFltr.y, meas_common.data.accelFltr.z, meas_common.data.gyroFltr.x, meas_common.data.gyroFltr.y, meas_common.data.gyroFltr.z);
+		meas_common.data.timeImu,
+		meas_common.data.accelFltr.x,
+		meas_common.data.accelFltr.y,
+		meas_common.data.accelFltr.z,
+		meas_common.data.gyroFltr.x,
+		meas_common.data.gyroFltr.y,
+		meas_common.data.gyroFltr.z);
 
 	return 0;
 }
@@ -372,6 +379,8 @@ int meas_baroPoll(void)
 	if (sensc_baroGet(&baroEvt) < 0) {
 		return -1;
 	}
+
+	ekflog_write(EKFLOG_SENSC, "BARO SENSC %lld, %d, %d\n", baroEvt.timestamp, baroEvt.baro.pressure, baroEvt.baro.temp);
 
 	meas_common.data.timeBaro = baroEvt.timestamp;
 	meas_common.data.temp = baroEvt.baro.temp;
@@ -391,8 +400,19 @@ int meas_gpsPoll(void)
 	}
 
 	ekflog_write(
-		EKFLOG_GPS_MEAS,
-		"MG %lld %lld %lld\n", gpsEvt.timestamp, gpsEvt.gps.lat, gpsEvt.gps.lon);
+		EKFLOG_SENSC,
+		"GPS SENSC %lld, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n",
+		gpsEvt.timestamp,
+		gpsEvt.gps.lat,
+		gpsEvt.gps.lon,
+		gpsEvt.gps.alt,
+		gpsEvt.gps.eph,
+		gpsEvt.gps.evel,
+		gpsEvt.gps.fix,
+		gpsEvt.gps.satsNb,
+		gpsEvt.gps.velNorth,
+		gpsEvt.gps.velEast,
+		gpsEvt.gps.velDown);
 
 	/* save timestamp */
 	meas_common.data.timeGps = gpsEvt.timestamp;
@@ -410,6 +430,19 @@ int meas_gpsPoll(void)
 	meas_common.data.gps.vel.x = (float)gpsEvt.gps.velNorth / 1e3;
 	meas_common.data.gps.vel.y = (float)gpsEvt.gps.velEast / 1e3;
 	meas_common.data.gps.vel.z = -(float)gpsEvt.gps.velDown / 1e3;
+
+	ekflog_write(
+		EKFLOG_GPS_MEAS,
+		"GPS MEAS %f, %f, %f, %f, %f, %f, %f, %f, %f\n",
+		meas_common.data.gps.lat,
+		meas_common.data.gps.lon,
+		meas_common.data.gps.eph,
+		meas_common.data.gps.epv,
+		meas_common.data.gps.fix,
+		meas_common.data.gps.satsNb,
+		meas_common.data.gps.vel.x,
+		meas_common.data.gps.vel.y,
+		meas_common.data.gps.vel.z);
 
 	return 0;
 }
