@@ -26,6 +26,7 @@
 #define EKFLOG_EKF_POS  (1 << 3)
 #define EKFLOG_GPS_POS  (1 << 4)
 #define EKFLOG_GPS_MEAS (1 << 5)
+#define EKFLOG_TIME     (1 << 6)
 
 /*
  * Potentially slower implementation, but with no possibility to lose logs.
