@@ -126,6 +126,9 @@ static int kmn_loggingConverter(const hmap_t *h)
 		else if (strcmp(str, "GPS_MEAS") == 0) {
 			converterResult->log |= EKFLOG_GPS_MEAS;
 		}
+		else if (strcmp(str, "TIME") == 0) {
+			converterResult->log |= EKFLOG_TIME;
+		}
 		else if (strcmp(str, "ALL") == 0) {
 			converterResult->log |= EKFLOG_SENSC;
 			converterResult->log |= EKFLOG_GPS_MEAS;
@@ -133,6 +136,7 @@ static int kmn_loggingConverter(const hmap_t *h)
 			converterResult->log |= EKFLOG_EKF_POS;
 			converterResult->log |= EKFLOG_GPS_POS;
 			converterResult->log |= EKFLOG_GPS_MEAS;
+			converterResult->log |= EKFLOG_TIME;
 			break;
 		}
 		else if (strcmp(str, "NONE") == 0) {

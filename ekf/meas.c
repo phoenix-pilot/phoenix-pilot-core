@@ -33,7 +33,6 @@
 #include <vec.h>
 #include <quat.h>
 #include <matrix.h>
-#include <gettime.h>
 
 #define EARTH_SEMI_MAJOR           6378137.0F
 #define EARTH_SEMI_MINOR           6356752.3F
