@@ -38,7 +38,7 @@ struct {
 	volatile int run;
 	bool logsEnabled;
 
-	bool lost;
+	int lost;
 } ekflog_common;
 
 
@@ -117,6 +117,8 @@ int ekflog_write(uint32_t flags, const char *format, ...)
 {
 	va_list args;
 	int ret;
+	static unsigned int lp = 0;
+	static char buf[MAX_MSG_LEN + 1];
 
 	/* Log call with flags that are not enabled is not an error */
 	if ((flags & ekflog_common.logFlags) == 0) {
@@ -124,6 +126,8 @@ int ekflog_write(uint32_t flags, const char *format, ...)
 	}
 
 	pthread_mutex_lock(&ekflog_common.lock);
+
+	lp++;
 
 	if (ekflog_slotGet() != 0) {
 		if ((ekflog_common.logFlags & EKFLOG_STRICT_MODE) != 0) {
@@ -134,15 +138,17 @@ int ekflog_write(uint32_t flags, const char *format, ...)
 		}
 		else {
 			/* Drop the log */
-			ekflog_common.lost = true;
+			ekflog_common.lost++;
 			pthread_mutex_unlock(&ekflog_common.lock);
 			return -1;
 		}
 	}
 
 	va_start(args, format);
-	ret = vsnprintf(&ekflog_common.buff[ekflog_common.head], MAX_MSG_LEN + 1, format, args);
+	ret = vsnprintf(buf, MAX_MSG_LEN + 1 - 10, format, args);
 	va_end(args);
+
+	ret = snprintf(&ekflog_common.buff[ekflog_common.head], MAX_MSG_LEN + 1, "%x,%s", lp, buf);
 
 	if (ret < 0) {
 		fprintf(stderr, "ekflogs: cannot log an event\n");
@@ -177,9 +183,10 @@ int ekflog_done(void)
 		return -1;
 	}
 
-	if (ekflog_common.lost == true) {
+	if (ekflog_common.lost > 0) {
 		fprintf(ekflog_common.file, "\nWARNING\n");
 		fprintf(ekflog_common.file, "Logging module have missed some of the messages\n");
+		fprintf(ekflog_common.file, "Number of lost logs: %d\n", ekflog_common.lost);
 		fprintf(ekflog_common.file, "It is possible to use EKFLOG_STRICT_MODE to avoid this behaviour\n");
 	}
 
@@ -212,6 +219,24 @@ int ekflog_init(const char *path, uint32_t flags)
 		return -1;
 	}
 
+	if ((flags & EKFLOG_STRICT_MODE) == 0) {
+		/* Line buffering results in the smallest max time between loops */
+		if (setvbuf(ekflog_common.file, NULL, _IOLBF, MAX_MSG_LEN + 1) != 0) {
+			fclose(ekflog_common.file);
+			fprintf(stderr, "ekflog: can't set file buffering\n");
+			return -1;
+		}
+	}
+	else {
+		/* If strict mode is not enabled, then module is tuned for minimizing lost logs */
+		if (setvbuf(ekflog_common.file, NULL, _IOFBF, 512) != 0) {
+			fclose(ekflog_common.file);
+			fprintf(stderr, "ekflog: can't set file buffering\n");
+			return -1;
+		}
+	}
+
+
 	if (pthread_mutex_init(&ekflog_common.lock, NULL) != 0) {
 		fprintf(stderr, "ekflog: cannot initialize lock\n");
 		fclose(ekflog_common.file);
@@ -229,7 +254,7 @@ int ekflog_init(const char *path, uint32_t flags)
 	ekflog_common.head = -1;
 	ekflog_common.tail = -1;
 	ekflog_common.run = 1;
-	ekflog_common.lost = false;
+	ekflog_common.lost = 0;
 	ekflog_common.logsEnabled = true;
 
 	if (pthread_attr_init(&attr) != 0) {
@@ -243,7 +268,7 @@ int ekflog_init(const char *path, uint32_t flags)
 /* On Phoenix-RTOS we want to set thread priority */
 #ifdef __phoenix__
 
-	if (pthread_attr_setschedparam(&attr, &((struct sched_param) { .sched_priority = 5 })) != 0) {
+	if (pthread_attr_setschedparam(&attr, &((struct sched_param) { .sched_priority = PHOENIX_THREAD_PRIO })) != 0) {
 		printf("ekflog: cannot set thread priority\n");
 		fclose(ekflog_common.file);
 		pthread_mutex_destroy(&ekflog_common.lock);

@@ -73,9 +73,16 @@ static struct {
 
 static inline void meas_logImuSens(const sensor_event_t *accEvt, const sensor_event_t *gyrEvt, const sensor_event_t *magEvt)
 {
-	ekflog_write(EKFLOG_SENSC, "ACC SENSC %lld, %d, %d, %d\n", accEvt->timestamp, accEvt->accels.accelX, accEvt->accels.accelY, accEvt->accels.accelZ);
-	ekflog_write(EKFLOG_SENSC, "GYRO SENSC %lld, %d, %d, %d, %d, %d, %d\n", gyrEvt->timestamp, gyrEvt->gyro.gyroX, gyrEvt->gyro.gyroY, gyrEvt->gyro.gyroZ, gyrEvt->gyro.dAngleX, gyrEvt->gyro.dAngleY, gyrEvt->gyro.dAngleZ);
-	ekflog_write(EKFLOG_SENSC, "MAG SENSC %lld, %d, %d, %d\n", magEvt->timestamp, magEvt->mag.magX, magEvt->mag.magY, magEvt->mag.magZ);
+	ekflog_write(
+		EKFLOG_SENSC,
+		"I,%llx,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+		accEvt->timestamp, accEvt->accels.accelX, accEvt->accels.accelY, accEvt->accels.accelZ,
+		gyrEvt->gyro.gyroX, gyrEvt->gyro.gyroY, gyrEvt->gyro.gyroZ, gyrEvt->gyro.dAngleX, gyrEvt->gyro.dAngleY, gyrEvt->gyro.dAngleZ,
+		magEvt->mag.magX, magEvt->mag.magY, magEvt->mag.magZ);
+
+	// ekflog_write(EKFLOG_SENSC, "A,%llx,%d,%d,%d\n", accEvt->timestamp, accEvt->accels.accelX, accEvt->accels.accelY, accEvt->accels.accelZ);
+	// ekflog_write(EKFLOG_SENSC, "G,%llx,%d,%d,%d,%d,%d,%d\n", gyrEvt->timestamp, gyrEvt->gyro.gyroX, gyrEvt->gyro.gyroY, gyrEvt->gyro.gyroZ, gyrEvt->gyro.dAngleX, gyrEvt->gyro.dAngleY, gyrEvt->gyro.dAngleZ);
+	// ekflog_write(EKFLOG_SENSC, "M,%llx,%d,%d,%d\n", magEvt->timestamp, magEvt->mag.magX, magEvt->mag.magY, magEvt->mag.magZ);
 }
 
 
@@ -100,7 +107,7 @@ static inline void meas_logGpsSens(const sensor_event_t *gpsEvt)
 
 static inline void meas_logBaroSens(const sensor_event_t *baroEvt)
 {
-	ekflog_write(EKFLOG_SENSC, "BARO SENSC %lld, %d, %d\n", baroEvt->timestamp, baroEvt->baro.pressure, baroEvt->baro.temp);
+	ekflog_write(EKFLOG_SENSC, "B,%llx,%d,%d\n", baroEvt->timestamp, baroEvt->baro.pressure, baroEvt->baro.temp);
 }
 
 
