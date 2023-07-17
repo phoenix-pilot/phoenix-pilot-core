@@ -18,7 +18,9 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#define MAX_MSG_LEN 80 /* Without terminating NUL character */
+#include <libsensors.h>
+
+#define MAX_MSG_LEN 50 /* Without terminating NUL character */
 
 #define EKFLOG_SENSC    (1 << 0)
 #define EKFLOG_MEAS     (1 << 1)
@@ -40,6 +42,12 @@
 
 /* Prints `flags` type log message passed as `format` */
 extern int ekflog_write(uint32_t flags, const char *format, ...);
+
+extern int ekflog_timeWrite(time_t timestamp);
+extern int ekflog_senscImuWrite(const sensor_event_t *accEvt, const sensor_event_t *gyrEvt, const sensor_event_t *magEvt);
+extern int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt);
+extern int ekflog_senscBaroWrite(const sensor_event_t *baroEvt);
+
 
 
 /* Deinitialize ekflog module */
