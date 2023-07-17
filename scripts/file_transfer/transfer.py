@@ -1,9 +1,13 @@
 import pexpect
 import argparse
+import subprocess
+import os
 
 
 PROMPT = r"root@\?:(.*) # "
 EOL = "\r+\n"
+
+TMP_FILE = "/tmp/file_transfer.b64"
 
 
 def get_args():
@@ -34,12 +38,17 @@ def main() -> None:
         device.sendline("cd ~")
         device.expect(PROMPT)
 
-    with open(args.dest_path, "w", newline="") as file:
-        device.sendline(f"cat {args.source_path}")
-        device.expect(f"cat {args.source_path}{EOL}")
+    with open(TMP_FILE, "w", newline="") as file:
+        device.sendline(f"base64 {args.source_path}")
+        device.expect(f"base64 {args.source_path}{EOL}")
 
         while (device.expect([f"{EOL}", PROMPT]) == 0):
-            file.write(f"{device.before}\n")
+            file.write(f"{device.before}")
+
+    with open(args.dest_path, "w") as dest_file:
+        subprocess.run(["base64", "-d", TMP_FILE], stdout=dest_file)
+
+    os.remove(TMP_FILE)
 
     device.terminate()
 
