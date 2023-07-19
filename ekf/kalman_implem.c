@@ -163,6 +163,10 @@ static int kmn_loggingConverter(const hmap_t *h)
 	else if (strcmp(str, "STRICT") == 0) {
 		converterResult->logMode = EKFLOG_STRICT_MODE;
 	}
+	else {
+		fprintf(stderr, "Invalid log specifier: %s\n", str);
+		return -1;
+	}
 
 	return 0;
 }
