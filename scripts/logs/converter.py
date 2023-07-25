@@ -1,6 +1,6 @@
 import argparse
 
-from common.logs_file_formats.file_format_factory import FileFormatFactory
+from common.formats.format import FormatFactory
 
 
 def get_args():
@@ -22,8 +22,8 @@ def get_args():
 def main():
     args = get_args()
 
-    input_file_handler = FileFormatFactory.from_path(args.input_file)
-    output_file_handler = FileFormatFactory.from_path(args.output_file)
+    input_file_handler = FormatFactory.from_path(args.input_file)
+    output_file_handler = FormatFactory.from_path(args.output_file)
 
     logs = input_file_handler.import_logs(args.input_file)
     output_file_handler.export_logs(args.output_file, logs)

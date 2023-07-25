@@ -20,22 +20,18 @@ class LogsVisitor(metaclass=abc.ABCMeta):
                 callable(subclass.visit_time_log) or
                 NotImplemented)
 
-
     @abc.abstractmethod
-    def visit_time_log(self, timeLog: logs_types.TimeLog):
+    def visit_time_log(self, time_log: logs_types.TimeLog):
         raise NotImplementedError
 
-
     @abc.abstractmethod
-    def visit_imu_log(self, imuLog: logs_types.ImuLog):
+    def visit_imu_log(self, imu_log: logs_types.ImuLog):
         raise NotImplementedError
 
-
     @abc.abstractmethod
-    def visit_gps_log(self, gpsLog: logs_types.GpsLog):
+    def visit_gps_log(self, gps_log: logs_types.GpsLog):
         raise NotImplementedError
 
-
     @abc.abstractmethod
-    def visit_baro_log(self, baroLog: logs_types.BaroLog):
+    def visit_baro_log(self, baro_log: logs_types.BaroLog):
         raise NotImplementedError

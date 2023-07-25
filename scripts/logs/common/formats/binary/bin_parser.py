@@ -1,18 +1,18 @@
 from typing import Literal, Dict
 import common.models.log_reading as logs_types
 import common.models.utils as utils
-from common.logs_file_formats.binary_file.utils import FieldSpecifier, FieldType
-
-
+from common.formats.binary.utils import FieldSpecifier, FieldType
 from io import BufferedReader
 
 
-
 class BinaryLogParser:
-    def __init__(self, fields_specifiers: Dict[str, FieldSpecifier], byteOrder: Literal['little', 'big'] = 'little') -> None:
-        self.byteOrder = byteOrder
+    def __init__(
+            self,
+            fields_specifiers: Dict[str, FieldSpecifier],
+            byte_order: Literal['little', 'big'] = 'little'
+    ) -> None:
+        self.byteOrder = byte_order
         self.fields_specifiers = fields_specifiers
-
 
     def parse(self, file_path: str) -> list[logs_types.LogReading]:
         result = []
@@ -47,22 +47,19 @@ class BinaryLogParser:
 
         return result
 
-
     def __parse_time_log(self, log_id: int, file: BufferedReader) -> logs_types.TimeLog:
         timestamp = self.__parse_field(file, self.fields_specifiers["timestamp"])
         return logs_types.TimeLog(log_id, timestamp)
-
 
     def __parse_imu_log(self, log_id: int, file: BufferedReader) -> logs_types.ImuLog:
         timestamp = self.__parse_field(file, self.fields_specifiers["timestamp"])
 
         accel_vector = self.__parse_vector3(file, self.fields_specifiers["acceleration"])
         gyro_vector = self.__parse_vector3(file, self.fields_specifiers["gyro"])
-        dAngle_vector = self.__parse_vector3(file, self.fields_specifiers["dAngle"])
+        d_angle_vector = self.__parse_vector3(file, self.fields_specifiers["dAngle"])
         mag_vector = self.__parse_vector3(file, self.fields_specifiers["magnetometer"])
 
-        return logs_types.ImuLog(log_id, timestamp, accel_vector, gyro_vector, dAngle_vector, mag_vector)
-
+        return logs_types.ImuLog(log_id, timestamp, accel_vector, gyro_vector, d_angle_vector, mag_vector)
 
     def __parse_gps_log(self, log_id: int, file: BufferedReader) -> logs_types.GpsLog:
         timestamp = self.__parse_field(file, self.fields_specifiers["timestamp"])
@@ -78,9 +75,7 @@ class BinaryLogParser:
 
         velocity = self.__parse_ned(file, self.fields_specifiers["velocity"])
 
-
         return logs_types.GpsLog(log_id, timestamp, position, horizontal_acc, velocity_acc, satellite_nb, fix, velocity)
-
 
     def __parse_baro_log(self, log_id, file: BufferedReader) -> logs_types.BaroLog:
         timestamp = self.__parse_field(file, self.fields_specifiers["timestamp"])
@@ -90,14 +85,12 @@ class BinaryLogParser:
 
         return logs_types.BaroLog(log_id, timestamp, pressure, temperature)
 
-
     def __parse_global_position(self, file: BufferedReader):
         return utils.GlobalPosition(
             latitude=self.__parse_field(file, self.fields_specifiers["latitude"]),
             longitude=self.__parse_field(file, self.fields_specifiers["longitude"]),
             altitude=self.__parse_field(file, self.fields_specifiers["altitude"])
         )
-
 
     def __parse_ned(self, file: BufferedReader, field: FieldSpecifier) -> utils.NEDCoordinates:
         return utils.NEDCoordinates(
@@ -106,14 +99,12 @@ class BinaryLogParser:
             down=self.__parse_field(file, field)
         )
 
-
     def __parse_vector3(self, file: BufferedReader, field: FieldSpecifier) -> utils.Vector3:
         return utils.Vector3(
             x=self.__parse_field(file, field),
             y=self.__parse_field(file, field),
             z=self.__parse_field(file, field)
         )
-
 
     def __parse_field(self, file: BufferedReader, field: FieldSpecifier):
         if field.type == FieldType.INT:

@@ -6,6 +6,7 @@ class FieldType(Enum):
     INT = 1,
     CHAR = 2
 
+
 @dataclass
 class FieldSpecifier:
     size: int

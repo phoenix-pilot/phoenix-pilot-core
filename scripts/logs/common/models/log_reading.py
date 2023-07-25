@@ -1,9 +1,3 @@
-from __future__ import annotations
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from logs_analysis.context import AnalysisContext
-
 from abc import ABC, abstractmethod
 
 from common.models.utils import Vector3, GlobalPosition, NEDCoordinates
@@ -29,11 +23,11 @@ class TimeLog(LogReading):
 
 
 class ImuLog(LogReading):
-    def __init__(self, log_id, timestamp, accel: Vector3, gyro: Vector3, gyroDAngle: Vector3, mag: Vector3):
+    def __init__(self, log_id, timestamp, accel: Vector3, gyro: Vector3, gyro_d_angle: Vector3, mag: Vector3):
         super().__init__(log_id, timestamp)
         self.accel = accel
         self.gyro = gyro
-        self.gyroDAngle = gyroDAngle
+        self.gyroDAngle = gyro_d_angle
         self.mag = mag
 
     def accept(self, visitor: LogsVisitor):
@@ -41,12 +35,22 @@ class ImuLog(LogReading):
 
 
 class GpsLog(LogReading):
-    def __init__(self, log_id, timestamp, position: GlobalPosition, horizontalAccuracy, velocityAccuracy, satelliteNumber, fix, velocity: NEDCoordinates):
+    def __init__(
+            self,
+            log_id,
+            timestamp,
+            position: GlobalPosition,
+            horizontal_accuracy,
+            velocity_accuracy,
+            satellite_number,
+            fix,
+            velocity: NEDCoordinates
+    ):
         super().__init__(log_id, timestamp)
         self.position = position
-        self.horizontalAccuracy = horizontalAccuracy
-        self.velocityAccuracy = velocityAccuracy
-        self.satelliteNumber = satelliteNumber
+        self.horizontalAccuracy = horizontal_accuracy
+        self.velocityAccuracy = velocity_accuracy
+        self.satelliteNumber = satellite_number
         self.fix = fix
         self.velocity = velocity
 
