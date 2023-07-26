@@ -8,7 +8,7 @@ class FieldType(Enum):
 
 
 @dataclass
-class FieldSpecifier:
+class BinaryField:
     size: int
     signed: bool = True
     type: FieldType = FieldType.INT

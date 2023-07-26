@@ -8,6 +8,7 @@ import abc
 
 
 class LogsVisitor(metaclass=abc.ABCMeta):
+    # Add appropriate checks if new log type is added
     @classmethod
     def __subclasshook__(cls, subclass):
         return (hasattr(subclass, 'visit_time_log') and

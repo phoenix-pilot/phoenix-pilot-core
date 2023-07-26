@@ -1,19 +1,22 @@
+from dataclasses import dataclass
+
+
+@dataclass
 class Vector3:
-    def __init__(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
+    x: int
+    y: int
+    z: int
 
 
+@dataclass
 class GlobalPosition:
-    def __init__(self, latitude, longitude, altitude):
-        self.altitude = altitude
-        self.longitude = longitude
-        self.latitude = latitude
+    altitude: int
+    longitude: int
+    latitude: int
 
 
+@dataclass
 class NEDCoordinates:
-    def __init__(self, north, east, down):
-        self.north = north
-        self.east = east
-        self.down = down
+    north: int
+    east: int
+    down: int

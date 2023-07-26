@@ -4,7 +4,7 @@ from common.models.utils import Vector3, GlobalPosition, NEDCoordinates
 from common.models.visitor import LogsVisitor
 
 
-class LogReading(ABC):
+class LogEntry(ABC):
     def __init__(self, log_id, timestamp):
         self.id = log_id
         self.timestamp = timestamp
@@ -14,7 +14,7 @@ class LogReading(ABC):
         raise NotImplementedError
 
 
-class TimeLog(LogReading):
+class TimeLog(LogEntry):
     def __init__(self, log_id, timestamp):
         super().__init__(log_id, timestamp)
 
@@ -22,7 +22,7 @@ class TimeLog(LogReading):
         visitor.visit_time_log(self)
 
 
-class ImuLog(LogReading):
+class ImuLog(LogEntry):
     def __init__(self, log_id, timestamp, accel: Vector3, gyro: Vector3, gyro_d_angle: Vector3, mag: Vector3):
         super().__init__(log_id, timestamp)
         self.accel = accel
@@ -34,7 +34,7 @@ class ImuLog(LogReading):
         visitor.visit_imu_log(self)
 
 
-class GpsLog(LogReading):
+class GpsLog(LogEntry):
     def __init__(
             self,
             log_id,
@@ -58,7 +58,7 @@ class GpsLog(LogReading):
         visitor.visit_gps_log(self)
 
 
-class BaroLog(LogReading):
+class BaroLog(LogEntry):
     def __init__(self, log_id, timestamp, pressure, temperature):
         super().__init__(log_id, timestamp)
         self.pressure = pressure
