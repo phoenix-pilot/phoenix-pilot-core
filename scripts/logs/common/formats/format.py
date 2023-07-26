@@ -28,7 +28,7 @@ class FormatFactory:
         elif file_format == ".csv":
             return Csv()
         else:
-            raise Exception("Unsupported file format")
+            raise ValueError("Unsupported file format")
 
 
 class Binary(FileFormat):

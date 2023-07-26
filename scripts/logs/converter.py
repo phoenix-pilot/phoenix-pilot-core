@@ -1,3 +1,4 @@
+import sys
 import argparse
 
 from common.formats import FormatFactory
@@ -22,8 +23,12 @@ def get_args():
 def main():
     args = get_args()
 
-    input_file_handler = FormatFactory.from_path(args.input_file)
-    output_file_handler = FormatFactory.from_path(args.output_file)
+    try:
+        input_file_handler = FormatFactory.from_path(args.input_file)
+        output_file_handler = FormatFactory.from_path(args.output_file)
+    except ValueError:
+        print("Invalid file format. Supported formats: csv, binary", file=sys.stderr)
+        exit(-1)
 
     logs = input_file_handler.import_logs(args.input_file)
     output_file_handler.export_logs(args.output_file, logs)
