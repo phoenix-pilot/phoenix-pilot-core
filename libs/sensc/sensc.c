@@ -43,14 +43,6 @@ struct {
 } sensc_common;
 
 
-static inline void sensc_closeDescr(int *sensFd) {
-	if (*sensFd >= 0) {
-		close(*sensFd);
-		*sensFd = -1;
-	}
-}
-
-
 static int sensc_setupDscr(int sensFd, int typeFlag)
 {
 	sensor_type_t types;
@@ -74,7 +66,63 @@ static int sensc_setupDscr(int sensFd, int typeFlag)
 }
 
 
-int sensc_init(const char *path, bool corrEnable)
+static inline void sensc_closeDescr(int *sensFd)
+{
+	if (*sensFd >= 0) {
+		close(*sensFd);
+		*sensFd = -1;
+	}
+}
+
+
+static int sensc_openDescr(const char *path, int typeFlag, int initFlags, int *sensFd)
+{
+	int fd, sensorType;
+
+	if ((initFlags & typeFlag) == 0) {
+		*sensFd = -1;
+		return 0;
+	}
+
+	switch (typeFlag) {
+		case SENSC_INIT_IMU:
+			sensorType = SENSOR_TYPE_ACCEL | SENSOR_TYPE_GYRO | SENSOR_TYPE_MAG;
+			break;
+
+		case SENSC_INIT_BARO:
+			sensorType = SENSOR_TYPE_BARO;
+			break;
+
+		case SENSC_INIT_GPS:
+			sensorType = SENSOR_TYPE_GPS;
+			break;
+
+		default:
+			fprintf(stderr, "sensc: unknown type\n");
+			*sensFd = -1;
+			return -1;
+	}
+
+	fd = open(path, O_RDWR);
+	if (fd < 0) {
+		fprintf(stderr, "sensc: open failed\n");
+		*sensFd = -1;
+		return -1;
+	}
+
+	if (sensc_setupDscr(fd, sensorType) < 0) {
+		fprintf(stderr, "sensc: ioctl failed\n");
+		close(fd);
+		*sensFd = -1;
+		return -1;
+	}
+
+	*sensFd = fd;
+	return 0;
+}
+
+
+int sensc_init(const char *path, bool corrEnable, int initFlags)
 {
 	bool err;
 
@@ -86,41 +134,18 @@ int sensc_init(const char *path, bool corrEnable)
 		}
 	}
 
-	sensc_common.fdImu = open(path, O_RDWR);
-	sensc_common.fdBaro = open(path, O_RDWR);
-	sensc_common.fdGps = open(path, O_RDWR);
-
 	err = false;
-	err = (sensc_common.fdImu < 0) ? true : err;
-	err = (sensc_common.fdBaro < 0) ? true : err;
-	err = (sensc_common.fdGps < 0) ? true : err;
+	err = (sensc_openDescr(path, SENSC_INIT_IMU, initFlags, &sensc_common.fdImu) < 0) ? true : err;
+	err = (sensc_openDescr(path, SENSC_INIT_BARO, initFlags, &sensc_common.fdBaro) < 0) ? true : err;
+	err = (sensc_openDescr(path, SENSC_INIT_GPS, initFlags, &sensc_common.fdGps) < 0) ? true : err;
 
 	if (err) {
+		fprintf(stderr, "sensc: init failed\n");
 		sensc_closeDescr(&sensc_common.fdImu);
 		sensc_closeDescr(&sensc_common.fdBaro);
 		sensc_closeDescr(&sensc_common.fdGps);
 
-		fprintf(stderr, "sensc: cannot open sensor descriptors\n");
-		return -1;
-	}
-
-	/* ioctl of sensor descriptors */
-	err = false;
-	err = (sensc_setupDscr(fd_imuId, SENSOR_TYPE_ACCEL | SENSOR_TYPE_GYRO | SENSOR_TYPE_MAG) < 0) ? true : err;
-	err = (sensc_setupDscr(fd_baroId, SENSOR_TYPE_BARO) < 0) ? true : err;
-	err = (sensc_setupDscr(fd_gpsId, SENSOR_TYPE_GPS) < 0) ? true : err;
-
-	if (err) {
-		fprintf(stderr, "sensc: cannot setup sensor descriptors\n");
-
-		if (sensc_common.corrEnable == true) {
-			corr_done();
-		}
-
-		sensc_closeDescr(&sensc_common.fdImu);
-		sensc_closeDescr(&sensc_common.fdBaro);
-		sensc_closeDescr(&sensc_common.fdGps);
-
+		corr_done();
 		return -1;
 	}
 
