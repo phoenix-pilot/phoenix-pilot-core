@@ -1,18 +1,17 @@
-from typing import Literal, Dict
-import common.models.log_reading as logs_types
-import common.models.utils as utils
-from common.formats.binary.utils import FieldSpecifier, FieldType
+from typing import Literal
 from io import BufferedReader
+from common.models import logs_types, utils
+from common.formats.binary.utils import FieldSpecifier, FieldType
+from common.formats.binary.fields import FIELDS
 
 
 class BinaryLogParser:
     def __init__(
             self,
-            fields_specifiers: Dict[str, FieldSpecifier],
             byte_order: Literal['little', 'big'] = 'little'
     ) -> None:
         self.byteOrder = byte_order
-        self.fields_specifiers = fields_specifiers
+        self.fields_specifiers = FIELDS
 
     def parse(self, file_path: str) -> list[logs_types.LogReading]:
         result = []
@@ -30,7 +29,6 @@ class BinaryLogParser:
                     print("Unknown entry in log file")
                     print(f"Last item: {result[len(result) - 1].id}")
                     raise e
-
 
                 if log_type == "T":
                     result.append(self.__parse_time_log(log_id, file))

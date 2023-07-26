@@ -1,6 +1,6 @@
 import argparse
 
-from common.formats.format import FormatFactory
+from common.formats import FormatFactory
 
 
 def get_args():

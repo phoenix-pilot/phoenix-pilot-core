@@ -1,7 +1,5 @@
 import csv
-import common.models.log_reading as logs_types
-
-from common.models.visitor import LogsVisitor
+from common.models import logs_types, LogsVisitor
 
 
 class CsvLogExporter(LogsVisitor):

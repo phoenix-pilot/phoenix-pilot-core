@@ -1,6 +1,5 @@
 import csv
-import common.models.log_reading as logs_types
-import common.models.utils as utils
+from common.models import logs_types, utils
 
 
 class CsvLogParser:

@@ -1,18 +1,16 @@
-from typing import Literal, Dict
-import common.models.log_reading as logs_types
-import common.models.utils as utils
-from common.models.visitor import LogsVisitor
+from typing import Literal
+from common.models import LogsVisitor, logs_types, utils
 from common.formats.binary.utils import FieldSpecifier, FieldType
+from common.formats.binary.fields import FIELDS
 
 
 class BinaryLogExporter(LogsVisitor):
     def __init__(
             self,
-            fields_specifiers: Dict[str, FieldSpecifier],
             byte_order: Literal['little', 'big'] = 'little'
     ) -> None:
         self.byte_order = byte_order
-        self.fields_specifiers = fields_specifiers
+        self.fields_specifiers = FIELDS
         self.file = None
 
     def export(self, file_path, logs: list[logs_types.LogReading]) -> None:
@@ -79,5 +77,7 @@ class BinaryLogExporter(LogsVisitor):
             )
         elif field_specifier.type == FieldType.CHAR:
             bytes = str.encode(data)
+        else:
+            raise Exception("Unknown field type")
 
         self.file.write(bytes)
