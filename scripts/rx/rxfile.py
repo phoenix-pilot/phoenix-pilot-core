@@ -18,8 +18,6 @@ import serial
 import subprocess
 import os
 import atexit
-import time
-import signal
 
 p = None
 args = None
@@ -90,7 +88,7 @@ def main():
                 "ascii",
             )
         )
-        ser.write(bytes(f"sleep 1\n", "ascii"))
+        ser.write(bytes("sleep 1\n", "ascii"))
         ser.write(
             bytes(
                 f"rx {os.path.basename(args.file)} < {args.portrx} > {args.portrx}\n",
@@ -108,7 +106,7 @@ def main():
     cmd_str = f"sx -X {args.file} < {args.porttx} > {args.porttx}"
     p = subprocess.Popen(cmd_str, stdout=subprocess.PIPE, shell=True)
 
-    return_code = p.wait()
+    exit(p.wait())
 
 
 def cleanup():
