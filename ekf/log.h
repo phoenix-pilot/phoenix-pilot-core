@@ -23,11 +23,6 @@
 #define MAX_MSG_LEN 60 /* Without terminating NUL character */
 
 #define EKFLOG_SENSC    (1 << 0)
-#define EKFLOG_MEAS     (1 << 1)
-#define EKFLOG_EKF_IMU  (1 << 2)
-#define EKFLOG_EKF_POS  (1 << 3)
-#define EKFLOG_GPS_POS  (1 << 4)
-#define EKFLOG_GPS_MEAS (1 << 5)
 #define EKFLOG_TIME     (1 << 6)
 
 /*
@@ -38,10 +33,6 @@
  * It that case appropriate warning is added to file.
  */
 #define EKFLOG_STRICT_MODE (1 << 30)
-
-
-/* Prints `flags` type log message passed as `format` */
-extern int ekflog_write(uint32_t flags, const char *format, ...);
 
 
 extern int ekflog_timeWrite(time_t timestamp);

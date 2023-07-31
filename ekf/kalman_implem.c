@@ -111,31 +111,11 @@ static int kmn_loggingConverter(const hmap_t *h)
 		if (strcmp(str, "SENSC") == 0) {
 			converterResult->log |= EKFLOG_SENSC;
 		}
-		else if (strcmp(str, "MEAS") == 0) {
-			converterResult->log |= EKFLOG_MEAS;
-		}
-		else if (strcmp(str, "EKF_IMU") == 0) {
-			converterResult->log |= EKFLOG_EKF_IMU;
-		}
-		else if (strcmp(str, "EKF_POS") == 0) {
-			converterResult->log |= EKFLOG_EKF_POS;
-		}
-		else if (strcmp(str, "GPS_POS") == 0) {
-			converterResult->log |= EKFLOG_GPS_POS;
-		}
-		else if (strcmp(str, "GPS_MEAS") == 0) {
-			converterResult->log |= EKFLOG_GPS_MEAS;
-		}
 		else if (strcmp(str, "TIME") == 0) {
 			converterResult->log |= EKFLOG_TIME;
 		}
 		else if (strcmp(str, "ALL") == 0) {
 			converterResult->log |= EKFLOG_SENSC;
-			converterResult->log |= EKFLOG_GPS_MEAS;
-			converterResult->log |= EKFLOG_EKF_IMU;
-			converterResult->log |= EKFLOG_EKF_POS;
-			converterResult->log |= EKFLOG_GPS_POS;
-			converterResult->log |= EKFLOG_GPS_MEAS;
 			converterResult->log |= EKFLOG_TIME;
 			break;
 		}

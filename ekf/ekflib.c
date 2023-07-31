@@ -170,7 +170,6 @@ static time_t ekf_dtGet(void)
 	time_t diff;
 
 	gettime(&ekf_common.currTime, NULL);
-	//ekflog_write(EKFLOG_TIME, "T,%llx\n", ekf_common.currTime);
 	ekflog_timeWrite((uint64_t)ekf_common.currTime);
 	diff = ekf_common.currTime - ekf_common.lastTime;
 	ekf_common.lastTime = ekf_common.currTime;
@@ -192,7 +191,6 @@ static void *ekf_thread(void *arg)
 
 	/* Kalman loop */
 	gettime(&ekf_common.lastTime, NULL);
-	//ekflog_write(EKFLOG_TIME, "T,%llx\n", ekf_common.lastTime);
 	ekflog_timeWrite((uint64_t)ekf_common.lastTime);
 
 	lastBaroUpdate = ekf_common.lastTime;
@@ -235,7 +233,6 @@ static void *ekf_thread(void *arg)
 		if (i++ > 50) {
 			quat_t q = { .a = kmn_vecAt(&ekf_common.stateEngine.state, QA), .i = kmn_vecAt(&ekf_common.stateEngine.state, QB), .j = kmn_vecAt(&ekf_common.stateEngine.state, QC), .k = kmn_vecAt(&ekf_common.stateEngine.state, QD) };
 			vec_t a = { .x = kmn_vecAt(&ekf_common.stateEngine.U, UAX), .y = kmn_vecAt(&ekf_common.stateEngine.U, UAY), .z = kmn_vecAt(&ekf_common.stateEngine.U, UAZ) };
-			vec_t pos = { .x = kmn_vecAt(&ekf_common.stateEngine.state, RX), .y = kmn_vecAt(&ekf_common.stateEngine.state, RY), .z = kmn_vecAt(&ekf_common.stateEngine.state, RZ) };
 			float yaw, pitch, roll;
 
 			quat_quat2euler(&q, &roll, &pitch, &yaw);
@@ -243,10 +240,6 @@ static void *ekf_thread(void *arg)
 			quat_vecRot(&a, &q);
 			a.z += EARTH_G;
 
-			ekflog_write(
-				EKFLOG_EKF_IMU,
-				"%lli %.3f %.3f %.3f %.2f %.2f %.2f %.3f %.3f  %.3f\n",
-				ekf_common.currTime, a.x, a.y, a.z, pos.x, pos.y, pos.z, yaw, pitch, roll);
 			i = 0;
 		}
 	}

@@ -103,12 +103,6 @@ static void *ekflog_thread(void *args)
 }
 
 
-int ekflog_write(uint32_t flags, const char *format, ...)
-{
-	return 0;
-}
-
-
 static int ekflog_actBuffReadyToWrite(void)
 {
 	if (ekflog_common.buffsDirty[ekflog_common.actBuffPart] == false) {
