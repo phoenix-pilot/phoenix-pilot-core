@@ -24,7 +24,6 @@ ifeq ("$(TARGET_FAMILY)-$(TARGET_SUBFAMILY)","host-generic")
 	DEFAULT_COMPONENTS := algebra_tests
 	DEFAULT_COMPONENTS += parser_tests
 	DEFAULT_COMPONENTS += devekf
-	DEFAULT_COMPONENTS += ekflog_tests
 else
 	# Create generic targets
 	DEFAULT_COMPONENTS := $(ALL_COMPONENTS)
