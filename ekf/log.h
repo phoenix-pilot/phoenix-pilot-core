@@ -20,10 +20,8 @@
 
 #include <libsensors.h>
 
-#define MAX_MSG_LEN 60 /* Without terminating NUL character */
-
 #define EKFLOG_SENSC    (1 << 0)
-#define EKFLOG_TIME     (1 << 6)
+#define EKFLOG_TIME     (1 << 1)
 
 /*
  * Potentially slower implementation, but with no possibility to lose logs.

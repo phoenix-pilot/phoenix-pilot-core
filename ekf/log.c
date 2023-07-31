@@ -9,6 +9,16 @@
  * This file is part of Phoenix-Pilot software
  *
  * %LICENSE%
+ *
+ *
+ * The actual implementation of collection logs uses a two buffers.
+ * The log producer saves data to the first one as long as there is enough space for new logs.
+ * When there is not enough free memory, the producer marks it as dirty and starts using the next one.
+ *
+ * A separate thread saves the dirty buffers to a file and clears dirty flag.
+ *
+ * This approach allows for collecting logs without blocking the EKF thread due to potentially
+ * time-consuming file writes.
  */
 
 #include "log.h"
@@ -21,48 +31,39 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#define BUFF_LEN 1024 * 16
+#define BUFFS_CAPACITY 1024 * 8
 
-/* Actual implementation accepts only buffer with two parts */
-#define BUFF_PARTS_NB 2
-#define BUFF_PART_LEN (BUFF_LEN / BUFF_PARTS_NB)
+#define TIME_LOG_LEN 13
+#define IMU_LOG_LEN  55
+#define GPS_LOG_LEN  55
+#define BARO_LOG_LEN 21
 
 #define PHOENIX_THREAD_PRIO 4
 
 
-/*
- * The actual implementation of collection logs uses a single buffer split into two parts.
- * The log producer saves data to the first part as long as there is enough space for new logs.
- * When there is not enough free memory in the current part, the producer marks it as dirty and
- * starts using the next one.
- *
- * A separate thread saves the dirty parts of the buffer to a file and removes this special flag.
- *
- * This approach allows for collecting logs without blocking the EKF thread due to potentially
- * time-consuming file writes.
- */
+typedef struct {
+	char buff[BUFFS_CAPACITY];
+	bool dirty;
+	int size; /* Used capacity */
+
+	char *head; /* First place from which it is safe to write to the buffer */
+} ekflog_buff_t;
 
 
 struct {
 	uint32_t logFlags;
 	int fd;
 
-	char buff[BUFF_LEN];
-	char *buffPartsStarts[BUFF_PARTS_NB];
-	char *buffEnds[BUFF_PARTS_NB]; /* Indicates the end of last log in buffer */
-	int actBuffPart;
+	ekflog_buff_t buffA;
+	ekflog_buff_t buffB;
 
-	char msg_buff[MAX_MSG_LEN];
-
-	bool buffsDirty[BUFF_PARTS_NB];
-
-	char *head;
+	ekflog_buff_t *actBuff;
 
 	pthread_mutex_t lock;
 	pthread_cond_t buffEvent;
 	pthread_t tid;
 
-	uint32_t logCnt;
+	uint32_t logCnt; /* Number of requests to log a value */
 	volatile int run;
 	bool logsEnabled;
 
@@ -70,32 +71,43 @@ struct {
 } ekflog_common;
 
 
+static inline ekflog_buff_t *ekflog_nextBufferGet(ekflog_buff_t *actBuff)
+{
+	return actBuff == &ekflog_common.buffA ? &ekflog_common.buffB : &ekflog_common.buffA;
+}
+
+
 static void *ekflog_thread(void *args)
 {
-	int bufferToClean = 0, dataLen;
+	ekflog_buff_t *outBuff = &ekflog_common.buffA;
 
 	pthread_mutex_lock(&ekflog_common.lock);
 
 	do {
-		while (ekflog_common.buffsDirty[bufferToClean] == false && ekflog_common.run != 0) {
+		while (outBuff->dirty == false && ekflog_common.run != 0) {
 			pthread_cond_wait(&ekflog_common.buffEvent, &ekflog_common.lock);
 		}
 
-		while (ekflog_common.buffsDirty[bufferToClean] == true) {
-			dataLen = ekflog_common.buffEnds[bufferToClean] - ekflog_common.buffPartsStarts[bufferToClean];
+		while (outBuff->dirty == true) {
 			pthread_mutex_unlock(&ekflog_common.lock);
 
-			if (write(ekflog_common.fd, ekflog_common.buffPartsStarts[bufferToClean], dataLen) != dataLen) {
+			if (write(ekflog_common.fd, outBuff->buff, outBuff->size) != outBuff->size) {
 				fprintf(stderr, "ekflog: error while writing to file\n");
 			}
 
 			pthread_mutex_lock(&ekflog_common.lock);
 
-			ekflog_common.buffsDirty[bufferToClean] = false;
-			bufferToClean = (bufferToClean + 1) % BUFF_PARTS_NB;
+			outBuff->dirty = false;
+			outBuff->size = 0;
+
+			outBuff = ekflog_nextBufferGet(outBuff);
 			pthread_cond_signal(&ekflog_common.buffEvent);
 		}
 	} while (ekflog_common.run != 0);
+
+	printf("Logging finished\n");
+	printf("Number of logs requests: %d\n", ekflog_common.logCnt);
+	printf("Lost logs: %d\n", ekflog_common.lost);
 
 	pthread_mutex_unlock(&ekflog_common.lock);
 
@@ -103,51 +115,51 @@ static void *ekflog_thread(void *args)
 }
 
 
-static int ekflog_actBuffReadyToWrite(void)
+static bool ekflog_actBuffWritable(void)
 {
-	if (ekflog_common.buffsDirty[ekflog_common.actBuffPart] == false) {
-		return 0;
+	if (ekflog_common.actBuff->dirty == false) {
+		return true;
 	}
 
 	if ((ekflog_common.logFlags & EKFLOG_STRICT_MODE) != 0) {
 		/* Waiting for a place to insert logs */
 		do {
 			pthread_cond_wait(&ekflog_common.buffEvent, &ekflog_common.lock);
-		} while (ekflog_common.buffsDirty[ekflog_common.actBuffPart] == true);
+		} while (ekflog_common.actBuff->dirty == true);
 
-		return 0;
+		return true;
 	}
 
-	return -1;
+	return false;
 }
 
 
-static int ekflog_writeBin(void *msg, size_t msg_len)
+static int ekflog_write(void *msg, size_t msg_len)
 {
-	size_t remainingBufPartLen;
+	size_t remainingBuffSize;
 
 	pthread_mutex_lock(&ekflog_common.lock);
 
-	remainingBufPartLen = ekflog_common.buffPartsStarts[ekflog_common.actBuffPart] - ekflog_common.head + BUFF_PART_LEN;
+	remainingBuffSize = BUFFS_CAPACITY - ekflog_common.actBuff->size;
 
-	if (remainingBufPartLen < msg_len) {
+	if (remainingBuffSize < msg_len) {
 		/* Changing actual buffer for the next one */
-		ekflog_common.buffEnds[ekflog_common.actBuffPart] = ekflog_common.head;
-		ekflog_common.buffsDirty[ekflog_common.actBuffPart] = true;
-		ekflog_common.actBuffPart = (ekflog_common.actBuffPart + 1) % BUFF_PARTS_NB;
-		ekflog_common.head = ekflog_common.buffPartsStarts[ekflog_common.actBuffPart];
+		ekflog_common.actBuff->dirty = true;
+		ekflog_common.actBuff = ekflog_nextBufferGet(ekflog_common.actBuff);
+		ekflog_common.actBuff->head = ekflog_common.actBuff->buff;
 		pthread_cond_signal(&ekflog_common.buffEvent);
 	}
 
-	if (ekflog_actBuffReadyToWrite() != 0) {
+	if (!ekflog_actBuffWritable()) {
 		/* Dropping the log */
 		ekflog_common.lost++;
 		pthread_mutex_unlock(&ekflog_common.lock);
 		return -1;
 	}
 
-	memcpy(ekflog_common.head, msg, msg_len);
-	ekflog_common.head += msg_len;
+	memcpy(ekflog_common.actBuff->head, msg, msg_len);
+	ekflog_common.actBuff->head += msg_len;
+	ekflog_common.actBuff->size += msg_len;
 
 	pthread_mutex_unlock(&ekflog_common.lock);
 
@@ -169,110 +181,112 @@ static int ekflog_writeLogPrefix(char *msg_buf, char msgType, time_t timestamp)
 }
 
 
-static inline void ekflog_addLogField(char *msg_buf, int *msgEnd, const void *data, size_t dataSize)
+static inline int ekflog_addLogField(char *msg_buf, const void *data, size_t dataSize)
 {
-	memcpy(&msg_buf[*msgEnd], data, dataSize);
-	*msgEnd += dataSize;
+	memcpy(&msg_buf, data, dataSize);
+	return dataSize;
 }
 
 
 extern int ekflog_timeWrite(time_t timestamp)
 {
-	int msg_len;
+	char msgBuff[TIME_LOG_LEN];
 
 	/* Log call with flags that are not enabled is not an error */
 	if ((ekflog_common.logFlags & EKFLOG_TIME) == 0) {
 		return 0;
 	}
 
-	msg_len = ekflog_writeLogPrefix(ekflog_common.msg_buff, 'T', timestamp);
+	ekflog_writeLogPrefix(msgBuff, 'T', timestamp);
 
-	return ekflog_writeBin(ekflog_common.msg_buff, msg_len);
+	return ekflog_write(msgBuff, sizeof(msgBuff));
 }
 
 
 extern int ekflog_senscImuWrite(const sensor_event_t *accEvt, const sensor_event_t *gyrEvt, const sensor_event_t *magEvt)
 {
-	int msg_len;
+	char msgBuff[IMU_LOG_LEN];
+	char *msgHead = msgBuff;
 
 	/* Log call with flags that are not enabled is not an error */
 	if ((ekflog_common.logFlags & EKFLOG_SENSC) == 0) {
 		return 0;
 	}
 
-	msg_len = ekflog_writeLogPrefix(ekflog_common.msg_buff, 'I', accEvt->timestamp);
+	msgHead += ekflog_writeLogPrefix(msgHead, 'I', accEvt->timestamp);
 
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &accEvt->accels.accelX, sizeof(accEvt->accels.accelX));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &accEvt->accels.accelY, sizeof(accEvt->accels.accelY));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &accEvt->accels.accelZ, sizeof(accEvt->accels.accelZ));
+	msgHead += ekflog_addLogField(msgHead, &accEvt->accels.accelX, sizeof(accEvt->accels.accelX));
+	msgHead += ekflog_addLogField(msgHead, &accEvt->accels.accelY, sizeof(accEvt->accels.accelY));
+	msgHead += ekflog_addLogField(msgHead, &accEvt->accels.accelZ, sizeof(accEvt->accels.accelZ));
 
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &accEvt->gyro.gyroX, sizeof(accEvt->gyro.gyroX));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &accEvt->gyro.gyroY, sizeof(accEvt->gyro.gyroY));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &accEvt->gyro.gyroZ, sizeof(accEvt->gyro.gyroZ));
+	msgHead += ekflog_addLogField(msgHead, &accEvt->gyro.gyroX, sizeof(accEvt->gyro.gyroX));
+	msgHead += ekflog_addLogField(msgHead, &accEvt->gyro.gyroY, sizeof(accEvt->gyro.gyroY));
+	msgHead += ekflog_addLogField(msgHead, &accEvt->gyro.gyroZ, sizeof(accEvt->gyro.gyroZ));
 
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &accEvt->gyro.dAngleX, sizeof(accEvt->gyro.dAngleX));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &accEvt->gyro.dAngleY, sizeof(accEvt->gyro.dAngleY));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &accEvt->gyro.dAngleZ, sizeof(accEvt->gyro.dAngleZ));
+	msgHead += ekflog_addLogField(msgHead, &accEvt->gyro.dAngleX, sizeof(accEvt->gyro.dAngleX));
+	msgHead += ekflog_addLogField(msgHead, &accEvt->gyro.dAngleY, sizeof(accEvt->gyro.dAngleY));
+	msgHead += ekflog_addLogField(msgHead, &accEvt->gyro.dAngleZ, sizeof(accEvt->gyro.dAngleZ));
 
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &accEvt->mag.magX, sizeof(accEvt->mag.magX));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &accEvt->mag.magY, sizeof(accEvt->mag.magY));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &accEvt->mag.magZ, sizeof(accEvt->mag.magZ));
+	msgHead += ekflog_addLogField(msgHead, &accEvt->mag.magX, sizeof(accEvt->mag.magX));
+	msgHead += ekflog_addLogField(msgHead, &accEvt->mag.magY, sizeof(accEvt->mag.magY));
+	msgHead += ekflog_addLogField(msgHead, &accEvt->mag.magZ, sizeof(accEvt->mag.magZ));
 
-	return ekflog_writeBin(ekflog_common.msg_buff, msg_len);
+	return ekflog_write(msgBuff, sizeof(msgBuff));
 }
 
 
 extern int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt)
 {
-	int msg_len;
+	char msgBuff[GPS_LOG_LEN];
+	char *msgHead = msgBuff;
 
 	/* Log call with flags that are not enabled is not an error */
 	if ((ekflog_common.logFlags & EKFLOG_SENSC) == 0) {
 		return 0;
 	}
 
-	msg_len = ekflog_writeLogPrefix(ekflog_common.msg_buff, 'P', gpsEvt->timestamp);
+	msgHead += ekflog_writeLogPrefix(msgBuff, 'P', gpsEvt->timestamp);
 
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &gpsEvt->gps.lat, sizeof(gpsEvt->gps.lat));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &gpsEvt->gps.lon, sizeof(gpsEvt->gps.lon));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &gpsEvt->gps.alt, sizeof(gpsEvt->gps.alt));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.lat, sizeof(gpsEvt->gps.lat));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.lon, sizeof(gpsEvt->gps.lon));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.alt, sizeof(gpsEvt->gps.alt));
 
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &gpsEvt->gps.eph, sizeof(gpsEvt->gps.eph));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &gpsEvt->gps.evel, sizeof(gpsEvt->gps.evel));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.eph, sizeof(gpsEvt->gps.eph));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.evel, sizeof(gpsEvt->gps.evel));
 
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &gpsEvt->gps.fix, sizeof(gpsEvt->gps.fix));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &gpsEvt->gps.satsNb, sizeof(gpsEvt->gps.satsNb));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.fix, sizeof(gpsEvt->gps.fix));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.satsNb, sizeof(gpsEvt->gps.satsNb));
 
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &gpsEvt->gps.velNorth, sizeof(gpsEvt->gps.velNorth));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &gpsEvt->gps.velEast, sizeof(gpsEvt->gps.velEast));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &gpsEvt->gps.velDown, sizeof(gpsEvt->gps.velDown));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.velNorth, sizeof(gpsEvt->gps.velNorth));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.velEast, sizeof(gpsEvt->gps.velEast));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.velDown, sizeof(gpsEvt->gps.velDown));
 
-	return ekflog_writeBin(ekflog_common.msg_buff, msg_len);
+	return ekflog_write(msgBuff, sizeof(msgBuff));
 }
 
 
 extern int ekflog_senscBaroWrite(const sensor_event_t *baroEvt)
 {
-	int msg_len;
+	char msgBuff[BARO_LOG_LEN];
+	char *msgHead = msgBuff;
 
 	/* Log call with flags that are not enabled is not an error */
 	if ((ekflog_common.logFlags & EKFLOG_SENSC) == 0) {
 		return 0;
 	}
 
-	msg_len = ekflog_writeLogPrefix(ekflog_common.msg_buff, 'B', baroEvt->timestamp);
+	msgHead += ekflog_writeLogPrefix(msgHead, 'B', baroEvt->timestamp);
 
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &baroEvt->baro.pressure, sizeof(baroEvt->baro.pressure));
-	ekflog_addLogField(ekflog_common.msg_buff, &msg_len, &baroEvt->baro.temp, sizeof(baroEvt->baro.temp));
+	msgHead += ekflog_addLogField(msgHead, &baroEvt->baro.pressure, sizeof(baroEvt->baro.pressure));
+	msgHead += ekflog_addLogField(msgHead, &baroEvt->baro.temp, sizeof(baroEvt->baro.temp));
 
-	return ekflog_writeBin(ekflog_common.msg_buff, msg_len);
+	return ekflog_write(msgBuff, sizeof(msgBuff));
 }
 
 
 int ekflog_done(void)
 {
 	int err = 0;
-	int remainingData;
 
 	if (ekflog_common.logsEnabled == false) {
 		return 0;
@@ -280,6 +294,7 @@ int ekflog_done(void)
 
 	pthread_mutex_lock(&ekflog_common.lock);
 	ekflog_common.run = 0;
+	ekflog_common.actBuff->dirty = true;
 	pthread_mutex_unlock(&ekflog_common.lock);
 
 	pthread_cond_signal(&ekflog_common.buffEvent);
@@ -288,16 +303,6 @@ int ekflog_done(void)
 		fprintf(stderr, "ekflog: cannot join logging thread\n");
 		return -1;
 	}
-
-	remainingData = ekflog_common.head - ekflog_common.buffPartsStarts[ekflog_common.actBuffPart];
-
-	if (write(ekflog_common.fd, ekflog_common.buffPartsStarts[ekflog_common.actBuffPart], remainingData) != remainingData) {
-		fprintf(stderr, "ekflog: error while writing to file\n");
-	}
-
-	printf("Logging finished\n");
-	printf("Number of logs requests: %d\n", ekflog_common.logCnt);
-	printf("Lost logs: %d\n", ekflog_common.lost);
 
 	err |= close(ekflog_common.fd);
 	err |= pthread_mutex_destroy(&ekflog_common.lock);
@@ -310,7 +315,7 @@ int ekflog_done(void)
 int ekflog_init(const char *path, uint32_t flags)
 {
 	pthread_attr_t attr;
-	int ret, i;
+	int ret;
 
 	if (flags == 0) {
 		ekflog_common.logsEnabled = false;
@@ -366,14 +371,15 @@ int ekflog_init(const char *path, uint32_t flags)
 
 	ekflog_common.logFlags = flags;
 
-	for (i = 0; i < BUFF_PARTS_NB; i++) {
-		ekflog_common.buffPartsStarts[i] = ekflog_common.buff + BUFF_PART_LEN * i;
-		ekflog_common.buffEnds[i] = NULL;
-		ekflog_common.buffsDirty[i] = false;
-	}
+	ekflog_common.buffA.dirty = false;
+	ekflog_common.buffA.size = 0;
+	ekflog_common.buffA.head = ekflog_common.buffA.buff;
 
-	ekflog_common.actBuffPart = 0;
-	ekflog_common.head = ekflog_common.buff;
+	ekflog_common.buffB.dirty = false;
+	ekflog_common.buffB.size = 0;
+	ekflog_common.buffB.head = ekflog_common.buffB.buff;
+
+	ekflog_common.actBuff = &ekflog_common.buffA;
 	ekflog_common.logCnt = 0;
 	ekflog_common.run = 1;
 	ekflog_common.logsEnabled = true;
