@@ -35,15 +35,19 @@
 #define EKFLOG_STRICT_MODE (1 << 30)
 
 
+/* Logs timestamp */
 extern int ekflog_timeWrite(time_t timestamp);
 
 
+/* Logs data form IMU sensor */
 extern int ekflog_senscImuWrite(const sensor_event_t *accEvt, const sensor_event_t *gyrEvt, const sensor_event_t *magEvt);
 
 
+/* Logs data from GPS */
 extern int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt);
 
 
+/* Logs data from barometer */
 extern int ekflog_senscBaroWrite(const sensor_event_t *baroEvt);
 
 
