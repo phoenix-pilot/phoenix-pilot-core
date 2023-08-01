@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 
-from logs_analysis.analysis import LogAnalysis
-from logs_analysis.context import AnalysisContext
+from logs_evaluations.log_evaluations import LogEvaluation
+from logs_evaluations.context import StudyContext
 
 
-class LogsCnt(LogAnalysis):
-    def run(self, context: AnalysisContext):
+class LogsCnt(LogEvaluation):
+    def run(self, context: StudyContext):
         all_cnt = len(context.all_logs)
         time_cnt = len(context.time_logs)
         imu_cnt = len(context.imu_logs)

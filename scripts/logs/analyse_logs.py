@@ -1,7 +1,7 @@
 import argparse
 
 from common.formats import FormatFactory
-from logs_analysis import AnalysesFactory, AnalysisContext
+from logs_evaluations import EvaluationsFactory, StudyContext
 
 
 def get_args():
@@ -14,15 +14,13 @@ def get_args():
 def main():
     args = get_args()
 
-    file_handler = FormatFactory.from_path(args.log_file)
-    logs = file_handler.import_logs(args.log_file)
+    handler = FormatFactory.from_path(args.log_file)
+    logs = handler.import_logs(args.log_file)
 
-    analyses = AnalysesFactory.get_analyses()
+    ctx = StudyContext(logs)
 
-    analyses_context = AnalysisContext(logs)
-
-    for analysis in analyses:
-        analysis.run(analyses_context)
+    for analysis in EvaluationsFactory.get_evaluations():
+        analysis.run(ctx)
 
 
 if __name__ == "__main__":

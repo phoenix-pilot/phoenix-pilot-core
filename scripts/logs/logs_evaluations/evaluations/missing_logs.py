@@ -1,13 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from logs_analysis.analysis import LogAnalysis
-from logs_analysis.context import AnalysisContext
+from logs_evaluations.log_evaluations import LogEvaluation
+from logs_evaluations.context import StudyContext
 
 
-class MissingLogsAnalysis(LogAnalysis):
+class MissingLogs(LogEvaluation):
 
-    def run(self, context: AnalysisContext):
+    def run(self, context: StudyContext):
         if context.missed_logs_cnt == 0:
             print("All logs was saved")
             return
@@ -16,12 +16,12 @@ class MissingLogsAnalysis(LogAnalysis):
         missed_logs = np.zeros(length, dtype=np.uint)
 
         for i in range(length):
-            missed = context.get_missed_logs(i)
+            missed = context.get_missed(i)
             if missed > 0:
                 missed_logs[i] = missed
 
         print(f"Number of missed logs: {context.missed_logs_cnt}")
-        MissingLogsAnalysis.__draw_plot(context.missed_logs_cnt)
+        MissingLogs.__draw_plot(context.missed_logs_cnt)
 
     @staticmethod
     def __draw_plot(missed_logs: list[int], missed_logs_cnt: int):

@@ -8,7 +8,7 @@ from bisect import bisect_left
 from common.models.visitor import LogsVisitor
 
 
-class AnalysisContext:
+class StudyContext:
     def __init__(self, all_logs: list[log_types.LogReading]) -> None:
         self.all_logs = all_logs
 
@@ -17,36 +17,38 @@ class AnalysisContext:
         self.baro_logs = []
         self.imu_logs = []
 
-        filler = AnalysisContext.ContextFiller(self)
+        filler = StudyContext.ContextFiller(self)
         for log in all_logs:
             log.accept(filler)
 
-        self.missed_logs_cnt = self.__calculate_missed_logs_cnt()
+        self.missed_logs_cnt = self.__calculate_missed()
 
-    def get_index_from_all_logs(self, log: log_types.LogReading) -> int:
+    def get_index(self, log: log_types.LogReading) -> int:
+        """Returns index of log from all logs"""
+
         i = bisect_left(self.all_logs, log, key=lambda entry: entry.id)
         if i != len(self.all_logs) and self.all_logs[i] == log:
             return i
         raise ValueError
 
-    def get_missed_logs(self, index: int) -> int:
+    def get_missed(self, index: int) -> int:
         if index == 0:
             return self.all_logs[index].id - 1
         else:
             return self.all_logs[index].id - self.all_logs[index - 1].id - 1
 
-    def __calculate_missed_logs_cnt(self) -> int:
+    def __calculate_missed(self) -> int:
         result = 0
 
         for i in range(len(self.all_logs)):
-            missed = self.get_missed_logs(i)
+            missed = self.get_missed(i)
             if missed > 0:
                 result = result + missed
 
         return result
 
     class ContextFiller(LogsVisitor):
-        def __init__(self, context: AnalysisContext) -> None:
+        def __init__(self, context: StudyContext) -> None:
             self.context = context
 
         def visit_time_log(self, time_log: log_types.TimeLog):
