@@ -23,9 +23,10 @@
 #include <sensc.h>
 
 struct {
-	time_t diffMax; /* Maximum time span on logging process (in microseconds) */
-	time_t step;    /* Step between logs (in microseconds) */
-	bool raw;       /* use corrections in measurements */
+	time_t diffMax;     /* Maximum time span on logging process (in microseconds) */
+	time_t step;        /* Step between logs (in microseconds) */
+	bool raw;           /* use corrections in measurements */
+	int senscInitFlags; /* sensor initialization flags for sensc module */
 
 	/* device log selection flags */
 	struct {
@@ -71,22 +72,27 @@ static int senslog_parseDevices(const char *devs)
 		switch (*devs) {
 			case 'a':
 				senslog_common.flags.accel = true;
+				senslog_common.senscInitFlags |= SENSC_INIT_IMU;
 				break;
 
 			case 'g':
 				senslog_common.flags.gyro = true;
+				senslog_common.senscInitFlags |= SENSC_INIT_IMU;
 				break;
 
 			case 'm':
 				senslog_common.flags.mag = true;
+				senslog_common.senscInitFlags |= SENSC_INIT_IMU;
 				break;
 
 			case 'b':
 				senslog_common.flags.baro = true;
+				senslog_common.senscInitFlags |= SENSC_INIT_BARO;
 				break;
 
 			case 'p':
 				senslog_common.flags.gps = true;
+				senslog_common.senscInitFlags |= SENSC_INIT_GPS;
 				break;
 
 			default:
@@ -120,6 +126,7 @@ static int senslog_parseArgs(int argc, char **argv)
 	senslog_common.step = 0;
 	senslog_common.diffMax = 0;
 	senslog_common.raw = false;
+	senslog_common.senscInitFlags = 0;
 
 	if (argc < 2) {
 		senslog_help(argv[0]);
@@ -179,7 +186,7 @@ int main(int argc, char **argv)
 	fprintf(stdout, "Logging for %lli seconds with %llims step\n", senslog_common.diffMax / 1000000, senslog_common.step / 1000);
 
 	/* initialization of sensor client with selectable corrections (raw == true means corrections disabled) */
-	if (sensc_init("/dev/sensors", !senslog_common.raw) < 0) {
+	if (sensc_init("/dev/sensors", !senslog_common.raw, senslog_common.senscInitFlags) < 0) {
 		fprintf(stderr, "Cannot initialize sensor client\n");
 		return EXIT_FAILURE;
 	}

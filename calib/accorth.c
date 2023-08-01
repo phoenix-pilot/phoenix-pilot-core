@@ -607,7 +607,7 @@ static int accorth_done(void)
 
 static int accorth_init(int argc, const char **argv)
 {
-	if (sensc_init(SENSOR_PATH, false) < 0) {
+	if (sensc_init(SENSOR_PATH, false, SENSC_INIT_IMU) < 0) {
 		return -1;
 	}
 

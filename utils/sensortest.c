@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (sensc_init("/dev/sensors", false) < 0) {
+	if (sensc_init("/dev/sensors", false, SENSC_INIT_IMU | SENSC_INIT_BARO | SENSC_INIT_GPS) < 0) {
 		printf("cannot initialize sensor client\n");
 		return EXIT_FAILURE;
 	}
