@@ -110,13 +110,6 @@ int ekf_init(void)
 		return -1;
 	}
 
-	ekf_common.run = 0;
-	if (sensc_init("/dev/sensors", true) < 0) {
-		pthread_mutex_destroy(&ekf_common.lock);
-		pthread_attr_destroy(&ekf_common.threadAttr);
-		return -1;
-	}
-
 	err = 0;
 	err |= kalman_predictAlloc(&ekf_common.stateEngine, STATE_LENGTH, CTRL_LENGTH);
 	err |= kalman_updateAlloc(&ekf_common.imuEngine, STATE_LENGTH, MEAS_IMU_LENGTH);
@@ -124,6 +117,22 @@ int ekf_init(void)
 	err |= kalman_updateAlloc(&ekf_common.gpsEngine, STATE_LENGTH, MEAS_GPS_LENGTH);
 
 	err |= kmn_configRead(EKF_CONFIG_FILE, &ekf_common.initVals);
+
+	/* activate update models selected in `initVals` */
+	ekf_common.imuEngine.active = ((ekf_common.initVals.modelFlags) & KMN_UPDT_IMU != 0);
+	ekf_common.baroEngine.active = ((ekf_common.initVals.modelFlags & KMN_UPDT_BARO) != 0);
+	ekf_common.gpsEngine.active = ((ekf_common.initVals.modelFlags & KMN_UPDT_GPS) != 0);
+
+	/* IMU calibration is obligatory */
+	if (!ekf_common.imuEngine.active) {
+		fprintf(stderr, "ekf: imu update not enabled\n");
+		err = -1;
+	}
+
+	ekf_common.run = 0;
+	if (err == 0 && sensc_init("/dev/sensors", true, SENSC_INIT_IMU | SENSC_INIT_BARO | SENSC_INIT_GPS) < 0) {
+		err = -1;
+	}
 
 	if (err != 0) {
 		sensc_deinit();
@@ -152,11 +161,19 @@ int ekf_init(void)
 	}
 
 	meas_imuCalib();
-	meas_baroCalib();
-	meas_gpsCalib();
 
+	if (ekf_common.baroEngine.active) {
+		meas_baroCalib();
+	}
+	if (ekf_common.gpsEngine.active) {
+		meas_gpsCalib();
+	}
+
+	/* obligatory engines initialization */
 	kmn_predInit(&ekf_common.stateEngine, meas_calibGet(), &ekf_common.initVals);
 	kmn_imuEngInit(&ekf_common.imuEngine, &ekf_common.initVals);
+
+	/* supplementary engines initialization */
 	kmn_baroEngInit(&ekf_common.baroEngine, &ekf_common.initVals);
 	kmn_gpsEngInit(&ekf_common.gpsEngine, &ekf_common.initVals);
 
@@ -203,7 +220,7 @@ static void *ekf_thread(void *arg)
 		updateStep = loopStep;
 
 		/* Update step selection */
-		if (ekf_common.currTime - lastBaroUpdate > BARO_UPDATE_TIMEOUT) {
+		if (ekf_common.currTime - lastBaroUpdate > BARO_UPDATE_TIMEOUT && ekf_common.baroEngine.active) {
 			if (meas_baroPoll() == 0) {
 				currUpdate = &ekf_common.baroEngine;
 				updateStep = ekf_common.currTime - lastBaroUpdate;
@@ -211,7 +228,7 @@ static void *ekf_thread(void *arg)
 			}
 		}
 
-		if (ekf_common.currTime - lastGpsUpdate > GPS_UPDATE_TIMEOUT) {
+		if (ekf_common.currTime - lastGpsUpdate > GPS_UPDATE_TIMEOUT && ekf_common.gpsEngine.active) {
 			if (meas_gpsPoll() == 0) {
 				currUpdate = &ekf_common.gpsEngine;
 				updateStep = ekf_common.currTime - lastGpsUpdate;

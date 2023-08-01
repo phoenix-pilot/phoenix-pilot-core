@@ -16,6 +16,7 @@
 #ifndef PHKALMAN_CORE_H
 #define PHKALMAN_CORE_H
 
+#include <stdbool.h>
 #include <matrix.h>
 
 /* UPDATE STEP FUNCTIONS */
@@ -77,6 +78,8 @@ typedef struct {
 	predictMeasurements predictMeasurements; /* predict hx bector based on state estimation */
 	initMeasurementCov initMeasCov;
 
+	/* active/initialized flag */
+	bool active;
 } update_engine_t;
 
 

@@ -108,6 +108,10 @@ static void baroUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_ini
 
 void kmn_baroEngInit(update_engine_t *engine, const kalman_init_t *inits)
 {
+	if (!engine->active) {
+		return;
+	}
+
 	baroUpdateInitializations(&engine->H, &engine->R, inits);
 
 	engine->getData = getMeasurement;
