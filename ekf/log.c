@@ -42,11 +42,9 @@
 
 
 typedef struct {
-	char buff[BUFFS_CAPACITY];
+	uint8_t buff[BUFFS_CAPACITY];
 	bool dirty;
 	int size; /* Used capacity */
-
-	char *head; /* First place from which it is safe to write to the buffer */
 } ekflog_buff_t;
 
 
@@ -146,7 +144,6 @@ static int ekflog_write(void *msg, size_t msg_len)
 		/* Changing actual buffer for the next one */
 		ekflog_common.actBuff->dirty = true;
 		ekflog_common.actBuff = ekflog_nextBufferGet(ekflog_common.actBuff);
-		ekflog_common.actBuff->head = ekflog_common.actBuff->buff;
 		pthread_cond_signal(&ekflog_common.buffEvent);
 	}
 
@@ -157,8 +154,7 @@ static int ekflog_write(void *msg, size_t msg_len)
 		return -1;
 	}
 
-	memcpy(ekflog_common.actBuff->head, msg, msg_len);
-	ekflog_common.actBuff->head += msg_len;
+	memcpy(ekflog_common.actBuff->buff + ekflog_common.actBuff->size, msg, msg_len);
 	ekflog_common.actBuff->size += msg_len;
 
 	pthread_mutex_unlock(&ekflog_common.lock);
@@ -167,7 +163,7 @@ static int ekflog_write(void *msg, size_t msg_len)
 }
 
 
-static int ekflog_writeLogPrefix(char *msg_buf, char msgType, time_t timestamp)
+static size_t ekflog_writeLogPrefix(uint8_t *msg_buf, char msgType, time_t timestamp)
 {
 	uint64_t time = (uint64_t)timestamp;
 
@@ -177,20 +173,20 @@ static int ekflog_writeLogPrefix(char *msg_buf, char msgType, time_t timestamp)
 	msg_buf[sizeof(ekflog_common.logCnt)] = msgType;
 	memcpy(&msg_buf[sizeof(ekflog_common.logCnt) + sizeof(msgType)], &time, sizeof(time));
 
-	return sizeof(uint32_t) + sizeof(char) + sizeof(uint64_t);
+	return sizeof(ekflog_common.logCnt) + sizeof(msgType) + sizeof(time);
 }
 
 
-static inline int ekflog_addLogField(char *msg_buf, const void *data, size_t dataSize)
+static inline size_t ekflog_addLogField(uint8_t *msg_buf, const void *data, size_t dataSize)
 {
-	memcpy(&msg_buf, data, dataSize);
+	memcpy(msg_buf, data, dataSize);
 	return dataSize;
 }
 
 
 extern int ekflog_timeWrite(time_t timestamp)
 {
-	char msgBuff[TIME_LOG_LEN];
+	uint8_t msgBuff[TIME_LOG_LEN];
 
 	/* Log call with flags that are not enabled is not an error */
 	if ((ekflog_common.logFlags & EKFLOG_TIME) == 0) {
@@ -205,8 +201,8 @@ extern int ekflog_timeWrite(time_t timestamp)
 
 extern int ekflog_senscImuWrite(const sensor_event_t *accEvt, const sensor_event_t *gyrEvt, const sensor_event_t *magEvt)
 {
-	char msgBuff[IMU_LOG_LEN];
-	char *msgHead = msgBuff;
+	uint8_t msgBuff[IMU_LOG_LEN];
+	uint8_t *msgHead = msgBuff;
 
 	/* Log call with flags that are not enabled is not an error */
 	if ((ekflog_common.logFlags & EKFLOG_SENSC) == 0) {
@@ -237,8 +233,8 @@ extern int ekflog_senscImuWrite(const sensor_event_t *accEvt, const sensor_event
 
 extern int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt)
 {
-	char msgBuff[GPS_LOG_LEN];
-	char *msgHead = msgBuff;
+	uint8_t msgBuff[GPS_LOG_LEN];
+	uint8_t *msgHead = msgBuff;
 
 	/* Log call with flags that are not enabled is not an error */
 	if ((ekflog_common.logFlags & EKFLOG_SENSC) == 0) {
@@ -281,8 +277,8 @@ extern int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt)
 
 extern int ekflog_senscBaroWrite(const sensor_event_t *baroEvt)
 {
-	char msgBuff[BARO_LOG_LEN];
-	char *msgHead = msgBuff;
+	uint8_t msgBuff[BARO_LOG_LEN];
+	uint8_t *msgHead = msgBuff;
 
 	/* Log call with flags that are not enabled is not an error */
 	if ((ekflog_common.logFlags & EKFLOG_SENSC) == 0) {
@@ -387,11 +383,9 @@ int ekflog_init(const char *path, uint32_t flags)
 
 	ekflog_common.buffA.dirty = false;
 	ekflog_common.buffA.size = 0;
-	ekflog_common.buffA.head = ekflog_common.buffA.buff;
 
 	ekflog_common.buffB.dirty = false;
 	ekflog_common.buffB.size = 0;
-	ekflog_common.buffB.head = ekflog_common.buffB.buff;
 
 	ekflog_common.actBuff = &ekflog_common.buffA;
 	ekflog_common.logCnt = 0;
