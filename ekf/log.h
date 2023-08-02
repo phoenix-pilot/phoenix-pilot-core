@@ -18,15 +18,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#define MAX_MSG_LEN 80 /* Without terminating NUL character */
+#include <libsensors.h>
 
 #define EKFLOG_SENSC    (1 << 0)
-#define EKFLOG_MEAS     (1 << 1)
-#define EKFLOG_EKF_IMU  (1 << 2)
-#define EKFLOG_EKF_POS  (1 << 3)
-#define EKFLOG_GPS_POS  (1 << 4)
-#define EKFLOG_GPS_MEAS (1 << 5)
-#define EKFLOG_TIME     (1 << 6)
+#define EKFLOG_TIME     (1 << 1)
 
 /*
  * Potentially slower implementation, but with no possibility to lose logs.
@@ -38,8 +33,20 @@
 #define EKFLOG_STRICT_MODE (1 << 30)
 
 
-/* Prints `flags` type log message passed as `format` */
-extern int ekflog_write(uint32_t flags, const char *format, ...);
+/* Logs timestamp */
+extern int ekflog_timeWrite(time_t timestamp);
+
+
+/* Logs data form IMU sensor */
+extern int ekflog_senscImuWrite(const sensor_event_t *accEvt, const sensor_event_t *gyrEvt, const sensor_event_t *magEvt);
+
+
+/* Logs data from GPS */
+extern int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt);
+
+
+/* Logs data from barometer */
+extern int ekflog_senscBaroWrite(const sensor_event_t *baroEvt);
 
 
 /* Deinitialize ekflog module */

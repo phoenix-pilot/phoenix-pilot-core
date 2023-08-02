@@ -40,19 +40,45 @@ class GpsLog(LogEntry):
             log_id,
             timestamp,
             position: GlobalPosition,
+            utc,
+            horizontal_dilution,
+            vertical_dilution,
+            alt_ellipsoid,
+            ground_speed,
+            velocity: NEDCoordinates,
             horizontal_accuracy,
+            vertical_accuracy,
             velocity_accuracy,
+            heading,
+            heading_offset,
+            heading_accuracy,
             satellite_number,
             fix,
-            velocity: NEDCoordinates
+
     ):
         super().__init__(log_id, timestamp)
         self.position = position
+
+        self.utc = utc
+
+        self.horizontalPrecisionDilution = horizontal_dilution
+        self.verticalPrecisionDilution = vertical_dilution
+
+        self.ellipsoidAlt = alt_ellipsoid
+
+        self.groundSpeed = ground_speed
+        self.velocity = velocity
+
         self.horizontalAccuracy = horizontal_accuracy
+        self.verticalAccuracy = vertical_accuracy
         self.velocityAccuracy = velocity_accuracy
+
+        self.heading = heading
+        self.headingOffset = heading_offset
+        self.headingAccuracy = heading_accuracy
+
         self.satelliteNumber = satellite_number
         self.fix = fix
-        self.velocity = velocity
 
     def accept(self, visitor: LogsVisitor):
         visitor.visit_gps_log(self)

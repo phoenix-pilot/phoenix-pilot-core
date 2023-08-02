@@ -8,7 +8,7 @@ class CsvLogExporter(LogsVisitor):
 
     def export(self, result_file_path: str, logs: list[logs_types.LogEntry]):
         with open(result_file_path, "w") as file:
-            csv_writer = csv.writer(file)
+            csv_writer = csv.writer(file, quoting=csv.QUOTE_MINIMAL)
 
             for log in logs:
                 self.entry = []
@@ -49,15 +49,29 @@ class CsvLogExporter(LogsVisitor):
         self.entry.append(str(gps_log.position.longitude))
         self.entry.append(str(gps_log.position.altitude))
 
-        self.entry.append(str(gps_log.horizontalAccuracy))
-        self.entry.append(str(gps_log.velocityAccuracy))
+        self.entry.append(str(gps_log.utc))
 
-        self.entry.append(str(gps_log.fix))
-        self.entry.append(str(gps_log.satelliteNumber))
+        self.entry.append(str(gps_log.horizontalPrecisionDilution))
+        self.entry.append(str(gps_log.verticalPrecisionDilution))
+
+        self.entry.append(str(gps_log.ellipsoidAlt))
+
+        self.entry.append(str(gps_log.groundSpeed))
 
         self.entry.append(str(gps_log.velocity.north))
         self.entry.append(str(gps_log.velocity.east))
         self.entry.append(str(gps_log.velocity.down))
+
+        self.entry.append(str(gps_log.horizontalAccuracy))
+        self.entry.append(str(gps_log.verticalAccuracy))
+        self.entry.append(str(gps_log.velocityAccuracy))
+
+        self.entry.append(str(gps_log.heading))
+        self.entry.append(str(gps_log.headingOffset))
+        self.entry.append(str(gps_log.headingAccuracy))
+
+        self.entry.append(str(gps_log.satelliteNumber))
+        self.entry.append(str(gps_log.fix))
 
     def visit_baro_log(self, baro_log: logs_types.BaroLog):
         self.__csv_row_prefix_add(baro_log, "Baro")

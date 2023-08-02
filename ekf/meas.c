@@ -71,39 +71,6 @@ static struct {
 } meas_common;
 
 
-static inline void meas_logImuSens(const sensor_event_t *accEvt, const sensor_event_t *gyrEvt, const sensor_event_t *magEvt)
-{
-	ekflog_write(EKFLOG_SENSC, "ACC SENSC %lld, %d, %d, %d\n", accEvt->timestamp, accEvt->accels.accelX, accEvt->accels.accelY, accEvt->accels.accelZ);
-	ekflog_write(EKFLOG_SENSC, "GYRO SENSC %lld, %d, %d, %d, %d, %d, %d\n", gyrEvt->timestamp, gyrEvt->gyro.gyroX, gyrEvt->gyro.gyroY, gyrEvt->gyro.gyroZ, gyrEvt->gyro.dAngleX, gyrEvt->gyro.dAngleY, gyrEvt->gyro.dAngleZ);
-	ekflog_write(EKFLOG_SENSC, "MAG SENSC %lld, %d, %d, %d\n", magEvt->timestamp, magEvt->mag.magX, magEvt->mag.magY, magEvt->mag.magZ);
-}
-
-
-static inline void meas_logGpsSens(const sensor_event_t *gpsEvt)
-{
-	ekflog_write(
-		EKFLOG_SENSC,
-		"GPS SENSC %lld, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n",
-		gpsEvt->timestamp,
-		gpsEvt->gps.lat,
-		gpsEvt->gps.lon,
-		gpsEvt->gps.alt,
-		gpsEvt->gps.eph,
-		gpsEvt->gps.evel,
-		gpsEvt->gps.fix,
-		gpsEvt->gps.satsNb,
-		gpsEvt->gps.velNorth,
-		gpsEvt->gps.velEast,
-		gpsEvt->gps.velDown);
-}
-
-
-static inline void meas_logBaroSens(const sensor_event_t *baroEvt)
-{
-	ekflog_write(EKFLOG_SENSC, "BARO SENSC %lld, %d, %d\n", baroEvt->timestamp, baroEvt->baro.pressure, baroEvt->baro.temp);
-}
-
-
 static void meas_gps2geo(const sensor_event_t *gpsEvt, meas_geodetic_t *geo)
 {
 	geo->lat = (double)gpsEvt->gps.lat / 1e9;
@@ -175,7 +142,7 @@ void meas_gpsCalib(void)
 	/* Assuring gps fix */
 	while (1) {
 		sensc_gpsGet(&gpsEvt);
-		meas_logGpsSens(&gpsEvt);
+		ekflog_senscGpsWrite(&gpsEvt);
 		if (gpsEvt.gps.fix > 0) {
 			break;
 		}
@@ -186,7 +153,7 @@ void meas_gpsCalib(void)
 	/* Assuring gps fix */
 	while (1) {
 		sensc_gpsGet(&gpsEvt);
-		meas_logGpsSens(&gpsEvt);
+		ekflog_senscGpsWrite(&gpsEvt);
 		if (gpsEvt.gps.hdop < 500) {
 			break;
 		}
@@ -200,7 +167,7 @@ void meas_gpsCalib(void)
 			sleep(1);
 			continue;
 		}
-		meas_logGpsSens(&gpsEvt);
+		ekflog_senscGpsWrite(&gpsEvt);
 		printf("Sampling gps position: sample %d/%d\n", i + 1, avg);
 		refPos.lat += (double)gpsEvt.gps.lat / 1e9;
 		refPos.lon += (double)gpsEvt.gps.lon / 1e9;
@@ -305,7 +272,7 @@ void meas_imuCalib(void)
 	i = 0;
 	while (i < avg) {
 		if (sensc_imuGet(&accEvt, &gyrEvt, &magEvt) >= 0) {
-			meas_logImuSens(&accEvt, &gyrEvt, &magEvt);
+			ekflog_senscImuWrite(&accEvt, &gyrEvt, &magEvt);
 			meas_acc2si(&accEvt, &acc);
 			meas_gyr2si(&gyrEvt, &gyr);
 			meas_mag2si(&magEvt, &mag);
@@ -345,7 +312,7 @@ void meas_baroCalib(void)
 	i = 0;
 	while (i < avg) {
 		if (sensc_baroGet(&baroEvt) >= 0) {
-			meas_logBaroSens(&baroEvt);
+			ekflog_senscBaroWrite(&baroEvt);
 			press += baroEvt.baro.pressure;
 			temp += baroEvt.baro.temp;
 			i++;
@@ -374,7 +341,7 @@ int meas_imuPoll(void)
 	/* these timestamps do not need to be very accurate */
 	meas_common.data.timeImu = gyrEvt.timestamp;
 
-	meas_logImuSens(&accEvt, &gyrEvt, &magEvt);
+	ekflog_senscImuWrite(&accEvt, &gyrEvt, &magEvt);
 
 	meas_acc2si(&accEvt, &meas_common.data.accelRaw); /* accelerations from mm/s^2 -> m/s^2 */
 	meas_mag2si(&magEvt, &meas_common.data.mag);      /* only magnitude matters from geomagnetism */
@@ -392,17 +359,6 @@ int meas_imuPoll(void)
 	fltr_accLpf(&meas_common.data.accelFltr);
 	fltr_gyroLpf(&meas_common.data.gyroFltr);
 
-	ekflog_write(
-		EKFLOG_MEAS,
-		"MI %lld %.3f %.3f %.3f %.3f %.3f %.3f\n",
-		meas_common.data.timeImu,
-		meas_common.data.accelFltr.x,
-		meas_common.data.accelFltr.y,
-		meas_common.data.accelFltr.z,
-		meas_common.data.gyroFltr.x,
-		meas_common.data.gyroFltr.y,
-		meas_common.data.gyroFltr.z);
-
 	return 0;
 }
 
@@ -415,7 +371,7 @@ int meas_baroPoll(void)
 		return -1;
 	}
 
-	meas_logBaroSens(&baroEvt);
+	ekflog_senscBaroWrite(&baroEvt);
 
 	meas_common.data.timeBaro = baroEvt.timestamp;
 	meas_common.data.temp = baroEvt.baro.temp;
@@ -434,7 +390,7 @@ int meas_gpsPoll(void)
 		return -1;
 	}
 
-	meas_logGpsSens(&gpsEvt);
+	ekflog_senscGpsWrite(&gpsEvt);
 
 	/* save timestamp */
 	meas_common.data.timeGps = gpsEvt.timestamp;
@@ -452,19 +408,6 @@ int meas_gpsPoll(void)
 	meas_common.data.gps.vel.x = (float)gpsEvt.gps.velNorth / 1e3;
 	meas_common.data.gps.vel.y = (float)gpsEvt.gps.velEast / 1e3;
 	meas_common.data.gps.vel.z = -(float)gpsEvt.gps.velDown / 1e3;
-
-	ekflog_write(
-		EKFLOG_GPS_MEAS,
-		"GPS MEAS %f, %f, %f, %f, %f, %f, %f, %f, %f\n",
-		meas_common.data.gps.lat,
-		meas_common.data.gps.lon,
-		meas_common.data.gps.eph,
-		meas_common.data.gps.epv,
-		meas_common.data.gps.fix,
-		meas_common.data.gps.satsNb,
-		meas_common.data.gps.vel.x,
-		meas_common.data.gps.vel.y,
-		meas_common.data.gps.vel.z);
 
 	return 0;
 }

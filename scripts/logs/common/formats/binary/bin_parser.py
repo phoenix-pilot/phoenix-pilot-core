@@ -63,16 +63,48 @@ class BinaryLogParser:
 
         position = self.__parse_global_position(file)
 
-        horizontal_acc = self.__parse_field(file, FIELDS["horizontal_accuracy"])
-        velocity_acc = self.__parse_field(file, FIELDS["velocity_accuracy"])
+        utc = self.__parse_field(file, FIELDS["utc"])
 
-        fix = self.__parse_field(file, FIELDS["fix"])
+        horizontal_dilution = self.__parse_field(file, FIELDS["precision_dilution"])
+        vertical_dilution = self.__parse_field(file, FIELDS["precision_dilution"])
 
-        satellite_nb = self.__parse_field(file, FIELDS["satellite_number"])
+        ellipsoid_altitude = self.__parse_field(file, FIELDS["ellipsoid_altitude"])
+
+        ground_speed = self.__parse_field(file, FIELDS["ground_speed"])
 
         velocity = self.__parse_ned(file, FIELDS["velocity"])
 
-        return logs_types.GpsLog(log_id, timestamp, position, horizontal_acc, velocity_acc, satellite_nb, fix, velocity)
+        horizontal_accuracy = self.__parse_field(file, FIELDS["position_accuracy"])
+        vertical_accuracy = self.__parse_field(file, FIELDS["position_accuracy"])
+        velocity_accuracy = self.__parse_field(file, FIELDS["position_accuracy"])
+
+        heading = self.__parse_field(file, FIELDS["heading"])
+        heading_offset = self.__parse_field(file, FIELDS["heading_offset"])
+        heading_accuracy = self.__parse_field(file, FIELDS["heading_accuracy"])
+
+        satellite_nb = self.__parse_field(file, FIELDS["satellite_number"])
+
+        fix = self.__parse_field(file, FIELDS["fix"])
+
+        return logs_types.GpsLog(
+            log_id,
+            timestamp,
+            position,
+            utc,
+            horizontal_dilution,
+            vertical_dilution,
+            ellipsoid_altitude,
+            ground_speed,
+            velocity,
+            horizontal_accuracy,
+            vertical_accuracy,
+            velocity_accuracy,
+            heading,
+            heading_offset,
+            heading_accuracy,
+            satellite_nb,
+            fix,
+        )
 
     def __parse_baro_log(self, log_id, file: BufferedReader) -> logs_types.BaroLog:
         timestamp = self.__parse_field(file, FIELDS["timestamp"])
