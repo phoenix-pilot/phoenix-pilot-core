@@ -1,1 +1,6 @@
+# Python artifacts
 __pycache__
+
+# Code editors files
+.idea
+.vscode
