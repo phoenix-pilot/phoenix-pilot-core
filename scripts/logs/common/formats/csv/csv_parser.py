@@ -39,13 +39,40 @@ class CsvLogParser:
         id = int(row[0])
         timestamp = int(row[2])
         position = utils.GlobalPosition(int(row[3]), int(row[4]), int(row[5]))
-        horizontal_acc = int(row[6])
-        velocity_acc = int(row[7])
-        fix = int(row[8])
-        satellite_number = int(row[9])
+        utc = int(row[6])
+        horizontal_prec_dilution = int(row[7])
+        vertical_prec_dilution = int(row[8])
+        alt_ellipsoid = int(row[9])
+        ground_speed = int(row[9])
         velocity = utils.NEDCoordinates(int(row[10]), int(row[11]), int(row[12]))
+        horizontal_acc = int(row[13])
+        vertical_acc = int(row[14])
+        velocity_acc = int(row[15])
+        heading = int(row[16])
+        heading_offset = int(row[17])
+        heading_acc = int(row[18])
+        satellite_number = int(row[19])
+        fix = int(row[20])
 
-        return logs_types.GpsLog(id, timestamp, position, horizontal_acc, velocity_acc, satellite_number, fix, velocity)
+        return logs_types.GpsLog(
+            id,
+            timestamp,
+            position,
+            utc,
+            horizontal_prec_dilution,
+            vertical_prec_dilution,
+            alt_ellipsoid,
+            ground_speed,
+            velocity,
+            horizontal_acc,
+            vertical_acc,
+            velocity_acc,
+            heading,
+            heading_offset,
+            heading_acc,
+            satellite_number,
+            fix
+        )
 
     def __parse_time_log(self, row: list[str]) -> logs_types.TimeLog:
         id = int(row[0])
