@@ -35,7 +35,7 @@
 
 #define TIME_LOG_LEN 13
 #define IMU_LOG_LEN  55
-#define GPS_LOG_LEN  55
+#define GPS_LOG_LEN  85
 #define BARO_LOG_LEN 21
 
 #define PHOENIX_THREAD_PRIO 4
@@ -251,15 +251,29 @@ extern int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt)
 	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.lon, sizeof(gpsEvt->gps.lon));
 	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.alt, sizeof(gpsEvt->gps.alt));
 
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.eph, sizeof(gpsEvt->gps.eph));
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.evel, sizeof(gpsEvt->gps.evel));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.utc, sizeof(gpsEvt->gps.utc));
 
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.fix, sizeof(gpsEvt->gps.fix));
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.satsNb, sizeof(gpsEvt->gps.satsNb));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.hdop, sizeof(gpsEvt->gps.hdop));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.vdop, sizeof(gpsEvt->gps.vdop));
+
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.altEllipsoid, sizeof(gpsEvt->gps.altEllipsoid));
+
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.groundSpeed, sizeof(gpsEvt->gps.groundSpeed));
 
 	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.velNorth, sizeof(gpsEvt->gps.velNorth));
 	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.velEast, sizeof(gpsEvt->gps.velEast));
 	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.velDown, sizeof(gpsEvt->gps.velDown));
+
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.eph, sizeof(gpsEvt->gps.eph));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.epv, sizeof(gpsEvt->gps.epv));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.evel, sizeof(gpsEvt->gps.evel));
+
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.heading, sizeof(gpsEvt->gps.heading));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.headingOffs, sizeof(gpsEvt->gps.headingOffs));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.headingAccur, sizeof(gpsEvt->gps.headingAccur));
+
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.satsNb, sizeof(gpsEvt->gps.satsNb));
+	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.fix, sizeof(gpsEvt->gps.fix));
 
 	return ekflog_write(msgBuff, sizeof(msgBuff));
 }
