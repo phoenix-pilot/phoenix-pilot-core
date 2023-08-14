@@ -1,10 +1,10 @@
 /*
  * Phoenix-Pilot
  *
- * Ekf-specific log module
+ * Ekf-specific log writer module
  *
- * Copyright 2022 Phoenix Systems
- * Author: Mateusz Niewiadomski
+ * Copyright 2022, 2023 Phoenix Systems
+ * Authors: Mateusz Niewiadomski, Piotr Nieciecki
  *
  * This file is part of Phoenix-Pilot software
  *
@@ -12,11 +12,8 @@
  */
 
 
-#ifndef _EKF_LOG_
-#define _EKF_LOG_
-
-#include <stdio.h>
-#include <stdint.h>
+#ifndef _EKF_LOG_WRITER_
+#define _EKF_LOG_WRITER_
 
 #include <libsensors.h>
 

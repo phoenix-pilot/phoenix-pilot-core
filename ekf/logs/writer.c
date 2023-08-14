@@ -4,7 +4,7 @@
  * Ekf-specific log module
  *
  * Copyright 2022, 2023 Phoenix Systems
- * Author: Mateusz Niewiadomski, Piotr Nieciecki
+ * Authors: Mateusz Niewiadomski, Piotr Nieciecki
  *
  * This file is part of Phoenix-Pilot software
  *
