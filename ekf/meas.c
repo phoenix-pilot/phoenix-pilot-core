@@ -451,7 +451,13 @@ int meas_baroGet(float *pressure, float *temperature, uint64_t *timestamp)
 
 int meas_timeGet(time_t *useconds)
 {
-	return sensc_timeGet(useconds);
+	if (sensc_timeGet(useconds) != 0) {
+		return -1;
+	}
+
+	ekflog_timeWrite(*useconds);
+
+	return 0;
 }
 
 
