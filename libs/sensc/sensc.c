@@ -1,6 +1,6 @@
 /*
  * Phoenix-Pilot
- * 
+ *
  * sensorhub client functions implementations
  *
  * Copyright 2022 Phoenix Systems
@@ -81,7 +81,7 @@ int sensc_init(const char *path, bool corrEnable)
 			break;
 		}
 	}
-	/* if error occured during opening, close all succesfully opened files */
+	/* if error occurred during opening, close all successfully opened files */
 	if (err != 0) {
 		fprintf(stderr, "sensc: cannot open \"%s\"\n", path);
 
