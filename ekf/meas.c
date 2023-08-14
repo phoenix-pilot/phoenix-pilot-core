@@ -449,6 +449,12 @@ int meas_baroGet(float *pressure, float *temperature, uint64_t *timestamp)
 }
 
 
+int meas_timeGet(time_t *useconds)
+{
+	return sensc_timeGet(useconds);
+}
+
+
 int meas_gpsGet(meas_gps_t *gpsData, time_t *timestamp)
 {
 	*gpsData = meas_common.data.gps;

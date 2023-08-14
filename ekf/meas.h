@@ -2,7 +2,7 @@
  * Phoenix-Pilot
  *
  * extended kalman filter
- * 
+ *
  * data acquisition logic/calibration
  *
  * Copyright 2022 Phoenix Systems
@@ -115,5 +115,7 @@ extern int meas_baroGet(float *pressure, float *temperature, uint64_t *dtBaroUs)
 
 /* Returns prepared GPS data in SI units */
 extern int meas_gpsGet(meas_gps_t *gpsData, time_t *timestamp);
+
+extern int meas_timeGet(time_t *useconds);
 
 #endif
