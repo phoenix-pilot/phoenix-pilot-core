@@ -22,7 +22,7 @@
 void corr_mag(sensor_event_t *magEvt);
 
 
-/* Performs orthogonality calibration for accelerometer. Raw acceleomrter data should be passed */
+/* Performs orthogonality calibration for accelerometer. Raw accelerometer data should be passed */
 void corr_accorth(sensor_event_t *accelEvt);
 
 
@@ -33,7 +33,7 @@ void corr_accorth(sensor_event_t *accelEvt);
 void corr_accrot(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt);
 
 
-/* deinitializes correction procedures */
+/* Deinitializes correction procedures */
 void corr_done(void);
 
 
