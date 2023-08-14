@@ -21,7 +21,7 @@
  * time-consuming file writes.
  */
 
-#include "log.h"
+#include "writer.h"
 
 #include <stdio.h>
 #include <pthread.h>

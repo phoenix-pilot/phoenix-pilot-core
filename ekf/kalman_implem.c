@@ -24,7 +24,7 @@
 
 #include "kalman_implem.h"
 #include "meas.h"
-#include "log.h"
+#include "logs/writer.h"
 
 #include <vec.h>
 #include <quat.h>

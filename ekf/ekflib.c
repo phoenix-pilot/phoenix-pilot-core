@@ -23,7 +23,7 @@
 
 #include "kalman_core.h"
 #include "kalman_implem.h"
-#include "log.h"
+#include "logs/writer.h"
 #include "meas.h"
 
 #include <sensc.h>

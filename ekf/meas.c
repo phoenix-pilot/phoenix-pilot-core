@@ -26,7 +26,7 @@
 #include "kalman_implem.h"
 #include "meas.h"
 #include "filters.h"
-#include "log.h"
+#include "logs/writer.h"
 
 #include <libsensors.h>
 #include <sensc.h>
