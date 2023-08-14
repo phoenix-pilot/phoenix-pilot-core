@@ -184,7 +184,7 @@ static inline size_t ekflog_addLogField(uint8_t *msg_buf, const void *data, size
 }
 
 
-extern int ekflog_timeWrite(time_t timestamp)
+int ekflog_timeWrite(time_t timestamp)
 {
 	uint8_t msgBuff[TIME_LOG_LEN];
 
@@ -199,7 +199,7 @@ extern int ekflog_timeWrite(time_t timestamp)
 }
 
 
-extern int ekflog_senscImuWrite(const sensor_event_t *accEvt, const sensor_event_t *gyrEvt, const sensor_event_t *magEvt)
+int ekflog_senscImuWrite(const sensor_event_t *accEvt, const sensor_event_t *gyrEvt, const sensor_event_t *magEvt)
 {
 	uint8_t msgBuff[IMU_LOG_LEN];
 	uint8_t *msgHead = msgBuff;
@@ -231,7 +231,7 @@ extern int ekflog_senscImuWrite(const sensor_event_t *accEvt, const sensor_event
 }
 
 
-extern int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt)
+int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt)
 {
 	uint8_t msgBuff[GPS_LOG_LEN];
 	uint8_t *msgHead = msgBuff;
@@ -275,7 +275,7 @@ extern int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt)
 }
 
 
-extern int ekflog_senscBaroWrite(const sensor_event_t *baroEvt)
+int ekflog_senscBaroWrite(const sensor_event_t *baroEvt)
 {
 	uint8_t msgBuff[BARO_LOG_LEN];
 	uint8_t *msgHead = msgBuff;
