@@ -169,7 +169,6 @@ static time_t ekf_dtGet(void)
 	time_t diff;
 
 	meas_timeGet(&ekf_common.currTime);
-	ekflog_timeWrite((uint64_t)ekf_common.currTime);
 	diff = ekf_common.currTime - ekf_common.lastTime;
 	ekf_common.lastTime = ekf_common.currTime;
 
@@ -190,7 +189,6 @@ static void *ekf_thread(void *arg)
 
 	/* Kalman loop */
 	meas_timeGet(&ekf_common.lastTime);
-	ekflog_timeWrite((uint64_t)ekf_common.lastTime);
 
 	lastBaroUpdate = ekf_common.lastTime;
 	lastGpsUpdate = ekf_common.lastTime;
