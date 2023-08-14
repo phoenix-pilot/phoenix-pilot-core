@@ -17,15 +17,19 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 
 #include <libsensors.h>
 
 #include "sensc.h"
 #include "corr.h"
 
-#define SENSORHUB_PIPES 3 /* number of connections with sensorhub */
+#define SENSORHUB_PIPES 3       /* number of connections with sensorhub */
+#define SECONDS_2_MICRO 1000000 /* number of microseconds in one second */
 
-typedef enum { fd_imuId = 0, fd_baroId, fd_gpsId } fd_id_t;
+typedef enum { fd_imuId = 0,
+	fd_baroId,
+	fd_gpsId } fd_id_t;
 
 struct {
 	sensors_data_t *data;
@@ -214,4 +218,18 @@ int sensc_gpsGet(sensor_event_t *gpsEvt)
 	}
 
 	return -1;
+}
+
+
+int sensc_timeGet(time_t *time)
+{
+	struct timeval tv;
+
+	if (gettimeofday(&tv, NULL) != 0) {
+		return -1;
+	}
+
+	*time = SECONDS_2_MICRO * tv.tv_sec + tv.tv_usec;
+
+	return 0;
 }

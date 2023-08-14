@@ -34,4 +34,7 @@ extern int sensc_baroGet(sensor_event_t *baroEvt);
 /* returns 0 on successful acquisition of new gps data from sensorhub, -1 on error */
 extern int sensc_gpsGet(sensor_event_t *gpsEvt);
 
+/* returns 0 on successful acquisition of time in microseconds, -1 on error */
+extern int sensc_timeGet(time_t *time);
+
 #endif
