@@ -30,7 +30,6 @@
 #include <vec.h>
 #include <quat.h>
 #include <matrix.h>
-#include <gettime.h>
 
 #include "ekflib.h"
 
@@ -169,7 +168,7 @@ static time_t ekf_dtGet(void)
 {
 	time_t diff;
 
-	gettime(&ekf_common.currTime, NULL);
+	meas_timeGet(&ekf_common.currTime);
 	ekflog_timeWrite((uint64_t)ekf_common.currTime);
 	diff = ekf_common.currTime - ekf_common.lastTime;
 	ekf_common.lastTime = ekf_common.currTime;
@@ -190,7 +189,7 @@ static void *ekf_thread(void *arg)
 	ekf_common.run = 1;
 
 	/* Kalman loop */
-	gettime(&ekf_common.lastTime, NULL);
+	meas_timeGet(&ekf_common.lastTime);
 	ekflog_timeWrite((uint64_t)ekf_common.lastTime);
 
 	lastBaroUpdate = ekf_common.lastTime;
