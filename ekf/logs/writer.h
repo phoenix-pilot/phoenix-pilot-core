@@ -49,12 +49,12 @@ extern int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt);
 extern int ekflog_senscBaroWrite(const sensor_event_t *baroEvt);
 
 
-/* Deinitialize ekflog module */
-extern int ekflog_done(void);
+/* Deinitialize ekflog writer module */
+extern int ekflog_writerDone(void);
 
 
 /* Initialize log module for `flags` log messages and `path` destination file. Returns 0 on success */
-extern int ekflog_init(const char *path, uint32_t flags);
+extern int ekflog_writerInit(const char *path, uint32_t flags);
 
 
 #endif

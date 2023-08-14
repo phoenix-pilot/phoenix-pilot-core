@@ -294,7 +294,7 @@ int ekflog_senscBaroWrite(const sensor_event_t *baroEvt)
 }
 
 
-int ekflog_done(void)
+int ekflog_writerDone(void)
 {
 	int err = 0;
 
@@ -322,7 +322,7 @@ int ekflog_done(void)
 }
 
 
-int ekflog_init(const char *path, uint32_t flags)
+int ekflog_writerInit(const char *path, uint32_t flags)
 {
 	pthread_attr_t attr;
 	int ret;
