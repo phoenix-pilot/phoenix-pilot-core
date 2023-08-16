@@ -23,6 +23,8 @@
 
 #include "writer.h"
 
+#include "common.h"
+
 #include <stdio.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -33,12 +35,10 @@
 
 #define BUFFS_CAPACITY 1024 * 8
 
-#define TIME_LOG_LEN 13
-#define IMU_LOG_LEN  55
-#define GPS_LOG_LEN  85
-#define BARO_LOG_LEN 21
-
 #define PHOENIX_THREAD_PRIO 4
+
+#define ekflog_addLogField(msgBuff, buff) \
+	ekflog_addLogFieldRaw((msgBuff), &(buff), sizeof(buff))
 
 
 typedef struct {
@@ -48,7 +48,7 @@ typedef struct {
 } ekflog_buff_t;
 
 
-struct {
+static struct {
 	uint32_t logFlags;
 	int fd;
 
@@ -132,7 +132,7 @@ static bool ekflog_actBuffWritable(void)
 }
 
 
-static int ekflog_write(void *msg, size_t msg_len)
+static int ekflog_write(void *msg, size_t msgLen)
 {
 	size_t remainingBuffSize;
 
@@ -140,7 +140,7 @@ static int ekflog_write(void *msg, size_t msg_len)
 
 	remainingBuffSize = BUFFS_CAPACITY - ekflog_common.actBuff->size;
 
-	if (remainingBuffSize < msg_len) {
+	if (remainingBuffSize < msgLen) {
 		/* Changing actual buffer for the next one */
 		ekflog_common.actBuff->dirty = true;
 		ekflog_common.actBuff = ekflog_nextBufferGet(ekflog_common.actBuff);
@@ -154,8 +154,8 @@ static int ekflog_write(void *msg, size_t msg_len)
 		return -1;
 	}
 
-	memcpy(ekflog_common.actBuff->buff + ekflog_common.actBuff->size, msg, msg_len);
-	ekflog_common.actBuff->size += msg_len;
+	memcpy(ekflog_common.actBuff->buff + ekflog_common.actBuff->size, msg, msgLen);
+	ekflog_common.actBuff->size += msgLen;
 
 	pthread_mutex_unlock(&ekflog_common.lock);
 
@@ -163,23 +163,23 @@ static int ekflog_write(void *msg, size_t msg_len)
 }
 
 
-static size_t ekflog_writeLogPrefix(uint8_t *msg_buf, char msgType, time_t timestamp)
+static size_t ekflog_writeLogPrefix(uint8_t *msgBuf, char msgIndicator, time_t timestamp)
 {
 	uint64_t time = (uint64_t)timestamp;
 
 	ekflog_common.logCnt++;
 
-	memcpy(msg_buf, &ekflog_common.logCnt, sizeof(ekflog_common.logCnt));
-	msg_buf[sizeof(ekflog_common.logCnt)] = msgType;
-	memcpy(&msg_buf[sizeof(ekflog_common.logCnt) + sizeof(msgType)], &time, sizeof(time));
+	memcpy(msgBuf, &ekflog_common.logCnt, sizeof(ekflog_common.logCnt));
+	msgBuf[sizeof(ekflog_common.logCnt)] = msgIndicator;
+	memcpy(&msgBuf[sizeof(ekflog_common.logCnt) + sizeof(msgIndicator)], &time, sizeof(time));
 
-	return sizeof(ekflog_common.logCnt) + sizeof(msgType) + sizeof(time);
+	return sizeof(ekflog_common.logCnt) + sizeof(msgIndicator) + sizeof(time);
 }
 
 
-static inline size_t ekflog_addLogField(uint8_t *msg_buf, const void *data, size_t dataSize)
+static inline size_t ekflog_addLogFieldRaw(uint8_t *msgBuf, const void *data, size_t dataSize)
 {
-	memcpy(msg_buf, data, dataSize);
+	memcpy(msgBuf, data, dataSize);
 	return dataSize;
 }
 
@@ -193,7 +193,7 @@ int ekflog_timeWrite(time_t timestamp)
 		return 0;
 	}
 
-	ekflog_writeLogPrefix(msgBuff, 'T', timestamp);
+	ekflog_writeLogPrefix(msgBuff, TIME_LOG_INDICATOR, timestamp);
 
 	return ekflog_write(msgBuff, sizeof(msgBuff));
 }
@@ -209,23 +209,23 @@ int ekflog_senscImuWrite(const sensor_event_t *accEvt, const sensor_event_t *gyr
 		return 0;
 	}
 
-	msgHead += ekflog_writeLogPrefix(msgHead, 'I', accEvt->timestamp);
+	msgHead += ekflog_writeLogPrefix(msgHead, IMU_LOG_INDICATOR, accEvt->timestamp);
 
-	msgHead += ekflog_addLogField(msgHead, &accEvt->accels.accelX, sizeof(accEvt->accels.accelX));
-	msgHead += ekflog_addLogField(msgHead, &accEvt->accels.accelY, sizeof(accEvt->accels.accelY));
-	msgHead += ekflog_addLogField(msgHead, &accEvt->accels.accelZ, sizeof(accEvt->accels.accelZ));
+	msgHead += ekflog_addLogField(msgHead, accEvt->accels.accelX);
+	msgHead += ekflog_addLogField(msgHead, accEvt->accels.accelY);
+	msgHead += ekflog_addLogField(msgHead, accEvt->accels.accelZ);
 
-	msgHead += ekflog_addLogField(msgHead, &accEvt->gyro.gyroX, sizeof(accEvt->gyro.gyroX));
-	msgHead += ekflog_addLogField(msgHead, &accEvt->gyro.gyroY, sizeof(accEvt->gyro.gyroY));
-	msgHead += ekflog_addLogField(msgHead, &accEvt->gyro.gyroZ, sizeof(accEvt->gyro.gyroZ));
+	msgHead += ekflog_addLogField(msgHead, gyrEvt->gyro.gyroX);
+	msgHead += ekflog_addLogField(msgHead, gyrEvt->gyro.gyroY);
+	msgHead += ekflog_addLogField(msgHead, gyrEvt->gyro.gyroZ);
 
-	msgHead += ekflog_addLogField(msgHead, &accEvt->gyro.dAngleX, sizeof(accEvt->gyro.dAngleX));
-	msgHead += ekflog_addLogField(msgHead, &accEvt->gyro.dAngleY, sizeof(accEvt->gyro.dAngleY));
-	msgHead += ekflog_addLogField(msgHead, &accEvt->gyro.dAngleZ, sizeof(accEvt->gyro.dAngleZ));
+	msgHead += ekflog_addLogField(msgHead, gyrEvt->gyro.dAngleX);
+	msgHead += ekflog_addLogField(msgHead, gyrEvt->gyro.dAngleY);
+	msgHead += ekflog_addLogField(msgHead, gyrEvt->gyro.dAngleZ);
 
-	msgHead += ekflog_addLogField(msgHead, &accEvt->mag.magX, sizeof(accEvt->mag.magX));
-	msgHead += ekflog_addLogField(msgHead, &accEvt->mag.magY, sizeof(accEvt->mag.magY));
-	msgHead += ekflog_addLogField(msgHead, &accEvt->mag.magZ, sizeof(accEvt->mag.magZ));
+	msgHead += ekflog_addLogField(msgHead, magEvt->mag.magX);
+	msgHead += ekflog_addLogField(msgHead, magEvt->mag.magY);
+	msgHead += ekflog_addLogField(msgHead, magEvt->mag.magZ);
 
 	return ekflog_write(msgBuff, sizeof(msgBuff));
 }
@@ -241,35 +241,35 @@ int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt)
 		return 0;
 	}
 
-	msgHead += ekflog_writeLogPrefix(msgBuff, 'P', gpsEvt->timestamp);
+	msgHead += ekflog_writeLogPrefix(msgBuff, GPS_LOG_INDICATOR, gpsEvt->timestamp);
 
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.lat, sizeof(gpsEvt->gps.lat));
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.lon, sizeof(gpsEvt->gps.lon));
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.alt, sizeof(gpsEvt->gps.alt));
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.lat);
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.lon);
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.alt);
 
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.utc, sizeof(gpsEvt->gps.utc));
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.utc);
 
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.hdop, sizeof(gpsEvt->gps.hdop));
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.vdop, sizeof(gpsEvt->gps.vdop));
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.hdop);
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.vdop);
 
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.altEllipsoid, sizeof(gpsEvt->gps.altEllipsoid));
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.altEllipsoid);
 
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.groundSpeed, sizeof(gpsEvt->gps.groundSpeed));
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.groundSpeed);
 
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.velNorth, sizeof(gpsEvt->gps.velNorth));
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.velEast, sizeof(gpsEvt->gps.velEast));
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.velDown, sizeof(gpsEvt->gps.velDown));
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.velNorth);
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.velEast);
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.velDown);
 
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.eph, sizeof(gpsEvt->gps.eph));
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.epv, sizeof(gpsEvt->gps.epv));
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.evel, sizeof(gpsEvt->gps.evel));
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.eph);
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.epv);
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.evel);
 
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.heading, sizeof(gpsEvt->gps.heading));
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.headingOffs, sizeof(gpsEvt->gps.headingOffs));
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.headingAccur, sizeof(gpsEvt->gps.headingAccur));
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.heading);
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.headingOffs);
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.headingAccur);
 
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.satsNb, sizeof(gpsEvt->gps.satsNb));
-	msgHead += ekflog_addLogField(msgHead, &gpsEvt->gps.fix, sizeof(gpsEvt->gps.fix));
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.satsNb);
+	msgHead += ekflog_addLogField(msgHead, gpsEvt->gps.fix);
 
 	return ekflog_write(msgBuff, sizeof(msgBuff));
 }
@@ -285,10 +285,10 @@ int ekflog_senscBaroWrite(const sensor_event_t *baroEvt)
 		return 0;
 	}
 
-	msgHead += ekflog_writeLogPrefix(msgHead, 'B', baroEvt->timestamp);
+	msgHead += ekflog_writeLogPrefix(msgHead, BARO_LOG_INDICATOR, baroEvt->timestamp);
 
-	msgHead += ekflog_addLogField(msgHead, &baroEvt->baro.pressure, sizeof(baroEvt->baro.pressure));
-	msgHead += ekflog_addLogField(msgHead, &baroEvt->baro.temp, sizeof(baroEvt->baro.temp));
+	msgHead += ekflog_addLogField(msgHead, baroEvt->baro.pressure);
+	msgHead += ekflog_addLogField(msgHead, baroEvt->baro.temp);
 
 	return ekflog_write(msgBuff, sizeof(msgBuff));
 }
@@ -338,7 +338,7 @@ int ekflog_writerInit(const char *path, uint32_t flags)
 		return -1;
 	}
 
-	ekflog_common.fd = open(path, O_WRONLY | O_CREAT, S_IRWXU);
+	ekflog_common.fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
 	if (ekflog_common.fd == -1) {
 		fprintf(stderr, "ekflog: can`t open %s to write\n", path);
 		return -1;
