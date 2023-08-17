@@ -23,6 +23,7 @@ ifeq ("$(TARGET_FAMILY)-$(TARGET_SUBFAMILY)","host-generic")
 	# On host targets only a subset of programs is compiled
 	DEFAULT_COMPONENTS := algebra_tests
 	DEFAULT_COMPONENTS += parser_tests
+	DEFAULT_COMPONENTS += ekflog_tests
 	DEFAULT_COMPONENTS += devekf
 else
 	# Create generic targets
