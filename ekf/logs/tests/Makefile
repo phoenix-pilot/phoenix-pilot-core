@@ -11,7 +11,9 @@ LOCAL_SRCS := main.c tests.c ../reader.c ../writer.c
 
 LIBS := unity
 
-LOCAL_CFLAGS := -g
-LOCAL_LDFLAGS := -g
+ifeq ("$(LOG_VOL_CHECK)","TRUE")
+	LOCAL_CFLAGS := -DLOG_VOL_CHECK
+	LOCAL_SRCS += ../max_logs.c
+endif
 
 include $(binary.mk)

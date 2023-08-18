@@ -18,4 +18,9 @@ ifeq ("$(TARGET)","host-generic-pilot")
 	LOCAL_LDFLAGS := -lpthread
 endif
 
+ifeq ("$(LOG_VOL_CHECK)","TRUE")
+	LOCAL_CFLAGS := -DLOG_VOL_CHECK
+	LOCAL_SRCS += logs/max_logs.c
+endif
+
 include $(static-lib.mk)
