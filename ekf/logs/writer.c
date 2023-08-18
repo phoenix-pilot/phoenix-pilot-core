@@ -33,6 +33,10 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#ifdef LOG_VOL_CHECK
+#include "max_logs.h"
+#endif
+
 #define BUFFS_CAPACITY 1024 * 8
 
 #define PHOENIX_THREAD_PRIO 4
@@ -81,6 +85,11 @@ static void *ekflog_thread(void *args)
 
 	pthread_mutex_lock(&ekflog_common.lock);
 
+#ifdef LOG_VOL_CHECK
+	maxLog_start();
+	maxLog_sleepReport();
+#endif
+
 	do {
 		while (outBuff->dirty == false && ekflog_common.run != 0) {
 			pthread_cond_wait(&ekflog_common.buffEvent, &ekflog_common.lock);
@@ -89,9 +98,18 @@ static void *ekflog_thread(void *args)
 		while (outBuff->dirty == true) {
 			pthread_mutex_unlock(&ekflog_common.lock);
 
+#ifdef LOG_VOL_CHECK
+			maxLog_wakeUpReport();
+			maxLog_writeReport(outBuff->size);
+#endif
+
 			if (write(ekflog_common.fd, outBuff->buff, outBuff->size) != outBuff->size) {
 				fprintf(stderr, "ekflog: error while writing to file\n");
 			}
+
+#ifdef LOG_VOL_CHECK
+			maxLog_sleepReport();
+#endif
 
 			pthread_mutex_lock(&ekflog_common.lock);
 
@@ -102,6 +120,12 @@ static void *ekflog_thread(void *args)
 			pthread_cond_signal(&ekflog_common.buffEvent);
 		}
 	} while (ekflog_common.run != 0);
+
+#ifdef LOG_VOL_CHECK
+	maxLog_wakeUpReport();
+	maxLog_end();
+	maxLog_resultsPrint();
+#endif
 
 	printf("Logging finished\n");
 	printf("Number of logs requests: %d\n", ekflog_common.logCnt);
