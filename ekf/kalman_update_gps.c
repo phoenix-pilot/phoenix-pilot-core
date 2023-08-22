@@ -24,7 +24,6 @@
 #include <sys/msg.h>
 
 #include "kalman_implem.h"
-#include "log.h"
 
 #include <vec.h>
 #include <quat.h>

@@ -1,10 +1,10 @@
 /*
  * Phoenix-Pilot
  *
- * Ekf-specific log module
+ * Ekf-specific log writer module
  *
- * Copyright 2022 Phoenix Systems
- * Author: Mateusz Niewiadomski
+ * Copyright 2022, 2023 Phoenix Systems
+ * Authors: Mateusz Niewiadomski, Piotr Nieciecki
  *
  * This file is part of Phoenix-Pilot software
  *
@@ -12,11 +12,8 @@
  */
 
 
-#ifndef _EKF_LOG_
-#define _EKF_LOG_
-
-#include <stdio.h>
-#include <stdint.h>
+#ifndef _EKF_LOG_WRITER_
+#define _EKF_LOG_WRITER_
 
 #include <libsensors.h>
 
@@ -49,12 +46,12 @@ extern int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt);
 extern int ekflog_senscBaroWrite(const sensor_event_t *baroEvt);
 
 
-/* Deinitialize ekflog module */
-extern int ekflog_done(void);
+/* Deinitialize ekflog writer module */
+extern int ekflog_writerDone(void);
 
 
 /* Initialize log module for `flags` log messages and `path` destination file. Returns 0 on success */
-extern int ekflog_init(const char *path, uint32_t flags);
+extern int ekflog_writerInit(const char *path, uint32_t flags);
 
 
 #endif

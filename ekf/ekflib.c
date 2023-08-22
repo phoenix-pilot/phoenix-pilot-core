@@ -23,7 +23,7 @@
 
 #include "kalman_core.h"
 #include "kalman_implem.h"
-#include "log.h"
+#include "logs/writer.h"
 #include "meas.h"
 
 #include <sensc.h>
@@ -138,7 +138,7 @@ int ekf_init(void)
 		return -1;
 	}
 
-	if (ekflog_init("ekf_log.bin", ekf_common.initVals.log | ekf_common.initVals.logMode) != 0) {
+	if (ekflog_writerInit("ekf_log.bin", ekf_common.initVals.log | ekf_common.initVals.logMode) != 0) {
 		pthread_mutex_destroy(&ekf_common.lock);
 		pthread_attr_destroy(&ekf_common.threadAttr);
 		sensc_deinit();
@@ -278,7 +278,7 @@ void ekf_done(void)
 	kalman_updateDealloc(&ekf_common.gpsEngine);
 
 	sensc_deinit();
-	ekflog_done();
+	ekflog_writerDone();
 	pthread_mutex_destroy(&ekf_common.lock);
 }
 
