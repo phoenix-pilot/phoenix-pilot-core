@@ -104,7 +104,7 @@ int ekflog_timeRead(time_t *timestamp)
 }
 
 
-int ekflog_senscImuRead(sensor_event_t *accEvt, sensor_event_t *gyrEvt, sensor_event_t *magEvt)
+int ekflog_imuRead(sensor_event_t *accEvt, sensor_event_t *gyrEvt, sensor_event_t *magEvt)
 {
 	time_t timestamp;
 
@@ -150,7 +150,7 @@ int ekflog_senscImuRead(sensor_event_t *accEvt, sensor_event_t *gyrEvt, sensor_e
 }
 
 
-int ekflog_senscGpsRead(sensor_event_t *gpsEvt)
+int ekflog_gpsRead(sensor_event_t *gpsEvt)
 {
 	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[gpsLog], SEEK_SET) != 0) {
 		return -1;
@@ -179,7 +179,7 @@ int ekflog_senscGpsRead(sensor_event_t *gpsEvt)
 }
 
 
-int ekflog_senscBaroRead(sensor_event_t *baroEvt)
+int ekflog_baroRead(sensor_event_t *baroEvt)
 {
 	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[baroLog], SEEK_SET) != 0) {
 		return -1;
