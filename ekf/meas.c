@@ -142,7 +142,7 @@ void meas_gpsCalib(void)
 	/* Assuring gps fix */
 	while (1) {
 		sensc_gpsGet(&gpsEvt);
-		ekflog_senscGpsWrite(&gpsEvt);
+		ekflog_gpsWrite(&gpsEvt);
 		if (gpsEvt.gps.fix > 0) {
 			break;
 		}
@@ -153,7 +153,7 @@ void meas_gpsCalib(void)
 	/* Assuring gps fix */
 	while (1) {
 		sensc_gpsGet(&gpsEvt);
-		ekflog_senscGpsWrite(&gpsEvt);
+		ekflog_gpsWrite(&gpsEvt);
 		if (gpsEvt.gps.hdop < 500) {
 			break;
 		}
@@ -167,7 +167,7 @@ void meas_gpsCalib(void)
 			sleep(1);
 			continue;
 		}
-		ekflog_senscGpsWrite(&gpsEvt);
+		ekflog_gpsWrite(&gpsEvt);
 		printf("Sampling gps position: sample %d/%d\n", i + 1, avg);
 		refPos.lat += (double)gpsEvt.gps.lat / 1e9;
 		refPos.lon += (double)gpsEvt.gps.lon / 1e9;
@@ -272,7 +272,7 @@ void meas_imuCalib(void)
 	i = 0;
 	while (i < avg) {
 		if (sensc_imuGet(&accEvt, &gyrEvt, &magEvt) >= 0) {
-			ekflog_senscImuWrite(&accEvt, &gyrEvt, &magEvt);
+			ekflog_imuWrite(&accEvt, &gyrEvt, &magEvt);
 			meas_acc2si(&accEvt, &acc);
 			meas_gyr2si(&gyrEvt, &gyr);
 			meas_mag2si(&magEvt, &mag);
@@ -312,7 +312,7 @@ void meas_baroCalib(void)
 	i = 0;
 	while (i < avg) {
 		if (sensc_baroGet(&baroEvt) >= 0) {
-			ekflog_senscBaroWrite(&baroEvt);
+			ekflog_baroWrite(&baroEvt);
 			press += baroEvt.baro.pressure;
 			temp += baroEvt.baro.temp;
 			i++;
@@ -341,7 +341,7 @@ int meas_imuPoll(void)
 	/* these timestamps do not need to be very accurate */
 	meas_common.data.timeImu = gyrEvt.timestamp;
 
-	ekflog_senscImuWrite(&accEvt, &gyrEvt, &magEvt);
+	ekflog_imuWrite(&accEvt, &gyrEvt, &magEvt);
 
 	meas_acc2si(&accEvt, &meas_common.data.accelRaw); /* accelerations from mm/s^2 -> m/s^2 */
 	meas_mag2si(&magEvt, &meas_common.data.mag);      /* only magnitude matters from geomagnetism */
@@ -371,7 +371,7 @@ int meas_baroPoll(void)
 		return -1;
 	}
 
-	ekflog_senscBaroWrite(&baroEvt);
+	ekflog_baroWrite(&baroEvt);
 
 	meas_common.data.timeBaro = baroEvt.timestamp;
 	meas_common.data.temp = baroEvt.baro.temp;
@@ -390,7 +390,7 @@ int meas_gpsPoll(void)
 		return -1;
 	}
 
-	ekflog_senscGpsWrite(&gpsEvt);
+	ekflog_gpsWrite(&gpsEvt);
 
 	/* save timestamp */
 	meas_common.data.timeGps = gpsEvt.timestamp;

@@ -101,7 +101,7 @@ TEST(group_ekf_logs, ekflogs_multipleTimeEvt)
 
 TEST(group_ekf_logs, ekflogs_singleImuEvt)
 {
-	TEST_ASSERT_EQUAL(0, ekflog_senscImuWrite(&testAccEvt1, &testGyrEvt1, &testMagEvt1));
+	TEST_ASSERT_EQUAL(0, ekflog_imuWrite(&testAccEvt1, &testGyrEvt1, &testMagEvt1));
 
 	TEST_ASSERT_EQUAL(0, ekflog_writerDone());
 
@@ -118,8 +118,8 @@ TEST(group_ekf_logs, ekflogs_multipleImuEvt)
 	int i;
 
 	for (i = 0; i < SHORT_SEQUENCE_LEN; i++) {
-		TEST_ASSERT_EQUAL(0, ekflog_senscImuWrite(&testAccEvt1, &testGyrEvt1, &testMagEvt1));
-		TEST_ASSERT_EQUAL(0, ekflog_senscImuWrite(&testAccEvt2, &testGyrEvt2, &testMagEvt2));
+		TEST_ASSERT_EQUAL(0, ekflog_imuWrite(&testAccEvt1, &testGyrEvt1, &testMagEvt1));
+		TEST_ASSERT_EQUAL(0, ekflog_imuWrite(&testAccEvt2, &testGyrEvt2, &testMagEvt2));
 	}
 
 	TEST_ASSERT_EQUAL(0, ekflog_writerDone());
@@ -142,7 +142,7 @@ TEST(group_ekf_logs, ekflogs_multipleImuEvt)
 
 TEST(group_ekf_logs, ekflogs_singleGpsEvt)
 {
-	TEST_ASSERT_EQUAL(0, ekflog_senscGpsWrite(&testGpsEvt1));
+	TEST_ASSERT_EQUAL(0, ekflog_gpsWrite(&testGpsEvt1));
 
 	TEST_ASSERT_EQUAL(0, ekflog_writerDone());
 
@@ -156,8 +156,8 @@ TEST(group_ekf_logs, ekflogs_multipleGpsEvt)
 	int i;
 
 	for (i = 0; i < SHORT_SEQUENCE_LEN; i++) {
-		TEST_ASSERT_EQUAL(0, ekflog_senscGpsWrite(&testGpsEvt1));
-		TEST_ASSERT_EQUAL(0, ekflog_senscGpsWrite(&testGpsEvt2));
+		TEST_ASSERT_EQUAL(0, ekflog_gpsWrite(&testGpsEvt1));
+		TEST_ASSERT_EQUAL(0, ekflog_gpsWrite(&testGpsEvt2));
 	}
 
 	TEST_ASSERT_EQUAL(0, ekflog_writerDone());
@@ -176,7 +176,7 @@ TEST(group_ekf_logs, ekflogs_multipleGpsEvt)
 
 TEST(group_ekf_logs, ekflogs_singleBaroEvt)
 {
-	TEST_ASSERT_EQUAL(0, ekflog_senscBaroWrite(&testBaroEvt));
+	TEST_ASSERT_EQUAL(0, ekflog_baroWrite(&testBaroEvt));
 
 	TEST_ASSERT_EQUAL(0, ekflog_writerDone());
 
@@ -191,8 +191,8 @@ TEST(group_ekf_logs, ekflogs_shortSequence)
 
 	for (i = 0; i < SHORT_SEQUENCE_LEN; i++) {
 		TEST_ASSERT_EQUAL(0, ekflog_timeWrite(testTimestamp1));
-		TEST_ASSERT_EQUAL(0, ekflog_senscImuWrite(&testAccEvt1, &testGyrEvt1, &testMagEvt1));
-		TEST_ASSERT_EQUAL(0, ekflog_senscGpsWrite(&testGpsEvt1));
+		TEST_ASSERT_EQUAL(0, ekflog_imuWrite(&testAccEvt1, &testGyrEvt1, &testMagEvt1));
+		TEST_ASSERT_EQUAL(0, ekflog_gpsWrite(&testGpsEvt1));
 	}
 
 	TEST_ASSERT_EQUAL(0, ekflog_writerDone());
@@ -233,12 +233,12 @@ TEST(group_ekf_logs, ekflogs_longSequence)
 
 	for (i = 0; i < LONG_SEQUENCE_LEN; i++) {
 		TEST_ASSERT_EQUAL(0, ekflog_timeWrite(testTimestamp1));
-		TEST_ASSERT_EQUAL(0, ekflog_senscImuWrite(&testAccEvt1, &testGyrEvt1, &testMagEvt1));
-		TEST_ASSERT_EQUAL(0, ekflog_senscGpsWrite(&testGpsEvt1));
+		TEST_ASSERT_EQUAL(0, ekflog_imuWrite(&testAccEvt1, &testGyrEvt1, &testMagEvt1));
+		TEST_ASSERT_EQUAL(0, ekflog_gpsWrite(&testGpsEvt1));
 
 		TEST_ASSERT_EQUAL(0, ekflog_timeWrite(testTimestamp2));
-		TEST_ASSERT_EQUAL(0, ekflog_senscImuWrite(&testAccEvt2, &testGyrEvt2, &testMagEvt2));
-		TEST_ASSERT_EQUAL(0, ekflog_senscGpsWrite(&testGpsEvt2));
+		TEST_ASSERT_EQUAL(0, ekflog_imuWrite(&testAccEvt2, &testGyrEvt2, &testMagEvt2));
+		TEST_ASSERT_EQUAL(0, ekflog_gpsWrite(&testGpsEvt2));
 	}
 
 	TEST_ASSERT_EQUAL(0, ekflog_writerDone());
