@@ -15,6 +15,9 @@
 #ifndef _EKF_LOG_COMMON_
 #define _EKF_LOG_COMMON_
 
+#define LOG_ID_SIZE         sizeof(uint32_t)
+#define LOG_IDENTIFIER_SIZE sizeof(char)
+
 #define LOG_TYPES_CNT 4
 
 #define TIME_LOG_LEN       13

@@ -16,10 +16,11 @@
 #include "common.h"
 
 #include <stdio.h>
+#include <string.h>
 
 
-#define ekflog_fieldRead(buff) \
-	ekflog_fieldReadRaw(&(buff), sizeof(buff))
+#define FIELD_GET(des, src) \
+	ekflog_logFieldGet((des), (src), sizeof(*(des)))
 
 
 /* clang-format off */
@@ -34,38 +35,13 @@ static struct {
 } ekflog_common;
 
 
-static int ekflog_fieldReadRaw(void *buff, size_t buffLen)
-{
-	if (fread(buff, buffLen, 1, ekflog_common.file) != 1) {
-		return -1;
-	}
-
-	return 0;
-}
-
-
-static int ekflog_timestampRead(time_t *timestamp)
-{
-	uint64_t tmp;
-
-	if (ekflog_fieldRead(tmp) != 0) {
-		return -1;
-	}
-
-	*timestamp = (time_t)tmp;
-
-	return 0;
-}
-
-
 static int ekflog_logOmit(char logIndicator)
 {
-	const size_t prefixLen = sizeof(uint32_t) + sizeof(char); /* Without the timestamp */
+	const size_t prefixLen = LOG_ID_SIZE + LOG_IDENTIFIER_SIZE; /* Without the timestamp */
 
 	switch (logIndicator) {
 		case TIME_LOG_INDICATOR:
 			return fseek(ekflog_common.file, TIME_LOG_LEN - prefixLen, SEEK_CUR);
-			;
 
 		case IMU_LOG_INDICATOR:
 			return fseek(ekflog_common.file, IMU_LOG_LEN - prefixLen, SEEK_CUR);
@@ -85,7 +61,7 @@ static int ekflog_logOmit(char logIndicator)
 
 static int ekflog_nextLogSeek(char logIndicator)
 {
-	char actIndicator;
+	int actIndicator;
 
 	do {
 		/* Omitting log ID */
@@ -93,7 +69,8 @@ static int ekflog_nextLogSeek(char logIndicator)
 			return -1;
 		}
 
-		if (ekflog_fieldRead(actIndicator) != 0) {
+		actIndicator = fgetc(ekflog_common.file);
+		if (actIndicator == EOF) {
 			return -1;
 		}
 
@@ -108,8 +85,28 @@ static int ekflog_nextLogSeek(char logIndicator)
 }
 
 
+static inline size_t ekflog_logFieldGet(void *des, const void *src, size_t size)
+{
+	memcpy(des, src, size);
+	return size;
+}
+
+
+static size_t ekflog_timestampRead(time_t *timestamp, uint8_t *buff)
+{
+	uint64_t tmp;
+
+	memcpy(&tmp, buff, sizeof(tmp));
+	*timestamp = (time_t)tmp;
+
+	return sizeof(time_t);
+}
+
+
 int ekflog_timeRead(time_t *timestamp)
 {
+	uint8_t buff[TIME_LOG_LEN - LOG_ID_SIZE - LOG_IDENTIFIER_SIZE];
+
 	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[timeLog], SEEK_SET) != 0) {
 		return -1;
 	}
@@ -118,9 +115,11 @@ int ekflog_timeRead(time_t *timestamp)
 		return -1;
 	}
 
-	if (ekflog_timestampRead(timestamp) != 0) {
+	if (fread(buff, sizeof(buff), 1, ekflog_common.file) != 1) {
 		return -1;
 	}
+
+	ekflog_timestampRead(timestamp, buff);
 
 	ekflog_common.fileOffsets[timeLog] = ftell(ekflog_common.file);
 	if (ekflog_common.fileOffsets[timeLog] < 0) {
@@ -133,8 +132,9 @@ int ekflog_timeRead(time_t *timestamp)
 
 int ekflog_senscImuRead(sensor_event_t *accEvt, sensor_event_t *gyrEvt, sensor_event_t *magEvt)
 {
-	int err = 0;
 	time_t timestamp;
+	uint8_t buff[IMU_LOG_LEN - LOG_ID_SIZE - LOG_IDENTIFIER_SIZE];
+	uint8_t *buffHead = buff;
 
 	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[imuLog], SEEK_SET) != 0) {
 		return -1;
@@ -144,45 +144,46 @@ int ekflog_senscImuRead(sensor_event_t *accEvt, sensor_event_t *gyrEvt, sensor_e
 		return -1;
 	}
 
-	err |= ekflog_timestampRead(&timestamp);
+	if (fread(buff, sizeof(buff), 1, ekflog_common.file) != 1) {
+		return -1;
+	}
+
+	buffHead += ekflog_timestampRead(&timestamp, buffHead);
 
 	accEvt->type = SENSOR_TYPE_ACCEL;
 	accEvt->timestamp = timestamp;
-	err |= ekflog_fieldRead(accEvt->accels.accelX);
-	err |= ekflog_fieldRead(accEvt->accels.accelY);
-	err |= ekflog_fieldRead(accEvt->accels.accelZ);
+	buffHead += FIELD_GET(&accEvt->accels.accelX, buffHead);
+	buffHead += FIELD_GET(&accEvt->accels.accelY, buffHead);
+	buffHead += FIELD_GET(&accEvt->accels.accelZ, buffHead);
 
 	gyrEvt->type = SENSOR_TYPE_GYRO;
 	gyrEvt->timestamp = timestamp;
-	err |= ekflog_fieldRead(gyrEvt->gyro.gyroX);
-	err |= ekflog_fieldRead(gyrEvt->gyro.gyroY);
-	err |= ekflog_fieldRead(gyrEvt->gyro.gyroZ);
-	err |= ekflog_fieldRead(gyrEvt->gyro.dAngleX);
-	err |= ekflog_fieldRead(gyrEvt->gyro.dAngleY);
-	err |= ekflog_fieldRead(gyrEvt->gyro.dAngleZ);
+	buffHead += FIELD_GET(&gyrEvt->gyro.gyroX, buffHead);
+	buffHead += FIELD_GET(&gyrEvt->gyro.gyroY, buffHead);
+	buffHead += FIELD_GET(&gyrEvt->gyro.gyroZ, buffHead);
+	buffHead += FIELD_GET(&gyrEvt->gyro.dAngleX, buffHead);
+	buffHead += FIELD_GET(&gyrEvt->gyro.dAngleY, buffHead);
+	buffHead += FIELD_GET(&gyrEvt->gyro.dAngleZ, buffHead);
 
 	magEvt->type = SENSOR_TYPE_MAG;
 	magEvt->timestamp = timestamp;
-	err |= ekflog_fieldRead(magEvt->mag.magX);
-	err |= ekflog_fieldRead(magEvt->mag.magY);
-	err |= ekflog_fieldRead(magEvt->mag.magZ);
-
-	if (err != 0) {
-		fprintf(stderr, "ekflog reader: error while parsing IMU log\n");
-	}
+	buffHead += FIELD_GET(&magEvt->mag.magX, buffHead);
+	buffHead += FIELD_GET(&magEvt->mag.magY, buffHead);
+	buffHead += FIELD_GET(&magEvt->mag.magZ, buffHead);
 
 	ekflog_common.fileOffsets[imuLog] = ftell(ekflog_common.file);
 	if (ekflog_common.fileOffsets[timeLog] < 0) {
 		return -1;
 	}
 
-	return err;
+	return 0;
 }
 
 
 int ekflog_senscGpsRead(sensor_event_t *gpsEvt)
 {
-	int err = 0;
+	uint8_t buff[GPS_LOG_LEN - LOG_ID_SIZE - LOG_IDENTIFIER_SIZE];
+	uint8_t *buffHead = buff;
 
 	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[gpsLog], SEEK_SET) != 0) {
 		return -1;
@@ -192,53 +193,54 @@ int ekflog_senscGpsRead(sensor_event_t *gpsEvt)
 		return -1;
 	}
 
+	if (fread(buff, sizeof(buff), 1, ekflog_common.file) != 1) {
+		return -1;
+	}
+
 	gpsEvt->type = SENSOR_TYPE_GPS;
 
-	err |= ekflog_timestampRead(&gpsEvt->timestamp);
+	buffHead += ekflog_timestampRead(&gpsEvt->timestamp, buffHead);
 
-	err |= ekflog_fieldRead(gpsEvt->gps.lat);
-	err |= ekflog_fieldRead(gpsEvt->gps.lon);
-	err |= ekflog_fieldRead(gpsEvt->gps.alt);
+	buffHead += FIELD_GET(&gpsEvt->gps.lat, buffHead);
+	buffHead += FIELD_GET(&gpsEvt->gps.lon, buffHead);
+	buffHead += FIELD_GET(&gpsEvt->gps.alt, buffHead);
 
-	err |= ekflog_fieldRead(gpsEvt->gps.utc);
+	buffHead += FIELD_GET(&gpsEvt->gps.utc, buffHead);
 
-	err |= ekflog_fieldRead(gpsEvt->gps.hdop);
-	err |= ekflog_fieldRead(gpsEvt->gps.vdop);
+	buffHead += FIELD_GET(&gpsEvt->gps.hdop, buffHead);
+	buffHead += FIELD_GET(&gpsEvt->gps.vdop, buffHead);
 
-	err |= ekflog_fieldRead(gpsEvt->gps.altEllipsoid);
-	err |= ekflog_fieldRead(gpsEvt->gps.groundSpeed);
+	buffHead += FIELD_GET(&gpsEvt->gps.altEllipsoid, buffHead);
+	buffHead += FIELD_GET(&gpsEvt->gps.groundSpeed, buffHead);
 
-	err |= ekflog_fieldRead(gpsEvt->gps.velNorth);
-	err |= ekflog_fieldRead(gpsEvt->gps.velEast);
-	err |= ekflog_fieldRead(gpsEvt->gps.velDown);
+	buffHead += FIELD_GET(&gpsEvt->gps.velNorth, buffHead);
+	buffHead += FIELD_GET(&gpsEvt->gps.velEast, buffHead);
+	buffHead += FIELD_GET(&gpsEvt->gps.velDown, buffHead);
 
-	err |= ekflog_fieldRead(gpsEvt->gps.eph);
-	err |= ekflog_fieldRead(gpsEvt->gps.epv);
-	err |= ekflog_fieldRead(gpsEvt->gps.evel);
+	buffHead += FIELD_GET(&gpsEvt->gps.eph, buffHead);
+	buffHead += FIELD_GET(&gpsEvt->gps.epv, buffHead);
+	buffHead += FIELD_GET(&gpsEvt->gps.evel, buffHead);
 
-	err |= ekflog_fieldRead(gpsEvt->gps.heading);
-	err |= ekflog_fieldRead(gpsEvt->gps.headingOffs);
-	err |= ekflog_fieldRead(gpsEvt->gps.headingAccur);
+	buffHead += FIELD_GET(&gpsEvt->gps.heading, buffHead);
+	buffHead += FIELD_GET(&gpsEvt->gps.headingOffs, buffHead);
+	buffHead += FIELD_GET(&gpsEvt->gps.headingAccur, buffHead);
 
-	err |= ekflog_fieldRead(gpsEvt->gps.satsNb);
-	err |= ekflog_fieldRead(gpsEvt->gps.fix);
-
-	if (err != 0) {
-		fprintf(stderr, "ekflog reader: error while parsing GPS log\n");
-	}
+	buffHead += FIELD_GET(&gpsEvt->gps.satsNb, buffHead);
+	buffHead += FIELD_GET(&gpsEvt->gps.fix, buffHead);
 
 	ekflog_common.fileOffsets[gpsLog] = ftell(ekflog_common.file);
 	if (ekflog_common.fileOffsets[timeLog] < 0) {
 		return -1;
 	}
 
-	return err;
+	return 0;
 }
 
 
 int ekflog_senscBaroRead(sensor_event_t *baroEvt)
 {
-	int err = 0;
+	uint8_t buff[BARO_LOG_LEN - LOG_ID_SIZE - LOG_IDENTIFIER_SIZE];
+	uint8_t *buffHead = buff;
 
 	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[baroLog], SEEK_SET) != 0) {
 		return -1;
@@ -248,23 +250,23 @@ int ekflog_senscBaroRead(sensor_event_t *baroEvt)
 		return -1;
 	}
 
+	if (fread(buff, sizeof(buff), 1, ekflog_common.file) != 1) {
+		return -1;
+	}
+
 	baroEvt->type = SENSOR_TYPE_BARO;
 
-	err |= ekflog_timestampRead(&baroEvt->timestamp);
+	buffHead += ekflog_timestampRead(&baroEvt->timestamp, buffHead);
 
-	err |= ekflog_fieldRead(baroEvt->baro.pressure);
-	err |= ekflog_fieldRead(baroEvt->baro.temp);
-
-	if (err != 0) {
-		fprintf(stderr, "ekflog reader: error while parsing GPS log\n");
-	}
+	buffHead += FIELD_GET(&baroEvt->baro.pressure, buffHead);
+	buffHead += FIELD_GET(&baroEvt->baro.temp, buffHead);
 
 	ekflog_common.fileOffsets[baroLog] = ftell(ekflog_common.file);
 	if (ekflog_common.fileOffsets[timeLog] < 0) {
 		return -1;
 	}
 
-	return err;
+	return 0;
 }
 
 
