@@ -104,6 +104,10 @@ int ekf_init(void)
 		return -1;
 	}
 
+	if (fltr_init() != 0) {
+		fprintf(stderr, "ekf: filter init failed\n");
+	}
+
 	if (pthread_mutex_init(&ekf_common.lock, NULL) < 0) {
 		printf("Cannot create mutex for ekf\n");
 		pthread_attr_destroy(&ekf_common.threadAttr);

@@ -15,9 +15,26 @@
 
 
 #include <stdio.h>
+#include <fcntl.h>
+#include <stdlib.h>
 #include <vec.h>
+#include <errno.h>
 
 #include "filters.h"
+
+
+#define FLTR_WINDOW_LEN 256
+
+typedef struct {
+	float window[FLTR_WINDOW_LEN]; /* filter window values */
+	unsigned int len;              /* length of window read from file */
+} fltr_t;
+
+struct {
+	fltr_t gyroFltr;
+	fltr_t accelFltr;
+	fltr_t baroFltr;
+} fltr_common;
 
 /* 
 * Accelerometer data is passed through windowed-sinc FIR filter of following parameters:
@@ -302,19 +319,19 @@ static void fltr_windowScl(float *raw, float *buf, int *bufPos, const float *win
 
 void fltr_accLpf(vec_t *raw)
 {
-	static vec_t buf[FLTR_ACCEL_LEN] = { 0 };
+	static vec_t buf[FLTR_WINDOW_LEN] = { 0 };
 	static int bufPos = 0;
 
-	fltr_windowVec(raw, buf, &bufPos, fltr_accWindow, FLTR_ACCEL_LEN);
+	fltr_windowVec(raw, buf, &bufPos, fltr_common.accelFltr.window, fltr_common.accelFltr.len);
 }
 
 
 void fltr_vBaroLpf(float *raw)
 {
-	static float buf[FLTR_VBARO_LEN] = { 0 };
+	static float buf[FLTR_WINDOW_LEN] = { 0 };
 	static int bufPos = 0;
 
-	fltr_windowScl(raw, buf, &bufPos, fltr_vBaroWindow, FLTR_VBARO_LEN);
+	fltr_windowScl(raw, buf, &bufPos, fltr_common.baroFltr.window, fltr_common.baroFltr.len);
 }
 
 
@@ -327,4 +344,86 @@ void fltr_gyroLpf(vec_t *raw)
 	vec_add(&buf, raw);
 
 	*raw = buf;
+}
+
+
+/*
+ * Initializes given `filter` with data from file pointed by `file`.
+ * `buf` and `bufSz` usage is getline-like.
+ */
+static int fltr_windowInit(const char *path, fltr_t *filter, char **buf, size_t *bufSz)
+{
+	FILE *fp;
+	unsigned int i;
+	float val, sum = 0;
+
+	fp = fopen(path, "r");
+	if (fp == NULL) {
+		fprintf(stderr, "filter: failed to open %s\n", path);
+		return -1;
+	}
+
+	filter->len = 0;
+	for (i = 0; i < FLTR_WINDOW_LEN; i++) {
+		if (getline(buf, bufSz, fp) < 0) {
+			break;
+		}
+
+		errno = EOK;
+		val = strtof(*buf, NULL);
+		if (val == 0 && errno != EOK) {
+			fprintf(stderr, "filter: failed to parse %s@%d: %s\n", path, i, *buf);
+			fclose(fp);
+			return -1;
+		}
+		sum += val;
+		filter->window[i] = val; /* writing window value */
+		filter->len++;
+	}
+
+	if (filter->len == 0) {
+		fprintf(stderr, "filter: failed to read filter %s\n", path);
+		fclose(fp);
+		return -1;
+	}
+
+	/* Filtering window sum must be 1 to not change the amplitude of signal */
+	if (sum > 1.01 || sum < 0.99) {
+		fprintf(stderr, "filter: ubalanced window %s\n", path);
+		fclose(fp);
+		return -1;
+	}
+
+	return 0;
+}
+
+
+int fltr_init(void)
+{
+	char *buf;
+	size_t bufSz = 64;
+
+	buf = malloc(bufSz);
+	if (buf == NULL) {
+		fprintf(stderr, "filter: failed to malloc\n");
+		return -1;
+	}
+
+	if (fltr_windowInit("/etc/ekf_windows/gyro.txt", &fltr_common.gyroFltr, &buf, &bufSz) < 0) {
+		fprintf(stderr, "filter: failed to init gyro filter\n");
+		free(buf);
+		return -1;
+	}
+
+	if (fltr_windowInit("/etc/ekf_windows/accel.txt", &fltr_common.accelFltr, &buf, &bufSz) < 0) {
+		fprintf(stderr, "filter: failed to init accel filter\n");
+		free(buf);
+		return -1;
+	}
+
+	if (fltr_windowInit("/etc/ekf_windows/baro.txt", &fltr_common.baroFltr, &buf, &bufSz) < 0) {
+		fprintf(stderr, "filter: failed to init bari filter\n");
+		free(buf);
+		return -1;
+	}
 }
