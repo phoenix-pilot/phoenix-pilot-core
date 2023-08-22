@@ -32,6 +32,7 @@
 #include <matrix.h>
 
 #include "ekflib.h"
+#include "filters.h"
 
 #define EKF_CONFIG_FILE "etc/ekf.conf"
 
