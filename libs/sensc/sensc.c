@@ -33,26 +33,29 @@ typedef enum { fd_imuId = 0,
 
 struct {
 	sensors_data_t *data;
-	int fd[SENSORHUB_PIPES]; /* each for one sensor type */
 	unsigned char buff[0x400];
+
+	int fdImu;
+	int fdBaro;
+	int fdGps;
 
 	bool corrEnable;
 } sensc_common;
 
 
-static int sensc_setupDscr(fd_id_t type, int typeFlag)
+static int sensc_setupDescr(int sensFd, int typeFlag)
 {
 	sensor_type_t types;
 	sensors_ops_t ops = { 0 };
 
-	ioctl(sensc_common.fd[type], SMIOC_SENSORSAVAIL, &types);
+	ioctl(sensFd, SMIOC_SENSORSAVAIL, &types);
 	ops.types = types & typeFlag;
 
 	if (ops.types == 0) {
 		return -1;
 	}
 
-	ioctl(sensc_common.fd[type], SMIOC_SENSORSSET, &ops);
+	ioctl(sensFd, SMIOC_SENSORSSET, &ops);
 
 	if ((ops.evtSz * sizeof(sensor_event_t) + sizeof(((sensors_data_t *)0)->size)) > sizeof(sensc_common.buff)) {
 		fprintf(stderr, "Buff is too small\n");
@@ -63,10 +66,64 @@ static int sensc_setupDscr(fd_id_t type, int typeFlag)
 }
 
 
-int sensc_init(const char *path, bool corrEnable)
+static inline void sensc_closeDescr(int *sensFd)
 {
-	int i = 0;
-	unsigned int err = 0;
+	if (*sensFd >= 0) {
+		close(*sensFd);
+		*sensFd = -1;
+	}
+}
+
+
+static int sensc_openDescr(const char *path, int typeFlag, int initFlags, int *sensFd)
+{
+	int sensorType;
+
+	if ((initFlags & typeFlag) == 0) {
+		*sensFd = -1;
+		return 0;
+	}
+
+	switch (typeFlag) {
+		case SENSC_INIT_IMU:
+			sensorType = SENSOR_TYPE_ACCEL | SENSOR_TYPE_GYRO | SENSOR_TYPE_MAG;
+			break;
+
+		case SENSC_INIT_BARO:
+			sensorType = SENSOR_TYPE_BARO;
+			break;
+
+		case SENSC_INIT_GPS:
+			sensorType = SENSOR_TYPE_GPS;
+			break;
+
+		default:
+			fprintf(stderr, "sensc: unknown type\n");
+			*sensFd = -1;
+			return -1;
+	}
+
+	*sensFd = open(path, O_RDWR);
+	if (*sensFd < 0) {
+		fprintf(stderr, "sensc: open failed\n");
+		*sensFd = -1;
+		return -1;
+	}
+
+	if (sensc_setupDescr(*sensFd, sensorType) < 0) {
+		fprintf(stderr, "sensc: ioctl failed\n");
+		close(*sensFd);
+		*sensFd = -1;
+		return -1;
+	}
+
+	return 0;
+}
+
+
+int sensc_init(const char *path, bool corrEnable, int initFlags)
+{
+	int err;
 
 	sensc_common.corrEnable = corrEnable;
 	if (sensc_common.corrEnable == true) {
@@ -76,46 +133,20 @@ int sensc_init(const char *path, bool corrEnable)
 		}
 	}
 
-	/* open file descriptors for all sensor types */
-	for (i = 0; i < (sizeof(sensc_common.fd) / sizeof(int)); i++) {
-		sensc_common.fd[i] = open(path, O_RDWR);
-		if (sensc_common.fd[i] < 0) {
-			err = 1;
-			i--;
-			break;
-		}
-	}
-	/* if error occurred during opening, close all successfully opened files */
-	if (err != 0) {
-		fprintf(stderr, "sensc: cannot open \"%s\"\n", path);
-
-		if (sensc_common.corrEnable == true) {
-			corr_done();
-		}
-		while (i >= 0) {
-			close(sensc_common.fd[i]);
-			i--;
-		}
-
-		return -1;
-	}
-
-	/* ioctl of sensor descriptors */
 	err = 0;
-	err += sensc_setupDscr(fd_imuId, SENSOR_TYPE_ACCEL | SENSOR_TYPE_GYRO | SENSOR_TYPE_MAG);
-	err += sensc_setupDscr(fd_baroId, SENSOR_TYPE_BARO);
-	err += sensc_setupDscr(fd_gpsId, SENSOR_TYPE_GPS);
+	err |= sensc_openDescr(path, SENSC_INIT_IMU, initFlags, &sensc_common.fdImu);
+	err |= sensc_openDescr(path, SENSC_INIT_BARO, initFlags, &sensc_common.fdBaro);
+	err |= sensc_openDescr(path, SENSC_INIT_GPS, initFlags, &sensc_common.fdGps);
 
 	if (err != 0) {
-		fprintf(stderr, "sensc: cannot setup sensor descriptors\n");
+		fprintf(stderr, "sensc: init failed\n");
+		sensc_closeDescr(&sensc_common.fdImu);
+		sensc_closeDescr(&sensc_common.fdBaro);
+		sensc_closeDescr(&sensc_common.fdGps);
 
 		if (sensc_common.corrEnable == true) {
 			corr_done();
 		}
-		for (i = 0; i < (sizeof(sensc_common.fd) / sizeof(int)); i++) {
-			close(sensc_common.fd[i]);
-		}
-
 		return -1;
 	}
 
@@ -125,11 +156,9 @@ int sensc_init(const char *path, bool corrEnable)
 
 void sensc_deinit(void)
 {
-	int i;
-
-	for (i = 0; i < (sizeof(sensc_common.fd) / sizeof(int)); i++) {
-		close(sensc_common.fd[i]);
-	}
+	sensc_closeDescr(&sensc_common.fdImu);
+	sensc_closeDescr(&sensc_common.fdBaro);
+	sensc_closeDescr(&sensc_common.fdGps);
 
 	if (sensc_common.corrEnable == true) {
 		corr_done();
@@ -145,7 +174,7 @@ int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 	int j;
 
 	/* read from sensorhub */
-	if (read(sensc_common.fd[fd_imuId], sensc_common.buff, sizeof(sensc_common.buff)) < 0) {
+	if (read(sensc_common.fdImu, sensc_common.buff, sizeof(sensc_common.buff)) < 0) {
 		return -1;
 	}
 
@@ -189,7 +218,7 @@ int sensc_baroGet(sensor_event_t *baroEvt)
 	data = (sensors_data_t *)(sensc_common.buff);
 
 	/* read from sensorhub */
-	if (read(sensc_common.fd[fd_baroId], sensc_common.buff, sizeof(sensc_common.buff)) < 0) {
+	if (read(sensc_common.fdBaro, sensc_common.buff, sizeof(sensc_common.buff)) < 0) {
 		return -1;
 	}
 
@@ -208,7 +237,7 @@ int sensc_gpsGet(sensor_event_t *gpsEvt)
 	data = (sensors_data_t *)(sensc_common.buff);
 
 	/* read from sensorhub */
-	if (read(sensc_common.fd[fd_gpsId], sensc_common.buff, sizeof(sensc_common.buff)) < 0) {
+	if (read(sensc_common.fdGps, sensc_common.buff, sizeof(sensc_common.buff)) < 0) {
 		return -1;
 	}
 

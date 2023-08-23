@@ -32,7 +32,7 @@
 #include <matrix.h>
 #include <parser.h>
 
-#define KMN_CONFIG_HEADERS_CNT    4
+#define KMN_CONFIG_HEADERS_CNT    5
 #define KMN_CONFIG_MAX_FIELDS_CNT 9
 
 
@@ -152,6 +152,29 @@ static int kmn_loggingConverter(const hmap_t *h)
 }
 
 
+static int kmn_modelConverter(const hmap_t *h)
+{
+	int flag, err = 0, modelFlags = 0;
+
+	err |= parser_fieldGetInt(h, "imu", &flag);
+	modelFlags |= (flag != 0) ? KMN_UPDT_IMU : 0;
+
+	err |= parser_fieldGetInt(h, "baro", &flag);
+	modelFlags |= (flag != 0) ? KMN_UPDT_BARO : 0;
+
+	err |= parser_fieldGetInt(h, "gps", &flag);
+	modelFlags |= (flag != 0) ? KMN_UPDT_GPS : 0;
+
+	if (err != 0) {
+		return err;
+	}
+
+	converterResult->modelFlags = modelFlags;
+
+	return 0;
+}
+
+
 /* reads config file named "config" from filesystem */
 int kmn_configRead(const char *configFile, kalman_init_t *initVals)
 {
@@ -169,6 +192,7 @@ int kmn_configRead(const char *configFile, kalman_init_t *initVals)
 	err |= parser_headerAdd(p, "R_MATRIX", kmn_RMatrixConverter);
 	err |= parser_headerAdd(p, "Q_MATRIX", kmn_QMatrixConverter);
 	err |= parser_headerAdd(p, "LOGGING", kmn_loggingConverter);
+	err |= parser_headerAdd(p, "MODEL", kmn_modelConverter);
 
 	if (err != 0) {
 		parser_free(p);

@@ -101,10 +101,18 @@
 #define MGPSVX 2 /* NED x speed */
 #define MGPSVY 3 /* NED y speed */
 
+
+/* Kalman update models used */
+#define KMN_UPDT_IMU  (1 << 0)
+#define KMN_UPDT_BARO (1 << 1)
+#define KMN_UPDT_GPS  (1 << 2)
+
+
 typedef struct {
 	int verbose;
 	uint32_t log;
 	uint32_t logMode;
+	int modelFlags;
 
 	/* State covariance error initialization values */
 	float P_qerr;

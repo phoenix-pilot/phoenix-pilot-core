@@ -159,6 +159,10 @@ static void imuUpdateInitializations(matrix_t *H, matrix_t *R)
 
 void kmn_imuEngInit(update_engine_t *engine, const kalman_init_t *inits)
 {
+	if (!engine->active) {
+		return;
+	}
+
 	imu_common.inits = inits;
 
 	imuUpdateInitializations(&engine->H, &engine->R);

@@ -94,6 +94,10 @@ static void gpsUpdateInitializations(matrix_t *H, matrix_t *R, const kalman_init
 
 void kmn_gpsEngInit(update_engine_t *engine, const kalman_init_t *inits)
 {
+	if (!engine->active) {
+		return;
+	}
+
 	gpsUpdateInitializations(&engine->H, &engine->R, inits);
 
 	engine->getData = getMeasurement;

@@ -18,9 +18,13 @@
 
 #include <libsensors.h>
 
+#define SENSC_INIT_IMU  (1 << 0)
+#define SENSC_INIT_BARO (1 << 1)
+#define SENSC_INIT_GPS  (1 << 2)
+
 
 /* initializes sensor client that should be accessible under path (e.g /dev/sensors) with option to turn on/off corrections module */
-extern int sensc_init(const char *path, bool corrEnable);
+extern int sensc_init(const char *path, bool corrEnable, int initFlags);
 
 /* deinitializes all initialized parts of sensor client */
 extern void sensc_deinit(void);

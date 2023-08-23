@@ -137,8 +137,6 @@ void meas_gpsCalib(void)
 	sensor_event_t gpsEvt;
 	meas_geodetic_t refPos = { 0 };
 
-	return;
-
 	/* Assuring gps fix */
 	while (1) {
 		sensc_gpsGet(&gpsEvt);
