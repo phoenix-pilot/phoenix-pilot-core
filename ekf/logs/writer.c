@@ -189,7 +189,7 @@ int ekflog_timeWrite(time_t timestamp)
 }
 
 
-int ekflog_senscImuWrite(const sensor_event_t *accEvt, const sensor_event_t *gyrEvt, const sensor_event_t *magEvt)
+int ekflog_imuWrite(const sensor_event_t *accEvt, const sensor_event_t *gyrEvt, const sensor_event_t *magEvt)
 {
 	uint8_t buff[IMU_LOG_SIZE - LOG_PREFIX_SIZE];
 
@@ -206,7 +206,7 @@ int ekflog_senscImuWrite(const sensor_event_t *accEvt, const sensor_event_t *gyr
 }
 
 
-int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt)
+int ekflog_gpsWrite(const sensor_event_t *gpsEvt)
 {
 	/* Log call with flags that are not enabled is not an error */
 	if ((ekflog_common.logFlags & EKFLOG_SENSC) == 0) {
@@ -217,7 +217,7 @@ int ekflog_senscGpsWrite(const sensor_event_t *gpsEvt)
 }
 
 
-int ekflog_senscBaroWrite(const sensor_event_t *baroEvt)
+int ekflog_baroWrite(const sensor_event_t *baroEvt)
 {
 	/* Log call with flags that are not enabled is not an error */
 	if ((ekflog_common.logFlags & EKFLOG_SENSC) == 0) {

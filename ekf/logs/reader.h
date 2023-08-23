@@ -23,15 +23,15 @@ extern int ekflog_timeRead(time_t *timestamp);
 
 
 /* Reads next IMU log */
-extern int ekflog_senscImuRead(sensor_event_t *accEvt, sensor_event_t *gyrEvt, sensor_event_t *magEvt);
+extern int ekflog_imuRead(sensor_event_t *accEvt, sensor_event_t *gyrEvt, sensor_event_t *magEvt);
 
 
 /* Reads next GPS log */
-extern int ekflog_senscGpsRead(sensor_event_t *gpsEvt);
+extern int ekflog_gpsRead(sensor_event_t *gpsEvt);
 
 
 /* Reads next barometer log */
-extern int ekflog_senscBaroRead(sensor_event_t *baroEvt);
+extern int ekflog_baroRead(sensor_event_t *baroEvt);
 
 
 /* Initiates module, `path` must leads to binary ekf logs file. On success returns 0. */
