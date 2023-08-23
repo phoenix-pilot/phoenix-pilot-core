@@ -43,7 +43,7 @@ struct {
 } sensc_common;
 
 
-static int sensc_setupDscr(int sensFd, int typeFlag)
+static int sensc_setupDescr(int sensFd, int typeFlag)
 {
 	sensor_type_t types;
 	sensors_ops_t ops = { 0 };
@@ -77,7 +77,7 @@ static inline void sensc_closeDescr(int *sensFd)
 
 static int sensc_openDescr(const char *path, int typeFlag, int initFlags, int *sensFd)
 {
-	int fd, sensorType;
+	int sensorType;
 
 	if ((initFlags & typeFlag) == 0) {
 		*sensFd = -1;
@@ -103,28 +103,27 @@ static int sensc_openDescr(const char *path, int typeFlag, int initFlags, int *s
 			return -1;
 	}
 
-	fd = open(path, O_RDWR);
-	if (fd < 0) {
+	*sensFd = open(path, O_RDWR);
+	if (*sensFd < 0) {
 		fprintf(stderr, "sensc: open failed\n");
 		*sensFd = -1;
 		return -1;
 	}
 
-	if (sensc_setupDscr(fd, sensorType) < 0) {
+	if (sensc_setupDescr(*sensFd, sensorType) < 0) {
 		fprintf(stderr, "sensc: ioctl failed\n");
-		close(fd);
+		close(*sensFd);
 		*sensFd = -1;
 		return -1;
 	}
 
-	*sensFd = fd;
 	return 0;
 }
 
 
 int sensc_init(const char *path, bool corrEnable, int initFlags)
 {
-	bool err;
+	int err;
 
 	sensc_common.corrEnable = corrEnable;
 	if (sensc_common.corrEnable == true) {
@@ -134,18 +133,20 @@ int sensc_init(const char *path, bool corrEnable, int initFlags)
 		}
 	}
 
-	err = false;
-	err = (sensc_openDescr(path, SENSC_INIT_IMU, initFlags, &sensc_common.fdImu) < 0) ? true : err;
-	err = (sensc_openDescr(path, SENSC_INIT_BARO, initFlags, &sensc_common.fdBaro) < 0) ? true : err;
-	err = (sensc_openDescr(path, SENSC_INIT_GPS, initFlags, &sensc_common.fdGps) < 0) ? true : err;
+	err = 0;
+	err |= sensc_openDescr(path, SENSC_INIT_IMU, initFlags, &sensc_common.fdImu);
+	err |= sensc_openDescr(path, SENSC_INIT_BARO, initFlags, &sensc_common.fdBaro);
+	err |= sensc_openDescr(path, SENSC_INIT_GPS, initFlags, &sensc_common.fdGps);
 
-	if (err) {
+	if (err != 0) {
 		fprintf(stderr, "sensc: init failed\n");
 		sensc_closeDescr(&sensc_common.fdImu);
 		sensc_closeDescr(&sensc_common.fdBaro);
 		sensc_closeDescr(&sensc_common.fdGps);
 
-		corr_done();
+		if (sensc_common.corrEnable == true) {
+			corr_done();
+		}
 		return -1;
 	}
 

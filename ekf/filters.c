@@ -25,6 +25,11 @@
 
 #define FLTR_WINDOW_LEN 256
 
+#define GYRO_WINDOW_PATH  "/etc/ekf_windows/gyro.txt"
+#define ACCEL_WINDOW_PATH "/etc/ekf_windows/accel.txt"
+#define BARO_WINDOW_PATH  "/etc/ekf_windows/baro.txt"
+
+
 typedef struct {
 	float window[FLTR_WINDOW_LEN]; /* filter window values */
 	unsigned int len;              /* length of window read from file */
@@ -199,19 +204,19 @@ int fltr_init(void)
 		return -1;
 	}
 
-	if (fltr_windowInit("/etc/ekf_windows/gyro.txt", &fltr_common.gyroFltr, &buf, &bufSz) < 0) {
+	if (fltr_windowInit(GYRO_WINDOW_PATH, &fltr_common.gyroFltr, &buf, &bufSz) < 0) {
 		fprintf(stderr, "filter: failed to init gyro filter\n");
 		free(buf);
 		return -1;
 	}
 
-	if (fltr_windowInit("/etc/ekf_windows/accel.txt", &fltr_common.accelFltr, &buf, &bufSz) < 0) {
+	if (fltr_windowInit(ACCEL_WINDOW_PATH, &fltr_common.accelFltr, &buf, &bufSz) < 0) {
 		fprintf(stderr, "filter: failed to init accel filter\n");
 		free(buf);
 		return -1;
 	}
 
-	if (fltr_windowInit("/etc/ekf_windows/baro.txt", &fltr_common.baroFltr, &buf, &bufSz) < 0) {
+	if (fltr_windowInit(BARO_WINDOW_PATH, &fltr_common.baroFltr, &buf, &bufSz) < 0) {
 		fprintf(stderr, "filter: failed to init bari filter\n");
 		free(buf);
 		return -1;
