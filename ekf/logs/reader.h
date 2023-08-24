@@ -35,7 +35,7 @@ extern int ekflog_baroRead(sensor_event_t *baroEvt);
 
 
 /* Initiates module, `path` must leads to binary ekf logs file. On success returns 0. */
-extern int ekflog_readerInit(char *path);
+extern int ekflog_readerInit(const char *path);
 
 
 /* Deinitialize module. On success returns 0. */
