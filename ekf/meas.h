@@ -74,6 +74,12 @@ typedef struct {
 } meas_gps_t;
 
 
+extern int meas_init(const char *path, int senscInitFlags);
+
+
+extern void meas_done(void);
+
+
 /* CALIBRATION INITIALIZERS */
 
 /* obtain current IMU calibration parameters */

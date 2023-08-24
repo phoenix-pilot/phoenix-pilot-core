@@ -71,6 +71,18 @@ static struct {
 } meas_common;
 
 
+int meas_init(const char *path, int senscInitFlags)
+{
+	return sensc_init(path, true, senscInitFlags);
+}
+
+
+void meas_done(void)
+{
+	sensc_deinit();
+}
+
+
 static void meas_gps2geo(const sensor_event_t *gpsEvt, meas_geodetic_t *geo)
 {
 	geo->lat = (double)gpsEvt->gps.lat / 1e9;

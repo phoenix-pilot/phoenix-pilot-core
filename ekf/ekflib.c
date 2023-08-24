@@ -134,13 +134,7 @@ int ekf_init(void)
 		err = -1;
 	}
 
-	ekf_common.run = 0;
-	if (err == 0 && sensc_init("/dev/sensors", true, SENSC_INIT_IMU | SENSC_INIT_BARO | SENSC_INIT_GPS) < 0) {
-		err = -1;
-	}
-
 	if (err != 0) {
-		sensc_deinit();
 		pthread_mutex_destroy(&ekf_common.lock);
 		pthread_attr_destroy(&ekf_common.threadAttr);
 
@@ -152,10 +146,22 @@ int ekf_init(void)
 		return -1;
 	}
 
+	ekf_common.run = 0;
+
+	if (meas_init("/dev/sensors", SENSC_INIT_IMU | SENSC_INIT_BARO | SENSC_INIT_GPS) != 0) {
+		pthread_mutex_destroy(&ekf_common.lock);
+		pthread_attr_destroy(&ekf_common.threadAttr);
+
+		kalman_predictDealloc(&ekf_common.stateEngine);
+		kalman_updateDealloc(&ekf_common.imuEngine);
+		kalman_updateDealloc(&ekf_common.baroEngine);
+		kalman_updateDealloc(&ekf_common.gpsEngine);
+	}
+
 	if (ekflog_writerInit("ekf_log.bin", ekf_common.initVals.log | ekf_common.initVals.logMode) != 0) {
 		pthread_mutex_destroy(&ekf_common.lock);
 		pthread_attr_destroy(&ekf_common.threadAttr);
-		sensc_deinit();
+		meas_done();
 
 		kalman_predictDealloc(&ekf_common.stateEngine);
 		kalman_updateDealloc(&ekf_common.imuEngine);
@@ -299,7 +305,7 @@ void ekf_done(void)
 	kalman_updateDealloc(&ekf_common.baroEngine);
 	kalman_updateDealloc(&ekf_common.gpsEngine);
 
-	sensc_deinit();
+	meas_done();
 	ekflog_writerDone();
 	pthread_mutex_destroy(&ekf_common.lock);
 }
