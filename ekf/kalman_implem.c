@@ -32,7 +32,7 @@
 #include <matrix.h>
 #include <parser.h>
 
-#define KMN_CONFIG_HEADERS_CNT    5
+#define KMN_CONFIG_HEADERS_CNT    6
 #define KMN_CONFIG_MAX_FIELDS_CNT 9
 
 
@@ -152,6 +152,45 @@ static int kmn_loggingConverter(const hmap_t *h)
 }
 
 
+static int kmn_dataSourceConverter(const hmap_t *h)
+{
+	char *str;
+
+	str = hmap_get(h, "source");
+	if (str == NULL) {
+		return -1;
+	}
+
+	if (strcmp(str, "SENSORS") == 0) {
+		converterResult->measSource = sensorSource;
+	}
+	else if (strcmp(str, "LOGS") == 0) {
+		converterResult->measSource = logsSource;
+	}
+	else {
+		fprintf(stderr, "Ekf config: Unknown source specifier: %s\n", str);
+		return -1;
+	}
+
+	if (converterResult->measSource == logsSource) {
+		str = hmap_get(h, "file");
+		if (str == NULL) {
+			fprintf(stderr, "Ekf config: no file as data source for ekf is specified\n");
+			return -1;
+		}
+
+		if (strlen(str) > MAX_PATH_LEN) {
+			fprintf(stderr, "Ekf config: file specification is too long\n");
+			return -1;
+		}
+
+		strcpy(converterResult->sourceFile, str);
+	}
+
+	return 0;
+}
+
+
 static int kmn_modelConverter(const hmap_t *h)
 {
 	int flag, err = 0, modelFlags = 0;
@@ -192,6 +231,7 @@ int kmn_configRead(const char *configFile, kalman_init_t *initVals)
 	err |= parser_headerAdd(p, "R_MATRIX", kmn_RMatrixConverter);
 	err |= parser_headerAdd(p, "Q_MATRIX", kmn_QMatrixConverter);
 	err |= parser_headerAdd(p, "LOGGING", kmn_loggingConverter);
+	err |= parser_headerAdd(p, "DATA_SOURCE", kmn_dataSourceConverter);
 	err |= parser_headerAdd(p, "MODEL", kmn_modelConverter);
 
 	if (err != 0) {

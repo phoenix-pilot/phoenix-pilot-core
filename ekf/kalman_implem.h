@@ -2,7 +2,7 @@
  * Phoenix-Pilot
  *
  * extended kalman filter
- * 
+ *
  * EKF implementation specific code header file. Declares prediction and update engines routines/functions
  *
  * Copyright 2022 Phoenix Systems
@@ -107,8 +107,13 @@
 #define KMN_UPDT_BARO (1 << 1)
 #define KMN_UPDT_GPS  (1 << 2)
 
+#define MAX_PATH_LEN 200
+
 
 typedef struct {
+	meas_sourceType_t measSource;
+	char sourceFile[MAX_PATH_LEN + 1];
+
 	int verbose;
 	uint32_t log;
 	uint32_t logMode;

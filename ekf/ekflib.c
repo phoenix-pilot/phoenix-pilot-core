@@ -35,6 +35,8 @@
 #include "filters.h"
 
 #define EKF_CONFIG_FILE "etc/ekf.conf"
+#define EKF_LOG_FILE    "ekf_log.bin"
+#define SENSOR_FILE     "/dev/sensors"
 
 #define STACK_SIZE 16384
 
@@ -97,6 +99,58 @@ static int ekf_threadAttrInit(void)
 }
 
 
+static int ekf_measGate(void)
+{
+	int userAns, res;
+
+	switch (ekf_common.initVals.measSource) {
+		case sensorSource:
+			return meas_init(sensorSource, SENSOR_FILE, SENSC_INIT_IMU | SENSC_INIT_BARO | SENSC_INIT_GPS);
+
+		case logsSource:
+			if (strcmp(EKF_LOG_FILE, ekf_common.initVals.sourceFile) == 0) {
+				fprintf(stderr, "Ekf config: %s cannot be a data source file\n", EKF_LOG_FILE);
+				return -1;
+			}
+
+			/* Set output color to red */
+			printf("\n\033[31m");
+
+			printf("WARNING!\n");
+			printf("EKF is going to run using data from file.\n");
+			printf("This feature is only for testing purposes. Never use it on drone\n");
+			printf("Are you sure you want to continue? (y/n)");
+
+			/* Set output color to default */
+			printf("\033[0m\n");
+
+			userAns = getchar();
+			userAns = tolower(userAns);
+
+			switch (userAns) {
+				case 'y':
+					res = meas_init(logsSource, ekf_common.initVals.sourceFile, true);
+					if (res != 0) {
+						fprintf(stderr, "Ekf config: error while initiating meas module\n");
+					}
+					return res;
+
+				case 'n':
+					printf("Aborting ekf init...\n");
+					return -1;
+
+				default:
+					fprintf(stderr, "Unknown entry\nAborting init...\n");
+					return -1;
+			}
+
+		default:
+			fprintf(stderr, "Ekf config: unknown meas source type\n");
+			return -1;
+	}
+}
+
+
 int ekf_init(void)
 {
 	int err;
@@ -148,7 +202,7 @@ int ekf_init(void)
 
 	ekf_common.run = 0;
 
-	if (meas_init("/dev/sensors", SENSC_INIT_IMU | SENSC_INIT_BARO | SENSC_INIT_GPS) != 0) {
+	if (ekf_measGate() != 0) {
 		pthread_mutex_destroy(&ekf_common.lock);
 		pthread_attr_destroy(&ekf_common.threadAttr);
 
@@ -158,7 +212,7 @@ int ekf_init(void)
 		kalman_updateDealloc(&ekf_common.gpsEngine);
 	}
 
-	if (ekflog_writerInit("ekf_log.bin", ekf_common.initVals.log | ekf_common.initVals.logMode) != 0) {
+	if (ekflog_writerInit(EKF_LOG_FILE, ekf_common.initVals.log | ekf_common.initVals.logMode) != 0) {
 		pthread_mutex_destroy(&ekf_common.lock);
 		pthread_attr_destroy(&ekf_common.threadAttr);
 		meas_done();
