@@ -14,7 +14,15 @@
 #ifndef EKFLIB_H
 #define EKFLIB_H
 
+
+/* clang-format off */
+typedef enum { ekf_running = 0, ekf_stopped } ekf_status_t;
+/* clang-format on */
+
+
 typedef struct {
+	ekf_status_t status;
+
 	/* position in ENU frame in meters */
 	float enuX;
 	float enuY;

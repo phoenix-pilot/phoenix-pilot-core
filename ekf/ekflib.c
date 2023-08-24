@@ -318,6 +318,13 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	quat_t q;
 	pthread_mutex_lock(&ekf_common.lock);
 
+	if (ekf_common.run == 1) {
+		ekfState->status = ekf_running;
+	}
+	else {
+		ekfState->status = ekf_stopped;
+	}
+
 	/* save quaternion attitude */
 	q.a = ekfState->q0 = ekf_common.stateEngine.state.data[QA];
 	q.i = ekfState->q1 = ekf_common.stateEngine.state.data[QB];
