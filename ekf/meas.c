@@ -45,6 +45,13 @@
 #define GYRO_MAX_SENSIBLE_READ 157        /* 50 pi radians per second is the largest absolute value of angular speed deemed possible */
 
 static struct {
+	meas_sourceType_t sourceType;
+
+	int (*baroAcq)(sensor_event_t *);
+	int (*gpsAcq)(sensor_event_t *);
+	int (*imuAcq)(sensor_event_t *, sensor_event_t *, sensor_event_t *);
+	int (*timeAcq)(time_t *);
+
 	meas_calib_t calib;
 
 	struct {
