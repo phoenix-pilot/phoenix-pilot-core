@@ -9,7 +9,7 @@ KALMAN_SRCS := kalman_implem.c kalman_core.c kalman_update_imu.c kalman_update_b
 
 # EKF library
 NAME := libekf
-LOCAL_SRCS := ekflib.c $(KALMAN_SRCS) meas.c filters.c logs/writer.c
+LOCAL_SRCS := ekflib.c $(KALMAN_SRCS) meas.c filters.c logs/writer.c logs/reader.c
 LOCAL_HEADERS := ekflib.h
 DEPS := libalgeb libsensc libcalib libparser libhmap
 

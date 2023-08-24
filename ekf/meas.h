@@ -24,6 +24,11 @@
 #define _EKF_MEAS_T_
 
 
+/* clang-format off */
+typedef enum { sensorSource = 0, logsSource } meas_sourceType_t;
+/* clang-format on */
+
+
 typedef struct {
 	double lat;
 	double lon;
@@ -74,22 +79,22 @@ typedef struct {
 } meas_gps_t;
 
 
-extern int meas_init(const char *path, int senscInitFlags);
+extern int meas_init(meas_sourceType_t sourceType, const char *path, int senscInitFlags);
 
 
-extern void meas_done(void);
+extern int meas_done(void);
 
 
 /* CALIBRATION INITIALIZERS */
 
 /* obtain current IMU calibration parameters */
-extern void meas_imuCalib(void);
+extern int meas_imuCalib(void);
 
 /* obtain current barometer calibration parameters */
-extern void meas_baroCalib(void);
+extern int meas_baroCalib(void);
 
 /* obtain current gps calibration parameters */
-extern void meas_gpsCalib(void);
+extern int meas_gpsCalib(void);
 
 
 /* CALIBRATION GETTERS */
