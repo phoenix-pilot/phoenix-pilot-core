@@ -176,16 +176,19 @@ static int fltr_windowInit(const char *path, fltr_t *filter, char **buf, size_t 
 		filter->len++;
 	}
 
+	if (fclose(fp) != 0) {
+		fprintf(stderr, "filter: failed to close the file %s\n", path);
+		return -1;
+	}
+
 	if (filter->len == 0) {
 		fprintf(stderr, "filter: failed to read filter %s\n", path);
-		fclose(fp);
 		return -1;
 	}
 
 	/* Filtering window sum must be 1 to not change the amplitude of signal */
 	if (sum > 1.01 || sum < 0.99) {
 		fprintf(stderr, "filter: ubalanced window %s\n", path);
-		fclose(fp);
 		return -1;
 	}
 
