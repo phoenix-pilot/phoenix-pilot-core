@@ -164,9 +164,9 @@ static int fltr_windowInit(const char *path, fltr_t *filter, char **buf, size_t 
 			break;
 		}
 
-		errno = EOK;
+		errno = 0;
 		val = strtof(*buf, NULL);
-		if (val == 0 && errno != EOK) {
+		if (val == 0 && errno != 0) {
 			fprintf(stderr, "filter: failed to parse %s@%d: %s\n", path, i, *buf);
 			fclose(fp);
 			return -1;
