@@ -150,7 +150,9 @@ static int corr_magmotRecalc(vec_t *correction)
 	/* Read current throttles from pwmFiles */
 	for (motor = 0; motor < NUM_OF_MOTORS; motor++) {
 		rewind(corr_common.pwmFiles[motor]);
-		fread(buff, sizeof(char), sizeof(buff), corr_common.pwmFiles[motor]);
+		if (fread(buff, sizeof(char), sizeof(buff), corr_common.pwmFiles[motor]) < sizeof(buff)) {
+			return -1;
+		}
 
 		throttles[motor] = strtod(buff, NULL);
 
