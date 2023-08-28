@@ -124,7 +124,7 @@ int ekf_init(void)
 	err |= kmn_configRead(EKF_CONFIG_FILE, &ekf_common.initVals);
 
 	/* activate update models selected in `initVals` */
-	ekf_common.imuEngine.active = ((ekf_common.initVals.modelFlags) & KMN_UPDT_IMU != 0);
+	ekf_common.imuEngine.active = ((ekf_common.initVals.modelFlags & KMN_UPDT_IMU) != 0);
 	ekf_common.baroEngine.active = ((ekf_common.initVals.modelFlags & KMN_UPDT_BARO) != 0);
 	ekf_common.gpsEngine.active = ((ekf_common.initVals.modelFlags & KMN_UPDT_GPS) != 0);
 
