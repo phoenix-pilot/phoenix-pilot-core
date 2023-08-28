@@ -225,5 +225,7 @@ int fltr_init(void)
 		return -1;
 	}
 
+	free(buf);
+
 	return 0;
 }

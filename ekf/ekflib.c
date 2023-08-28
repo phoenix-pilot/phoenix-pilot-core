@@ -107,6 +107,7 @@ int ekf_init(void)
 
 	if (fltr_init() != 0) {
 		fprintf(stderr, "ekf: filter init failed\n");
+		return -1;
 	}
 
 	if (pthread_mutex_init(&ekf_common.lock, NULL) < 0) {
