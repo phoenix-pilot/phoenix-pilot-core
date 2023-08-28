@@ -20,6 +20,7 @@
 #include <pthread.h>
 #include <sched.h>
 #include <errno.h>
+#include <string.h>
 
 #include "kalman_core.h"
 #include "kalman_implem.h"
@@ -99,50 +100,41 @@ static int ekf_threadAttrInit(void)
 }
 
 
-static int ekf_measGate(void)
+/* Function wraps meas initialization. Adds some additional security checks. */
+static int ekf_measGate(int initFlags)
 {
-	int userAns, res;
-
 	switch (ekf_common.initVals.measSource) {
-		case sensorSource:
-			return meas_init(sensorSource, SENSOR_FILE, SENSC_INIT_IMU | SENSC_INIT_BARO | SENSC_INIT_GPS);
+		case srcSens:
+			/*
+			 * Initializing with sensors as data source only if EKF_INIT_SENC_SCR init flag is specified
+			 * and data source from `ekf.conf` is equal to SENSORS.
+			 */
 
-		case logsSource:
+			if ((initFlags & EKF_INIT_SENC_SCR) == 0) {
+				fprintf(stderr, "Ekf config: inconsistent data source specifiers\n");
+				return -1;
+			}
+
+			return meas_init(srcSens, SENSOR_FILE, SENSC_INIT_IMU | SENSC_INIT_BARO | SENSC_INIT_GPS);
+
+		case srcLog:
+			/*
+			 * Initializing with logs as data source only if EKF_INIT_LOG_SCR init flag is specified,
+			 * data source from `ekf.conf` is equal to LOGS and file from `ekf.conf` is different
+			 * than file to which logs are collected.
+			 */
+
+			if ((initFlags & EKF_INIT_LOG_SRC) == 0) {
+				fprintf(stderr, "Ekf config: inconsistent data source specifiers\n");
+				return -1;
+			}
+
 			if (strcmp(EKF_LOG_FILE, ekf_common.initVals.sourceFile) == 0) {
 				fprintf(stderr, "Ekf config: %s cannot be a data source file\n", EKF_LOG_FILE);
 				return -1;
 			}
 
-			/* Set output color to red */
-			printf("\n\033[31m");
-
-			printf("WARNING!\n");
-			printf("EKF is going to run using data from file.\n");
-			printf("This feature is only for testing purposes. Never use it on drone\n");
-			printf("Are you sure you want to continue? (y/n)");
-
-			/* Set output color to default */
-			printf("\033[0m\n");
-
-			userAns = getchar();
-			userAns = tolower(userAns);
-
-			switch (userAns) {
-				case 'y':
-					res = meas_init(logsSource, ekf_common.initVals.sourceFile, true);
-					if (res != 0) {
-						fprintf(stderr, "Ekf config: error while initiating meas module\n");
-					}
-					return res;
-
-				case 'n':
-					printf("Aborting ekf init...\n");
-					return -1;
-
-				default:
-					fprintf(stderr, "Unknown entry\nAborting init...\n");
-					return -1;
-			}
+			return meas_init(srcLog, ekf_common.initVals.sourceFile, SENSC_INIT_IMU | SENSC_INIT_BARO | SENSC_INIT_GPS);
 
 		default:
 			fprintf(stderr, "Ekf config: unknown meas source type\n");
@@ -151,7 +143,7 @@ static int ekf_measGate(void)
 }
 
 
-int ekf_init(void)
+int ekf_init(int initFlags)
 {
 	int err;
 
@@ -202,7 +194,7 @@ int ekf_init(void)
 
 	ekf_common.run = 0;
 
-	if (ekf_measGate() != 0) {
+	if (ekf_measGate(initFlags) != 0) {
 		pthread_mutex_destroy(&ekf_common.lock);
 		pthread_attr_destroy(&ekf_common.threadAttr);
 
@@ -378,11 +370,10 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	quat_t q;
 	pthread_mutex_lock(&ekf_common.lock);
 
+	ekfState->status = 0;
+
 	if (ekf_common.run == 1) {
-		ekfState->status = ekf_running;
-	}
-	else {
-		ekfState->status = ekf_stopped;
+		ekfState->status |= EKF_STATUS_RUNNING;
 	}
 
 	/* save quaternion attitude */

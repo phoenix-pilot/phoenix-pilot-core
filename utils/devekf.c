@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 
 	printf("Press 'q' and confirm with enter to exit\n");
 
-	if (ekf_init() != 0) {
+	if (ekf_init(EKF_INIT_LOG_SRC | EKF_INIT_SENC_SCR) != 0) {
 		fprintf(stderr, "devekf: error during ekf init\n");
 		return EXIT_FAILURE;
 	}

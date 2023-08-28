@@ -2,7 +2,7 @@
  * Phoenix-Pilot
  *
  * extended kalman filter
- * 
+ *
  * ekf sensor reading test that aims to measure noise levels in sensor readings
  *
  * Copyright 2022 Phoenix Systems
@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	if (ekf_init() != 0) {
+	if (ekf_init(EKF_INIT_LOG_SRC | EKF_INIT_SENC_SCR) != 0) {
 		printf("Cannot initialize ekf\n");
 		sensortest_motorsClose();
 		return EXIT_FAILURE;

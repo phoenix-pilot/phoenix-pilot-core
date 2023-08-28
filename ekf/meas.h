@@ -25,7 +25,7 @@
 
 
 /* clang-format off */
-typedef enum { sensorSource = 0, logsSource } meas_sourceType_t;
+typedef enum { srcSens = 0, srcLog } meas_sourceType_t;
 /* clang-format on */
 
 

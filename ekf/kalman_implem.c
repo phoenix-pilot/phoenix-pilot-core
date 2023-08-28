@@ -162,17 +162,17 @@ static int kmn_dataSourceConverter(const hmap_t *h)
 	}
 
 	if (strcmp(str, "SENSORS") == 0) {
-		converterResult->measSource = sensorSource;
+		converterResult->measSource = srcSens;
 	}
 	else if (strcmp(str, "LOGS") == 0) {
-		converterResult->measSource = logsSource;
+		converterResult->measSource = srcLog;
 	}
 	else {
 		fprintf(stderr, "Ekf config: Unknown source specifier: %s\n", str);
 		return -1;
 	}
 
-	if (converterResult->measSource == logsSource) {
+	if (converterResult->measSource == srcLog) {
 		str = hmap_get(h, "file");
 		if (str == NULL) {
 			fprintf(stderr, "Ekf config: no file as data source for ekf is specified\n");

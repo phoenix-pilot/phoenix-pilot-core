@@ -86,8 +86,13 @@ int meas_init(meas_sourceType_t sourceType, const char *path, int senscInitFlags
 {
 	meas_common.sourceType = sourceType;
 
+	if (access(path, R_OK) != 0) {
+		fprintf(stderr, "meas: program have no read access to file %s\n", path);
+		return -1;
+	}
+
 	switch (sourceType) {
-		case sensorSource:
+		case srcSens:
 			meas_common.imuAcq = sensc_imuGet;
 			meas_common.gpsAcq = sensc_gpsGet;
 			meas_common.timeAcq = sensc_timeGet;
@@ -95,7 +100,7 @@ int meas_init(meas_sourceType_t sourceType, const char *path, int senscInitFlags
 
 			return sensc_init(path, true, senscInitFlags);
 
-		case logsSource:
+		case srcLog:
 			meas_common.imuAcq = ekflog_imuRead;
 			meas_common.gpsAcq = ekflog_gpsRead;
 			meas_common.timeAcq = ekflog_timeRead;
@@ -114,11 +119,11 @@ int meas_init(meas_sourceType_t sourceType, const char *path, int senscInitFlags
 int meas_done(void)
 {
 	switch (meas_common.sourceType) {
-		case sensorSource:
+		case srcSens:
 			sensc_deinit();
 			return 0;
 
-		case logsSource:
+		case srcLog:
 			return ekflog_readerDone();
 
 		default:
@@ -368,6 +373,8 @@ int meas_imuCalib(void)
 	vec_normalize(&magAvg);
 	vec_cross(&magAvg, &accAvg, &bodyY);
 	quat_frameRot(&accAvg, &bodyY, &nedG, &nedY, &meas_common.calib.imu.initQuat, &idenQuat);
+
+	return 0;
 }
 
 int meas_baroCalib(void)
@@ -398,6 +405,8 @@ int meas_baroCalib(void)
 
 	meas_common.calib.baro.basePress = (float)press / avg;
 	meas_common.calib.baro.baseTemp = (float)temp / avg;
+
+	return 0;
 }
 
 
