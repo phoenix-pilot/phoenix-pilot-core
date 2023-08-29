@@ -23,11 +23,25 @@ class TimeLog(LogEntry):
 
 
 class ImuLog(LogEntry):
-    def __init__(self, log_id, timestamp, accel: Vector3, gyro: Vector3, gyro_d_angle: Vector3, mag: Vector3):
+    def __init__(
+            self,
+            log_id,
+            timestamp,
+            accel_device_id,
+            accel: Vector3,
+            gyro_device_id,
+            gyro: Vector3,
+            gyro_d_angle: Vector3,
+            mag_dev_id,
+            mag: Vector3
+    ):
         super().__init__(log_id, timestamp)
+        self.accelDevID = accel_device_id
         self.accel = accel
+        self.gyroDevID = gyro_device_id
         self.gyro = gyro
         self.gyroDAngle = gyro_d_angle
+        self.magDevID = mag_dev_id
         self.mag = mag
 
     def accept(self, visitor: LogsVisitor):
@@ -39,6 +53,7 @@ class GpsLog(LogEntry):
             self,
             log_id,
             timestamp,
+            device_int,
             position: GlobalPosition,
             utc,
             horizontal_dilution,
@@ -54,9 +69,10 @@ class GpsLog(LogEntry):
             heading_accuracy,
             satellite_number,
             fix,
-
     ):
         super().__init__(log_id, timestamp)
+        self.devID = device_int
+
         self.position = position
 
         self.utc = utc
@@ -85,8 +101,9 @@ class GpsLog(LogEntry):
 
 
 class BaroLog(LogEntry):
-    def __init__(self, log_id, timestamp, pressure, temperature):
+    def __init__(self, log_id, timestamp, device_ID, pressure, temperature):
         super().__init__(log_id, timestamp)
+        self.devID = device_ID
         self.pressure = pressure
         self.temperature = temperature
 
