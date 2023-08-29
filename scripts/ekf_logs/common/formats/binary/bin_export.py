@@ -1,15 +1,13 @@
-from typing import Literal
-from common.models import LogsVisitor, logs_types, utils
-from common.formats.binary.utils import BinaryField, FieldType
-from common.formats.binary.fields import FIELDS
+from common.models import LogsVisitor, logs_types
+
+import common.formats.binary.structs as structs
+import common.formats.binary.specifiers as specifiers
 
 
 class BinaryLogExporter(LogsVisitor):
     def __init__(
             self,
-            byte_order: Literal['little', 'big'] = 'little'
     ) -> None:
-        self.byte_order = byte_order
         self.file = None
 
     def export(self, file_path, logs: list[logs_types.LogEntry]) -> None:
@@ -23,69 +21,66 @@ class BinaryLogExporter(LogsVisitor):
                 self.file = None
 
     def visit_time_log(self, time_log: logs_types.TimeLog):
-        self.__write_prefix(time_log, "T")
+        self.__write_prefix(time_log, specifiers.TIME_LOG)
 
     def visit_imu_log(self, imu_log: logs_types.ImuLog):
-        self.__write_prefix(imu_log, "I")
-        self.__write_vector(imu_log.accel, FIELDS["acceleration"])
-        self.__write_vector(imu_log.gyro, FIELDS["gyro"])
-        self.__write_vector(imu_log.gyroDAngle, FIELDS["dAngle"])
-        self.__write_vector(imu_log.mag, FIELDS["magnetometer"])
+        self.__write_prefix(imu_log, specifiers.IMU_LOG)
+        self.file.write(
+            structs.IMU.pack(
+                imu_log.accelDevID,
+                imu_log.accel.x,
+                imu_log.accel.y,
+                imu_log.accel.z,
+                imu_log.gyroDevID,
+                imu_log.gyro.x,
+                imu_log.gyro.y,
+                imu_log.gyro.z,
+                imu_log.gyroDAngle.x,
+                imu_log.gyroDAngle.y,
+                imu_log.gyroDAngle.z,
+                imu_log.magDevID,
+                imu_log.mag.x,
+                imu_log.mag.y,
+                imu_log.mag.z
+            )
+        )
 
     def visit_gps_log(self, gps_log: logs_types.GpsLog):
-        self.__write_prefix(gps_log, "P")
-        self.__write_global_position(gps_log.position)
-        self.__write_field(gps_log.utc, FIELDS["utc"])
-        self.__write_field(gps_log.horizontalPrecisionDilution, FIELDS["precision_dilution"])
-        self.__write_field(gps_log.verticalPrecisionDilution, FIELDS["precision_dilution"])
-        self.__write_field(gps_log.ellipsoidAlt, FIELDS["ellipsoid_altitude"])
-        self.__write_field(gps_log.groundSpeed, FIELDS["ground_speed"])
-        self.__write_ned(gps_log.velocity, FIELDS["velocity"])
-        self.__write_field(gps_log.horizontalAccuracy, FIELDS["position_accuracy"])
-        self.__write_field(gps_log.verticalAccuracy, FIELDS["position_accuracy"])
-        self.__write_field(gps_log.velocityAccuracy, FIELDS["position_accuracy"])
-        self.__write_field(gps_log.heading, FIELDS["heading"])
-        self.__write_field(gps_log.headingOffset, FIELDS["heading_offset"])
-        self.__write_field(gps_log.headingAccuracy, FIELDS["heading_accuracy"])
-        self.__write_field(gps_log.satelliteNumber, FIELDS["satellite_number"])
-        self.__write_field(gps_log.fix, FIELDS["fix"])
+        self.__write_prefix(gps_log, specifiers.GPS_LOG)
+        self.file.write(
+            structs.GPS.pack(
+                gps_log.devID,
+                gps_log.position.altitude,
+                gps_log.position.latitude,
+                gps_log.position.longitude,
+                gps_log.utc,
+                gps_log.horizontalPrecisionDilution,
+                gps_log.verticalPrecisionDilution,
+                gps_log.ellipsoidAlt,
+                gps_log.groundSpeed,
+                gps_log.velocity.north,
+                gps_log.velocity.east,
+                gps_log.velocity.down,
+                gps_log.horizontalAccuracy,
+                gps_log.verticalAccuracy,
+                gps_log.velocityAccuracy,
+                gps_log.heading,
+                gps_log.headingOffset,
+                gps_log.headingAccuracy,
+                gps_log.satelliteNumber,
+                gps_log.fix
+            )
+        )
 
     def visit_baro_log(self, baro_log: logs_types.BaroLog):
-        self.__write_prefix(baro_log, "B")
-        self.__write_field(baro_log.pressure, FIELDS["pressure"])
-        self.__write_field(baro_log.temperature, FIELDS["temperature"])
+        self.__write_prefix(baro_log, specifiers.BARO_LOG)
+        self.file.write(
+            structs.BARO.pack(
+                baro_log.devID,
+                baro_log.pressure,
+                baro_log.temperature
+            )
+        )
 
     def __write_prefix(self, log: logs_types.LogEntry, log_type: str):
-        self.__write_field(log.id, FIELDS["id"])
-        self.__write_field(log_type, FIELDS["type"])
-        self.__write_field(log.timestamp, FIELDS["timestamp"])
-
-    def __write_ned(self, ned: utils.NEDCoordinates, field_specifier: BinaryField):
-        self.__write_field(ned.north, field_specifier)
-        self.__write_field(ned.east, field_specifier)
-        self.__write_field(ned.down, field_specifier)
-
-    def __write_global_position(self, position: utils.GlobalPosition):
-        self.__write_field(position.latitude, FIELDS["latitude"])
-        self.__write_field(position.longitude, FIELDS["longitude"])
-        self.__write_field(position.altitude, FIELDS["altitude"])
-
-    def __write_vector(self, vector: utils.Vector3, field_specifier: BinaryField):
-        self.__write_field(vector.x, field_specifier)
-        self.__write_field(vector.y, field_specifier)
-        self.__write_field(vector.z, field_specifier)
-
-    def __write_field(self, data, field_specifier: BinaryField):
-        if field_specifier.type == FieldType.INT:
-            bytes = int.to_bytes(
-                data,
-                field_specifier.size,
-                byteorder=self.byte_order,
-                signed=field_specifier.signed
-            )
-        elif field_specifier.type == FieldType.CHAR:
-            bytes = str.encode(data)
-        else:
-            raise Exception("Unknown field type")
-
-        self.file.write(bytes)
+        self.file.write(structs.LOG_PREFIX.pack(log.id, bytes(log_type, "ascii"), log.timestamp))

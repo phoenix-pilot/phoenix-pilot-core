@@ -1,145 +1,98 @@
-from typing import Literal
 from io import BufferedReader
+from struct import Struct
 from common.models import logs_types, utils
-from common.formats.binary.utils import BinaryField, FieldType
-from common.formats.binary.fields import FIELDS
+
+import common.formats.binary.structs as structs
+import common.formats.binary.specifiers as specifiers
 
 
 class BinaryLogParser:
-    def __init__(
-            self,
-            byte_order: Literal['little', 'big'] = 'little'
-    ) -> None:
-        self.byteOrder = byte_order
-
     def parse(self, file_path: str) -> list[logs_types.LogEntry]:
         result = []
 
         with open(file_path, "rb") as file:
             while True:
-                log_id = self.__parse_field(file, FIELDS["id"])
-
-                if not log_id:
+                prefix = self.__parse_struct(file, structs.LOG_PREFIX)
+                if prefix is None:
                     break
 
-                try:
-                    log_type = self.__parse_field(file, FIELDS["type"])
-                except Exception as e:
-                    print("Unknown entry in log file")
-                    print(f"Last item: {result[len(result) - 1].id}")
-                    raise e
+                log_id, log_type, timestamp = prefix
+                log_type = log_type.decode('ascii')
 
-                if log_type == "T":
-                    result.append(self.__parse_time_log(log_id, file))
-                elif log_type == "I":
-                    result.append(self.__parse_imu_log(log_id, file))
+                if log_type == specifiers.TIME_LOG:
+                    result.append(self.__parse_time_log(log_id, timestamp))
+                elif log_type == specifiers.IMU_LOG:
+                    result.append(self.__parse_imu_log(log_id, timestamp, file))
                 elif log_type == "P":
-                    result.append(self.__parse_gps_log(log_id, file))
+                    result.append(self.__parse_gps_log(log_id, timestamp, file))
                 elif log_type == "B":
-                    result.append(self.__parse_baro_log(log_id, file))
+                    result.append(self.__parse_baro_log(log_id, timestamp, file))
                 else:
                     print("Unknown entry in log file")
-                    print(f"Last item: {result[len(result) - 1].id}")
+                    print(f"Last valid item: {result[len(result) - 1].id}")
                     raise Exception()
 
         return result
 
-    def __parse_time_log(self, log_id: int, file: BufferedReader) -> logs_types.TimeLog:
-        timestamp = self.__parse_field(file, FIELDS["timestamp"])
+    def __parse_time_log(self, log_id: int, timestamp: int) -> logs_types.TimeLog:
         return logs_types.TimeLog(log_id, timestamp)
 
-    def __parse_imu_log(self, log_id: int, file: BufferedReader) -> logs_types.ImuLog:
-        timestamp = self.__parse_field(file, FIELDS["timestamp"])
+    def __parse_imu_log(self, log_id: int, timestamp: int, file: BufferedReader) -> logs_types.ImuLog:
+        fields = self.__parse_struct(file, structs.IMU)
 
-        accel_vector = self.__parse_vector3(file, FIELDS["acceleration"])
-        gyro_vector = self.__parse_vector3(file, FIELDS["gyro"])
-        d_angle_vector = self.__parse_vector3(file, FIELDS["dAngle"])
-        mag_vector = self.__parse_vector3(file, FIELDS["magnetometer"])
+        return logs_types.ImuLog(
+            log_id=log_id,
+            timestamp=timestamp,
+            accel_device_id=fields[0],
+            accel=utils.Vector3(fields[1], fields[2], fields[3]),
+            gyro_device_id=fields[4],
+            gyro=utils.Vector3(fields[5], fields[6], fields[7]),
+            gyro_d_angle=utils.Vector3(fields[8], fields[9], fields[10]),
+            mag_dev_id=fields[11],
+            mag=utils.Vector3(fields[12], fields[13], fields[14])
+        )
 
-        return logs_types.ImuLog(log_id, timestamp, accel_vector, gyro_vector, d_angle_vector, mag_vector)
-
-    def __parse_gps_log(self, log_id: int, file: BufferedReader) -> logs_types.GpsLog:
-        timestamp = self.__parse_field(file, FIELDS["timestamp"])
-
-        position = self.__parse_global_position(file)
-
-        utc = self.__parse_field(file, FIELDS["utc"])
-
-        horizontal_dilution = self.__parse_field(file, FIELDS["precision_dilution"])
-        vertical_dilution = self.__parse_field(file, FIELDS["precision_dilution"])
-
-        ellipsoid_altitude = self.__parse_field(file, FIELDS["ellipsoid_altitude"])
-
-        ground_speed = self.__parse_field(file, FIELDS["ground_speed"])
-
-        velocity = self.__parse_ned(file, FIELDS["velocity"])
-
-        horizontal_accuracy = self.__parse_field(file, FIELDS["position_accuracy"])
-        vertical_accuracy = self.__parse_field(file, FIELDS["position_accuracy"])
-        velocity_accuracy = self.__parse_field(file, FIELDS["position_accuracy"])
-
-        heading = self.__parse_field(file, FIELDS["heading"])
-        heading_offset = self.__parse_field(file, FIELDS["heading_offset"])
-        heading_accuracy = self.__parse_field(file, FIELDS["heading_accuracy"])
-
-        satellite_nb = self.__parse_field(file, FIELDS["satellite_number"])
-
-        fix = self.__parse_field(file, FIELDS["fix"])
+    def __parse_gps_log(self, log_id: int, timestamp: int, file: BufferedReader) -> logs_types.GpsLog:
+        fields = self.__parse_struct(file, structs.GPS)
 
         return logs_types.GpsLog(
-            log_id,
-            timestamp,
-            position,
-            utc,
-            horizontal_dilution,
-            vertical_dilution,
-            ellipsoid_altitude,
-            ground_speed,
-            velocity,
-            horizontal_accuracy,
-            vertical_accuracy,
-            velocity_accuracy,
-            heading,
-            heading_offset,
-            heading_accuracy,
-            satellite_nb,
-            fix,
+            log_id=log_id,
+            timestamp=timestamp,
+            position=utils.GlobalPosition(fields[1], fields[2], fields[3]),
+            utc=fields[4],
+            horizontal_dilution=fields[5],
+            vertical_dilution=fields[6],
+            alt_ellipsoid=fields[7],
+            ground_speed=fields[8],
+            velocity=utils.NEDCoordinates(fields[9], fields[10], fields[11]),
+            horizontal_accuracy=fields[12],
+            vertical_accuracy=fields[13],
+            velocity_accuracy=fields[14],
+            heading=fields[15],
+            heading_offset=fields[16],
+            heading_accuracy=fields[17],
+            satellite_number=fields[18],
+            fix=fields[19]
         )
 
-    def __parse_baro_log(self, log_id, file: BufferedReader) -> logs_types.BaroLog:
-        timestamp = self.__parse_field(file, FIELDS["timestamp"])
+    def __parse_baro_log(self, log_id, timestamp: int, file: BufferedReader) -> logs_types.BaroLog:
+        fields = self.__parse_struct(file, structs.BARO)
 
-        pressure = self.__parse_field(file, FIELDS["pressure"])
-        temperature = self.__parse_field(file, FIELDS["temperature"])
-
-        return logs_types.BaroLog(log_id, timestamp, pressure, temperature)
-
-    def __parse_global_position(self, file: BufferedReader):
-        return utils.GlobalPosition(
-            latitude=self.__parse_field(file, FIELDS["latitude"]),
-            longitude=self.__parse_field(file, FIELDS["longitude"]),
-            altitude=self.__parse_field(file, FIELDS["altitude"])
+        return logs_types.BaroLog(
+            log_id=log_id,
+            timestamp=timestamp,
+            device_ID=fields[0],
+            pressure=fields[1],
+            temperature=fields[2]
         )
 
-    def __parse_ned(self, file: BufferedReader, field: BinaryField) -> utils.NEDCoordinates:
-        return utils.NEDCoordinates(
-            north=self.__parse_field(file, field),
-            east=self.__parse_field(file, field),
-            down=self.__parse_field(file, field)
-        )
+    def __parse_struct(self, file: BufferedReader, struct: Struct):
+        data = file.read(struct.size)
 
-    def __parse_vector3(self, file: BufferedReader, field: BinaryField) -> utils.Vector3:
-        return utils.Vector3(
-            x=self.__parse_field(file, field),
-            y=self.__parse_field(file, field),
-            z=self.__parse_field(file, field)
-        )
+        if data is None or len(data) == 0:
+            return None
 
-    def __parse_field(self, file: BufferedReader, field: BinaryField):
-        if field.type == FieldType.INT:
-            bytes = file.read(field.size)
-            return int.from_bytes(bytes, byteorder=self.byteOrder, signed=field.signed)
-        elif field.type == FieldType.CHAR:
-            return file.read(field.size).decode("utf-8")
-        else:
-            raise Exception("Unknown field type")
+        if len(data) != struct.size:
+            raise Exception("Invalid file")
+
+        return struct.unpack(data)
