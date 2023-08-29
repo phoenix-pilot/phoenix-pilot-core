@@ -14,6 +14,11 @@ class EkfLoopTiming(LogEvaluation):
             print("Unable to perform loop times analysis, because file does not contains all logs")
 
         length = len(context.time_logs)
+
+        if length == 0:
+            print("No time logs\n")
+            return
+
         loop_times = np.zeros(length - 1, dtype=np.uint)
 
         for i in range(1, length):

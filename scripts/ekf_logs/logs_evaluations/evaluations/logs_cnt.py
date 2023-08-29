@@ -23,3 +23,4 @@ class LogsCnt(LogEvaluation):
         plt.pie(data, labels=labels, autopct='%1.1f%%')
         plt.suptitle("Number of logs", fontsize=18)
         plt.title(f"All logs: {all_cnt}", fontsize=10)
+        plt.show()
