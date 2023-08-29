@@ -1,6 +1,8 @@
 import csv
 from common.models import logs_types, utils
 
+import common.formats.csv.specifiers as specifiers
+
 
 class CsvLogParser:
     def parse(self, file_path: str):
@@ -12,13 +14,13 @@ class CsvLogParser:
                 if len(row) < 2:
                     continue
 
-                if row[1] == "Imu":
+                if row[1] == specifiers.IMU_LOG:
                     result.append(self.__parse_imu_log(row))
-                elif row[1] == "Gps":
+                elif row[1] == specifiers.GPS_LOG:
                     result.append(self.__parse_gps_log(row))
-                elif row[1] == "Time":
+                elif row[1] == specifiers.TIME_LOG:
                     result.append(self.__parse_time_log(row))
-                elif row[1] == "Baro":
+                elif row[1] == specifiers.BARO_LOG:
                     result.append(self.__parse_baro_log(row))
                 else:
                     print(f"Unknown entry in log file {row}")
@@ -28,35 +30,53 @@ class CsvLogParser:
     def __parse_imu_log(self, row: list[str]) -> logs_types.ImuLog:
         id = int(row[0])
         timestamp = int(row[2])
-        accel = utils.Vector3(int(row[3]), int(row[4]), int(row[5]))
-        gyro = utils.Vector3(int(row[6]), int(row[7]), int(row[8]))
-        gyro_d_angle = utils.Vector3(int(row[9]), int(row[10]), int(row[11]))
-        mag = utils.Vector3(int(row[12]), int(row[13]), int(row[14]))
 
-        return logs_types.ImuLog(id, timestamp, accel, gyro, gyro_d_angle, mag)
+        accel_device_id = int(row[3])
+        accel = utils.Vector3(int(row[4]), int(row[5]), int(row[6]))
+
+        gyro_device_id = int(row[7])
+        gyro = utils.Vector3(int(row[8]), int(row[9]), int(row[10]))
+        gyro_d_angle = utils.Vector3(int(row[11]), int(row[12]), int(row[13]))
+
+        mag_device_id = int(row[14])
+        mag = utils.Vector3(int(row[15]), int(row[16]), int(row[17]))
+
+        return logs_types.ImuLog(
+            id,
+            timestamp,
+            accel_device_id,
+            accel,
+            gyro_device_id,
+            gyro,
+            gyro_d_angle,
+            mag_device_id,
+            mag
+        )
 
     def __parse_gps_log(self, row: list[str]) -> logs_types.GpsLog:
         id = int(row[0])
         timestamp = int(row[2])
-        position = utils.GlobalPosition(int(row[3]), int(row[4]), int(row[5]))
-        utc = int(row[6])
-        horizontal_prec_dilution = int(row[7])
-        vertical_prec_dilution = int(row[8])
-        alt_ellipsoid = int(row[9])
-        ground_speed = int(row[9])
-        velocity = utils.NEDCoordinates(int(row[10]), int(row[11]), int(row[12]))
-        horizontal_acc = int(row[13])
-        vertical_acc = int(row[14])
-        velocity_acc = int(row[15])
-        heading = int(row[16])
-        heading_offset = int(row[17])
-        heading_acc = int(row[18])
-        satellite_number = int(row[19])
-        fix = int(row[20])
+        device_id = int(row[3])
+        position = utils.GlobalPosition(int(row[4]), int(row[5]), int(row[6]))
+        utc = int(row[7])
+        horizontal_prec_dilution = int(row[8])
+        vertical_prec_dilution = int(row[9])
+        alt_ellipsoid = int(row[10])
+        ground_speed = int(row[11])
+        velocity = utils.NEDCoordinates(int(row[12]), int(row[13]), int(row[14]))
+        horizontal_acc = int(row[15])
+        vertical_acc = int(row[16])
+        velocity_acc = int(row[17])
+        heading = int(row[18])
+        heading_offset = int(row[19])
+        heading_acc = int(row[20])
+        satellite_number = int(row[21])
+        fix = int(row[22])
 
         return logs_types.GpsLog(
             id,
             timestamp,
+            device_id,
             position,
             utc,
             horizontal_prec_dilution,
@@ -83,7 +103,8 @@ class CsvLogParser:
     def __parse_baro_log(self, row: list[str]) -> logs_types.BaroLog:
         id = int(row[0])
         timestamp = int(row[2])
-        pressure = int(row[3])
-        temperature = int(row[4])
+        device_id = int(row[3])
+        pressure = int(row[4])
+        temperature = int(row[5])
 
-        return logs_types.BaroLog(id, timestamp, pressure, temperature)
+        return logs_types.BaroLog(id, timestamp, device_id, pressure, temperature)
