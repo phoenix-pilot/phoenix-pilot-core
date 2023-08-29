@@ -208,7 +208,7 @@ int ekflog_baroRead(sensor_event_t *baroEvt)
 }
 
 
-int ekflog_readerInit(char *path)
+int ekflog_readerInit(const char *path)
 {
 	int i;
 

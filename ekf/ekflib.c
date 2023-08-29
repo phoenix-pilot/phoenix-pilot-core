@@ -20,6 +20,7 @@
 #include <pthread.h>
 #include <sched.h>
 #include <errno.h>
+#include <string.h>
 
 #include "kalman_core.h"
 #include "kalman_implem.h"
@@ -35,6 +36,8 @@
 #include "filters.h"
 
 #define EKF_CONFIG_FILE "etc/ekf.conf"
+#define EKF_LOG_FILE    "ekf_log.bin"
+#define SENSOR_FILE     "/dev/sensors"
 
 #define STACK_SIZE 16384
 
@@ -97,7 +100,50 @@ static int ekf_threadAttrInit(void)
 }
 
 
-int ekf_init(void)
+/* Function wraps meas initialization. Adds some additional security checks. */
+static int ekf_measGate(int initFlags)
+{
+	switch (ekf_common.initVals.measSource) {
+		case srcSens:
+			/*
+			 * Initializing with sensors as data source only if EKF_INIT_SENC_SCR init flag is specified
+			 * and data source from `ekf.conf` is equal to SENSORS.
+			 */
+
+			if ((initFlags & EKF_INIT_SENC_SCR) == 0) {
+				fprintf(stderr, "Ekf config: inconsistent data source specifiers\n");
+				return -1;
+			}
+
+			return meas_init(srcSens, SENSOR_FILE, SENSC_INIT_IMU | SENSC_INIT_BARO | SENSC_INIT_GPS);
+
+		case srcLog:
+			/*
+			 * Initializing with logs as data source only if EKF_INIT_LOG_SCR init flag is specified,
+			 * data source from `ekf.conf` is equal to LOGS and file from `ekf.conf` is different
+			 * than file to which logs are collected.
+			 */
+
+			if ((initFlags & EKF_INIT_LOG_SRC) == 0) {
+				fprintf(stderr, "Ekf config: inconsistent data source specifiers\n");
+				return -1;
+			}
+
+			if (strcmp(EKF_LOG_FILE, ekf_common.initVals.sourceFile) == 0) {
+				fprintf(stderr, "Ekf config: %s cannot be a data source file\n", EKF_LOG_FILE);
+				return -1;
+			}
+
+			return meas_init(srcLog, ekf_common.initVals.sourceFile, SENSC_INIT_IMU | SENSC_INIT_BARO | SENSC_INIT_GPS);
+
+		default:
+			fprintf(stderr, "Ekf config: unknown meas source type\n");
+			return -1;
+	}
+}
+
+
+int ekf_init(int initFlags)
 {
 	int err;
 
@@ -134,13 +180,7 @@ int ekf_init(void)
 		err = -1;
 	}
 
-	ekf_common.run = 0;
-	if (err == 0 && sensc_init("/dev/sensors", true, SENSC_INIT_IMU | SENSC_INIT_BARO | SENSC_INIT_GPS) < 0) {
-		err = -1;
-	}
-
 	if (err != 0) {
-		sensc_deinit();
 		pthread_mutex_destroy(&ekf_common.lock);
 		pthread_attr_destroy(&ekf_common.threadAttr);
 
@@ -152,10 +192,22 @@ int ekf_init(void)
 		return -1;
 	}
 
-	if (ekflog_writerInit("ekf_log.bin", ekf_common.initVals.log | ekf_common.initVals.logMode) != 0) {
+	ekf_common.run = 0;
+
+	if (ekf_measGate(initFlags) != 0) {
 		pthread_mutex_destroy(&ekf_common.lock);
 		pthread_attr_destroy(&ekf_common.threadAttr);
-		sensc_deinit();
+
+		kalman_predictDealloc(&ekf_common.stateEngine);
+		kalman_updateDealloc(&ekf_common.imuEngine);
+		kalman_updateDealloc(&ekf_common.baroEngine);
+		kalman_updateDealloc(&ekf_common.gpsEngine);
+	}
+
+	if (ekflog_writerInit(EKF_LOG_FILE, ekf_common.initVals.log | ekf_common.initVals.logMode) != 0) {
+		pthread_mutex_destroy(&ekf_common.lock);
+		pthread_attr_destroy(&ekf_common.threadAttr);
+		meas_done();
 
 		kalman_predictDealloc(&ekf_common.stateEngine);
 		kalman_updateDealloc(&ekf_common.imuEngine);
@@ -299,7 +351,7 @@ void ekf_done(void)
 	kalman_updateDealloc(&ekf_common.baroEngine);
 	kalman_updateDealloc(&ekf_common.gpsEngine);
 
-	sensc_deinit();
+	meas_done();
 	ekflog_writerDone();
 	pthread_mutex_destroy(&ekf_common.lock);
 }
@@ -317,6 +369,12 @@ void ekf_stateGet(ekf_state_t *ekfState)
 {
 	quat_t q;
 	pthread_mutex_lock(&ekf_common.lock);
+
+	ekfState->status = 0;
+
+	if (ekf_common.run == 1) {
+		ekfState->status |= EKF_STATUS_RUNNING;
+	}
 
 	/* save quaternion attitude */
 	q.a = ekfState->q0 = ekf_common.stateEngine.state.data[QA];

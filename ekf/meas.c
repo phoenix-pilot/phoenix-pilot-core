@@ -27,6 +27,7 @@
 #include "meas.h"
 #include "filters.h"
 #include "logs/writer.h"
+#include "logs/reader.h"
 
 #include <libsensors.h>
 #include <sensc.h>
@@ -40,11 +41,21 @@
 
 #define IMU_CALIB_AVG  1000
 #define BARO_CALIB_AVG 100
+#define GPS_CALIB_AVG  10
+
+#define MAX_CONSECUTIVE_FAILS 10 /* Max amount of fails during sensor data acquisition before returning an error */
 
 #define MAX_U32_DELTAANGLE     0x7fffffff /* Half of the u32 buffer span is max delta angle expected in one step (roughly 2147 radians) */
 #define GYRO_MAX_SENSIBLE_READ 157        /* 50 pi radians per second is the largest absolute value of angular speed deemed possible */
 
 static struct {
+	meas_sourceType_t sourceType;
+
+	int (*baroAcq)(sensor_event_t *);
+	int (*gpsAcq)(sensor_event_t *);
+	int (*imuAcq)(sensor_event_t *, sensor_event_t *, sensor_event_t *);
+	int (*timeAcq)(time_t *);
+
 	meas_calib_t calib;
 
 	struct {
@@ -69,6 +80,57 @@ static struct {
 		time_t timeGps;
 	} data;
 } meas_common;
+
+
+int meas_init(meas_sourceType_t sourceType, const char *path, int senscInitFlags)
+{
+	meas_common.sourceType = sourceType;
+
+	if (access(path, R_OK) != 0) {
+		fprintf(stderr, "meas: program have no read access to file %s\n", path);
+		return -1;
+	}
+
+	switch (sourceType) {
+		case srcSens:
+			meas_common.imuAcq = sensc_imuGet;
+			meas_common.gpsAcq = sensc_gpsGet;
+			meas_common.timeAcq = sensc_timeGet;
+			meas_common.baroAcq = sensc_baroGet;
+
+			return sensc_init(path, true, senscInitFlags);
+
+		case srcLog:
+			meas_common.imuAcq = ekflog_imuRead;
+			meas_common.gpsAcq = ekflog_gpsRead;
+			meas_common.timeAcq = ekflog_timeRead;
+			meas_common.baroAcq = ekflog_baroRead;
+
+			return ekflog_readerInit(path);
+
+		default:
+			fprintf(stderr, "%s: unknown source type\n", __FUNCTION__);
+
+			return -1;
+	}
+}
+
+
+int meas_done(void)
+{
+	switch (meas_common.sourceType) {
+		case srcSens:
+			sensc_deinit();
+			return 0;
+
+		case srcLog:
+			return ekflog_readerDone();
+
+		default:
+			fprintf(stderr, "%s: unknown source type\n", __FUNCTION__);
+			return -1;
+	}
+}
 
 
 static void meas_gps2geo(const sensor_event_t *gpsEvt, meas_geodetic_t *geo)
@@ -131,15 +193,17 @@ static void meas_geo2ned(const meas_geodetic_t *geo, const meas_geodetic_t *refG
 }
 
 
-void meas_gpsCalib(void)
+int meas_gpsCalib(void)
 {
-	int i, avg = 10;
+	int i, avg = GPS_CALIB_AVG, fails = 0;
 	sensor_event_t gpsEvt;
 	meas_geodetic_t refPos = { 0 };
 
 	/* Assuring gps fix */
 	while (1) {
-		sensc_gpsGet(&gpsEvt);
+		if (meas_common.gpsAcq(&gpsEvt) != 0) {
+			return -1;
+		}
 		ekflog_gpsWrite(&gpsEvt);
 		if (gpsEvt.gps.fix > 0) {
 			break;
@@ -150,7 +214,9 @@ void meas_gpsCalib(void)
 
 	/* Assuring gps fix */
 	while (1) {
-		sensc_gpsGet(&gpsEvt);
+		if (meas_common.gpsAcq(&gpsEvt) != 0) {
+			return -1;
+		}
 		ekflog_gpsWrite(&gpsEvt);
 		if (gpsEvt.gps.hdop < 500) {
 			break;
@@ -161,7 +227,11 @@ void meas_gpsCalib(void)
 
 	i = 0;
 	while (i < avg) {
-		if (sensc_gpsGet(&gpsEvt) < 0) {
+		if (meas_common.gpsAcq(&gpsEvt) < 0) {
+			if (++fails > MAX_CONSECUTIVE_FAILS) {
+				return -1;
+			}
+
 			sleep(1);
 			continue;
 		}
@@ -187,6 +257,8 @@ void meas_gpsCalib(void)
 	meas_geo2ecef(&meas_common.calib.gps.refGeodetic, &meas_common.calib.gps.refEcef);
 
 	printf("Acquired GPS position of (lat/lon/h): %f/%f/%f\n", meas_common.calib.gps.refEcef.x, meas_common.calib.gps.refEcef.y, meas_common.calib.gps.refEcef.z);
+
+	return 0;
 }
 
 
@@ -252,12 +324,12 @@ static void meas_mag2si(sensor_event_t *evt, vec_t *vec)
 }
 
 
-void meas_imuCalib(void)
+int meas_imuCalib(void)
 {
 	static const vec_t nedG = { .x = 0, .y = 0, .z = -1 }; /* earth acceleration versor in NED frame of reference */
 	static const vec_t nedY = { .x = 0, .y = 1, .z = 0 };  /* earth y versor (east) in NED frame of reference */
 
-	int i, avg = IMU_CALIB_AVG;
+	int i, avg = IMU_CALIB_AVG, fails = 0;
 	vec_t acc, gyr, mag, accAvg, gyrAvg, magAvg, bodyY;
 	quat_t idenQuat;
 	sensor_event_t accEvt, gyrEvt, magEvt;
@@ -269,7 +341,7 @@ void meas_imuCalib(void)
 
 	i = 0;
 	while (i < avg) {
-		if (sensc_imuGet(&accEvt, &gyrEvt, &magEvt) >= 0) {
+		if (meas_common.imuAcq(&accEvt, &gyrEvt, &magEvt) >= 0) {
 			ekflog_imuWrite(&accEvt, &gyrEvt, &magEvt);
 			meas_acc2si(&accEvt, &acc);
 			meas_gyr2si(&gyrEvt, &gyr);
@@ -282,6 +354,10 @@ void meas_imuCalib(void)
 			i++;
 		}
 		else {
+			if (++fails > MAX_CONSECUTIVE_FAILS) {
+				return -1;
+			}
+
 			usleep(1000 * 1);
 		}
 	}
@@ -297,11 +373,13 @@ void meas_imuCalib(void)
 	vec_normalize(&magAvg);
 	vec_cross(&magAvg, &accAvg, &bodyY);
 	quat_frameRot(&accAvg, &bodyY, &nedG, &nedY, &meas_common.calib.imu.initQuat, &idenQuat);
+
+	return 0;
 }
 
-void meas_baroCalib(void)
+int meas_baroCalib(void)
 {
-	int i, avg = BARO_CALIB_AVG;
+	int i, avg = BARO_CALIB_AVG, fails = 0;
 	uint64_t press = 0, temp = 0;
 	sensor_event_t baroEvt;
 
@@ -309,7 +387,7 @@ void meas_baroCalib(void)
 
 	i = 0;
 	while (i < avg) {
-		if (sensc_baroGet(&baroEvt) >= 0) {
+		if (meas_common.baroAcq(&baroEvt) >= 0) {
 			ekflog_baroWrite(&baroEvt);
 			press += baroEvt.baro.pressure;
 			temp += baroEvt.baro.temp;
@@ -317,12 +395,18 @@ void meas_baroCalib(void)
 			usleep(1000 * 20);
 		}
 		else {
+			if (++fails > MAX_CONSECUTIVE_FAILS) {
+				return -1;
+			}
+
 			usleep(1000 * 10);
 		}
 	}
 
 	meas_common.calib.baro.basePress = (float)press / avg;
 	meas_common.calib.baro.baseTemp = (float)temp / avg;
+
+	return 0;
 }
 
 
@@ -332,7 +416,7 @@ int meas_imuPoll(void)
 
 	sensor_event_t accEvt, gyrEvt, magEvt;
 
-	if (sensc_imuGet(&accEvt, &gyrEvt, &magEvt) < 0) {
+	if (meas_common.imuAcq(&accEvt, &gyrEvt, &magEvt) < 0) {
 		return -1;
 	}
 
@@ -365,7 +449,7 @@ int meas_baroPoll(void)
 {
 	sensor_event_t baroEvt;
 
-	if (sensc_baroGet(&baroEvt) < 0) {
+	if (meas_common.baroAcq(&baroEvt) < 0) {
 		return -1;
 	}
 
@@ -384,7 +468,7 @@ int meas_gpsPoll(void)
 	sensor_event_t gpsEvt;
 	meas_geodetic_t geo;
 
-	if (sensc_gpsGet(&gpsEvt) < 0) {
+	if (meas_common.gpsAcq(&gpsEvt) < 0) {
 		return -1;
 	}
 

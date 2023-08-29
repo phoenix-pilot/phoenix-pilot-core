@@ -14,7 +14,18 @@
 #ifndef EKFLIB_H
 #define EKFLIB_H
 
+/* Ekf init flags */
+#define EKF_INIT_SENC_SCR (1 << 0) /* Sets sensors as input data for EKF */
+#define EKF_INIT_LOG_SRC  (1 << 1) /* Sets logs as input data for EKF */
+
+
+/* Ekf status flags */
+#define EKF_STATUS_RUNNING (1 << 0)
+
+
 typedef struct {
+	int status;
+
 	/* position in ENU frame in meters */
 	float enuX;
 	float enuY;
@@ -50,7 +61,7 @@ typedef struct {
 } ekf_state_t;
 
 
-extern int ekf_init(void);
+extern int ekf_init(int initFlags);
 
 
 extern int ekf_run(void);
