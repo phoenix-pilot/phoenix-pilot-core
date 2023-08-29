@@ -1,6 +1,8 @@
 import csv
 from common.models import logs_types, LogsVisitor
 
+import common.formats.csv.specifiers as specifiers
+
 
 class CsvLogExporter(LogsVisitor):
     def __init__(self) -> None:
@@ -21,14 +23,18 @@ class CsvLogExporter(LogsVisitor):
         self.entry.append(str(log.timestamp))
 
     def visit_time_log(self, time_log: logs_types.TimeLog):
-        self.__csv_row_prefix_add(time_log, "Time")
+        self.__csv_row_prefix_add(time_log, specifiers.TIME_LOG)
 
     def visit_imu_log(self, imu_log: logs_types.ImuLog):
-        self.__csv_row_prefix_add(imu_log, "Imu")
+        self.__csv_row_prefix_add(imu_log, specifiers.IMU_LOG)
+
+        self.entry.append(str(imu_log.accelDevID))
 
         self.entry.append(str(imu_log.accel.x))
         self.entry.append(str(imu_log.accel.y))
         self.entry.append(str(imu_log.accel.z))
+
+        self.entry.append(str(imu_log.gyroDevID))
 
         self.entry.append(str(imu_log.gyro.x))
         self.entry.append(str(imu_log.gyro.y))
@@ -38,12 +44,16 @@ class CsvLogExporter(LogsVisitor):
         self.entry.append(str(imu_log.gyroDAngle.y))
         self.entry.append(str(imu_log.gyroDAngle.z))
 
+        self.entry.append(str(imu_log.magDevID))
+
         self.entry.append(str(imu_log.mag.x))
         self.entry.append(str(imu_log.mag.y))
         self.entry.append(str(imu_log.mag.z))
 
     def visit_gps_log(self, gps_log: logs_types.GpsLog):
-        self.__csv_row_prefix_add(gps_log, "Gps")
+        self.__csv_row_prefix_add(gps_log, specifiers.GPS_LOG)
+
+        self.entry.append(str(gps_log.devID))
 
         self.entry.append(str(gps_log.position.latitude))
         self.entry.append(str(gps_log.position.longitude))
@@ -74,7 +84,9 @@ class CsvLogExporter(LogsVisitor):
         self.entry.append(str(gps_log.fix))
 
     def visit_baro_log(self, baro_log: logs_types.BaroLog):
-        self.__csv_row_prefix_add(baro_log, "Baro")
+        self.__csv_row_prefix_add(baro_log, specifiers.BARO_LOG)
+
+        self.entry.append(str(baro_log.devID))
 
         self.entry.append(str(baro_log.pressure))
         self.entry.append(str(baro_log.temperature))
