@@ -1,6 +1,5 @@
 import os
 import abc
-from typing import Literal
 
 from common.models import logs_types
 
@@ -34,15 +33,12 @@ class FormatFactory:
 
 
 class Binary(FileFormat):
-    def __init__(self, byte_order: Literal['little', 'big'] = 'little') -> None:
-        self.byteOrder = byte_order
-
     def export_logs(self, file_path: str, logs: list[logs_types.LogEntry]) -> None:
-        exporter = bin.Exporter(self.byteOrder)
+        exporter = bin.Exporter()
         exporter.export(file_path, logs)
 
     def import_logs(self, file_path: str) -> list[logs_types.LogEntry]:
-        parser = bin.Parser(self.byteOrder)
+        parser = bin.Parser()
         return parser.parse(file_path)
 
 
