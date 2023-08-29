@@ -25,9 +25,9 @@
 
 #define FLTR_WINDOW_LEN 256
 
-#define GYRO_WINDOW_PATH  "/etc/ekf_windows/gyro.txt"
-#define ACCEL_WINDOW_PATH "/etc/ekf_windows/accel.txt"
-#define BARO_WINDOW_PATH  "/etc/ekf_windows/baro.txt"
+#define GYRO_WINDOW_PATH  "etc/ekf_windows/gyro.txt"
+#define ACCEL_WINDOW_PATH "etc/ekf_windows/accel.txt"
+#define BARO_WINDOW_PATH  "etc/ekf_windows/baro.txt"
 
 
 typedef struct {
