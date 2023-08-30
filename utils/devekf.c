@@ -24,7 +24,10 @@
 #include <quat.h>
 
 
-enum printMode { prntVersor, prntAtt, printPos, silent };
+#define EARTH_G 9.80665
+
+
+enum printMode { prntVersor, prntAtt, printPos, printAcc, silent };
 
 
 volatile int devekf_run;
@@ -85,6 +88,20 @@ static inline void printUavPos(ekf_state_t *uavState)
 	printf("\n");
 }
 
+/* Printing net acceleration in NED frame of reference, with EARTH_G removed */
+static inline void printUavAcc(ekf_state_t *uavState)
+{
+	quat_t qState = { .a = uavState->q0, .i = uavState->q1, .j = uavState->q2, .k = uavState->q3 };
+	vec_t aEarth, aBody = { .x = uavState->accelX, .y = uavState->accelY, .z = uavState->accelZ };
+
+	aEarth = aBody;
+	/* velocity estimation */
+	quat_vecRot(&aEarth, &qState);
+	aEarth.z += EARTH_G;
+
+	printf("YPR: %.1f %.2f %.2f E_ACC %.3f %.3f %.3f\n", uavState->yaw, uavState->pitch, uavState->roll, aEarth.x, aEarth.y, aEarth.z);
+}
+
 
 int main(int argc, char **argv)
 {
@@ -106,6 +123,9 @@ int main(int argc, char **argv)
 			mode = printPos;
 			break;
 		case '3':
+			mode = printAcc;
+			break;
+		case '4':
 			mode = silent;
 			break;
 		default:
@@ -150,6 +170,9 @@ int main(int argc, char **argv)
 		}
 		if (mode == printPos) {
 			printUavPos(&uavState);
+		}
+		if (mode == printAcc) {
+			printUavAcc(&uavState);
 		}
 		/* Mode = silent do not invoke any printing function */
 	}
