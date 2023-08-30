@@ -537,7 +537,7 @@ int meas_baroGet(float *pressure, float *temperature, uint64_t *timestamp)
 
 int meas_timeGet(time_t *useconds)
 {
-	if (sensc_timeGet(useconds) != 0) {
+	if (meas_common.timeAcq(useconds) != 0) {
 		return -1;
 	}
 
