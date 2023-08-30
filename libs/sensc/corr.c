@@ -41,6 +41,7 @@ struct {
 	calib_data_t magmot;
 	calib_data_t magiron;
 	calib_data_t accorth;
+	calib_data_t tempimu;
 
 	/* for magmot correction */
 	FILE *pwmFiles[NUM_OF_MOTORS];
@@ -95,7 +96,7 @@ void corr_done(void)
 
 int corr_init(void)
 {
-	int magironRet, magmotRet, accorthRet;
+	int magironRet, magmotRet, accorthRet, tempimuRet;
 	int i;
 	bool err = false;
 
@@ -121,13 +122,15 @@ int corr_init(void)
 	magironRet = calib_readFile(CALIB_PATH, typeMagiron, &corr_common.magiron);
 	magmotRet = calib_readFile(CALIB_PATH, typeMagmot, &corr_common.magmot);
 	accorthRet = calib_readFile(CALIB_PATH, typeAccorth, &corr_common.accorth);
+	tempimuRet = calib_readFile(CALIB_PATH, typeTempimu, &corr_common.tempimu);
 
 	/* error checking */
-	if (magironRet != 0 || magmotRet != 0 || accorthRet != 0) {
+	if (magironRet != 0 || magmotRet != 0 || accorthRet != 0 || tempimuRet != 0) {
 
 		(magmotRet == 0) ? calib_free(&corr_common.magiron) : fprintf(stderr, "corr: magmot init failed\n");
 		(magironRet == 0) ? calib_free(&corr_common.magiron) : fprintf(stderr, "corr: magiron init failed\n");
 		(accorthRet == 0) ? calib_free(&corr_common.accorth) : fprintf(stderr, "corr: accorth init failed\n");
+		(tempimuRet == 0) ? calib_free(&corr_common.tempimu) : fprintf(stderr, "corr: tempimu init failed\n");
 
 		for (i = 0; i < NUM_OF_MOTORS; i++) {
 			fclose(corr_common.pwmFiles[i]);
