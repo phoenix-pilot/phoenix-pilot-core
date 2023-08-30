@@ -442,6 +442,122 @@ static int calib_accorthRead(FILE *file, calib_data_t *cal)
 }
 
 
+/* Returns 0 if new value `val` was successfully saved to `cal` as `paramName` parameter. -1 otherwise */
+static int calib_tempimuEnter(const char *paramName, calib_data_t *cal, float val)
+{
+	unsigned int axis = 0;
+
+	if (strlen(paramName) != 2) {
+		return -1;
+	}
+
+	if (paramName[0] != TEMPIMU_CHAR_REF) {
+		axis = (uint8_t)(paramName[1] - '0'); /* convert character to unsigned int digit */
+		if (axis > 2) {
+			fprintf(stderr, "%s: wrong axis %u\n", TEMPIMU_TAG, axis);
+			return -1;
+		}
+	}
+
+	/* matrix type get through character check */
+	switch (paramName[0]) {
+		case TEMPIMU_CHAR_REF:
+			cal->params.tempimu.refTemp = val;
+			break;
+
+		case TEMPIMU_CHAR_ACC:
+			cal->params.tempimu.alfaAcc[axis] = val;
+			break;
+
+		case TEMPIMU_CHAR_GYR:
+			cal->params.tempimu.alfaGyr[axis] = val;
+			break;
+
+		default:
+			fprintf(stderr, "wrong character: %c\n", paramName[0]);
+			return -1;
+	}
+
+	return 0;
+}
+
+
+static inline void calib_tempimuDefaults(calib_data_t *cal)
+{
+	/*
+	 * Calibration has form: x_corr = x - alfa * (temp - refTemp).
+	 * Default values set to change nothing.
+	 */
+
+	cal->params.tempimu.refTemp = 300;
+
+	cal->params.tempimu.alfaAcc[0] = 0;
+	cal->params.tempimu.alfaAcc[1] = 0;
+	cal->params.tempimu.alfaAcc[2] = 0;
+
+	cal->params.tempimu.alfaGyr[0] = 0;
+	cal->params.tempimu.alfaGyr[1] = 0;
+	cal->params.tempimu.alfaGyr[2] = 0;
+}
+
+
+static int calib_tempimuRead(FILE *file, calib_data_t *cal)
+{
+	char *line, *name;
+	size_t lineSz;
+	float val = 0;
+	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
+	int i, sanity = 1;
+
+	calib_tempimuDefaults(cal);
+
+	if (file == NULL) {
+		fprintf(stderr, "No calibration file. '%s' going default.\n", TEMPIMU_TAG);
+		return 0;
+	}
+
+	/* Scroll to 'tempimu' tag */
+	if (calib_file2tag(file, TEMPIMU_TAG) != 0) {
+		fprintf(stderr, "Calibration not done yet. '%s' going default.\n", TEMPIMU_TAG);
+		return 0;
+	}
+
+	line = NULL;
+	while (calib_getline(&line, &lineSz, file, &name, &val) == 0) {
+		if (calib_tempimuEnter(name, cal, val) != 0) {
+			break;
+		}
+		params++;
+	}
+	free(line);
+
+	if (params != TEMPIMU_PARAMS) {
+		calib_tempimuDefaults(cal);
+		fprintf(stderr, "Failed to read `%s` calibration. Going default.\n", TEMPIMU_TAG);
+	}
+
+	/* sanity check */
+	if (cal->params.tempimu.refTemp > TEMPIMU_SANE_MAXREF || cal->params.tempimu.refTemp < TEMPIMU_SANE_MINREF) {
+		fprintf(stderr, "%s: improper refTemp: %f\n", TEMPIMU_TAG, cal->params.tempimu.refTemp);
+		sanity = 0;
+	}
+
+	for (i = 0; i < 3; i++) {
+		if (abs((int)cal->params.tempimu.alfaAcc[i]) > TEMPIMU_SANE_ACC_ALFA) {
+			fprintf(stderr, "%s: wrong %s coef. %f at %ith axis\n", "acc", TEMPIMU_TAG, cal->params.tempimu.alfaAcc[i], i);
+			sanity = 0;
+		}
+
+		if (abs((int)cal->params.tempimu.alfaGyr[i]) > TEMPIMU_SANE_GYR_ALFA) {
+			fprintf(stderr, "%s: wrong %s coef. %f at %ith axis\n", "gyr", TEMPIMU_TAG, cal->params.tempimu.alfaGyr[i], i);
+			sanity = 0;
+		}
+	}
+
+	return sanity == 0 ? -1 : 0;
+}
+
+
 static void calib_motlinDefaults(calib_data_t *cal)
 {
 	cal->params.motlin.motorEq[0][0] = 0.968600;
@@ -532,7 +648,11 @@ void calib_free(calib_data_t *cal)
 
 		case typeMagmot:
 		case typeMotlin:
+		case typeTempimu:
+			return;
+
 		default:
+			fprintf(stderr, "calib: unknown calib.\n");
 			return;
 	}
 }
@@ -566,11 +686,17 @@ int calib_readFile(const char *path, calibType_t type, calib_data_t *cal)
 			ret = calib_accorthRead(file, cal);
 			break;
 
+		case typeTempimu:
+			ret = calib_tempimuRead(file, cal);
+			break;
+
 		default:
 			fprintf(stderr, "calib: unknown calibration type\n");
 			ret = -1;
 			break;
 	}
+
+	cal->type = type;
 
 	if (file != NULL) {
 		fclose(file);
