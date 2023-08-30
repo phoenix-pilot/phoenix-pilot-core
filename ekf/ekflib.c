@@ -222,13 +222,27 @@ int ekf_init(int initFlags)
 		return -1;
 	}
 
-	meas_imuCalib();
+	if (meas_imuCalib() != 0) {
+		printf("ekf: error during IMU calibration\n");
+		err = -1;
+	}
 
 	if (ekf_common.baroEngine.active) {
-		meas_baroCalib();
+		if (meas_baroCalib() != 0) {
+			printf("ekf: error during baro calibration\n");
+			err = -1;
+		}
 	}
 	if (ekf_common.gpsEngine.active) {
-		meas_gpsCalib();
+		if (meas_gpsCalib() != 0) {
+			printf("ekf: error during GPS calibration\n");
+			err = -1;
+		}
+	}
+
+	if (err != 0) {
+		ekf_done();
+		return -1;
 	}
 
 	/* obligatory engines initialization */
