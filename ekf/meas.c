@@ -410,7 +410,7 @@ int meas_baroCalib(void)
 }
 
 
-int meas_imuPoll(void)
+int meas_imuPoll(time_t *timestamp)
 {
 	static sensor_event_t gyrEvtOld = { 0 };
 
@@ -418,6 +418,10 @@ int meas_imuPoll(void)
 
 	if (meas_common.imuAcq(&accEvt, &gyrEvt, &magEvt) < 0) {
 		return -1;
+	}
+
+	if (timestamp != NULL) {
+		*timestamp = gyrEvt.timestamp;
 	}
 
 	/* these timestamps do not need to be very accurate */

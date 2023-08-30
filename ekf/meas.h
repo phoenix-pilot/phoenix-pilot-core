@@ -108,7 +108,7 @@ extern float meas_calibPressGet(void);
 
 /* MEASUREMENT ACQUISITION */
 
-extern int meas_imuPoll(void);
+extern int meas_imuPoll(time_t *timestamp);
 
 extern int meas_baroPoll(void);
 
