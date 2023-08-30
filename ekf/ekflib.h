@@ -58,6 +58,10 @@ typedef struct {
 	float accelZ;
 
 	float accelBiasZ;
+
+	/* benchmarking */
+	unsigned long long int stateTime;
+	unsigned long long int imuTime;
 } ekf_state_t;
 
 

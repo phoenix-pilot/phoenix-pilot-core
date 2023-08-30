@@ -65,6 +65,10 @@ struct {
 	pthread_mutex_t lock;
 	pthread_attr_t threadAttr;
 
+	/* benchmarking */
+	time_t stateTime; /* last state estimation timestamp */
+	time_t imuTime; /* timestamp of last used IMU sample */
+
 	char stack[STACK_SIZE] __attribute__((aligned(8)));
 } ekf_common;
 
@@ -254,6 +258,7 @@ static time_t ekf_dtGet(void)
 static void *ekf_thread(void *arg)
 {
 	static time_t lastBaroUpdate = 0, lastGpsUpdate = 0;
+	time_t imuTime;
 	time_t loopStep, updateStep;
 	update_engine_t *currUpdate;
 	int i = 0;
@@ -273,7 +278,7 @@ static void *ekf_thread(void *arg)
 		loopStep = ekf_dtGet();
 
 		/* IMU polling is done regardless on update procedure */
-		meas_imuPoll();
+		meas_imuPoll(&imuTime);
 		currUpdate = &ekf_common.imuEngine;
 		updateStep = loopStep;
 
@@ -300,6 +305,7 @@ static void *ekf_thread(void *arg)
 		/* TODO: make critical section smaller and only on accesses to state and cov matrices */
 		pthread_mutex_lock(&ekf_common.lock);
 		kalman_update(updateStep, 0, currUpdate, &ekf_common.stateEngine); /* baro measurements update procedure */
+		ekf_common.imuTime = imuTime; /* assigning here not at gettime to utilize locked mutex */
 		pthread_mutex_unlock(&ekf_common.lock);
 
 		if (i++ > 50) {
@@ -314,6 +320,9 @@ static void *ekf_thread(void *arg)
 
 			i = 0;
 		}
+
+		/* using pre-calculation time as to not call meas_timeGet() */
+		ekf_common.stateTime = ekf_common.currTime;
 	}
 
 	ekf_common.run = -1;
@@ -401,6 +410,9 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	ekfState->yawDot = ekf_common.stateEngine.U.data[UWZ] - ekf_common.stateEngine.state.data[BWZ];
 
 	ekfState->accelBiasZ = 0;
+
+	ekfState->stateTime = ekf_common.stateTime;
+	ekfState->imuTime = ekf_common.imuTime;
 
 	pthread_mutex_unlock(&ekf_common.lock);
 
