@@ -50,8 +50,20 @@
 #define MOTLIN_TAG    "motlin"
 #define MOTLIN_PARAMS 8
 
+
+#define TEMPIMU_TAG           "tempimu"
+#define TEMPIMU_PARAMS        7
+#define TEMPIMU_CHAR_REF      'r'
+#define TEMPIMU_CHAR_ACC      'a'
+#define TEMPIMU_CHAR_GYR      'g'
+#define TEMPIMU_SANE_MAXREF   400 /* max refTemp value accepted */
+#define TEMPIMU_SANE_MINREF   200 /* min refTemp value accepted*/
+#define TEMPIMU_SANE_ACC_ALFA 100 /* maximum absolute value of accelerometer temperature coef. [(mm / s^2) / K] */
+#define TEMPIMU_SANE_GYR_ALFA 10  /* maximum absolute value of gyroscope temperature coef. [(mrad / s) / K] */
+
+
 /* clang-format off */
-typedef enum { typeMagmot = 0, typeMagiron, typeMotlin, typeAccorth } calibType_t;
+typedef enum { typeMagmot = 0, typeMagiron, typeMotlin, typeAccorth, typeTempimu } calibType_t;
 
 
 typedef enum { accSwapXYZ = 0, accSwapXZY, accSwapYXZ, accSwapYZX, accSwapZXY, accSwapZYX } accSwap_t;
@@ -80,6 +92,12 @@ typedef struct {
 		struct {
 			float motorEq[NUM_OF_MOTORS][2]; /* motorEq[motorId 0/1/2...NUM_OF_MOTORS][equation_parameter a/b] */
 		} motlin;
+
+		struct {
+			float refTemp;    /* reference temperatutre in kelvins (K) */
+			float alfaAcc[3]; /* linear coefficients [(mm / s^2) / K] for temperature compensation for x/y/z accelerometer axis */
+			float alfaGyr[3]; /* linear coefficients [(mrad / s) / K] for temperature compensation for x/y/z gyroscope axis */
+		} tempimu;
 	} params;
 } calib_data_t;
 
