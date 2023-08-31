@@ -254,7 +254,7 @@ static int corr_magmotRecalc(vec_t *correction)
 }
 
 
-void corr_magmot(sensor_event_t *magEvt)
+static void corr_magmot(sensor_event_t *magEvt)
 {
 	static time_t lastRecal = 0;     /* last magmot recalculation time */
 	static vec_t magmotCorr = { 0 }; /* magmot correction */
@@ -273,7 +273,7 @@ void corr_magmot(sensor_event_t *magEvt)
 }
 
 
-void corr_magiron(sensor_event_t *magEvt)
+static void corr_magiron(sensor_event_t *magEvt)
 {
 	float corrBuff[3], measBuf[3] = { magEvt->mag.magX, magEvt->mag.magY, magEvt->mag.magZ };
 	matrix_t meas = { .data = measBuf, .rows = 3, .cols = 1, .transposed = 0 };
@@ -293,7 +293,7 @@ void corr_magiron(sensor_event_t *magEvt)
 }
 
 
-void corr_accrotVecSwap(vec_t *v)
+static void corr_accrotVecSwap(vec_t *v)
 {
 	switch (corr_common.accorth.params.accorth.swapOrder) {
 		case accSwapXZY:
@@ -336,7 +336,7 @@ void corr_accrotVecSwap(vec_t *v)
 }
 
 
-void corr_accrot(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt)
+static void corr_accrot(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt)
 {
 	vec_t accel = { .x = accelEvt->accels.accelX, .y = accelEvt->accels.accelY, .z = accelEvt->accels.accelZ };
 	vec_t gyro = { .x = gyroEvt->gyro.gyroX, .y = gyroEvt->gyro.gyroY, .z = gyroEvt->gyro.gyroZ };
@@ -364,7 +364,7 @@ void corr_accrot(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 }
 
 
-void corr_accorth(sensor_event_t *accelEvt)
+static void corr_accorth(sensor_event_t *accelEvt)
 {
 	float dataFinal[3];
 	float dataTmp[3] = { accelEvt->accels.accelX, accelEvt->accels.accelY, accelEvt->accels.accelZ };
@@ -380,7 +380,7 @@ void corr_accorth(sensor_event_t *accelEvt)
 }
 
 
-void corr_tempimu(sensor_event_t *accelEvt, sensor_event_t *gyroEvt)
+static void corr_tempimu(sensor_event_t *accelEvt, sensor_event_t *gyroEvt)
 {
 	float diff;
 
@@ -397,5 +397,27 @@ void corr_tempimu(sensor_event_t *accelEvt, sensor_event_t *gyroEvt)
 		gyroEvt->gyro.gyroX += diff * corr_common.tempimu.params.tempimu.alfaGyr[0];
 		gyroEvt->gyro.gyroY += diff * corr_common.tempimu.params.tempimu.alfaGyr[1];
 		gyroEvt->gyro.gyroZ += diff * corr_common.tempimu.params.tempimu.alfaGyr[2];
+	}
+}
+
+
+void corr_imu(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt)
+{
+	/* Magnetometer corrections*/
+	if ((corr_common.corrInitFlags & CORR_ENBL_MAGIRON) != 0) {
+		corr_magiron(magEvt);
+	}
+	if ((corr_common.corrInitFlags & CORR_ENBL_MAGMOT) != 0) {
+		corr_magmot(magEvt);
+	}
+
+	/* Accelerometer corrections */
+	if ((corr_common.corrInitFlags & CORR_ENBL_TEMPIMU) != 0) {
+		corr_tempimu(accelEvt, gyroEvt);
+	}
+	if ((corr_common.corrInitFlags & CORR_ENBL_ACCORTH) != 0) {
+		/* TODO: split accrot from accorth */
+		corr_accorth(accelEvt);
+		corr_accrot(accelEvt, gyroEvt, magEvt);
 	}
 }
