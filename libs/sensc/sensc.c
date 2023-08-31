@@ -39,7 +39,7 @@ struct {
 	int fdBaro;
 	int fdGps;
 
-	bool corrEnable;
+	int corrInitFlags;
 } sensc_common;
 
 
@@ -121,12 +121,12 @@ static int sensc_openDescr(const char *path, int typeFlag, int initFlags, int *s
 }
 
 
-int sensc_init(const char *path, bool corrEnable, int initFlags)
+int sensc_init(const char *path, int corrInitFlags, int sensInitFlags)
 {
 	int err;
 
-	sensc_common.corrEnable = corrEnable;
-	if (sensc_common.corrEnable == true) {
+	sensc_common.corrInitFlags = corrInitFlags;
+	if (sensc_common.corrInitFlags != CORR_ENBL_NONE) {
 		if (corr_init(CORR_ENBL_ALL) != 0) {
 			fprintf(stderr, "Cannot setup correction module\n");
 			return -1;
@@ -134,9 +134,9 @@ int sensc_init(const char *path, bool corrEnable, int initFlags)
 	}
 
 	err = 0;
-	err |= sensc_openDescr(path, SENSC_INIT_IMU, initFlags, &sensc_common.fdImu);
-	err |= sensc_openDescr(path, SENSC_INIT_BARO, initFlags, &sensc_common.fdBaro);
-	err |= sensc_openDescr(path, SENSC_INIT_GPS, initFlags, &sensc_common.fdGps);
+	err |= sensc_openDescr(path, SENSC_INIT_IMU, sensInitFlags, &sensc_common.fdImu);
+	err |= sensc_openDescr(path, SENSC_INIT_BARO, sensInitFlags, &sensc_common.fdBaro);
+	err |= sensc_openDescr(path, SENSC_INIT_GPS, sensInitFlags, &sensc_common.fdGps);
 
 	if (err != 0) {
 		fprintf(stderr, "sensc: init failed\n");
@@ -144,7 +144,7 @@ int sensc_init(const char *path, bool corrEnable, int initFlags)
 		sensc_closeDescr(&sensc_common.fdBaro);
 		sensc_closeDescr(&sensc_common.fdGps);
 
-		if (sensc_common.corrEnable == true) {
+		if (sensc_common.corrInitFlags != CORR_ENBL_NONE) {
 			corr_done();
 		}
 		return -1;
@@ -160,7 +160,7 @@ void sensc_deinit(void)
 	sensc_closeDescr(&sensc_common.fdBaro);
 	sensc_closeDescr(&sensc_common.fdGps);
 
-	if (sensc_common.corrEnable == true) {
+	if (sensc_common.corrInitFlags != CORR_ENBL_NONE) {
 		corr_done();
 	}
 }

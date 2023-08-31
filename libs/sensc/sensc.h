@@ -33,8 +33,13 @@
 #define CORR_ENBL_NONE (0)
 
 
-/* initializes sensor client that should be accessible under path (e.g /dev/sensors) with option to turn on/off corrections module */
-extern int sensc_init(const char *path, bool corrEnable, int initFlags);
+/*
+ *Iinitialize sensor client with:
+ * - sensorhub under `path` (e.g /dev/sensors)
+ * - corrections initialized according to `corrInitFlags`
+ * - sensors initialized according to `sensInitFlags
+ */
+extern int sensc_init(const char *path, int corrInitFlags, int sensInitFlags);
 
 /* deinitializes all initialized parts of sensor client */
 extern void sensc_deinit(void);
