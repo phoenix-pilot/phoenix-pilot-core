@@ -145,7 +145,7 @@ int mma_init(const quad_coeffs_t *coeffs, const mma_atten_t *atten)
 {
 	int err;
 
-	if (calib_readFile(CALIB_PATH, typeMotlin, &mma_common.calib) != 0) {
+	if (calib_dataInit(CALIB_PATH, typeMotlin, &mma_common.calib) != 0) {
 		printf("mma: cannot initialize motlin calibration\n");
 		return -1;
 	}
