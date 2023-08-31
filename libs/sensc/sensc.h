@@ -23,6 +23,16 @@
 #define SENSC_INIT_GPS  (1 << 2)
 
 
+#define CORR_ENBL_MAGIRON (1 << 0)
+#define CORR_ENBL_MAGMOT  (1 << 1)
+#define CORR_ENBL_ACCORTH (1 << 2)
+#define CORR_ENBL_ACCROT  (1 << 3)
+#define CORR_ENBL_TEMPIMU (1 << 4)
+
+#define CORR_ENBL_ALL  (~(unsigned int)0)
+#define CORR_ENBL_NONE (0)
+
+
 /* initializes sensor client that should be accessible under path (e.g /dev/sensors) with option to turn on/off corrections module */
 extern int sensc_init(const char *path, bool corrEnable, int initFlags);
 
