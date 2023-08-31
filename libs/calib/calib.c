@@ -658,7 +658,7 @@ void calib_free(calib_data_t *cal)
 }
 
 
-int calib_readFile(const char *path, calibType_t type, calib_data_t *cal)
+int calib_dataInit(const char *path, calibType_t type, calib_data_t *cal)
 {
 	FILE *file;
 	int ret;

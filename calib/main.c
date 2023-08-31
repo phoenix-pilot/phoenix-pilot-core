@@ -86,7 +86,7 @@ static int calib_read(const char *path)
 	while (c != NULL) {
 		if (c->dataGet != NULL) {
 			calib = c->dataGet();
-			if (calib_readFile(path, calib->type, calib) != 0) {
+			if (calib_dataInit(path, calib->type, calib) != 0) {
 				err = true;
 				break;
 			}

@@ -119,10 +119,10 @@ int corr_init(void)
 		return -1;
 	}
 
-	magironRet = calib_readFile(CALIB_PATH, typeMagiron, &corr_common.magiron);
-	magmotRet = calib_readFile(CALIB_PATH, typeMagmot, &corr_common.magmot);
-	accorthRet = calib_readFile(CALIB_PATH, typeAccorth, &corr_common.accorth);
-	tempimuRet = calib_readFile(CALIB_PATH, typeTempimu, &corr_common.tempimu);
+	magironRet = calib_dataInit(CALIB_PATH, typeMagiron, &corr_common.magiron);
+	magmotRet = calib_dataInit(CALIB_PATH, typeMagmot, &corr_common.magmot);
+	accorthRet = calib_dataInit(CALIB_PATH, typeAccorth, &corr_common.accorth);
+	tempimuRet = calib_dataInit(CALIB_PATH, typeTempimu, &corr_common.tempimu);
 
 	/* error checking */
 	if (magironRet != 0 || magmotRet != 0 || accorthRet != 0 || tempimuRet != 0) {
