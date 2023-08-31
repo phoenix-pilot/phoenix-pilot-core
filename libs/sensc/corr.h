@@ -18,27 +18,7 @@
 #include <libsensors.h>
 
 
-/* Performs hard/soft iron calibration on magnetometer data */
-void corr_magiron(sensor_event_t *magEvt);
-
-
-/* Performs motors interference calibration */
-void corr_magmot(sensor_event_t *magEvt);
-
-
-/* Performs orthogonality calibration for accelerometer. Raw accelerometer data should be passed */
-void corr_accorth(sensor_event_t *accelEvt);
-
-
-/*
-* Performs initial data rotation based on accelerometer initial attitude quaternion.
-* Orthogonal calibrated data should be passed.
-*/
-void corr_accrot(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt);
-
-
-/* Corrects temperature impact on IMU measurements */
-void corr_tempimu(sensor_event_t *accelEvt, sensor_event_t *gyroEvt);
+void corr_imu(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt);
 
 
 /* Deinitializes correction procedures */

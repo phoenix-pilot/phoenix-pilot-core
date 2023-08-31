@@ -201,14 +201,8 @@ int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 		}
 	}
 
-	if (sensc_common.corrEnable == true) {
-
-		corr_magiron(magEvt);
-		corr_magmot(magEvt);
-		corr_tempimu(accelEvt, gyroEvt);
-		corr_accorth(accelEvt);
-		corr_accrot(accelEvt, gyroEvt, magEvt); /* assumption: IMU returns data in the same frame of reference */
-	}
+	/* Corrections */
+	corr_imu(accelEvt, gyroEvt, magEvt);
 
 	return (flag == 0) ? 0 : -1;
 }
