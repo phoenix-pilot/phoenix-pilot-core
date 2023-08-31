@@ -204,6 +204,7 @@ int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event
 	if (sensc_common.corrEnable == true) {
 
 		corr_mag(magEvt);
+		corr_tempimu(accelEvt, gyroEvt);
 		corr_accorth(accelEvt);
 		corr_accrot(accelEvt, gyroEvt, magEvt); /* assumption: IMU returns data in the same frame of reference */
 	}
