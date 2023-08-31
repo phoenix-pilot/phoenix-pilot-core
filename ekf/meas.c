@@ -98,7 +98,7 @@ int meas_init(meas_sourceType_t sourceType, const char *path, int senscInitFlags
 			meas_common.timeAcq = sensc_timeGet;
 			meas_common.baroAcq = sensc_baroGet;
 
-			return sensc_init(path, true, senscInitFlags);
+			return sensc_init(path, CORR_ENBL_ALL, senscInitFlags);
 
 		case srcLog:
 			meas_common.imuAcq = ekflog_imuRead;

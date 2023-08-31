@@ -186,7 +186,7 @@ int main(int argc, char **argv)
 	fprintf(stdout, "Logging for %lli seconds with %llims step\n", senslog_common.diffMax / 1000000, senslog_common.step / 1000);
 
 	/* initialization of sensor client with selectable corrections (raw == true means corrections disabled) */
-	if (sensc_init("/dev/sensors", !senslog_common.raw, senslog_common.senscInitFlags) < 0) {
+	if (sensc_init("/dev/sensors", (senslog_common.raw) ? CORR_ENBL_NONE : CORR_ENBL_ALL, senslog_common.senscInitFlags) < 0) {
 		fprintf(stderr, "Cannot initialize sensor client\n");
 		return EXIT_FAILURE;
 	}
