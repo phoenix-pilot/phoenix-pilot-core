@@ -46,6 +46,6 @@ void corr_done(void);
 
 
 /* initializes all correction procedures. Returns 0 on success */
-int corr_init(void);
+int corr_init(int initFlags);
 
 #endif

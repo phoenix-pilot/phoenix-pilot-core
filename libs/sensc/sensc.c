@@ -127,7 +127,7 @@ int sensc_init(const char *path, bool corrEnable, int initFlags)
 
 	sensc_common.corrEnable = corrEnable;
 	if (sensc_common.corrEnable == true) {
-		if (corr_init() != 0) {
+		if (corr_init(CORR_ENBL_ALL) != 0) {
 			fprintf(stderr, "Cannot setup correction module\n");
 			return -1;
 		}

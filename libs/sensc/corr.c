@@ -22,6 +22,7 @@
 #include <matrix.h>
 
 #include "corr.h"
+#include "sensc.h"
 
 
 #define NUM_OF_MOTORS 4
@@ -42,6 +43,8 @@ struct {
 	calib_data_t magiron;
 	calib_data_t accorth;
 	calib_data_t tempimu;
+
+	int corrInitFlags;
 
 	/* for magmot correction */
 	FILE *pwmFiles[NUM_OF_MOTORS];
@@ -85,56 +88,118 @@ void corr_done(void)
 {
 	int i;
 
-	for (i = 0; i < NUM_OF_MOTORS; i++) {
-		fclose(corr_common.pwmFiles[i]);
-	}
-
-	calib_free(&corr_common.magiron);
-	calib_free(&corr_common.magmot);
-}
-
-
-int corr_init(void)
-{
-	int magironRet, magmotRet, accorthRet, tempimuRet;
-	int i;
-	bool err = false;
-
-	/* open pwm files for magmot correction */
-	for (i = 0; i < NUM_OF_MOTORS; i++) {
-		corr_common.pwmFiles[i] = fopen(motorFiles[i], "r");
-		if (corr_common.pwmFiles[i] == NULL) {
-			err = true;
-			fprintf(stderr, "corr: cannot access %s pwm file\n", motorFiles[i]);
-			break;
-		}
-	}
-
-	if (err) {
-		i--;
-		while (i >= 0) {
-			fclose(corr_common.pwmFiles[i]);
-		}
-		fprintf(stderr, "corr: failed to open motor files\n");
-		return -1;
-	}
-
-	magironRet = calib_dataInit(CALIB_PATH, typeMagiron, &corr_common.magiron);
-	magmotRet = calib_dataInit(CALIB_PATH, typeMagmot, &corr_common.magmot);
-	accorthRet = calib_dataInit(CALIB_PATH, typeAccorth, &corr_common.accorth);
-	tempimuRet = calib_dataInit(CALIB_PATH, typeTempimu, &corr_common.tempimu);
-
-	/* error checking */
-	if (magironRet != 0 || magmotRet != 0 || accorthRet != 0 || tempimuRet != 0) {
-
-		(magmotRet == 0) ? calib_free(&corr_common.magiron) : fprintf(stderr, "corr: magmot init failed\n");
-		(magironRet == 0) ? calib_free(&corr_common.magiron) : fprintf(stderr, "corr: magiron init failed\n");
-		(accorthRet == 0) ? calib_free(&corr_common.accorth) : fprintf(stderr, "corr: accorth init failed\n");
-		(tempimuRet == 0) ? calib_free(&corr_common.tempimu) : fprintf(stderr, "corr: tempimu init failed\n");
-
+	if ((corr_common.corrInitFlags & CORR_ENBL_MAGMOT) != 0) {
 		for (i = 0; i < NUM_OF_MOTORS; i++) {
 			fclose(corr_common.pwmFiles[i]);
 		}
+		calib_free(&corr_common.magmot);
+	}
+
+	if ((corr_common.corrInitFlags & CORR_ENBL_MAGIRON) != 0) {
+		calib_free(&corr_common.magiron);
+	}
+
+	if ((corr_common.corrInitFlags & CORR_ENBL_ACCORTH) != 0) {
+		calib_free(&corr_common.accorth);
+	}
+
+	if ((corr_common.corrInitFlags & CORR_ENBL_TEMPIMU) != 0) {
+		calib_free(&corr_common.tempimu);
+	}
+}
+
+
+int corr_init(int initFlags)
+{
+	int i;
+	bool err = false;
+
+	corr_common.corrInitFlags = CORR_ENBL_NONE;
+
+	/* MAGIRON initialization */
+	if ((initFlags & CORR_ENBL_MAGIRON) != 0) {
+		if (calib_dataInit(CALIB_PATH, typeMagiron, &corr_common.magiron) == 0) {
+			corr_common.corrInitFlags |= CORR_ENBL_MAGIRON;
+		}
+		else {
+			fprintf(stderr, "corr: %s init failed\n", MAGIRON_TAG);
+			err = true;
+		}
+	}
+
+	/* MAGMOT initialization */
+	if ((initFlags & CORR_ENBL_MAGMOT) != 0 && !err) {
+		/* open pwm files for magmot correction */
+		for (i = 0; i < NUM_OF_MOTORS; i++) {
+			corr_common.pwmFiles[i] = fopen(motorFiles[i], "r");
+			if (corr_common.pwmFiles[i] == NULL) {
+				err = true;
+				fprintf(stderr, "corr: cannot access %s pwm file\n", motorFiles[i]);
+				break;
+			}
+		}
+
+		if (err) {
+			i--;
+			while (i >= 0) {
+				fclose(corr_common.pwmFiles[i]);
+			}
+			fprintf(stderr, "corr: failed to open motor files\n");
+			return -1;
+		}
+
+		if (calib_dataInit(CALIB_PATH, typeMagmot, &corr_common.magmot) == 0) {
+			corr_common.corrInitFlags |= CORR_ENBL_MAGMOT;
+		}
+		else {
+			fprintf(stderr, "corr: %s init failed\n", MAGMOT_TAG);
+			err = true;
+		}
+	}
+
+	/* ACCORTH initialization */
+	if ((initFlags & CORR_ENBL_ACCORTH) != 0 && !err) {
+		if (calib_dataInit(CALIB_PATH, typeAccorth, &corr_common.accorth) == 0) {
+			corr_common.corrInitFlags |= CORR_ENBL_ACCORTH;
+		}
+		else {
+			fprintf(stderr, "corr: %s init failed\n", ACCORTH_TAG);
+			err = true;
+		}
+	}
+
+	/* TEMPIMU initialization */
+	if ((initFlags & CORR_ENBL_TEMPIMU) != 0 && !err) {
+		if (calib_dataInit(CALIB_PATH, typeTempimu, &corr_common.tempimu) != 0) {
+			fprintf(stderr, "corr: %s init failed\n", TEMPIMU_TAG);
+			err = true;
+		}
+		else {
+			corr_common.corrInitFlags |= CORR_ENBL_TEMPIMU;
+		}
+	}
+
+	/* error checking */
+	if (err) {
+		if ((corr_common.corrInitFlags & CORR_ENBL_MAGMOT) != 0) {
+			for (i = 0; i < NUM_OF_MOTORS; i++) {
+				fclose(corr_common.pwmFiles[i]);
+			}
+			calib_free(&corr_common.magmot);
+		}
+
+		if ((corr_common.corrInitFlags & CORR_ENBL_MAGIRON) != 0) {
+			calib_free(&corr_common.magiron);
+		}
+
+		if ((corr_common.corrInitFlags & CORR_ENBL_ACCORTH) != 0) {
+			calib_free(&corr_common.accorth);
+		}
+
+		if ((corr_common.corrInitFlags & CORR_ENBL_TEMPIMU) != 0) {
+			calib_free(&corr_common.tempimu);
+		}
+
 		return -1;
 	}
 
