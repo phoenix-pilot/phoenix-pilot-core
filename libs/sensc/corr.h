@@ -33,6 +33,10 @@ void corr_accorth(sensor_event_t *accelEvt);
 void corr_accrot(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt);
 
 
+/* Corrects temperature impact on IMU measurements */
+void corr_tempimu(sensor_event_t *accelEvt, sensor_event_t *gyroEvt);
+
+
 /* Deinitializes correction procedures */
 void corr_done(void);
 
