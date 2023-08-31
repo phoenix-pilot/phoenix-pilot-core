@@ -189,14 +189,10 @@ static int corr_magmotRecalc(vec_t *correction)
 }
 
 
-void corr_mag(sensor_event_t *magEvt)
+void corr_magmot(sensor_event_t *magEvt)
 {
 	static time_t lastRecal = 0;     /* last magmot recalculation time */
 	static vec_t magmotCorr = { 0 }; /* magmot correction */
-
-	float corrBuff[3], measBuf[3] = { magEvt->mag.magX, magEvt->mag.magY, magEvt->mag.magZ };
-	matrix_t meas = { .data = measBuf, .rows = 3, .cols = 1, .transposed = 0 };
-	matrix_t corr = { .data = corrBuff, .rows = 3, .cols = 1, .transposed = 0 };
 
 	/* decide on refreshing calibration arguments */
 	if (magEvt->timestamp - lastRecal > MAGMOT_MAXPERIOD) {
@@ -205,11 +201,18 @@ void corr_mag(sensor_event_t *magEvt)
 		corr_magmotRecalc(&magmotCorr);
 	}
 
-	/*
-	* Corrections MUST be applied in order:
-	* 1) magiron
-	* 2) magmot
-	*/
+	/* Apply magmot correction */
+	magEvt->mag.magX += magmotCorr.x;
+	magEvt->mag.magY += magmotCorr.y;
+	magEvt->mag.magZ += magmotCorr.z;
+}
+
+
+void corr_magiron(sensor_event_t *magEvt)
+{
+	float corrBuff[3], measBuf[3] = { magEvt->mag.magX, magEvt->mag.magY, magEvt->mag.magZ };
+	matrix_t meas = { .data = measBuf, .rows = 3, .cols = 1, .transposed = 0 };
+	matrix_t corr = { .data = corrBuff, .rows = 3, .cols = 1, .transposed = 0 };
 
 	/*
 	* Apply magiron correction
@@ -222,11 +225,6 @@ void corr_mag(sensor_event_t *magEvt)
 	magEvt->mag.magX = *matrix_at(&corr, 0, 0);
 	magEvt->mag.magY = *matrix_at(&corr, 1, 0);
 	magEvt->mag.magZ = *matrix_at(&corr, 2, 0);
-
-	/* Apply magmot correction */
-	magEvt->mag.magX += magmotCorr.x;
-	magEvt->mag.magY += magmotCorr.y;
-	magEvt->mag.magZ += magmotCorr.z;
 }
 
 
