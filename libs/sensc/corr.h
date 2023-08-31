@@ -18,8 +18,12 @@
 #include <libsensors.h>
 
 
-/* Performs calibration on magnetometer data */
-void corr_mag(sensor_event_t *magEvt);
+/* Performs hard/soft iron calibration on magnetometer data */
+void corr_magiron(sensor_event_t *magEvt);
+
+
+/* Performs motors interference calibration */
+void corr_magmot(sensor_event_t *magEvt);
 
 
 /* Performs orthogonality calibration for accelerometer. Raw accelerometer data should be passed */
