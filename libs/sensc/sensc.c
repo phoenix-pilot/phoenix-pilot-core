@@ -126,11 +126,9 @@ int sensc_init(const char *path, int corrInitFlags, int sensInitFlags)
 	int err;
 
 	sensc_common.corrInitFlags = corrInitFlags;
-	if (sensc_common.corrInitFlags != CORR_ENBL_NONE) {
-		if (corr_init(CORR_ENBL_ALL) != 0) {
-			fprintf(stderr, "Cannot setup correction module\n");
-			return -1;
-		}
+	if (corr_init(corrInitFlags) != 0) {
+		fprintf(stderr, "Cannot setup correction module\n");
+		return -1;
 	}
 
 	err = 0;
@@ -144,9 +142,7 @@ int sensc_init(const char *path, int corrInitFlags, int sensInitFlags)
 		sensc_closeDescr(&sensc_common.fdBaro);
 		sensc_closeDescr(&sensc_common.fdGps);
 
-		if (sensc_common.corrInitFlags != CORR_ENBL_NONE) {
-			corr_done();
-		}
+		corr_done();
 		return -1;
 	}
 
@@ -160,9 +156,7 @@ void sensc_deinit(void)
 	sensc_closeDescr(&sensc_common.fdBaro);
 	sensc_closeDescr(&sensc_common.fdGps);
 
-	if (sensc_common.corrInitFlags != CORR_ENBL_NONE) {
-		corr_done();
-	}
+	corr_done();
 }
 
 
