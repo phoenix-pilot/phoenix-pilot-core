@@ -18,19 +18,35 @@
 #include <libsensors.h>
 
 
-/* Reads next timestamp log */
+/*
+ * Reads next timestamp log. In case of a success returns 0.
+ * If end-of-file is encountered returns EOF.
+ * In case of an error returns EOF and sets appropriate errno value.
+ */
 extern int ekflog_timeRead(time_t *timestamp);
 
 
-/* Reads next IMU log */
+/*
+ * Reads next IMU log. In case of a success returns 0.
+ * If end-of-file is encountered returns EOF.
+ * In case of an error returns EOF and sets appropriate errno value.
+ */
 extern int ekflog_imuRead(sensor_event_t *accEvt, sensor_event_t *gyrEvt, sensor_event_t *magEvt);
 
 
-/* Reads next GPS log */
+/*
+ * Reads next GPS log. In case of a success returns 0.
+ * If end-of-file is encountered returns EOF.
+ * In case of an error returns EOF and sets appropriate errno value.
+ */
 extern int ekflog_gpsRead(sensor_event_t *gpsEvt);
 
 
-/* Reads next barometer log */
+/*
+ * Reads next barometer log. In case of a success returns 0.
+ * If end-of-file is encountered returns EOF.
+ * In case of an error returns EOF and sets appropriate errno value.
+ */
 extern int ekflog_baroRead(sensor_event_t *baroEvt);
 
 
