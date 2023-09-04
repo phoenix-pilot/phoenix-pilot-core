@@ -215,7 +215,7 @@ static int magiron_run(void)
 
 static int magiron_init(int argc, const char **argv)
 {
-	if (sensc_init(SENSOR_PATH, CORR_ENBL_NONE, SENSC_INIT_IMU) < 0) {
+	if (sensc_init(SENSOR_PATH, MAGIRON_CALIB_DEPENDENCY, SENSC_INIT_IMU) < 0) {
 		return -1;
 	}
 

@@ -256,7 +256,7 @@ static int magmot_done(void)
 
 static int magmot_init(int argc, const char **argv)
 {
-	if (sensc_init(SENSOR_PATH, CORR_ENBL_NONE, SENSC_INIT_IMU) < 0) {
+	if (sensc_init(SENSOR_PATH, MAGMOT_CALIB_DEPENDENCY, SENSC_INIT_IMU) < 0) {
 		return -ENXIO;
 	}
 

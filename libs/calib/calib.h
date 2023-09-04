@@ -62,6 +62,12 @@
 #define TEMPIMU_SANE_GYR_ALFA 10  /* maximum absolute value of gyroscope temperature coef. [(mrad / s) / K] */
 
 
+/* CORRECTIONS DEPENDENCY CONTROL */
+#define TEMPIMU_CALIB_DEPENDENCY (CORR_ENBL_NONE)
+#define MAGIRON_CALIB_DEPENDENCY (CORR_ENBL_TEMPIMU)
+#define ACCORTH_CALIB_DEPENDENCY (CORR_ENBL_TEMPIMU)
+#define MAGMOT_CALIB_DEPENDENCY  (CORR_ENBL_TEMPIMU | CORR_ENBL_MAGIRON)
+
 /* clang-format off */
 typedef enum { typeMagmot = 0, typeMagiron, typeMotlin, typeAccorth, typeTempimu } calibType_t;
 
