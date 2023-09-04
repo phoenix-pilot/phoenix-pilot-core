@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <errno.h>
 
 
 #include "../writer.h"
@@ -46,6 +47,8 @@ TEST_SETUP(group_ekf_logs)
 	ekflogTests_sensorEvtClear(&sensEvt1);
 	ekflogTests_sensorEvtClear(&sensEvt2);
 	ekflogTests_sensorEvtClear(&sensEvt3);
+
+	errno = 0;
 }
 
 
@@ -72,7 +75,8 @@ TEST(group_ekf_logs, ekflogs_singleTimeEvt)
 	TEST_ASSERT_EQUAL(0, ekflog_timeRead(&timeRead));
 	TEST_ASSERT_EQUAL(testTimestamp1, timeRead);
 
-	TEST_ASSERT_NOT_EQUAL(0, ekflog_timeRead(&timeRead));
+	TEST_ASSERT_EQUAL(EOF, ekflog_timeRead(&timeRead));
+	TEST_ASSERT_EQUAL(0, errno);
 }
 
 
@@ -95,7 +99,8 @@ TEST(group_ekf_logs, ekflogs_multipleTimeEvt)
 		TEST_ASSERT_EQUAL(testTimestamp2, timeRead);
 	}
 
-	TEST_ASSERT_NOT_EQUAL(0, ekflog_timeRead(&timeRead));
+	TEST_ASSERT_EQUAL(EOF, ekflog_timeRead(&timeRead));
+	TEST_ASSERT_EQUAL(0, errno);
 }
 
 
@@ -110,6 +115,9 @@ TEST(group_ekf_logs, ekflogs_singleImuEvt)
 	TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testAccEvt1, &sensEvt1));
 	TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGyrEvt1, &sensEvt2));
 	TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testMagEvt1, &sensEvt3));
+
+	TEST_ASSERT_EQUAL(EOF, ekflog_imuRead(&sensEvt1, &sensEvt2, &sensEvt3));
+	TEST_ASSERT_EQUAL(0, errno);
 }
 
 
@@ -137,6 +145,9 @@ TEST(group_ekf_logs, ekflogs_multipleImuEvt)
 		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGyrEvt2, &sensEvt2));
 		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testMagEvt2, &sensEvt3));
 	}
+
+	TEST_ASSERT_EQUAL(EOF, ekflog_imuRead(&sensEvt1, &sensEvt2, &sensEvt3));
+	TEST_ASSERT_EQUAL(0, errno);
 }
 
 
@@ -148,6 +159,9 @@ TEST(group_ekf_logs, ekflogs_singleGpsEvt)
 
 	TEST_ASSERT_EQUAL(0, ekflog_gpsRead(&sensEvt1));
 	TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGpsEvt1, &sensEvt1));
+
+	TEST_ASSERT_EQUAL(EOF, ekflog_gpsRead(&sensEvt1));
+	TEST_ASSERT_EQUAL(0, errno);
 }
 
 
@@ -170,7 +184,8 @@ TEST(group_ekf_logs, ekflogs_multipleGpsEvt)
 		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGpsEvt2, &sensEvt1));
 	}
 
-	TEST_ASSERT_NOT_EQUAL(0, ekflog_gpsRead(&sensEvt1));
+	TEST_ASSERT_EQUAL(EOF, ekflog_gpsRead(&sensEvt1));
+	TEST_ASSERT_EQUAL(0, errno);
 }
 
 
@@ -182,6 +197,9 @@ TEST(group_ekf_logs, ekflogs_singleBaroEvt)
 
 	TEST_ASSERT_EQUAL(0, ekflog_baroRead(&sensEvt1));
 	TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testBaroEvt, &sensEvt1));
+
+	TEST_ASSERT_EQUAL(EOF, ekflog_baroRead(&sensEvt1));
+	TEST_ASSERT_EQUAL(0, errno);
 }
 
 
@@ -221,9 +239,11 @@ TEST(group_ekf_logs, ekflogs_shortSequence)
 		ekflogTests_sensorEvtClear(&sensEvt1);
 	}
 
-	TEST_ASSERT_NOT_EQUAL(0, ekflog_timeRead(&timeRead));
-	TEST_ASSERT_NOT_EQUAL(0, ekflog_imuRead(&sensEvt1, &sensEvt2, &sensEvt3));
-	TEST_ASSERT_NOT_EQUAL(0, ekflog_gpsRead(&sensEvt1));
+	TEST_ASSERT_EQUAL(EOF, ekflog_timeRead(&timeRead));
+	TEST_ASSERT_EQUAL(EOF, ekflog_imuRead(&sensEvt1, &sensEvt2, &sensEvt3));
+	TEST_ASSERT_EQUAL(EOF, ekflog_gpsRead(&sensEvt1));
+
+	TEST_ASSERT_EQUAL(0, errno);
 }
 
 
@@ -273,9 +293,11 @@ TEST(group_ekf_logs, ekflogs_longSequence)
 		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGpsEvt2, &sensEvt1));
 	}
 
-	TEST_ASSERT_NOT_EQUAL(0, ekflog_timeRead(&timeRead));
-	TEST_ASSERT_NOT_EQUAL(0, ekflog_imuRead(&sensEvt1, &sensEvt2, &sensEvt3));
-	TEST_ASSERT_NOT_EQUAL(0, ekflog_gpsRead(&sensEvt1));
+	TEST_ASSERT_EQUAL(EOF, ekflog_timeRead(&timeRead));
+	TEST_ASSERT_EQUAL(EOF, ekflog_imuRead(&sensEvt1, &sensEvt2, &sensEvt3));
+	TEST_ASSERT_EQUAL(EOF, ekflog_gpsRead(&sensEvt1));
+
+	TEST_ASSERT_EQUAL(0, errno);
 }
 
 

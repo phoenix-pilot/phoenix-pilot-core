@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 
 /* clang-format off */
@@ -50,6 +51,7 @@ static int ekflog_logOmit(char logIndicator)
 
 		default:
 			fprintf(stderr, "ekflog reader: Invalid log indicator in file: %c\n", logIndicator);
+			errno = EBADF;
 			return -1;
 	}
 }
@@ -81,23 +83,35 @@ static int ekflog_nextLogSeek(char logIndicator)
 }
 
 
+static void ekflog_ebadfMsg(void)
+{
+	fprintf(stderr, "Log reader: Invalid log file\n");
+	errno = EBADF;
+}
+
+
 int ekflog_timeRead(time_t *timestamp)
 {
+	errno = 0;
+
 	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[timeLog], SEEK_SET) != 0) {
-		return -1;
+		return EOF;
 	}
 
 	if (ekflog_nextLogSeek(TIME_LOG_INDICATOR) != 0) {
-		return -1;
+		return EOF;
 	}
 
 	if (fread(timestamp, LOG_TIMESTAMP_SIZE, 1, ekflog_common.file) != 1) {
-		return -1;
+		if (errno == 0) {
+			ekflog_ebadfMsg();
+		}
+		return EOF;
 	}
 
 	ekflog_common.fileOffsets[timeLog] = ftell(ekflog_common.file);
 	if (ekflog_common.fileOffsets[timeLog] < 0) {
-		return -1;
+		return EOF;
 	}
 
 	return 0;
@@ -108,28 +122,42 @@ int ekflog_imuRead(sensor_event_t *accEvt, sensor_event_t *gyrEvt, sensor_event_
 {
 	time_t timestamp;
 
+	errno = 0;
+
 	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[imuLog], SEEK_SET) != 0) {
-		return -1;
+		return EOF;
 	}
 
 	if (ekflog_nextLogSeek(IMU_LOG_INDICATOR) != 0) {
-		return -1;
+		return EOF;
 	}
 
 	if (fread(&timestamp, sizeof(time_t), 1, ekflog_common.file) != 1) {
-		return -1;
+		if (errno == 0) {
+			ekflog_ebadfMsg();
+		}
+		return EOF;
 	}
 
 	if (fread(&accEvt->accels, sizeof(accEvt->accels), 1, ekflog_common.file) != 1) {
-		return -1;
+		if (errno == 0) {
+			ekflog_ebadfMsg();
+		}
+		return EOF;
 	}
 
 	if (fread(&gyrEvt->gyro, sizeof(gyrEvt->gyro), 1, ekflog_common.file) != 1) {
-		return -1;
+		if (errno == 0) {
+			ekflog_ebadfMsg();
+		}
+		return EOF;
 	}
 
 	if (fread(&magEvt->mag, sizeof(magEvt->mag), 1, ekflog_common.file) != 1) {
-		return -1;
+		if (errno == 0) {
+			ekflog_ebadfMsg();
+		}
+		return EOF;
 	}
 
 	accEvt->type = SENSOR_TYPE_ACCEL;
@@ -143,7 +171,7 @@ int ekflog_imuRead(sensor_event_t *accEvt, sensor_event_t *gyrEvt, sensor_event_
 
 	ekflog_common.fileOffsets[imuLog] = ftell(ekflog_common.file);
 	if (ekflog_common.fileOffsets[timeLog] < 0) {
-		return -1;
+		return EOF;
 	}
 
 	return 0;
@@ -152,27 +180,35 @@ int ekflog_imuRead(sensor_event_t *accEvt, sensor_event_t *gyrEvt, sensor_event_
 
 int ekflog_gpsRead(sensor_event_t *gpsEvt)
 {
+	errno = 0;
+
 	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[gpsLog], SEEK_SET) != 0) {
-		return -1;
+		return EOF;
 	}
 
 	if (ekflog_nextLogSeek(GPS_LOG_INDICATOR) != 0) {
-		return -1;
+		return EOF;
 	}
 
 	if (fread(&gpsEvt->timestamp, LOG_TIMESTAMP_SIZE, 1, ekflog_common.file) != 1) {
-		return -1;
+		if (errno == 0) {
+			ekflog_ebadfMsg();
+		}
+		return EOF;
 	}
 
 	if (fread(&gpsEvt->gps, sizeof(gpsEvt->gps), 1, ekflog_common.file) != 1) {
-		return -1;
+		if (errno == 0) {
+			ekflog_ebadfMsg();
+		}
+		return EOF;
 	}
 
 	gpsEvt->type = SENSOR_TYPE_GPS;
 
 	ekflog_common.fileOffsets[gpsLog] = ftell(ekflog_common.file);
 	if (ekflog_common.fileOffsets[timeLog] < 0) {
-		return -1;
+		return EOF;
 	}
 
 	return 0;
@@ -181,27 +217,35 @@ int ekflog_gpsRead(sensor_event_t *gpsEvt)
 
 int ekflog_baroRead(sensor_event_t *baroEvt)
 {
+	errno = 0;
+
 	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[baroLog], SEEK_SET) != 0) {
-		return -1;
+		return EOF;
 	}
 
 	if (ekflog_nextLogSeek(BARO_LOG_INDICATOR) != 0) {
-		return -1;
+		return EOF;
 	}
 
 	if (fread(&baroEvt->timestamp, LOG_TIMESTAMP_SIZE, 1, ekflog_common.file) != 1) {
-		return -1;
+		if (errno == 0) {
+			ekflog_ebadfMsg();
+		}
+		return EOF;
 	}
 
 	if (fread(&baroEvt->baro, sizeof(baroEvt->baro), 1, ekflog_common.file) != 1) {
-		return -1;
+		if (errno == 0) {
+			ekflog_ebadfMsg();
+		}
+		return EOF;
 	}
 
 	baroEvt->type = SENSOR_TYPE_BARO;
 
 	ekflog_common.fileOffsets[baroLog] = ftell(ekflog_common.file);
 	if (ekflog_common.fileOffsets[timeLog] < 0) {
-		return -1;
+		return EOF;
 	}
 
 	return 0;
