@@ -386,17 +386,17 @@ static void corr_tempimu(sensor_event_t *accelEvt, sensor_event_t *gyroEvt)
 
 	if (accelEvt->accels.temp != 0) {
 		diff = ((float)accelEvt->accels.temp) / 1000 - corr_common.tempimu.params.tempimu.refTemp;
-		accelEvt->accels.accelX += diff * corr_common.tempimu.params.tempimu.alfaAcc[0];
-		accelEvt->accels.accelY += diff * corr_common.tempimu.params.tempimu.alfaAcc[1];
-		accelEvt->accels.accelZ += diff * corr_common.tempimu.params.tempimu.alfaAcc[2];
+		accelEvt->accels.accelX -= diff * corr_common.tempimu.params.tempimu.alfaAcc[0];
+		accelEvt->accels.accelY -= diff * corr_common.tempimu.params.tempimu.alfaAcc[1];
+		accelEvt->accels.accelZ -= diff * corr_common.tempimu.params.tempimu.alfaAcc[2];
 	}
 
 	/* Only correcting direct measurement, as dAngle is hard to correct without timestamps */
 	if (gyroEvt->gyro.temp != 0) {
 		diff = ((float)gyroEvt->gyro.temp) / 1000 - corr_common.tempimu.params.tempimu.refTemp;
-		gyroEvt->gyro.gyroX += diff * corr_common.tempimu.params.tempimu.alfaGyr[0];
-		gyroEvt->gyro.gyroY += diff * corr_common.tempimu.params.tempimu.alfaGyr[1];
-		gyroEvt->gyro.gyroZ += diff * corr_common.tempimu.params.tempimu.alfaGyr[2];
+		gyroEvt->gyro.gyroX -= diff * corr_common.tempimu.params.tempimu.alfaGyr[0];
+		gyroEvt->gyro.gyroY -= diff * corr_common.tempimu.params.tempimu.alfaGyr[1];
+		gyroEvt->gyro.gyroZ -= diff * corr_common.tempimu.params.tempimu.alfaGyr[2];
 	}
 }
 
