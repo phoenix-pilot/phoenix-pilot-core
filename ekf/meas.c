@@ -417,7 +417,7 @@ int meas_imuPoll(time_t *timestamp)
 	sensor_event_t accEvt, gyrEvt, magEvt;
 
 	if (meas_common.imuAcq(&accEvt, &gyrEvt, &magEvt) < 0) {
-		return -1;
+		return EOF;
 	}
 
 	if (timestamp != NULL) {
@@ -454,7 +454,7 @@ int meas_baroPoll(void)
 	sensor_event_t baroEvt;
 
 	if (meas_common.baroAcq(&baroEvt) < 0) {
-		return -1;
+		return EOF;
 	}
 
 	ekflog_baroWrite(&baroEvt);
@@ -473,7 +473,7 @@ int meas_gpsPoll(void)
 	meas_geodetic_t geo;
 
 	if (meas_common.gpsAcq(&gpsEvt) < 0) {
-		return -1;
+		return EOF;
 	}
 
 	ekflog_gpsWrite(&gpsEvt);

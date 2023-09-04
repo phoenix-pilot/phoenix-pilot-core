@@ -108,6 +108,12 @@ extern float meas_calibPressGet(void);
 
 /* MEASUREMENT ACQUISITION */
 
+/*
+ * In case of success poll functions returns 0;
+ * If end-of-file is encountered returns EOF.
+ * In case of an error returns EOF and sets appropriate errno value.
+ */
+
 extern int meas_imuPoll(time_t *timestamp);
 
 extern int meas_baroPoll(void);
