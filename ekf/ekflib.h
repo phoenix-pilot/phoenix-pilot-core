@@ -20,7 +20,9 @@
 
 
 /* Ekf status flags */
-#define EKF_STATUS_RUNNING (1 << 0)
+#define EKF_RUNNING  (1 << 0) /* EKF is working */
+#define EKF_ERROR    (1 << 1) /* General purpose error flag */
+#define EKF_MEAS_EOF (1 << 2) /* Measurements module encountered end-of-file */
 
 
 typedef struct {

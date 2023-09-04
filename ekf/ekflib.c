@@ -44,6 +44,7 @@
 
 struct {
 	kalman_init_t initVals;
+	int status;
 
 	update_engine_t imuEngine;
 	update_engine_t baroEngine;
@@ -67,7 +68,7 @@ struct {
 
 	/* benchmarking */
 	time_t stateTime; /* last state estimation timestamp */
-	time_t imuTime; /* timestamp of last used IMU sample */
+	time_t imuTime;   /* timestamp of last used IMU sample */
 
 	char stack[STACK_SIZE] __attribute__((aligned(8)));
 } ekf_common;
@@ -198,6 +199,7 @@ int ekf_init(int initFlags)
 	}
 
 	ekf_common.run = 0;
+	ekf_common.status = 0;
 
 	if (ekf_measGate(initFlags) != 0) {
 		pthread_mutex_destroy(&ekf_common.lock);
@@ -257,15 +259,27 @@ int ekf_init(int initFlags)
 }
 
 
-static time_t ekf_dtGet(void)
+static int ekf_dtGet(time_t *result)
 {
-	time_t diff;
+	time_t tmp;
 
-	meas_timeGet(&ekf_common.currTime);
-	diff = ekf_common.currTime - ekf_common.lastTime;
+	if (meas_timeGet(&tmp) != 0) {
+		return -1;
+	}
+	ekf_common.currTime = tmp;
+	*result = ekf_common.currTime - ekf_common.lastTime;
 	ekf_common.lastTime = ekf_common.currTime;
 
-	return diff;
+	return 0;
+}
+
+
+static int ekf_pollErrHandle(void)
+{
+	ekf_common.status |= (errno == 0) ? EKF_MEAS_EOF : EKF_ERROR;
+
+	/* If EKF is running from logs, then EOF results in stopping main loop */
+	return (ekf_common.initVals.measSource == srcLog) ? -1 : 1;
 }
 
 
@@ -279,20 +293,28 @@ static void *ekf_thread(void *arg)
 
 	printf("ekf: starting ekf thread\n");
 
+	errno = 0;
 	ekf_common.run = 1;
 
 	/* Kalman loop */
-	meas_timeGet(&ekf_common.lastTime);
+	if (meas_timeGet(&ekf_common.lastTime) != 0) {
+		ekf_common.run = ekf_pollErrHandle();
+	}
 
 	lastBaroUpdate = ekf_common.lastTime;
 	lastGpsUpdate = ekf_common.lastTime;
 
 	while (ekf_common.run == 1) {
 		usleep(1000);
-		loopStep = ekf_dtGet();
+
+		if (ekf_dtGet(&loopStep) != 0) {
+			ekf_common.run = ekf_pollErrHandle();
+		}
 
 		/* IMU polling is done regardless on update procedure */
-		meas_imuPoll(&imuTime);
+		if (meas_imuPoll(&imuTime) != 0) {
+			ekf_common.run = ekf_pollErrHandle();
+		}
 		currUpdate = &ekf_common.imuEngine;
 		updateStep = loopStep;
 
@@ -303,6 +325,9 @@ static void *ekf_thread(void *arg)
 				updateStep = ekf_common.currTime - lastBaroUpdate;
 				lastBaroUpdate = ekf_common.currTime;
 			}
+			else {
+				ekf_common.run = ekf_pollErrHandle();
+			}
 		}
 
 		if (ekf_common.currTime - lastGpsUpdate > GPS_UPDATE_TIMEOUT && ekf_common.gpsEngine.active) {
@@ -311,6 +336,13 @@ static void *ekf_thread(void *arg)
 				updateStep = ekf_common.currTime - lastGpsUpdate;
 				lastGpsUpdate = ekf_common.currTime;
 			}
+			else {
+				ekf_common.run = ekf_pollErrHandle();
+			}
+		}
+
+		if (ekf_common.run != 1) {
+			break;
 		}
 
 		/* State prediction procedure */
@@ -319,7 +351,7 @@ static void *ekf_thread(void *arg)
 		/* TODO: make critical section smaller and only on accesses to state and cov matrices */
 		pthread_mutex_lock(&ekf_common.lock);
 		kalman_update(updateStep, 0, currUpdate, &ekf_common.stateEngine); /* baro measurements update procedure */
-		ekf_common.imuTime = imuTime; /* assigning here not at gettime to utilize locked mutex */
+		ekf_common.imuTime = imuTime;                                      /* assigning here not at gettime to utilize locked mutex */
 		pthread_mutex_unlock(&ekf_common.lock);
 
 		if (i++ > 50) {
@@ -395,9 +427,10 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	pthread_mutex_lock(&ekf_common.lock);
 
 	ekfState->status = 0;
+	ekfState->status |= ekf_common.status;
 
 	if (ekf_common.run == 1) {
-		ekfState->status |= EKF_STATUS_RUNNING;
+		ekfState->status |= EKF_RUNNING;
 	}
 
 	/* save quaternion attitude */
