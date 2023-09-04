@@ -103,6 +103,28 @@ static inline void printUavAcc(ekf_state_t *uavState)
 }
 
 
+static int handleUavStatus(int uavStatus)
+{
+	int res = 0;
+
+	if ((uavStatus & EKF_RUNNING) == 0) {
+		printf("EKF stopped working\n");
+		res = -1;
+	}
+
+	if ((uavStatus & EKF_ERROR) != 0) {
+		printf("EKF error occurred\n");
+		res = -1;
+	}
+	else if ((uavStatus & EKF_MEAS_EOF) != 0) {
+		printf("EKF: meas module encountered EOF\n");
+		res = -1;
+	}
+
+	return res;
+}
+
+
 int main(int argc, char **argv)
 {
 	ekf_state_t uavState;
@@ -135,7 +157,11 @@ int main(int argc, char **argv)
 
 	devekf_run = 1;
 
+	/* Changing output color to red and back to default */
+	printf("\033[31m");
 	printf("Press 'q' and confirm with enter to exit\n");
+	printf("\033[39m");
+
 
 	if (ekf_init(EKF_INIT_LOG_SRC | EKF_INIT_SENC_SCR) != 0) {
 		fprintf(stderr, "devekf: error during ekf init\n");
@@ -162,6 +188,11 @@ int main(int argc, char **argv)
 	while (devekf_run == 1) {
 		usleep(1000 * 100);
 		ekf_stateGet(&uavState);
+
+		if (handleUavStatus(uavState.status) != 0) {
+			break;
+		}
+
 		if (mode == prntVersor) {
 			printUavVersors(&uavState);
 		}
@@ -177,6 +208,7 @@ int main(int argc, char **argv)
 		/* Mode = silent do not invoke any printing function */
 	}
 
+	pthread_cancel(keyboardHandlerTID);
 	pthread_join(keyboardHandlerTID, NULL);
 
 	ekf_stop();
