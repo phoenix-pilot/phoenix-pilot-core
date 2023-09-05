@@ -30,7 +30,7 @@
 #include <matrix.h>
 
 
-/* Rerurns pointer to passed Z matrix filled with newest measurements vector */
+/* Returns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
 	meas_gps_t gpsData;

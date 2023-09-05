@@ -2,7 +2,7 @@
  * Phoenix-Pilot
  *
  * Extended Kalman Filter
- * 
+ *
  * EKF update engine functions for inertial (IMU) measurements
  *
  * Copyright 2022 Phoenix Systems
@@ -35,7 +35,7 @@ struct {
 } imu_common;
 
 
-/* Rerurns pointer to passed Z matrix filled with newest measurements vector */
+/* Returns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
 	vec_t accel, accelRaw, mag, nedMeasE;
@@ -149,7 +149,7 @@ static void imuUpdateInitializations(matrix_t *H, matrix_t *R)
 {
 	matrix_zeroes(R);
 
-	/* Noise terms of acceeration measurement */
+	/* Noise terms of acceleration measurement */
 	*matrix_at(R, MGX, MGX) = *matrix_at(R, MGY, MGY) = *matrix_at(R, MGZ, MGZ) = imu_common.inits->R_astdev * imu_common.inits->R_astdev / (EARTH_G * EARTH_G);
 
 	/* Noise terms of east versor measurement */
