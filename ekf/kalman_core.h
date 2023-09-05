@@ -2,7 +2,7 @@
  * Phoenix-Pilot
  *
  * extended kalman filter
- * 
+ *
  * core functions header
  *
  * Copyright 2022 Phoenix Systems
@@ -21,7 +21,7 @@
 
 /* UPDATE STEP FUNCTIONS */
 
-/* Function that acquires measuremnets and puts it into Z matrix */
+/* Function that acquires measurements and puts it into Z matrix */
 typedef matrix_t *(*dataGetter)(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep);
 
 /*  function that fills jacobian matrix H based on data from state vector and dt */
@@ -47,7 +47,7 @@ typedef void (*predNoiseGetter)(matrix_t *state, matrix_t *U, matrix_t *Q, time_
 typedef void (*initMeasurementCov)(matrix_t *R);
 
 
-/* Update engine is set of matrices and functions neccessary to perform update step with prediction step matrices */
+/* Update engine is set of matrices and functions necessary to perform update step with prediction step matrices */
 typedef struct {
 	/* user initializable update matrices pointers */
 	matrix_t H;

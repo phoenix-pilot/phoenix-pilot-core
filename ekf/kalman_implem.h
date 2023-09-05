@@ -157,7 +157,7 @@ static inline float kmn_vecAt(const matrix_t *M, unsigned int i)
 
 /* PHMATRIX MATRICES INITIALIZATIONS */
 
-/* initializes matices related to state prediction step of kalman filter */
+/* initializes matrices related to state prediction step of kalman filter */
 extern void kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman_init_t *inits);
 
 /* imu update engine composer */
