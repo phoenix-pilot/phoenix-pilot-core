@@ -51,13 +51,6 @@ struct {
 	update_engine_t gpsEngine;
 	state_engine_t stateEngine;
 
-	matrix_t state;
-	matrix_t state_est;
-	matrix_t cov;
-	matrix_t cov_est;
-	matrix_t F;
-	matrix_t Q;
-
 	pthread_t tid;
 	volatile unsigned int run; /* proceed with ekf loop */
 	time_t lastTime;           /* last kalman loop time */
@@ -291,7 +284,6 @@ static void *ekf_thread(void *arg)
 	time_t imuTime;
 	time_t loopStep, updateStep;
 	update_engine_t *currUpdate;
-	int i = 0;
 
 	printf("ekf: starting ekf thread\n");
 
@@ -355,19 +347,6 @@ static void *ekf_thread(void *arg)
 		kalman_update(updateStep, 0, currUpdate, &ekf_common.stateEngine); /* baro measurements update procedure */
 		ekf_common.imuTime = imuTime;                                      /* assigning here not at gettime to utilize locked mutex */
 		pthread_mutex_unlock(&ekf_common.lock);
-
-		if (i++ > 50) {
-			quat_t q = { .a = kmn_vecAt(&ekf_common.stateEngine.state, QA), .i = kmn_vecAt(&ekf_common.stateEngine.state, QB), .j = kmn_vecAt(&ekf_common.stateEngine.state, QC), .k = kmn_vecAt(&ekf_common.stateEngine.state, QD) };
-			vec_t a = { .x = kmn_vecAt(&ekf_common.stateEngine.U, UAX), .y = kmn_vecAt(&ekf_common.stateEngine.U, UAY), .z = kmn_vecAt(&ekf_common.stateEngine.U, UAZ) };
-			float yaw, pitch, roll;
-
-			quat_quat2euler(&q, &roll, &pitch, &yaw);
-
-			quat_vecRot(&a, &q);
-			a.z += EARTH_G;
-
-			i = 0;
-		}
 
 		/* using pre-calculation time as to not call meas_timeGet() */
 		ekf_common.stateTime = ekf_common.currTime;
