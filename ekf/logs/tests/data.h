@@ -31,14 +31,20 @@ static const sensor_event_t testAccEvt1 = {
 	.type = SENSOR_TYPE_ACCEL,
 	.timestamp = 1,
 
+	.accels.devId = 1,
+
 	.accels.accelX = 2,
 	.accels.accelY = 3,
-	.accels.accelZ = 4
+	.accels.accelZ = 4,
+
+	.accels.temp = 5,
 };
 
 static const sensor_event_t testGyrEvt1 = {
 	.type = SENSOR_TYPE_GYRO,
 	.timestamp = 1,
+
+	.gyro.devId = 4,
 
 	.gyro.gyroX = 5,
 	.gyro.gyroY = 6,
@@ -47,11 +53,15 @@ static const sensor_event_t testGyrEvt1 = {
 	.gyro.dAngleX = 8,
 	.gyro.dAngleY = 9,
 	.gyro.dAngleZ = 10,
+
+	.gyro.temp = 11,
 };
 
 static const sensor_event_t testMagEvt1 = {
 	.type = SENSOR_TYPE_MAG,
 	.timestamp = 1,
+
+	.mag.devId = 10,
 
 	.mag.magX = 11,
 	.mag.magY = 12,
@@ -63,14 +73,20 @@ static const sensor_event_t testAccEvt2 = {
 	.type = SENSOR_TYPE_ACCEL,
 	.timestamp = 14,
 
+	.accels.devId = 16,
+
 	.accels.accelX = 15,
 	.accels.accelY = 16,
-	.accels.accelZ = 17
+	.accels.accelZ = 17,
+
+	.accels.temp = 18,
 };
 
 static const sensor_event_t testGyrEvt2 = {
 	.type = SENSOR_TYPE_GYRO,
 	.timestamp = 14,
+
+	.gyro.devId = 17,
 
 	.gyro.gyroX = 18,
 	.gyro.gyroY = 19,
@@ -79,11 +95,15 @@ static const sensor_event_t testGyrEvt2 = {
 	.gyro.dAngleX = 21,
 	.gyro.dAngleY = 22,
 	.gyro.dAngleZ = 23,
+
+	.gyro.temp = 24,
 };
 
 static const sensor_event_t testMagEvt2 = {
 	.type = SENSOR_TYPE_MAG,
 	.timestamp = 14,
+
+	.mag.devId = 23,
 
 	.mag.magX = 24,
 	.mag.magY = 25,
@@ -93,7 +113,9 @@ static const sensor_event_t testMagEvt2 = {
 
 static const sensor_event_t testGpsEvt1 = {
 	.type = SENSOR_TYPE_GPS,
-	.timestamp = 27,
+	.timestamp = 26,
+
+	.gps.devId = 27,
 
 	.gps.lat = 28,
 	.gps.lon = 29,
@@ -127,11 +149,13 @@ static const sensor_event_t testGpsEvt1 = {
 
 static const sensor_event_t testGpsEvt2 = {
 	.type = SENSOR_TYPE_GPS,
-	.timestamp = 47,
+	.timestamp = 46,
 
-	.gps.lat = 48,
-	.gps.lon = 49,
-	.gps.alt = 50,
+	.gps.devId = 47,
+
+	.gps.alt = 28,
+	.gps.lat = 29,
+	.gps.lon = 30,
 
 	.gps.utc = 51,
 
@@ -161,7 +185,9 @@ static const sensor_event_t testGpsEvt2 = {
 
 static const sensor_event_t testBaroEvt = {
 	.type = SENSOR_TYPE_BARO,
-	.timestamp = 67,
+	.timestamp = 66,
+
+	.baro.devId = 67,
 
 	.baro.pressure = 68,
 	.baro.temp = 69,

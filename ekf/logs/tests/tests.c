@@ -23,7 +23,7 @@
 #include "data.h"
 #include "tools.h"
 
-#define EKFLOG_TEST_FILE "/tmp/ekf_logs_test.bin"
+#define EKFLOG_TEST_FILE "tmp/ekf_logs_test.bin"
 
 #define SHORT_SEQUENCE_LEN 10
 #define LONG_SEQUENCE_LEN  100
@@ -107,9 +107,9 @@ TEST(group_ekf_logs, ekflogs_singleImuEvt)
 
 	TEST_ASSERT_EQUAL(0, ekflog_imuRead(&sensEvt1, &sensEvt2, &sensEvt3));
 
-	TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testAccEvt1, &sensEvt1));
-	TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testGyrEvt1, &sensEvt2));
-	TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testMagEvt1, &sensEvt3));
+	TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testAccEvt1, &sensEvt1));
+	TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGyrEvt1, &sensEvt2));
+	TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testMagEvt1, &sensEvt3));
 }
 
 
@@ -127,15 +127,15 @@ TEST(group_ekf_logs, ekflogs_multipleImuEvt)
 	for (i = 0; i < SHORT_SEQUENCE_LEN; i++) {
 		TEST_ASSERT_EQUAL(0, ekflog_imuRead(&sensEvt1, &sensEvt2, &sensEvt3));
 
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testAccEvt1, &sensEvt1));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testGyrEvt1, &sensEvt2));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testMagEvt1, &sensEvt3));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testAccEvt1, &sensEvt1));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGyrEvt1, &sensEvt2));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testMagEvt1, &sensEvt3));
 
 		TEST_ASSERT_EQUAL(0, ekflog_imuRead(&sensEvt1, &sensEvt2, &sensEvt3));
 
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testAccEvt2, &sensEvt1));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testGyrEvt2, &sensEvt2));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testMagEvt2, &sensEvt3));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testAccEvt2, &sensEvt1));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGyrEvt2, &sensEvt2));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testMagEvt2, &sensEvt3));
 	}
 }
 
@@ -147,7 +147,7 @@ TEST(group_ekf_logs, ekflogs_singleGpsEvt)
 	TEST_ASSERT_EQUAL(0, ekflog_writerDone());
 
 	TEST_ASSERT_EQUAL(0, ekflog_gpsRead(&sensEvt1));
-	TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testGpsEvt1, &sensEvt1));
+	TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGpsEvt1, &sensEvt1));
 }
 
 
@@ -164,10 +164,10 @@ TEST(group_ekf_logs, ekflogs_multipleGpsEvt)
 
 	for (i = 0; i < SHORT_SEQUENCE_LEN; i++) {
 		TEST_ASSERT_EQUAL(0, ekflog_gpsRead(&sensEvt1));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testGpsEvt1, &sensEvt1));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGpsEvt1, &sensEvt1));
 
 		TEST_ASSERT_EQUAL(0, ekflog_gpsRead(&sensEvt1));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testGpsEvt2, &sensEvt1));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGpsEvt2, &sensEvt1));
 	}
 
 	TEST_ASSERT_NOT_EQUAL(0, ekflog_gpsRead(&sensEvt1));
@@ -181,7 +181,7 @@ TEST(group_ekf_logs, ekflogs_singleBaroEvt)
 	TEST_ASSERT_EQUAL(0, ekflog_writerDone());
 
 	TEST_ASSERT_EQUAL(0, ekflog_baroRead(&sensEvt1));
-	TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testBaroEvt, &sensEvt1));
+	TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testBaroEvt, &sensEvt1));
 }
 
 
@@ -206,9 +206,9 @@ TEST(group_ekf_logs, ekflogs_shortSequence)
 	for (i = 0; i < SHORT_SEQUENCE_LEN; i++) {
 		TEST_ASSERT_EQUAL(0, ekflog_imuRead(&sensEvt1, &sensEvt2, &sensEvt3));
 
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testAccEvt1, &sensEvt1));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testGyrEvt1, &sensEvt2));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testMagEvt1, &sensEvt3));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testAccEvt1, &sensEvt1));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGyrEvt1, &sensEvt2));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testMagEvt1, &sensEvt3));
 
 		ekflogTests_sensorEvtClear(&sensEvt1);
 		ekflogTests_sensorEvtClear(&sensEvt2);
@@ -217,7 +217,7 @@ TEST(group_ekf_logs, ekflogs_shortSequence)
 
 	for (i = 0; i < SHORT_SEQUENCE_LEN; i++) {
 		TEST_ASSERT_EQUAL(0, ekflog_gpsRead(&sensEvt1));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testGpsEvt1, &sensEvt1));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGpsEvt1, &sensEvt1));
 		ekflogTests_sensorEvtClear(&sensEvt1);
 	}
 
@@ -254,23 +254,23 @@ TEST(group_ekf_logs, ekflogs_longSequence)
 	for (i = 0; i < LONG_SEQUENCE_LEN; i++) {
 		TEST_ASSERT_EQUAL(0, ekflog_imuRead(&sensEvt1, &sensEvt2, &sensEvt3));
 
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testAccEvt1, &sensEvt1));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testGyrEvt1, &sensEvt2));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testMagEvt1, &sensEvt3));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testAccEvt1, &sensEvt1));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGyrEvt1, &sensEvt2));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testMagEvt1, &sensEvt3));
 
 		TEST_ASSERT_EQUAL(0, ekflog_imuRead(&sensEvt1, &sensEvt2, &sensEvt3));
 
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testAccEvt2, &sensEvt1));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testGyrEvt2, &sensEvt2));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testMagEvt2, &sensEvt3));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testAccEvt2, &sensEvt1));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGyrEvt2, &sensEvt2));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testMagEvt2, &sensEvt3));
 	}
 
 	for (i = 0; i < LONG_SEQUENCE_LEN; i++) {
 		TEST_ASSERT_EQUAL(0, ekflog_gpsRead(&sensEvt1));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testGpsEvt1, &sensEvt1));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGpsEvt1, &sensEvt1));
 
 		TEST_ASSERT_EQUAL(0, ekflog_gpsRead(&sensEvt1));
-		TEST_ASSERT_TRUE(ekflogsTests_sensorEvtEqual(&testGpsEvt2, &sensEvt1));
+		TEST_ASSERT_TRUE(ekflogTests_sensorEvtEqual(&testGpsEvt2, &sensEvt1));
 	}
 
 	TEST_ASSERT_NOT_EQUAL(0, ekflog_timeRead(&timeRead));
