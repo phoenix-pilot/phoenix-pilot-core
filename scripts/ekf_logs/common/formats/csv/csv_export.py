@@ -34,6 +34,8 @@ class CsvLogExporter(LogsVisitor):
         self.entry.append(str(imu_log.accel.y))
         self.entry.append(str(imu_log.accel.z))
 
+        self.entry.append(str(imu_log.accelTemp))
+
         self.entry.append(str(imu_log.gyroDevID))
 
         self.entry.append(str(imu_log.gyro.x))
@@ -43,6 +45,8 @@ class CsvLogExporter(LogsVisitor):
         self.entry.append(str(imu_log.gyroDAngle.x))
         self.entry.append(str(imu_log.gyroDAngle.y))
         self.entry.append(str(imu_log.gyroDAngle.z))
+
+        self.entry.append(str(imu_log.gyroTemp))
 
         self.entry.append(str(imu_log.magDevID))
 
@@ -55,9 +59,9 @@ class CsvLogExporter(LogsVisitor):
 
         self.entry.append(str(gps_log.devID))
 
+        self.entry.append(str(gps_log.position.altitude))
         self.entry.append(str(gps_log.position.latitude))
         self.entry.append(str(gps_log.position.longitude))
-        self.entry.append(str(gps_log.position.altitude))
 
         self.entry.append(str(gps_log.utc))
 
