@@ -32,31 +32,47 @@ static struct {
 } ekflog_common;
 
 
+static void ekflog_ebadfMsg(void)
+{
+	fprintf(stderr, "Log reader: Invalid log file\n");
+	errno = EBADF;
+}
+
+
+static int ekflog_logSizeGet(char logIndicator)
+{
+	switch (logIndicator) {
+		case TIME_LOG_INDICATOR:
+			return TIME_LOG_SIZE;
+
+		case IMU_LOG_INDICATOR:
+			return IMU_LOG_SIZE;
+
+		case GPS_LOG_INDICATOR:
+			return GPS_LOG_SIZE;
+
+		case BARO_LOG_INDICATOR:
+			return BARO_LOG_SIZE;
+
+		case STATE_LOG_INDICATOR:
+			return STATE_LOG_SIZE;
+
+		default:
+			fprintf(stderr, "Log reader: Invalid log indicator in file: %c\n", logIndicator);
+			return -1;
+	}
+}
+
+
 static int ekflog_logOmit(char logIndicator)
 {
 	const size_t prefixLen = LOG_ID_SIZE + LOG_IDENTIFIER_SIZE; /* Without the timestamp */
-
-	switch (logIndicator) {
-		case TIME_LOG_INDICATOR:
-			return fseek(ekflog_common.file, TIME_LOG_SIZE - prefixLen, SEEK_CUR);
-
-		case IMU_LOG_INDICATOR:
-			return fseek(ekflog_common.file, IMU_LOG_SIZE - prefixLen, SEEK_CUR);
-
-		case GPS_LOG_INDICATOR:
-			return fseek(ekflog_common.file, GPS_LOG_SIZE - prefixLen, SEEK_CUR);
-
-		case BARO_LOG_INDICATOR:
-			return fseek(ekflog_common.file, BARO_LOG_SIZE - prefixLen, SEEK_CUR);
-
-		case STATE_LOG_INDICATOR:
-			return fseek(ekflog_common.file, STATE_LOG_SIZE - prefixLen, SEEK_CUR);
-
-		default:
-			fprintf(stderr, "ekflog reader: Invalid log indicator in file: %c\n", logIndicator);
-			errno = EBADF;
-			return -1;
+	size_t logSize = ekflog_logSizeGet(logIndicator);
+	if (logSize < 0) {
+		return -1;
 	}
+
+	return fseek(ekflog_common.file, logSize - prefixLen, SEEK_CUR);
 }
 
 
@@ -77,6 +93,7 @@ static int ekflog_nextLogSeek(char logIndicator)
 
 		if (actIndicator != logIndicator) {
 			if (ekflog_logOmit(actIndicator) != 0) {
+				ekflog_ebadfMsg();
 				return -1;
 			}
 		}
@@ -86,22 +103,36 @@ static int ekflog_nextLogSeek(char logIndicator)
 }
 
 
-static void ekflog_ebadfMsg(void)
+static int ekflog_nextFind(logType_t logType, char logIndicator)
 {
-	fprintf(stderr, "Log reader: Invalid log file\n");
-	errno = EBADF;
+	errno = 0;
+
+	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[logType], SEEK_SET) != 0) {
+		return -1;
+	}
+
+	if (ekflog_nextLogSeek(logIndicator) != 0) {
+		return -1;
+	}
+
+	return 0;
+}
+
+
+static int ekflog_postStore(logType_t logType)
+{
+	ekflog_common.fileOffsets[logType] = ftell(ekflog_common.file);
+	if (ekflog_common.fileOffsets[logType] < 0) {
+		return EOF;
+	}
+
+	return 0;
 }
 
 
 int ekflog_timeRead(time_t *timestamp)
 {
-	errno = 0;
-
-	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[timeLog], SEEK_SET) != 0) {
-		return EOF;
-	}
-
-	if (ekflog_nextLogSeek(TIME_LOG_INDICATOR) != 0) {
+	if (ekflog_nextFind(timeLog, TIME_LOG_INDICATOR) != 0) {
 		return EOF;
 	}
 
@@ -112,12 +143,7 @@ int ekflog_timeRead(time_t *timestamp)
 		return EOF;
 	}
 
-	ekflog_common.fileOffsets[timeLog] = ftell(ekflog_common.file);
-	if (ekflog_common.fileOffsets[timeLog] < 0) {
-		return EOF;
-	}
-
-	return 0;
+	return ekflog_postStore(timeLog);
 }
 
 
@@ -125,13 +151,7 @@ int ekflog_imuRead(sensor_event_t *accEvt, sensor_event_t *gyrEvt, sensor_event_
 {
 	time_t timestamp;
 
-	errno = 0;
-
-	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[imuLog], SEEK_SET) != 0) {
-		return EOF;
-	}
-
-	if (ekflog_nextLogSeek(IMU_LOG_INDICATOR) != 0) {
+	if (ekflog_nextFind(imuLog, IMU_LOG_INDICATOR) != 0) {
 		return EOF;
 	}
 
@@ -172,24 +192,13 @@ int ekflog_imuRead(sensor_event_t *accEvt, sensor_event_t *gyrEvt, sensor_event_
 	magEvt->type = SENSOR_TYPE_MAG;
 	magEvt->timestamp = timestamp;
 
-	ekflog_common.fileOffsets[imuLog] = ftell(ekflog_common.file);
-	if (ekflog_common.fileOffsets[timeLog] < 0) {
-		return EOF;
-	}
-
-	return 0;
+	return ekflog_postStore(imuLog);
 }
 
 
 int ekflog_gpsRead(sensor_event_t *gpsEvt)
 {
-	errno = 0;
-
-	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[gpsLog], SEEK_SET) != 0) {
-		return EOF;
-	}
-
-	if (ekflog_nextLogSeek(GPS_LOG_INDICATOR) != 0) {
+	if (ekflog_nextFind(gpsLog, GPS_LOG_INDICATOR) != 0) {
 		return EOF;
 	}
 
@@ -209,24 +218,13 @@ int ekflog_gpsRead(sensor_event_t *gpsEvt)
 
 	gpsEvt->type = SENSOR_TYPE_GPS;
 
-	ekflog_common.fileOffsets[gpsLog] = ftell(ekflog_common.file);
-	if (ekflog_common.fileOffsets[timeLog] < 0) {
-		return EOF;
-	}
-
-	return 0;
+	return ekflog_postStore(gpsLog);
 }
 
 
 int ekflog_baroRead(sensor_event_t *baroEvt)
 {
-	errno = 0;
-
-	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[baroLog], SEEK_SET) != 0) {
-		return EOF;
-	}
-
-	if (ekflog_nextLogSeek(BARO_LOG_INDICATOR) != 0) {
+	if (ekflog_nextFind(baroLog, BARO_LOG_INDICATOR)) {
 		return EOF;
 	}
 
@@ -246,24 +244,13 @@ int ekflog_baroRead(sensor_event_t *baroEvt)
 
 	baroEvt->type = SENSOR_TYPE_BARO;
 
-	ekflog_common.fileOffsets[baroLog] = ftell(ekflog_common.file);
-	if (ekflog_common.fileOffsets[baroLog] < 0) {
-		return EOF;
-	}
-
-	return 0;
+	return ekflog_postStore(baroLog);
 }
 
 
 int ekflog_stateRead(matrix_t *state, time_t *timestamp)
 {
-	errno = 0;
-
-	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[stateLog], SEEK_SET) != 0) {
-		return EOF;
-	}
-
-	if (ekflog_nextLogSeek(STATE_LOG_INDICATOR) != 0) {
+	if (ekflog_nextFind(stateLog, STATE_LOG_INDICATOR) != 0) {
 		return EOF;
 	}
 
@@ -281,12 +268,7 @@ int ekflog_stateRead(matrix_t *state, time_t *timestamp)
 		return EOF;
 	}
 
-	ekflog_common.fileOffsets[stateLog] = ftell(ekflog_common.file);
-	if (ekflog_common.fileOffsets[stateLog] < 0) {
-		return EOF;
-	}
-
-	return 0;
+	return ekflog_postStore(stateLog);
 }
 
 
