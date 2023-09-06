@@ -41,9 +41,6 @@
 
 #define PHOENIX_THREAD_PRIO 4
 
-#define FIELD_ADD(msgBuff, buff) \
-	ekflog_addLogField((msgBuff), &(buff), sizeof(buff))
-
 
 typedef struct {
 	uint8_t buff[BUFFS_CAPACITY];
