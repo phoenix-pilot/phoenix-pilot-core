@@ -33,22 +33,26 @@ class CsvLogParser:
 
         accel_device_id = int(row[3])
         accel = utils.Vector3(int(row[4]), int(row[5]), int(row[6]))
+        accel_temp = int(row[7])
 
-        gyro_device_id = int(row[7])
-        gyro = utils.Vector3(int(row[8]), int(row[9]), int(row[10]))
-        gyro_d_angle = utils.Vector3(int(row[11]), int(row[12]), int(row[13]))
+        gyro_device_id = int(row[8])
+        gyro = utils.Vector3(int(row[9]), int(row[10]), int(row[11]))
+        gyro_d_angle = utils.Vector3(int(row[12]), int(row[13]), int(row[14]))
+        gyro_temp = int(row[15])
 
-        mag_device_id = int(row[14])
-        mag = utils.Vector3(int(row[15]), int(row[16]), int(row[17]))
+        mag_device_id = int(row[16])
+        mag = utils.Vector3(int(row[17]), int(row[18]), int(row[19]))
 
         return logs_types.ImuLog(
             id,
             timestamp,
             accel_device_id,
             accel,
+            accel_temp,
             gyro_device_id,
             gyro,
             gyro_d_angle,
+            gyro_temp,
             mag_device_id,
             mag
         )
