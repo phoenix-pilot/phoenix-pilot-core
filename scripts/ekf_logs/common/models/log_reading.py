@@ -29,18 +29,22 @@ class ImuLog(LogEntry):
             timestamp,
             accel_device_id,
             accel: Vector3,
+            accel_temp,
             gyro_device_id,
             gyro: Vector3,
             gyro_d_angle: Vector3,
+            gyro_temp,
             mag_dev_id,
             mag: Vector3
     ):
         super().__init__(log_id, timestamp)
         self.accelDevID = accel_device_id
         self.accel = accel
+        self.accelTemp = accel_temp
         self.gyroDevID = gyro_device_id
         self.gyro = gyro
         self.gyroDAngle = gyro_d_angle
+        self.gyroTemp = gyro_temp
         self.magDevID = mag_dev_id
         self.mag = mag
 
@@ -53,7 +57,7 @@ class GpsLog(LogEntry):
             self,
             log_id,
             timestamp,
-            device_int,
+            device_id,
             position: GlobalPosition,
             utc,
             horizontal_dilution,
@@ -71,7 +75,7 @@ class GpsLog(LogEntry):
             fix,
     ):
         super().__init__(log_id, timestamp)
-        self.devID = device_int
+        self.devID = device_id
 
         self.position = position
 
