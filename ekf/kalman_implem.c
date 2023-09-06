@@ -114,18 +114,21 @@ static int kmn_loggingConverter(const hmap_t *h)
 		else if (strcmp(str, "TIME") == 0) {
 			converterResult->log |= EKFLOG_TIME;
 		}
+		else if (strcmp(str, "STATE") == 0) {
+			converterResult->log |= EKFLOG_STATE;
+		}
 		else if (strcmp(str, "ALL") == 0) {
 			converterResult->log |= EKFLOG_SENSC;
 			converterResult->log |= EKFLOG_TIME;
+			converterResult->log |= EKFLOG_STATE;
 			break;
 		}
 		else if (strcmp(str, "NONE") == 0) {
-			/* Setting all bits to 1 */
 			converterResult->log = 0;
 			break;
 		}
 		else {
-			fprintf(stderr, "Invalid log specifier: %s\n", str);
+			fprintf(stderr, "EKF config: invalid log specifier: %s\n", str);
 			return -1;
 		}
 
@@ -144,7 +147,7 @@ static int kmn_loggingConverter(const hmap_t *h)
 		converterResult->logMode = EKFLOG_STRICT_MODE;
 	}
 	else {
-		fprintf(stderr, "Invalid log specifier: %s\n", str);
+		fprintf(stderr, "EKF config: Invalid mode specifier: %s\n", str);
 		return -1;
 	}
 
