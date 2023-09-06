@@ -4,12 +4,11 @@ from struct import Struct
 
 LOG_PREFIX = Struct("<IcQ")
 
-ACCEL_STR_FORMAT = "Iiii"
-GYRO_STR_FORMAT = "IiiiIII"
+ACCEL_STR_FORMAT = "IiiiI"
+GYRO_STR_FORMAT = "IiiiIIII"
 MAG_STR_FORMAT = "Ihhhxx"
 IMU = Struct(ACCEL_STR_FORMAT + GYRO_STR_FORMAT + MAG_STR_FORMAT)
 
-POSITION_STR_FORMAT = "iqq"
-GPS = Struct("IiqqQQQiIiiiIIIHhHBB")
+GPS = Struct("IiqqQHHiIiiiIIIHhHBB4x")
 
 BARO = Struct("III")

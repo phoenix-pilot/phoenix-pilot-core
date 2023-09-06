@@ -1,4 +1,4 @@
 TIME_LOG = "T"
 IMU_LOG = "I"
-GPS_LOG = "G"
+GPS_LOG = "P"
 BARO_LOG = "B"
