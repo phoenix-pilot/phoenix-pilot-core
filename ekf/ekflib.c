@@ -350,6 +350,8 @@ static void *ekf_thread(void *arg)
 
 		/* using pre-calculation time as to not call meas_timeGet() */
 		ekf_common.stateTime = ekf_common.currTime;
+
+		ekflog_stateWrite(&ekf_common.stateEngine.state, ekf_common.stateTime);
 	}
 
 	ekf_common.run = -1;
