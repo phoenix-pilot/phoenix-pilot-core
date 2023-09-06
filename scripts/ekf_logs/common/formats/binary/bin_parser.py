@@ -45,11 +45,13 @@ class BinaryLogParser:
             timestamp=timestamp,
             accel_device_id=fields[0],
             accel=utils.Vector3(fields[1], fields[2], fields[3]),
-            gyro_device_id=fields[4],
-            gyro=utils.Vector3(fields[5], fields[6], fields[7]),
-            gyro_d_angle=utils.Vector3(fields[8], fields[9], fields[10]),
-            mag_dev_id=fields[11],
-            mag=utils.Vector3(fields[12], fields[13], fields[14])
+            accel_temp=fields[4],
+            gyro_device_id=fields[5],
+            gyro=utils.Vector3(fields[6], fields[7], fields[8]),
+            gyro_d_angle=utils.Vector3(fields[9], fields[10], fields[11]),
+            gyro_temp=fields[12],
+            mag_dev_id=fields[13],
+            mag=utils.Vector3(fields[14], fields[15], fields[16])
         )
 
     def __parse_gps_log(self, log_id: int, timestamp: int, file: BufferedReader) -> logs_types.GpsLog:
@@ -58,6 +60,7 @@ class BinaryLogParser:
         return logs_types.GpsLog(
             log_id=log_id,
             timestamp=timestamp,
+            device_id=fields[0],
             position=utils.GlobalPosition(fields[1], fields[2], fields[3]),
             utc=fields[4],
             horizontal_dilution=fields[5],
