@@ -16,9 +16,12 @@
 #define _EKF_LOG_WRITER_
 
 #include <libsensors.h>
+#include <matrix.h>
 
-#define EKFLOG_SENSC    (1 << 0)
-#define EKFLOG_TIME     (1 << 1)
+
+#define EKFLOG_SENSC (1 << 0)
+#define EKFLOG_TIME  (1 << 1)
+#define EKFLOG_STATE (1 << 2)
 
 /*
  * Potentially slower implementation, but with no possibility to lose logs.
@@ -44,6 +47,10 @@ extern int ekflog_gpsWrite(const sensor_event_t *gpsEvt);
 
 /* Logs data from barometer */
 extern int ekflog_baroWrite(const sensor_event_t *baroEvt);
+
+
+/* Logs EKF state */
+extern int ekflog_stateWrite(const matrix_t *state, time_t timestamp);
 
 
 /* Deinitialize ekflog writer module */

@@ -249,6 +249,17 @@ int ekflog_baroWrite(const sensor_event_t *baroEvt)
 }
 
 
+int ekflog_stateWrite(const matrix_t *state, time_t timestamp)
+{
+	/* Log call with flags that are not enabled is not an error */
+	if ((ekflog_common.logFlags & EKFLOG_STATE) == 0) {
+		return 0;
+	}
+
+	return ekflog_write(state->data, STATE_LOG_SIZE - LOG_PREFIX_SIZE, STATE_LOG_INDICATOR, timestamp);
+}
+
+
 int ekflog_writerDone(void)
 {
 	int err = 0;
