@@ -18,13 +18,15 @@
 
 #include <libsensors.h>
 
+#include "../kalman_implem.h"
+
 
 #define LOG_ID_SIZE         sizeof(uint32_t)
 #define LOG_IDENTIFIER_SIZE sizeof(char)
 #define LOG_TIMESTAMP_SIZE  sizeof(time_t)
 #define LOG_PREFIX_SIZE     (LOG_ID_SIZE + LOG_IDENTIFIER_SIZE + LOG_TIMESTAMP_SIZE)
 
-#define LOG_TYPES_CNT 4
+#define LOG_TYPES_CNT 5
 
 #define TIME_LOG_INDICATOR 'T'
 #define TIME_LOG_SIZE      LOG_PREFIX_SIZE
@@ -38,5 +40,7 @@
 #define BARO_LOG_INDICATOR 'B'
 #define BARO_LOG_SIZE      (sizeof(baro_data_t) + LOG_PREFIX_SIZE)
 
+#define STATE_LOG_INDICATOR 'S'
+#define STATE_LOG_SIZE      (sizeof(float) * STATE_LENGTH + LOG_PREFIX_SIZE)
 
 #endif
