@@ -16,6 +16,7 @@
 
 
 #include <libsensors.h>
+#include <matrix.h>
 
 
 /*
@@ -48,6 +49,10 @@ extern int ekflog_gpsRead(sensor_event_t *gpsEvt);
  * In case of an error returns EOF and sets appropriate errno value.
  */
 extern int ekflog_baroRead(sensor_event_t *baroEvt);
+
+
+/* Reads EKF state, State matrix have to be initiated with correct size. */
+extern int ekflog_stateRead(matrix_t *state, time_t *timestamp);
 
 
 /* Initiates module, `path` must leads to binary ekf logs file. On success returns 0. */

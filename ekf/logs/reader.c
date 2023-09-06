@@ -21,7 +21,7 @@
 
 
 /* clang-format off */
-typedef enum { timeLog = 0, imuLog, gpsLog, baroLog } logType_t;
+typedef enum { timeLog = 0, imuLog, gpsLog, baroLog, stateLog } logType_t;
 /* clang-format on */
 
 
@@ -48,6 +48,9 @@ static int ekflog_logOmit(char logIndicator)
 
 		case BARO_LOG_INDICATOR:
 			return fseek(ekflog_common.file, BARO_LOG_SIZE - prefixLen, SEEK_CUR);
+
+		case STATE_LOG_INDICATOR:
+			return fseek(ekflog_common.file, STATE_LOG_SIZE - prefixLen, SEEK_CUR);
 
 		default:
 			fprintf(stderr, "ekflog reader: Invalid log indicator in file: %c\n", logIndicator);
@@ -244,7 +247,42 @@ int ekflog_baroRead(sensor_event_t *baroEvt)
 	baroEvt->type = SENSOR_TYPE_BARO;
 
 	ekflog_common.fileOffsets[baroLog] = ftell(ekflog_common.file);
-	if (ekflog_common.fileOffsets[timeLog] < 0) {
+	if (ekflog_common.fileOffsets[baroLog] < 0) {
+		return EOF;
+	}
+
+	return 0;
+}
+
+
+int ekflog_stateRead(matrix_t *state, time_t *timestamp)
+{
+	errno = 0;
+
+	if (fseek(ekflog_common.file, ekflog_common.fileOffsets[stateLog], SEEK_SET) != 0) {
+		return EOF;
+	}
+
+	if (ekflog_nextLogSeek(STATE_LOG_INDICATOR) != 0) {
+		return EOF;
+	}
+
+	if (fread(timestamp, LOG_TIMESTAMP_SIZE, 1, ekflog_common.file) != 1) {
+		if (errno == 0) {
+			ekflog_ebadfMsg();
+		}
+		return EOF;
+	}
+
+	if (fread(state->data, STATE_LOG_SIZE - LOG_PREFIX_SIZE, 1, ekflog_common.file) != 1) {
+		if (errno == 0) {
+			ekflog_ebadfMsg();
+		}
+		return EOF;
+	}
+
+	ekflog_common.fileOffsets[stateLog] = ftell(ekflog_common.file);
+	if (ekflog_common.fileOffsets[stateLog] < 0) {
 		return EOF;
 	}
 
