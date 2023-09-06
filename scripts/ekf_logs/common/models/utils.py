@@ -11,8 +11,8 @@ class Vector3:
 @dataclass
 class GlobalPosition:
     altitude: int
-    longitude: int
     latitude: int
+    longitude: int
 
 
 @dataclass
