@@ -23,9 +23,9 @@ class BinaryLogParser:
                     result.append(self.__parse_time_log(log_id, timestamp))
                 elif log_type == specifiers.IMU_LOG:
                     result.append(self.__parse_imu_log(log_id, timestamp, file))
-                elif log_type == "P":
+                elif log_type == specifiers.GPS_LOG:
                     result.append(self.__parse_gps_log(log_id, timestamp, file))
-                elif log_type == "B":
+                elif log_type == specifiers.BARO_LOG:
                     result.append(self.__parse_baro_log(log_id, timestamp, file))
                 else:
                     print("Unknown entry in log file")
