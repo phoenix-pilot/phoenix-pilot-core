@@ -13,12 +13,14 @@ class LogsVisitor(metaclass=abc.ABCMeta):
     def __subclasshook__(cls, subclass):
         return (hasattr(subclass, 'visit_time_log') and
                 callable(subclass.visit_time_log) and
-                hasattr(subclass, 'visit_time_log') and
                 callable(subclass.visit_imu_log) and
                 hasattr(subclass, 'visit_imu_log') and
                 callable(subclass.visit_gps_log) and
                 hasattr(subclass, 'visit_gps_log') and
-                callable(subclass.visit_time_log) or
+                callable(subclass.visit_baro_log) and
+                hasattr(subclass, 'visit_baro_log') and
+                callable(subclass.visit_status_log) and
+                hasattr(subclass, 'visit_status_log') or
                 NotImplemented)
 
     @abc.abstractmethod
@@ -35,4 +37,8 @@ class LogsVisitor(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def visit_baro_log(self, baro_log: logs_types.BaroLog):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def visit_ekf_state_log(self, state_log: logs_types.EkfState):
         raise NotImplementedError

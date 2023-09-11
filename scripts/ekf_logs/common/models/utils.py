@@ -3,20 +3,20 @@ from dataclasses import dataclass
 
 @dataclass
 class Vector3:
-    x: int
-    y: int
-    z: int
+    x: int | float
+    y: int | float
+    z: int | float
 
 
 @dataclass
 class GlobalPosition:
-    altitude: int
-    latitude: int
-    longitude: int
+    altitude: int | float
+    latitude: int | float
+    longitude: int | float
 
 
 @dataclass
 class NEDCoordinates:
-    north: int
-    east: int
-    down: int
+    north: int | float
+    east: int | float
+    down: int | float
