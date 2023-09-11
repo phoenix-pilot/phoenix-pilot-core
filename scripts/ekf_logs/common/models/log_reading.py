@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from scipy.spatial.transform import Rotation
+
 from common.models.utils import Vector3, GlobalPosition, NEDCoordinates
 from common.models.visitor import LogsVisitor
 
@@ -113,3 +115,25 @@ class BaroLog(LogEntry):
 
     def accept(self, visitor: LogsVisitor):
         visitor.visit_baro_log(self)
+
+
+class EkfState(LogEntry):
+    def __init__(
+            self,
+            log_id,
+            timestamp,
+            attitude: Rotation,
+            gyroscope_bias: Vector3,
+            velocity: Vector3,
+            accelerometer_Bias: Vector3,
+            position: NEDCoordinates
+    ):
+        super().__init__(log_id, timestamp)
+        self.attitude = attitude
+        self.velocity = velocity
+        self.position = position
+        self.gyroscopeBias = gyroscope_bias
+        self.accelerometerBias = accelerometer_Bias
+
+    def accept(self, visitor: LogsVisitor):
+        visitor.visit_ekf_state_log(self)
