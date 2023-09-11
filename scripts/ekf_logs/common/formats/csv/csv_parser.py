@@ -1,6 +1,8 @@
 import csv
 from common.models import logs_types, utils
 
+from scipy.spatial.transform import Rotation
+
 import common.formats.csv.specifiers as specifiers
 
 
@@ -22,6 +24,8 @@ class CsvLogParser:
                     result.append(self.__parse_time_log(row))
                 elif row[1] == specifiers.BARO_LOG:
                     result.append(self.__parse_baro_log(row))
+                elif row[1] == specifiers.STATE_LOG:
+                    result.append(self.__parse_state_log(row))
                 else:
                     print(f"Unknown entry in log file {row}")
 
@@ -112,3 +116,22 @@ class CsvLogParser:
         temperature = int(row[5])
 
         return logs_types.BaroLog(id, timestamp, device_id, pressure, temperature)
+
+    def __parse_state_log(self, row: list[str]) -> logs_types.EkfState:
+        id = int(row[0])
+        timestamp = int(row[2])
+        attitude = Rotation.from_quat([float(row[3]), float(row[4]), float(row[5]), float(row[6])])
+        gyroscope_bias = utils.Vector3(float(row[7]), float(row[8]), float(row[9]))
+        velocity = utils.Vector3(float(row[10]), float(row[11]), float(row[12]))
+        accelerometer_bias = utils.Vector3(float(row[13]), float(row[14]), float(row[15]))
+        position = utils.NEDCoordinates(float(row[16]), float(row[17]), float(row[18]))
+
+        return logs_types.EkfState(
+            id,
+            timestamp,
+            attitude,
+            gyroscope_bias,
+            velocity,
+            accelerometer_bias,
+            position
+        )
