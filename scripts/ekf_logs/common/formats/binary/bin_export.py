@@ -84,5 +84,31 @@ class BinaryLogExporter(LogsVisitor):
             )
         )
 
+    def visit_ekf_state_log(self, state_log: logs_types.EkfState):
+        self.__write_prefix(state_log, specifiers.STATE_LOG)
+
+        attitude_quat = state_log.attitude.as_quat()
+
+        self.file.write(
+            structs.STATE.pack(
+                attitude_quat[0],
+                attitude_quat[1],
+                attitude_quat[2],
+                attitude_quat[3],
+                state_log.gyroscopeBias.x,
+                state_log.gyroscopeBias.y,
+                state_log.gyroscopeBias.z,
+                state_log.velocity.x,
+                state_log.velocity.y,
+                state_log.velocity.z,
+                state_log.accelerometerBias.x,
+                state_log.accelerometerBias.y,
+                state_log.accelerometerBias.z,
+                state_log.position.north,
+                state_log.position.east,
+                state_log.position.down
+            )
+        )
+
     def __write_prefix(self, log: logs_types.LogEntry, log_type: str):
         self.file.write(structs.LOG_PREFIX.pack(log.id, bytes(log_type, "ascii"), log.timestamp))

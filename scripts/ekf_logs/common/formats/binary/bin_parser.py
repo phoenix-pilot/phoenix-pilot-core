@@ -2,6 +2,8 @@ from io import BufferedReader
 from struct import Struct
 from common.models import logs_types, utils
 
+from scipy.spatial.transform import Rotation
+
 import common.formats.binary.structs as structs
 import common.formats.binary.specifiers as specifiers
 
@@ -27,6 +29,8 @@ class BinaryLogParser:
                     result.append(self.__parse_gps_log(log_id, timestamp, file))
                 elif log_type == specifiers.BARO_LOG:
                     result.append(self.__parse_baro_log(log_id, timestamp, file))
+                elif log_type == specifiers.STATE_LOG:
+                    result.append(self.__parse_state_log(log_id, timestamp, file))
                 else:
                     print("Unknown entry in log file")
                     print(f"Last valid item: {result[len(result) - 1].id}")
@@ -87,6 +91,19 @@ class BinaryLogParser:
             device_ID=fields[0],
             pressure=fields[1],
             temperature=fields[2]
+        )
+
+    def __parse_state_log(self, log_id, timestamp: int, file: BufferedReader) -> logs_types.EkfState:
+        fields = self.__parse_struct(file, structs.STATE)
+
+        return logs_types.EkfState(
+            log_id=log_id,
+            timestamp=timestamp,
+            attitude=Rotation.from_quat([fields[0], fields[1], fields[2], fields[3]]),
+            gyroscope_bias=utils.Vector3(fields[4], fields[5], fields[6]),
+            velocity=utils.Vector3(fields[7], fields[8], fields[9]),
+            accelerometer_Bias=utils.Vector3(fields[10], fields[11], fields[12]),
+            position=utils.NEDCoordinates(fields[13], fields[14], fields[15])
         )
 
     def __parse_struct(self, file: BufferedReader, struct: Struct):

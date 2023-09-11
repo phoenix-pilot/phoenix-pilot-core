@@ -12,3 +12,5 @@ IMU = Struct(ACCEL_STR_FORMAT + GYRO_STR_FORMAT + MAG_STR_FORMAT)
 GPS = Struct("IiqqQHHiIiiiIIIHhHBB4x")
 
 BARO = Struct("III")
+
+STATE = Struct("=16f")
