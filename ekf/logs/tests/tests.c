@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
+#include <matrix.h>
 
 
 #include "../writer.h"
@@ -23,6 +24,8 @@
 
 #include "data.h"
 #include "tools.h"
+
+#include "../../kalman_implem.h"
 
 #define EKFLOG_TEST_FILE "tmp/ekf_logs_test.bin"
 
@@ -40,7 +43,8 @@ TEST_GROUP(group_ekf_logs);
 
 TEST_SETUP(group_ekf_logs)
 {
-	TEST_ASSERT_EQUAL(0, ekflog_writerInit(EKFLOG_TEST_FILE, EKFLOG_SENSC | EKFLOG_TIME | EKFLOG_STRICT_MODE));
+	int writerInitFalgs = EKFLOG_SENSC | EKFLOG_TIME | EKFLOG_STATE | EKFLOG_STRICT_MODE;
+	TEST_ASSERT_EQUAL(0, ekflog_writerInit(EKFLOG_TEST_FILE, writerInitFalgs));
 	TEST_ASSERT_EQUAL(0, ekflog_readerInit(EKFLOG_TEST_FILE));
 
 	timeRead = 0;
@@ -203,6 +207,34 @@ TEST(group_ekf_logs, ekflogs_singleBaroEvt)
 }
 
 
+TEST(group_ekf_logs, ekflogs_singleStateEvt)
+{
+	int i;
+	float testEkfData[STATE_LENGTH];
+	float dataRead[STATE_LENGTH] = {};
+
+	matrix_t ekfState = { .data = testEkfData, .rows = STATE_LENGTH, .cols = 1 };
+	matrix_t stateRead = { .data = dataRead, .rows = STATE_LENGTH, .cols = 1 };
+
+	/* Filling test data */
+	for (i = 0; i < STATE_LENGTH; i++) {
+		testEkfData[i] = i;
+	}
+
+	TEST_ASSERT_EQUAL(0, ekflog_stateWrite(&ekfState, testTimestamp1));
+
+	TEST_ASSERT_EQUAL(0, ekflog_writerDone());
+
+	TEST_ASSERT_EQUAL(0, ekflog_stateRead(&stateRead, &timeRead));
+
+	TEST_ASSERT_EQUAL_FLOAT_ARRAY(ekfState.data, stateRead.data, STATE_LENGTH);
+	TEST_ASSERT_EQUAL(testTimestamp1, timeRead);
+
+	TEST_ASSERT_EQUAL(EOF, ekflog_stateRead(&stateRead, &timeRead));
+	TEST_ASSERT_EQUAL(0, errno);
+}
+
+
 TEST(group_ekf_logs, ekflogs_shortSequence)
 {
 	int i;
@@ -301,6 +333,24 @@ TEST(group_ekf_logs, ekflogs_longSequence)
 }
 
 
+TEST(group_ekf_logs, ekflogs_emptyFileRead)
+{
+	/* Create an empty file */
+	FILE *file = fopen(EKFLOG_TEST_FILE, "r");
+	TEST_ASSERT_NOT_NULL(file);
+	TEST_ASSERT_EQUAL(0, fclose(file));
+
+	TEST_ASSERT_EQUAL(EOF, ekflog_timeRead(&timeRead));
+	TEST_ASSERT_EQUAL(0, errno);
+
+	TEST_ASSERT_EQUAL(EOF, ekflog_imuRead(&sensEvt1, &sensEvt2, &sensEvt3));
+	TEST_ASSERT_EQUAL(0, errno);
+
+	TEST_ASSERT_EQUAL(EOF, ekflog_gpsRead(&sensEvt1));
+	TEST_ASSERT_EQUAL(0, errno);
+}
+
+
 TEST_GROUP_RUNNER(group_ekf_logs)
 {
 	RUN_TEST_CASE(group_ekf_logs, ekflogs_singleTimeEvt);
@@ -314,6 +364,10 @@ TEST_GROUP_RUNNER(group_ekf_logs)
 
 	RUN_TEST_CASE(group_ekf_logs, ekflogs_singleBaroEvt);
 
+	RUN_TEST_CASE(group_ekf_logs, ekflogs_singleStateEvt);
+
 	RUN_TEST_CASE(group_ekf_logs, ekflogs_shortSequence);
 	RUN_TEST_CASE(group_ekf_logs, ekflogs_longSequence);
+
+	RUN_TEST_CASE(group_ekf_logs, ekflogs_emptyFileRead);
 }
