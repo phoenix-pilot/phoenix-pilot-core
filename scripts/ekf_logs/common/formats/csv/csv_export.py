@@ -13,7 +13,7 @@ class CsvLogExporter(LogsVisitor):
             csv_writer = csv.writer(file, quoting=csv.QUOTE_MINIMAL)
 
             for log in logs:
-                self.entry = []
+                self.entry.clear()
                 log.accept(self)
                 csv_writer.writerow(self.entry)
 
@@ -94,3 +94,29 @@ class CsvLogExporter(LogsVisitor):
 
         self.entry.append(str(baro_log.pressure))
         self.entry.append(str(baro_log.temperature))
+
+    def visit_ekf_state_log(self, state_log: logs_types.EkfState):
+        self.__csv_row_prefix_add(state_log, specifiers.STATE_LOG)
+
+        attitude_quat = state_log.attitude.as_quat()
+
+        self.entry.append(attitude_quat[0])
+        self.entry.append(attitude_quat[1])
+        self.entry.append(attitude_quat[2])
+        self.entry.append(attitude_quat[3])
+
+        self.entry.append(state_log.gyroscopeBias.x)
+        self.entry.append(state_log.gyroscopeBias.y)
+        self.entry.append(state_log.gyroscopeBias.z)
+
+        self.entry.append(state_log.velocity.x)
+        self.entry.append(state_log.velocity.y)
+        self.entry.append(state_log.velocity.z)
+
+        self.entry.append(state_log.accelerometerBias.x)
+        self.entry.append(state_log.accelerometerBias.y)
+        self.entry.append(state_log.accelerometerBias.z)
+
+        self.entry.append(state_log.position.north)
+        self.entry.append(state_log.position.east)
+        self.entry.append(state_log.position.down)
