@@ -16,6 +16,7 @@ class StudyContext:
         self.gps_logs = []
         self.baro_logs = []
         self.imu_logs = []
+        self.state_logs = []
 
         filler = StudyContext.ContextFiller(self)
         for log in all_logs:
@@ -62,3 +63,6 @@ class StudyContext:
 
         def visit_baro_log(self, baro_log: log_types.BaroLog):
             self.context.baro_logs.append(baro_log)
+
+        def visit_ekf_state_log(self, state_log: log_types.EkfState):
+            self.context.state_logs.append(state_log)
