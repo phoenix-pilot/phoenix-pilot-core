@@ -114,7 +114,7 @@ static int ekf_measGate(int initFlags)
 			 * and data source from `ekf.conf` is equal to SENSORS.
 			 */
 
-			if ((initFlags & EKF_INIT_SENC_SCR) == 0) {
+			if ((initFlags & EKF_INIT_LOG_SRC) != 0) {
 				fprintf(stderr, "Ekf config: inconsistent data source specifiers\n");
 				return -1;
 			}
@@ -207,6 +207,8 @@ int ekf_init(int initFlags)
 		kalman_updateDealloc(&ekf_common.imuEngine);
 		kalman_updateDealloc(&ekf_common.baroEngine);
 		kalman_updateDealloc(&ekf_common.gpsEngine);
+
+		return -1;
 	}
 
 	if (ekflog_writerInit(EKF_LOG_FILE, ekf_common.initVals.log | ekf_common.initVals.logMode) != 0) {
