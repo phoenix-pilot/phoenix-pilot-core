@@ -85,7 +85,7 @@ static int plane_init(void)
 	}
 
 	/* EKF initialization */
-	if (ekf_init(EKF_INIT_SENC_SCR) < 0) {
+	if (ekf_init(0) < 0) {
 		fprintf(stderr, "planecontrol: cannot initialize ekf\n");
 		return -1;
 	}

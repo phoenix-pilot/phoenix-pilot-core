@@ -15,9 +15,7 @@
 #define EKFLIB_H
 
 /* Ekf init flags */
-#define EKF_INIT_SENC_SCR (1 << 0) /* Sets sensors as input data for EKF */
-#define EKF_INIT_LOG_SRC  (1 << 1) /* Sets logs as input data for EKF */
-
+#define EKF_INIT_LOG_SRC (1 << 0) /* Sets logs as input data for EKF */
 
 /* Ekf status flags */
 #define EKF_RUNNING  (1 << 0) /* EKF is working */

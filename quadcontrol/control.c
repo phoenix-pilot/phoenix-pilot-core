@@ -1004,7 +1004,7 @@ static int quad_init(void)
 	}
 
 	/* EKF initialization */
-	if (ekf_init(EKF_INIT_SENC_SCR) < 0) {
+	if (ekf_init(0) < 0) {
 		fprintf(stderr, "quadcontrol: cannot initialize ekf\n");
 		resourceDestroy(quad_common.rcbusLock);
 		free(quad_common.scenario);

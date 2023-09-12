@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 	printf("\033[39m");
 
 
-	if (ekf_init(EKF_INIT_LOG_SRC | EKF_INIT_SENC_SCR) != 0) {
+	if (ekf_init(EKF_INIT_LOG_SRC) != 0) {
 		fprintf(stderr, "devekf: error during ekf init\n");
 		return EXIT_FAILURE;
 	}
