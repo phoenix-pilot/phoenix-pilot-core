@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <errno.h>
 
 #include <ekflib.h>
 
@@ -114,6 +115,7 @@ static int handleUavStatus(int uavStatus)
 
 	if ((uavStatus & EKF_ERROR) != 0) {
 		printf("EKF error occurred\n");
+		errno = EPIPE;
 		res = -1;
 	}
 	else if ((uavStatus & EKF_MEAS_EOF) != 0) {
@@ -131,6 +133,7 @@ int main(int argc, char **argv)
 	enum printMode mode;
 	pthread_t keyboardHandlerTID;
 	pthread_attr_t threadAttr;
+	int res = 0;
 
 	if (argc != 2) {
 		printf("Wrong arguments count!\n");
@@ -184,13 +187,19 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
+	errno = 0;
+
 	/* This is testing app that may be used to present EKF capabilities and stability, thus no run time is set */
 	while (devekf_run == 1) {
 		usleep(1000 * 100);
 		ekf_stateGet(&uavState);
 
+		errno = 0;
 		if (handleUavStatus(uavState.status) != 0) {
 			pthread_cancel(keyboardHandlerTID);
+			if (errno != 0) {
+				res = -1;
+			}
 			break;
 		}
 
@@ -216,5 +225,5 @@ int main(int argc, char **argv)
 
 	pthread_attr_destroy(&threadAttr);
 
-	return EXIT_SUCCESS;
+	return res == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
