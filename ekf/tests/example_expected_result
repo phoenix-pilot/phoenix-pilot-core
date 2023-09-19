@@ -1,0 +1,26 @@
+@EXP_EKF_STATUS
+attitude_a = 1   # Attitude quaternion real part
+attitude_i = 2   # Attitude quaternion i part
+attitude_j = 3   # Attitude quaternion j part
+attitude_k = 4   # Attitude quaternion k part
+attitude_eps = 5 # Allowed absolute difference in expected attitude quaternion component and collected from test one
+
+gyro_bias_x = 6   # Gyroscope x axis bias
+gyro_bias_y = 7   # Gyroscope y axis bias
+gyro_bias_z = 8   # Gyroscope z axis bias
+gyro_bias_eps = 9 # Gyroscope bias allowed difference
+
+velocity_x = 10   # Velocity x component
+velocity_y = 11   # Velocity y component
+velocity_z = 12   # Velocity z component
+velocity_eps = 13 # Velocity allowed difference
+
+accel_bias_x = 14   # Accelerometer x axis bias
+accel_bias_y = 15   # Accelerometer y axis bias
+accel_bias_z = 16   # Accelerometer z axis bias
+accel_bias_eps = 17 # Accelometer bias allowed difference
+
+position_x = 14  # Position x component
+position_y = 15  # Position y component
+position_z = 16  # Position z component
+position_eps = 5 # Position allowed difference
