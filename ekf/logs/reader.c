@@ -39,7 +39,7 @@ static void ekflog_ebadfMsg(void)
 }
 
 
-static int ekflog_logSizeGet(char logIndicator)
+static ssize_t ekflog_logSizeGet(char logIndicator)
 {
 	switch (logIndicator) {
 		case TIME_LOG_INDICATOR:
@@ -66,8 +66,8 @@ static int ekflog_logSizeGet(char logIndicator)
 
 static int ekflog_logOmit(char logIndicator)
 {
-	const size_t prefixLen = LOG_ID_SIZE + LOG_IDENTIFIER_SIZE; /* Without the timestamp */
-	size_t logSize = ekflog_logSizeGet(logIndicator);
+	const ssize_t prefixLen = LOG_ID_SIZE + LOG_IDENTIFIER_SIZE; /* Without the timestamp */
+	ssize_t logSize = ekflog_logSizeGet(logIndicator);
 	if (logSize < 0) {
 		return -1;
 	}
