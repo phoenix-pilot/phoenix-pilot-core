@@ -28,6 +28,7 @@
 #define CORR_ENBL_ACCORTH (1 << 2)
 #define CORR_ENBL_ACCROT  (1 << 3)
 #define CORR_ENBL_TEMPIMU (1 << 4)
+#define CORR_ENBL_GYRORTH (1 << 5)
 
 #define CORR_ENBL_ALL  (~(unsigned int)0)
 #define CORR_ENBL_NONE (0)
