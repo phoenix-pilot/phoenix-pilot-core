@@ -62,14 +62,25 @@
 #define TEMPIMU_SANE_GYR_ALFA 10  /* maximum absolute value of gyroscope temperature coef. [(mrad / s) / K] */
 
 
+#define GYRORTH_TAG            "gyrorth"
+#define GYRORTH_PARAMS         12
+#define GYRORTH_CHAR_ORTHO     'o'
+#define GYRORTH_CHAR_OFFSET    'h'
+#define GYRORTH_ORTHO_ROWSPAN  3
+#define GYRORTH_ORTHO_COLSPAN  3
+#define GYRORTH_OFFSET_ROWSPAN 3
+#define GYRORTH_OFFSET_COLSPAN 1
+
+
 /* CORRECTIONS DEPENDENCY CONTROL */
 #define TEMPIMU_CALIB_DEPENDENCY (CORR_ENBL_NONE)
 #define MAGIRON_CALIB_DEPENDENCY (CORR_ENBL_TEMPIMU)
 #define ACCORTH_CALIB_DEPENDENCY (CORR_ENBL_TEMPIMU)
 #define MAGMOT_CALIB_DEPENDENCY  (CORR_ENBL_TEMPIMU | CORR_ENBL_MAGIRON)
+#define GYRORTH_CALIB_DEPENDENCY (CORR_ENBL_TEMPIMU | CORR_ENBL_ACCORTH)
 
 /* clang-format off */
-typedef enum { typeMagmot = 0, typeMagiron, typeMotlin, typeAccorth, typeTempimu } calibType_t;
+typedef enum { typeMagmot = 0, typeMagiron, typeMotlin, typeAccorth, typeTempimu, typeGyrorth } calibType_t;
 
 
 typedef enum { accSwapXYZ = 0, accSwapXZY, accSwapYXZ, accSwapYZX, accSwapZXY, accSwapZYX } accSwap_t;
@@ -104,6 +115,11 @@ typedef struct {
 			float alfaAcc[3]; /* linear coefficients [(mm / s^2) / K] for temperature compensation for x/y/z accelerometer axis */
 			float alfaGyr[3]; /* linear coefficients [(mrad / s) / K] for temperature compensation for x/y/z gyroscope axis */
 		} tempimu;
+
+		struct {
+			matrix_t ortho;  /* 3x3 nonorthogonality parameters matrix */
+			matrix_t offset; /* 3x1 measurement offset matrix */
+		} gyrorth;
 	} params;
 } calib_data_t;
 

@@ -633,6 +633,131 @@ static int calib_motlinRead(FILE *file, calib_data_t *cal)
 }
 
 
+/* Returns 0 if new value `val` was successfully saved to `cal` as `paramName` parameter. -1 otherwise */
+static int calib_gyrorthEnter(const char *paramName, calib_data_t *cal, float val)
+{
+	matrix_t *mat = NULL;
+	unsigned int row, col;
+	float *slot;
+
+	if (strlen(paramName) != 3) {
+		return -1;
+	}
+
+	row = (uint8_t)(paramName[1] - '0'); /* convert character to unsigned int digit */
+	col = (uint8_t)(paramName[2] - '0'); /* convert character to unsigned int digit */
+
+	/* matrix type get through character check */
+	switch (paramName[0]) {
+		case GYRORTH_CHAR_ORTHO:
+			if (row > 9 || col > 9) {
+				return -1;
+			}
+			mat = &cal->params.gyrorth.ortho;
+			break;
+
+		case GYRORTH_CHAR_OFFSET:
+			if (row > 3 || col > 3) {
+				return -1;
+			}
+			mat = &cal->params.gyrorth.offset;
+			break;
+
+		default:
+			return -1;
+	}
+
+	/* matrix boundary checks performed by matrix_at() */
+	slot = matrix_at(mat, row, col);
+
+	if (slot == NULL) {
+		return -1;
+	}
+
+	*slot = val;
+
+	return 0;
+}
+
+
+static inline void calib_gyrorthDefaults(calib_data_t *cal)
+{
+	/* Creating constant aliases of matrices */
+	const matrix_t offset = cal->params.gyrorth.offset;
+	const matrix_t ortho = cal->params.gyrorth.ortho;
+
+	/* ellipsoid center offset matrix */
+	*matrix_at(&offset, 0, 0) = 0;
+	*matrix_at(&offset, 1, 0) = 0;
+	*matrix_at(&offset, 2, 0) = 0;
+
+	/* ellipsoid deformation matrix */
+	*matrix_at(&ortho, 0, 0) = 1;
+	*matrix_at(&ortho, 0, 1) = 0;
+	*matrix_at(&ortho, 0, 2) = 0;
+	*matrix_at(&ortho, 1, 0) = 0;
+	*matrix_at(&ortho, 1, 1) = 1;
+	*matrix_at(&ortho, 1, 2) = 0;
+	*matrix_at(&ortho, 2, 0) = 0;
+	*matrix_at(&ortho, 2, 1) = 0;
+	*matrix_at(&ortho, 2, 2) = 1;
+}
+
+
+static int calib_gyrorthRead(FILE *file, calib_data_t *cal)
+{
+	char *line, *name;
+	size_t lineSz;
+	float val = 0;
+	unsigned int params = 0; /* can be easily mislead correct number of wrong parameters, but better than nothing */
+
+	/* allocate matrix buffers */
+	if (matrix_bufAlloc(&cal->params.gyrorth.offset, GYRORTH_OFFSET_ROWSPAN, GYRORTH_OFFSET_COLSPAN) != 0) {
+		return -1;
+	}
+	if (matrix_bufAlloc(&cal->params.gyrorth.ortho, GYRORTH_ORTHO_ROWSPAN, GYRORTH_ORTHO_COLSPAN) != 0) {
+		matrix_bufFree(&cal->params.gyrorth.offset);
+		return -1;
+	}
+
+	calib_gyrorthDefaults(cal);
+
+	if (file == NULL) {
+		fprintf(stderr, "No calibration file. '%s' going default.\n", GYRORTH_TAG);
+		return 0;
+	}
+
+	/* Scroll to 'gyrortho' tag */
+	if (calib_file2tag(file, GYRORTH_TAG) != 0) {
+		fprintf(stderr, "Calibration not done yet. '%s' going default.\n", GYRORTH_TAG);
+		return 0;
+	}
+
+	line = NULL;
+	while (calib_getline(&line, &lineSz, file, &name, &val) == 0) {
+		if (calib_gyrorthEnter(name, cal, val) != 0) {
+			break;
+		}
+		params++;
+	}
+	free(line);
+
+	if (params != GYRORTH_PARAMS) {
+		calib_gyrorthDefaults(cal);
+		fprintf(stderr, "Failed to read `%s` calibration. Going default.\n", GYRORTH_TAG);
+	}
+
+	if (MATRIX_DATA(&cal->params.gyrorth.ortho, 0, 0) < 0 || MATRIX_DATA(&cal->params.gyrorth.ortho, 1, 1) < 0 || MATRIX_DATA(&cal->params.gyrorth.ortho, 2, 2) < 0) {
+		fprintf(stderr, "calib %s: invalid S matrix\n", GYRORTH_TAG);
+		matrix_bufFree(&cal->params.gyrorth.offset);
+		matrix_bufFree(&cal->params.gyrorth.ortho);
+		return -1;
+	}
+
+	return 0;
+}
+
+
 void calib_free(calib_data_t *cal)
 {
 	switch (cal->type) {
@@ -644,6 +769,11 @@ void calib_free(calib_data_t *cal)
 		case typeAccorth:
 			matrix_bufFree(&cal->params.accorth.offset);
 			matrix_bufFree(&cal->params.accorth.ortho);
+			break;
+
+		case typeGyrorth:
+			matrix_bufFree(&cal->params.gyrorth.offset);
+			matrix_bufFree(&cal->params.gyrorth.ortho);
 			break;
 
 		case typeMagmot:
@@ -688,6 +818,10 @@ int calib_dataInit(const char *path, calibType_t type, calib_data_t *cal)
 
 		case typeTempimu:
 			ret = calib_tempimuRead(file, cal);
+			break;
+
+		case typeGyrorth:
+			ret = calib_gyrorthRead(file, cal);
 			break;
 
 		default:
