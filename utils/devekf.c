@@ -100,7 +100,7 @@ static inline void printUavAcc(ekf_state_t *uavState)
 	quat_vecRot(&aEarth, &qState);
 	aEarth.z += EARTH_G;
 
-	printf("YPR: %.1f %.2f %.2f E_ACC %.3f %.3f %.3f\n", uavState->yaw, uavState->pitch, uavState->roll, aEarth.x, aEarth.y, aEarth.z);
+	printf("YPR: %.1f %.2f %.2f E_ACC %.3f %.3f %.3f\n", uavState->yaw * 180 / 3.1415, uavState->pitch * 180 / 3.1415, uavState->roll * 180 / 3.1415, aEarth.x, aEarth.y, aEarth.z);
 }
 
 
