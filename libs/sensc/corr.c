@@ -43,6 +43,7 @@ struct {
 	calib_data_t magiron;
 	calib_data_t accorth;
 	calib_data_t tempimu;
+	calib_data_t gyrorth;
 
 	int corrInitFlags;
 
@@ -164,6 +165,16 @@ int corr_init(int initFlags)
 		}
 		else {
 			fprintf(stderr, "corr: %s init failed\n", ACCORTH_TAG);
+			err = true;
+		}
+	}
+
+	if ((initFlags & CORR_ENBL_GYRORTH) != 0 && !err) {
+		if (calib_dataInit(CALIB_PATH, typeGyrorth, &corr_common.gyrorth) == 0) {
+			corr_common.corrInitFlags |= CORR_ENBL_GYRORTH;
+		}
+		else {
+			fprintf(stderr, "corr: %s init failed\n", GYRORTH_TAG);
 			err = true;
 		}
 	}
@@ -401,6 +412,22 @@ static void corr_tempimu(sensor_event_t *accelEvt, sensor_event_t *gyroEvt)
 }
 
 
+static void corr_gyrorth(sensor_event_t *gyroEvt)
+{
+	float dataFinal[3];
+	float dataTmp[3] = { gyroEvt->gyro.gyroX, gyroEvt->gyro.gyroY, gyroEvt->gyro.gyroZ };
+	matrix_t tmp = { .data = dataTmp, .rows = 3, .cols = 1, .transposed = 0 };
+	matrix_t final = { .data = dataFinal, .rows = 3, .cols = 1, .transposed = 0 };
+
+	matrix_sub(&tmp, &corr_common.gyrorth.params.gyrorth.offset, NULL);
+	matrix_prod(&corr_common.gyrorth.params.gyrorth.ortho, &tmp, &final);
+
+	gyroEvt->gyro.gyroX = MATRIX_DATA(&final, 0, 0);
+	gyroEvt->gyro.gyroY = MATRIX_DATA(&final, 1, 0);
+	gyroEvt->gyro.gyroZ = MATRIX_DATA(&final, 2, 0);
+}
+
+
 void corr_imu(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt)
 {
 	/* Magnetometer corrections*/
@@ -419,5 +446,8 @@ void corr_imu(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t 
 		/* TODO: split accrot from accorth */
 		corr_accorth(accelEvt);
 		corr_accrot(accelEvt, gyroEvt, magEvt);
+	}
+	if ((corr_common.corrInitFlags & CORR_ENBL_GYRORTH) != 0) {
+		corr_gyrorth(gyroEvt);
 	}
 }
