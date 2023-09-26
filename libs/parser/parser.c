@@ -35,7 +35,7 @@
 #define HEADER_PATTERN        "^[[:space:]]*@" WORD "[[:space:]]*(#.*)?$"
 #define HEADER_SUBEXPRESSIONS 2
 
-#define FIELD_VALUE          "([A-Za-z0-9_,.+-]+)"
+#define FIELD_VALUE          "([A-Za-z0-9_,.+-/]+)"
 #define FIELD_PATTERN        "^[[:space:]]*" WORD "( +| *= *)" FIELD_VALUE "[[:space:]]*(#.*)?$"
 #define FIELD_SUBEXPRESSIONS 4
 
