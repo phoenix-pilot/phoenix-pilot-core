@@ -21,7 +21,7 @@ class MissingLogs(LogEvaluation):
                 missed_logs[i] = missed
 
         print(f"Number of missed logs: {context.missed_logs_cnt}")
-        MissingLogs.__draw_plot(context.missed_logs_cnt)
+        MissingLogs.__draw_plot(missed_logs, context.missed_logs_cnt)
 
     @staticmethod
     def __draw_plot(missed_logs: list[int], missed_logs_cnt: int):
