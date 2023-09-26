@@ -190,6 +190,7 @@ int main(int argc, char **argv)
 		ekf_stateGet(&uavState);
 
 		if (handleUavStatus(uavState.status) != 0) {
+			pthread_cancel(keyboardHandlerTID);
 			break;
 		}
 
@@ -208,7 +209,6 @@ int main(int argc, char **argv)
 		/* Mode = silent do not invoke any printing function */
 	}
 
-	pthread_cancel(keyboardHandlerTID);
 	pthread_join(keyboardHandlerTID, NULL);
 
 	ekf_stop();
