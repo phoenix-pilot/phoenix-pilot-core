@@ -7,6 +7,9 @@ class Vector3:
     y: int | float
     z: int | float
 
+    def Zero():
+        return Vector3(0, 0, 0)
+
 
 @dataclass
 class GlobalPosition:
