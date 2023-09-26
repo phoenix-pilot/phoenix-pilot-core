@@ -1,6 +1,8 @@
 import os
 import abc
 
+from typing import Iterator
+
 from common.models import logs_types
 
 import common.formats.csv as csv
@@ -13,7 +15,7 @@ class FileFormat(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def export_logs(self, file_path: str, logs: list[logs_types.LogEntry]) -> None:
+    def export_logs(self, file_path: str, logs: Iterator[logs_types.LogEntry]) -> None:
         raise NotImplementedError
 
 
@@ -33,7 +35,7 @@ class FormatFactory:
 
 
 class Binary(FileFormat):
-    def export_logs(self, file_path: str, logs: list[logs_types.LogEntry]) -> None:
+    def export_logs(self, file_path: str, logs: Iterator[logs_types.LogEntry]) -> None:
         exporter = bin.Exporter()
         exporter.export(file_path, logs)
 
@@ -43,7 +45,7 @@ class Binary(FileFormat):
 
 
 class Csv(FileFormat):
-    def export_logs(self, file_path: str, logs: list[logs_types.LogEntry]) -> None:
+    def export_logs(self, file_path: str, logs: Iterator[logs_types.LogEntry]) -> None:
         exporter = csv.Exporter()
         exporter.export(file_path, logs)
 

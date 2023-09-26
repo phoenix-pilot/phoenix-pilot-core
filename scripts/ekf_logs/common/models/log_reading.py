@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 
-from scipy.spatial.transform import Rotation
+from common.models.log_data import Imu, Gps, Baro, EkfState
 
-from common.models.utils import Vector3, GlobalPosition, NEDCoordinates
 from common.models.visitor import LogsVisitor
 
 
@@ -25,115 +24,36 @@ class TimeLog(LogEntry):
 
 
 class ImuLog(LogEntry):
-    def __init__(
-            self,
-            log_id,
-            timestamp,
-            accel_device_id,
-            accel: Vector3,
-            accel_temp,
-            gyro_device_id,
-            gyro: Vector3,
-            gyro_d_angle: Vector3,
-            gyro_temp,
-            mag_dev_id,
-            mag: Vector3
-    ):
+    def __init__(self, log_id, timestamp, imu_data: Imu):
         super().__init__(log_id, timestamp)
-        self.accelDevID = accel_device_id
-        self.accel = accel
-        self.accelTemp = accel_temp
-        self.gyroDevID = gyro_device_id
-        self.gyro = gyro
-        self.gyroDAngle = gyro_d_angle
-        self.gyroTemp = gyro_temp
-        self.magDevID = mag_dev_id
-        self.mag = mag
+        self.data = imu_data
 
     def accept(self, visitor: LogsVisitor):
         visitor.visit_imu_log(self)
 
 
 class GpsLog(LogEntry):
-    def __init__(
-            self,
-            log_id,
-            timestamp,
-            device_id,
-            position: GlobalPosition,
-            utc,
-            horizontal_dilution,
-            vertical_dilution,
-            alt_ellipsoid,
-            ground_speed,
-            velocity: NEDCoordinates,
-            horizontal_accuracy,
-            vertical_accuracy,
-            velocity_accuracy,
-            heading,
-            heading_offset,
-            heading_accuracy,
-            satellite_number,
-            fix,
-    ):
+    def __init__(self, log_id, timestamp, gps_data: Gps):
         super().__init__(log_id, timestamp)
-        self.devID = device_id
-
-        self.position = position
-
-        self.utc = utc
-
-        self.horizontalPrecisionDilution = horizontal_dilution
-        self.verticalPrecisionDilution = vertical_dilution
-
-        self.ellipsoidAlt = alt_ellipsoid
-
-        self.groundSpeed = ground_speed
-        self.velocity = velocity
-
-        self.horizontalAccuracy = horizontal_accuracy
-        self.verticalAccuracy = vertical_accuracy
-        self.velocityAccuracy = velocity_accuracy
-
-        self.heading = heading
-        self.headingOffset = heading_offset
-        self.headingAccuracy = heading_accuracy
-
-        self.satelliteNumber = satellite_number
-        self.fix = fix
+        self.data = gps_data
 
     def accept(self, visitor: LogsVisitor):
         visitor.visit_gps_log(self)
 
 
 class BaroLog(LogEntry):
-    def __init__(self, log_id, timestamp, device_ID, pressure, temperature):
+    def __init__(self, log_id, timestamp, baro_data: Baro):
         super().__init__(log_id, timestamp)
-        self.devID = device_ID
-        self.pressure = pressure
-        self.temperature = temperature
+        self.data = baro_data
 
     def accept(self, visitor: LogsVisitor):
         visitor.visit_baro_log(self)
 
 
-class EkfState(LogEntry):
-    def __init__(
-            self,
-            log_id,
-            timestamp,
-            attitude: Rotation,
-            gyroscope_bias: Vector3,
-            velocity: Vector3,
-            accelerometer_Bias: Vector3,
-            position: NEDCoordinates
-    ):
+class EkfStateLog(LogEntry):
+    def __init__(self, log_id, timestamp, ekf_state: EkfState):
         super().__init__(log_id, timestamp)
-        self.attitude = attitude
-        self.velocity = velocity
-        self.position = position
-        self.gyroscopeBias = gyroscope_bias
-        self.accelerometerBias = accelerometer_Bias
+        self.data = ekf_state
 
     def accept(self, visitor: LogsVisitor):
         visitor.visit_ekf_state_log(self)
