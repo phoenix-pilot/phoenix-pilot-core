@@ -64,5 +64,5 @@ class StudyContext:
         def visit_baro_log(self, baro_log: log_types.BaroLog):
             self.context.baro_logs.append(baro_log)
 
-        def visit_ekf_state_log(self, state_log: log_types.EkfState):
+        def visit_ekf_state_log(self, state_log: log_types.EkfStateLog):
             self.context.state_logs.append(state_log)

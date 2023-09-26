@@ -1,4 +1,5 @@
 from common.models import LogsVisitor, logs_types
+from typing import Iterator
 
 import common.formats.binary.structs as structs
 import common.formats.binary.specifiers as specifiers
@@ -10,7 +11,7 @@ class BinaryLogExporter(LogsVisitor):
     ) -> None:
         self.file = None
 
-    def export(self, file_path, logs: list[logs_types.LogEntry]) -> None:
+    def export(self, file_path, logs: Iterator[logs_types.LogEntry]) -> None:
         try:
             self.file = open(file_path, "wb")
             for log in logs:
@@ -27,23 +28,23 @@ class BinaryLogExporter(LogsVisitor):
         self.__write_prefix(imu_log, specifiers.IMU_LOG)
         self.file.write(
             structs.IMU.pack(
-                imu_log.accelDevID,
-                imu_log.accel.x,
-                imu_log.accel.y,
-                imu_log.accel.z,
-                imu_log.accelTemp,
-                imu_log.gyroDevID,
-                imu_log.gyro.x,
-                imu_log.gyro.y,
-                imu_log.gyro.z,
-                imu_log.gyroDAngle.x,
-                imu_log.gyroDAngle.y,
-                imu_log.gyroDAngle.z,
-                imu_log.gyroTemp,
-                imu_log.magDevID,
-                imu_log.mag.x,
-                imu_log.mag.y,
-                imu_log.mag.z
+                imu_log.data.accelDeviceID,
+                imu_log.data.accel.x,
+                imu_log.data.accel.y,
+                imu_log.data.accel.z,
+                imu_log.data.accelTemp,
+                imu_log.data.gyroDeviceID,
+                imu_log.data.gyro.x,
+                imu_log.data.gyro.y,
+                imu_log.data.gyro.z,
+                imu_log.data.gyroDAngle.x,
+                imu_log.data.gyroDAngle.y,
+                imu_log.data.gyroDAngle.z,
+                imu_log.data.gyroTemp,
+                imu_log.data.magDeviceID,
+                imu_log.data.mag.x,
+                imu_log.data.mag.y,
+                imu_log.data.mag.z
             )
         )
 
@@ -51,26 +52,26 @@ class BinaryLogExporter(LogsVisitor):
         self.__write_prefix(gps_log, specifiers.GPS_LOG)
         self.file.write(
             structs.GPS.pack(
-                gps_log.devID,
-                gps_log.position.altitude,
-                gps_log.position.latitude,
-                gps_log.position.longitude,
-                gps_log.utc,
-                gps_log.horizontalPrecisionDilution,
-                gps_log.verticalPrecisionDilution,
-                gps_log.ellipsoidAlt,
-                gps_log.groundSpeed,
-                gps_log.velocity.north,
-                gps_log.velocity.east,
-                gps_log.velocity.down,
-                gps_log.horizontalAccuracy,
-                gps_log.verticalAccuracy,
-                gps_log.velocityAccuracy,
-                gps_log.heading,
-                gps_log.headingOffset,
-                gps_log.headingAccuracy,
-                gps_log.satelliteNumber,
-                gps_log.fix
+                gps_log.data.deviceID,
+                gps_log.data.position.altitude,
+                gps_log.data.position.latitude,
+                gps_log.data.position.longitude,
+                gps_log.data.utc,
+                gps_log.data.horizontalPrecisionDilution,
+                gps_log.data.verticalPrecisionDilution,
+                gps_log.data.ellipsoidAlt,
+                gps_log.data.groundSpeed,
+                gps_log.data.velocity.north,
+                gps_log.data.velocity.east,
+                gps_log.data.velocity.down,
+                gps_log.data.horizontalAccuracy,
+                gps_log.data.verticalAccuracy,
+                gps_log.data.velocityAccuracy,
+                gps_log.data.heading,
+                gps_log.data.headingOffset,
+                gps_log.data.headingAccuracy,
+                gps_log.data.satelliteNumber,
+                gps_log.data.fix
             )
         )
 
@@ -78,16 +79,16 @@ class BinaryLogExporter(LogsVisitor):
         self.__write_prefix(baro_log, specifiers.BARO_LOG)
         self.file.write(
             structs.BARO.pack(
-                baro_log.devID,
-                baro_log.pressure,
-                baro_log.temperature
+                baro_log.data.deviceID,
+                baro_log.data.pressure,
+                baro_log.data.temperature
             )
         )
 
-    def visit_ekf_state_log(self, state_log: logs_types.EkfState):
+    def visit_ekf_state_log(self, state_log: logs_types.EkfStateLog):
         self.__write_prefix(state_log, specifiers.STATE_LOG)
 
-        attitude_quat = state_log.attitude.as_quat()
+        attitude_quat = state_log.data.attitude.as_quat()
 
         self.file.write(
             structs.STATE.pack(
@@ -95,18 +96,18 @@ class BinaryLogExporter(LogsVisitor):
                 attitude_quat[1],
                 attitude_quat[2],
                 attitude_quat[3],
-                state_log.gyroscopeBias.x,
-                state_log.gyroscopeBias.y,
-                state_log.gyroscopeBias.z,
-                state_log.velocity.x,
-                state_log.velocity.y,
-                state_log.velocity.z,
-                state_log.accelerometerBias.x,
-                state_log.accelerometerBias.y,
-                state_log.accelerometerBias.z,
-                state_log.position.north,
-                state_log.position.east,
-                state_log.position.down
+                state_log.data.gyroscopeBias.x,
+                state_log.data.gyroscopeBias.y,
+                state_log.data.gyroscopeBias.z,
+                state_log.data.velocity.x,
+                state_log.data.velocity.y,
+                state_log.data.velocity.z,
+                state_log.data.accelerometerBias.x,
+                state_log.data.accelerometerBias.y,
+                state_log.data.accelerometerBias.z,
+                state_log.data.position.north,
+                state_log.data.position.east,
+                state_log.data.position.down
             )
         )
 

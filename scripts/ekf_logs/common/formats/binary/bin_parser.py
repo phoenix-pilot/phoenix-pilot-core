@@ -1,6 +1,6 @@
 from io import BufferedReader
 from struct import Struct
-from common.models import logs_types, utils
+from common.models import logs_types, log_data, utils
 
 from scipy.spatial.transform import Rotation
 
@@ -44,67 +44,69 @@ class BinaryLogParser:
     def __parse_imu_log(self, log_id: int, timestamp: int, file: BufferedReader) -> logs_types.ImuLog:
         fields = self.__parse_struct(file, structs.IMU)
 
-        return logs_types.ImuLog(
-            log_id=log_id,
-            timestamp=timestamp,
-            accel_device_id=fields[0],
+        imu_data = log_data.Imu(
+            accelDeviceID=fields[0],
             accel=utils.Vector3(fields[1], fields[2], fields[3]),
-            accel_temp=fields[4],
-            gyro_device_id=fields[5],
+            accelTemp=fields[4],
+
+            gyroDeviceID=fields[5],
             gyro=utils.Vector3(fields[6], fields[7], fields[8]),
-            gyro_d_angle=utils.Vector3(fields[9], fields[10], fields[11]),
-            gyro_temp=fields[12],
-            mag_dev_id=fields[13],
+            gyroDAngle=utils.Vector3(fields[9], fields[10], fields[11]),
+            gyroTemp=fields[12],
+
+            magDeviceID=fields[13],
             mag=utils.Vector3(fields[14], fields[15], fields[16])
         )
+
+        return logs_types.ImuLog(log_id, timestamp, imu_data)
 
     def __parse_gps_log(self, log_id: int, timestamp: int, file: BufferedReader) -> logs_types.GpsLog:
         fields = self.__parse_struct(file, structs.GPS)
 
-        return logs_types.GpsLog(
-            log_id=log_id,
-            timestamp=timestamp,
-            device_id=fields[0],
+        gps_data = log_data.Gps(
+            deviceID=fields[0],
             position=utils.GlobalPosition(fields[1], fields[2], fields[3]),
             utc=fields[4],
-            horizontal_dilution=fields[5],
-            vertical_dilution=fields[6],
-            alt_ellipsoid=fields[7],
-            ground_speed=fields[8],
+            horizontalPrecisionDilution=fields[5],
+            verticalPrecisionDilution=fields[6],
+            ellipsoidAlt=fields[7],
+            groundSpeed=fields[8],
             velocity=utils.NEDCoordinates(fields[9], fields[10], fields[11]),
-            horizontal_accuracy=fields[12],
-            vertical_accuracy=fields[13],
-            velocity_accuracy=fields[14],
+            horizontalAccuracy=fields[12],
+            verticalAccuracy=fields[13],
+            velocityAccuracy=fields[14],
             heading=fields[15],
-            heading_offset=fields[16],
-            heading_accuracy=fields[17],
-            satellite_number=fields[18],
+            headingOffset=fields[16],
+            headingAccuracy=fields[17],
+            satelliteNumber=fields[18],
             fix=fields[19]
         )
+
+        return logs_types.GpsLog(log_id, timestamp, gps_data)
 
     def __parse_baro_log(self, log_id, timestamp: int, file: BufferedReader) -> logs_types.BaroLog:
         fields = self.__parse_struct(file, structs.BARO)
 
-        return logs_types.BaroLog(
-            log_id=log_id,
-            timestamp=timestamp,
-            device_ID=fields[0],
+        baro_data = log_data.Baro(
+            deviceID=fields[0],
             pressure=fields[1],
             temperature=fields[2]
         )
 
-    def __parse_state_log(self, log_id, timestamp: int, file: BufferedReader) -> logs_types.EkfState:
+        return logs_types.BaroLog(log_id, timestamp, baro_data)
+
+    def __parse_state_log(self, log_id, timestamp: int, file: BufferedReader) -> logs_types.EkfStateLog:
         fields = self.__parse_struct(file, structs.STATE)
 
-        return logs_types.EkfState(
-            log_id=log_id,
-            timestamp=timestamp,
+        ekf_state = log_data.EkfState(
             attitude=Rotation.from_quat([fields[0], fields[1], fields[2], fields[3]]),
-            gyroscope_bias=utils.Vector3(fields[4], fields[5], fields[6]),
+            gyroscopeBias=utils.Vector3(fields[4], fields[5], fields[6]),
             velocity=utils.Vector3(fields[7], fields[8], fields[9]),
-            accelerometer_Bias=utils.Vector3(fields[10], fields[11], fields[12]),
+            accelerometerBias=utils.Vector3(fields[10], fields[11], fields[12]),
             position=utils.NEDCoordinates(fields[13], fields[14], fields[15])
         )
+
+        return logs_types.EkfStateLog(log_id, timestamp, ekf_state)
 
     def __parse_struct(self, file: BufferedReader, struct: Struct):
         data = file.read(struct.size)

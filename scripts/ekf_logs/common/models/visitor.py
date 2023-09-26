@@ -40,5 +40,5 @@ class LogsVisitor(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def visit_ekf_state_log(self, state_log: logs_types.EkfState):
+    def visit_ekf_state_log(self, state_log: logs_types.EkfStateLog):
         raise NotImplementedError
