@@ -56,7 +56,7 @@ typedef struct {
 	} baro;
 
 	struct {
-		vec_t refEcef;               /* reference point ECEF coordinates */
+		double refEcef[3];           /* reference point ECEF coordinates */
 		meas_geodetic_t refGeodetic; /* reference point geodetic coordinates */
 	} gps;
 } meas_calib_t;

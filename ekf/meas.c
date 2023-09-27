@@ -147,49 +147,48 @@ static void meas_gps2geo(const sensor_event_t *gpsEvt, meas_geodetic_t *geo)
 }
 
 
-static void meas_geo2ecef(const meas_geodetic_t *geo, vec_t *ecef)
+static void meas_geo2ecef(const meas_geodetic_t *geo, double ecef[3])
 {
-	float N = EARTH_SEMI_MAJOR / sqrt(1 - EARTH_ECCENTRICITY_SQUARED * geo->sinLat);
+	double N = EARTH_SEMI_MAJOR / sqrt(1 - EARTH_ECCENTRICITY_SQUARED * geo->sinLat);
 
-	ecef->x = (N + geo->h) * geo->cosLat * geo->cosLon;
-	ecef->y = (N + geo->h) * geo->cosLat * geo->sinLon;
-	ecef->z = ((1 - EARTH_ECCENTRICITY_SQUARED) * N + geo->h) * geo->sinLat;
+	ecef[0] = (N + geo->h) * geo->cosLat * geo->cosLon;
+	ecef[1] = (N + geo->h) * geo->cosLat * geo->sinLon;
+	ecef[2] = ((1 - EARTH_ECCENTRICITY_SQUARED) * N + geo->h) * geo->sinLat;
 }
 
 
 /* convert gps geodetic coordinates `geo` into `ned` (north/east/down) vector with help of `refGeo` and `refEcef` coordinates */
-static void meas_geo2ned(const meas_geodetic_t *geo, const meas_geodetic_t *refGeo, const vec_t *refEcef, vec_t *ned)
+static void meas_geo2ned(const meas_geodetic_t *geo, const meas_geodetic_t *refGeo, const double refEcef[3], vec_t *ned)
 {
-	float rot_data[9], dif_data[3], enu_data[3];
-	matrix_t rot = { .rows = 3, .cols = 3, .transposed = 0, .data = rot_data };
-	matrix_t dif = { .rows = 3, .cols = 1, .transposed = 0, .data = dif_data };
-	matrix_t enuMatrix = { .rows = 3, .cols = 1, .transposed = 0, .data = enu_data };
-	vec_t pointEcef;
+	double rot[9], dif[3], enu[3], pointEcef[3];
+	int i;
 
 	/* rot matrix fill */
-	rot.data[0] = -refGeo->sinLon;
-	rot.data[1] = refGeo->cosLon;
-	rot.data[2] = 0;
-	rot.data[3] = -refGeo->sinLat * refGeo->cosLon;
-	rot.data[4] = -refGeo->sinLat * refGeo->sinLon;
-	rot.data[5] = refGeo->cosLat;
-	rot.data[6] = refGeo->cosLat * refGeo->cosLon;
-	rot.data[7] = refGeo->cosLat * refGeo->sinLon;
-	rot.data[8] = refGeo->sinLat;
+	rot[0] = -refGeo->sinLon;
+	rot[1] = refGeo->cosLon;
+	rot[2] = 0;
+	rot[3] = -refGeo->sinLat * refGeo->cosLon;
+	rot[4] = -refGeo->sinLat * refGeo->sinLon;
+	rot[5] = refGeo->cosLat;
+	rot[6] = refGeo->cosLat * refGeo->cosLon;
+	rot[7] = refGeo->cosLat * refGeo->sinLon;
+	rot[8] = refGeo->sinLat;
 
 	/* diff matrix fill */
-	meas_geo2ecef(geo, &pointEcef);
-	dif.data[0] = pointEcef.x - refEcef->x;
-	dif.data[1] = pointEcef.y - refEcef->y;
-	dif.data[2] = pointEcef.z - refEcef->z;
+	meas_geo2ecef(geo, pointEcef);
+	dif[0] = pointEcef[0] - refEcef[0];
+	dif[1] = pointEcef[1] - refEcef[1];
+	dif[2] = pointEcef[2] - refEcef[2];
 
-	/* perform ECEF to ENU by calculating matrix product (rot * dif) */
-	matrix_prod(&rot, &dif, &enuMatrix);
+	/* multiplying rot[3x3] * dif [3x1] into enu[3x1] */
+	for (i = 0; i < 3; i++) {
+		enu[i] = rot[3 * i + 0] * dif[0] + rot[3 * i + 1] * dif[1] + rot[3 * i + 2] * dif[2];
+	}
 
 	/* convert ENU -> NED coordinates by switching the elements */
-	ned->x = enuMatrix.data[1];
-	ned->y = enuMatrix.data[0];
-	ned->z = -enuMatrix.data[2];
+	ned->x = enu[1];
+	ned->y = enu[0];
+	ned->z = -enu[2];
 }
 
 
@@ -254,9 +253,9 @@ int meas_gpsCalib(void)
 	meas_common.calib.gps.refGeodetic.sinLon = sin(meas_common.calib.gps.refGeodetic.lon * DEG2RAD);
 	meas_common.calib.gps.refGeodetic.cosLon = cos(meas_common.calib.gps.refGeodetic.lon * DEG2RAD);
 
-	meas_geo2ecef(&meas_common.calib.gps.refGeodetic, &meas_common.calib.gps.refEcef);
+	meas_geo2ecef(&meas_common.calib.gps.refGeodetic, meas_common.calib.gps.refEcef);
 
-	printf("Acquired GPS position of (lat/lon/h): %f/%f/%f\n", meas_common.calib.gps.refEcef.x, meas_common.calib.gps.refEcef.y, meas_common.calib.gps.refEcef.z);
+	printf("Acquired GPS position of (lat/lon/h): %f/%f/%f\n", meas_common.calib.gps.refEcef[0], meas_common.calib.gps.refEcef[1], meas_common.calib.gps.refEcef[2]);
 
 	return 0;
 }
@@ -483,7 +482,7 @@ int meas_gpsPoll(void)
 
 	/* Transformation from sensor data -> geodetic -> ned data */
 	meas_gps2geo(&gpsEvt, &geo);
-	meas_geo2ned(&geo, &meas_common.calib.gps.refGeodetic, &meas_common.calib.gps.refEcef, &meas_common.data.gps.pos);
+	meas_geo2ned(&geo, &meas_common.calib.gps.refGeodetic, meas_common.calib.gps.refEcef, &meas_common.data.gps.pos);
 
 	meas_common.data.gps.lat = geo.lat;
 	meas_common.data.gps.lon = geo.lon;
