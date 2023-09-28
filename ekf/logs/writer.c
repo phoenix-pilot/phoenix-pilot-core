@@ -168,6 +168,9 @@ static int ekflog_write(const void *msg, size_t msgLen, char logIndicator, time_
 		pthread_cond_signal(&ekflog_common.buffEvent);
 	}
 
+	/* Adding log number */
+	ekflog_common.logCnt++;
+
 	if (!ekflog_actBuffWritable()) {
 		/* Dropping the log */
 		ekflog_common.lost++;
@@ -175,8 +178,6 @@ static int ekflog_write(const void *msg, size_t msgLen, char logIndicator, time_
 		return -1;
 	}
 
-	/* Adding log number */
-	ekflog_common.logCnt++;
 	memcpy(ekflog_common.actBuff->buff + ekflog_common.actBuff->size, &ekflog_common.logCnt, sizeof(ekflog_common.logCnt));
 	ekflog_common.actBuff->size += sizeof(ekflog_common.logCnt);
 
