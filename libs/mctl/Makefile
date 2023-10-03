@@ -10,5 +10,4 @@
 NAME := libmctl
 LOCAL_SRCS := mctl.c
 LOCAL_HEADERS := mctl.h
-LIBS := libzynq7000pwm
 include $(static-lib.mk)
