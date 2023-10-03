@@ -206,19 +206,6 @@ int ekf_init(int initFlags)
 		return -1;
 	}
 
-	if (ekflog_writerInit(EKF_LOG_FILE, ekf_common.initVals.log | ekf_common.initVals.logMode) != 0) {
-		pthread_mutex_destroy(&ekf_common.lock);
-		pthread_attr_destroy(&ekf_common.threadAttr);
-		meas_done();
-
-		kalman_predictDealloc(&ekf_common.stateEngine);
-		kalman_updateDealloc(&ekf_common.imuEngine);
-		kalman_updateDealloc(&ekf_common.baroEngine);
-		kalman_updateDealloc(&ekf_common.gpsEngine);
-
-		return -1;
-	}
-
 	if (meas_imuCalib() != 0) {
 		printf("ekf: error during IMU calibration\n");
 		err = -1;
@@ -362,7 +349,19 @@ static void *ekf_thread(void *arg)
 
 int ekf_run(void)
 {
-	int res = pthread_create(&ekf_common.tid, &ekf_common.threadAttr, ekf_thread, NULL);
+	int res;
+
+	res = ekflog_writerInit(EKF_LOG_FILE, ekf_common.initVals.log | ekf_common.initVals.logMode);
+	if (res != 0) {
+		fprintf(stderr, "ekf: failed to start writer\n");
+		return res;
+	}
+
+	res = pthread_create(&ekf_common.tid, &ekf_common.threadAttr, ekf_thread, NULL);
+	if (res != 0) {
+		fprintf(stderr, "ekf: failed to start\n");
+		return res;
+	}
 
 	pthread_attr_destroy(&ekf_common.threadAttr);
 
