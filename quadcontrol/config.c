@@ -278,6 +278,7 @@ int config_scenarioRead(const char *path, flight_mode_t **scenario, size_t *sz)
 static int config_pidConverter(const hmap_t *h)
 {
 	int err = 0;
+	pid_ctx_t local;
 	pid_ctx_t *pid;
 	int id = res[cfg_pidID].invCnt;
 
@@ -287,17 +288,47 @@ static int config_pidConverter(const hmap_t *h)
 
 	pid = (pid_ctx_t *)res[cfg_pidID].data + id;
 
-	err |= parser_fieldGetFloat(h, "P", &pid->kp);
-	err |= parser_fieldGetFloat(h, "I", &pid->ki);
-	err |= parser_fieldGetFloat(h, "D", &pid->kd);
-	err |= parser_fieldGetFloat(h, "MIN", &pid->min);
-	err |= parser_fieldGetFloat(h, "MAX", &pid->max);
-	err |= parser_fieldGetFloat(h, "IMAX", &pid->maxInteg);
-	err |= parser_fieldGetFloat(h, "IMIN", &pid->minInteg);
+	err |= parser_fieldGetFloat(h, "R", &local.r.k);
+	err |= parser_fieldGetFloat(h, "R_lpf", &local.r.f);
+	err |= parser_fieldGetFloat(h, "R_max", &local.r.max);
+
+	if (local.r.max <= 0.0 || local.r.f < 0.0 || local.r.f >= 1.0) {
+		fprintf(stderr, "pid: wrong coeffs %s: %f/%f/%f\n", "R", local.r.k, local.r.f, local.r.max);
+		return -1;
+	}
+
+	err |= parser_fieldGetFloat(h, "P", &local.p.k);
+	err |= parser_fieldGetFloat(h, "P_lpf", &local.p.f);
+	err |= parser_fieldGetFloat(h, "P_max", &local.p.max);
+
+	if (local.p.max <= 0.0 || local.p.f < 0.0 || local.p.f >= 1.0) {
+		fprintf(stderr, "pid: wrong coeffs %s: %f/%f/%f\n", "P", local.p.k, local.p.f, local.p.max);
+		return -1;
+	}
+
+	err |= parser_fieldGetFloat(h, "D", &local.d.k);
+	err |= parser_fieldGetFloat(h, "D_lpf", &local.d.f);
+	err |= parser_fieldGetFloat(h, "D_max", &local.d.max);
+
+	if (local.d.max <= 0.0 || local.d.f < 0.0 || local.d.f >= 1.0) {
+		fprintf(stderr, "pid: wrong coeffs %s: %f/%f/%f\n", "D", local.d.k, local.d.f, local.d.max);
+		return -1;
+	}
+
+	err |= parser_fieldGetFloat(h, "I", &local.i.k);
+	err |= parser_fieldGetFloat(h, "I_lpf", &local.i.f);
+	err |= parser_fieldGetFloat(h, "I_max", &local.i.max);
+
+	if (local.i.max <= 0.0 || local.i.f < 0.0 || local.i.f >= 1.0) {
+		fprintf(stderr, "pid: wrong coeffs %s: %f/%f/%f\n", "I", local.i.k, local.i.f, local.i.max);
+		return -1;
+	}
 
 	if (err != 0) {
 		return -1;
 	}
+
+	*pid = local;
 
 	res[cfg_pidID].invCnt++;
 
@@ -309,7 +340,7 @@ int config_pidRead(const char *path, pid_ctx_t **pids, int *sz)
 {
 	int err;
 	parser_t *p;
-	static const unsigned int initSz = 4;
+	static const unsigned int initSz = 5;
 
 	if (path == NULL || pids == NULL || sz == NULL) {
 		fprintf(stderr, "config: invalid arguments\n");
@@ -319,8 +350,8 @@ int config_pidRead(const char *path, pid_ctx_t **pids, int *sz)
 	*pids = NULL;
 	*sz = 0;
 
-	/* Parser have to parser one header, which have seven fields */
-	p = parser_alloc(1, 7);
+	/* Parser have to parser one header, which have twelve fields */
+	p = parser_alloc(1, 12);
 	if (p == NULL) {
 		return -1;
 	}
