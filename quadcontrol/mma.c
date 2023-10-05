@@ -79,10 +79,10 @@ int mma_control(float palt, float proll, float ppitch, float pyaw)
 	mma_pidAtten(&mma_common.atten, palt, &ppitch);
 	mma_pidAtten(&mma_common.atten, palt, &proll);
 
-	pwm[0] = palt + proll + ppitch + pyaw;
-	pwm[1] = palt - proll - ppitch + pyaw;
-	pwm[2] = palt + proll - ppitch - pyaw;
-	pwm[3] = palt - proll + ppitch - pyaw;
+	pwm[0] = palt + proll + ppitch - pyaw;
+	pwm[1] = palt - proll - ppitch - pyaw;
+	pwm[2] = palt + proll - ppitch + pyaw;
+	pwm[3] = palt - proll + ppitch + pyaw;
 
 	mutexLock(mma_common.lock);
 
