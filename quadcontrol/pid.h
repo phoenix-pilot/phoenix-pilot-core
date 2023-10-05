@@ -1,10 +1,11 @@
 /*
  * Phoenix-RTOS
  *
- * PID (Proportional – Integral – Derivative Controller)
+ * Two stage R->PID controller
+ * Rate -> Proportional - Integral - Derivative controller
  *
- * Copyright 2022 Phoenix Systems
- * Author: Hubert Buczynski
+ * Copyright 2022-2023 Phoenix Systems
+ * Author: Hubert Buczynski, Mateusz Niewiadomski
  *
  * This file is part of Phoenix-RTOS.
  *
@@ -25,24 +26,23 @@
 #define PID_RESET_I  (1 << 3)
 
 typedef struct {
-	/* Coefficients */
-	float kp; /* proportional gain */
-	float ki; /* integral gain */
-	float kd; /* derivative gain */
+	float k;   /* coefficient value */
+	float max; /* maximum impact of this coefficient */
+	float f;   /* coefficient IIR parameter (0 disables filtering) */
 
-	/* PID limits */
-	float max;      /* Maximum allowed P+D value */
-	float min;      /* Minimum allowed P+D value */
-	float maxInteg; /* Maximum I value */
-	float minInteg; /* Minimum I value */
+	float val; /* current value of calculated coefficient impact */
+} pid_coef_t;
 
-	float integral; /* Accumulate for integral term */
-	float prevErr;  /* Previous error */
-	float lastPid;  /* Last calculated PID value */
+typedef struct {
+	pid_coef_t r; /* rate error (R) coefficient */
+	pid_coef_t p; /* rate error P coefficient */
+	pid_coef_t i; /* rate error I coefficient */
+	pid_coef_t d; /* rate error D coefficient */
 
+	float prevErr;  /* previous error for D controller */
 	float errBound; /* positive boundary value for process variable (symmetric boundary value assumed) */
-
 	uint32_t flags; /* flags controlling pid controller behaviour */
+
 } pid_ctx_t;
 
 
@@ -50,8 +50,14 @@ typedef struct {
 extern int pid_init(pid_ctx_t *pid);
 
 
-/* Calculate the PID value based on gain values and precalculated change rate */
-extern float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, time_t dt);
+/*
+ * PID controller calculation process:
+ * 1) calculate position error from targetPos and currPos
+ * 2) translate position error into target rate
+ * 3) use target rate and currRate as base variable for standard PID controller
+ * Performs cyclic boundary check on position error, and max/min checks on R,P,I and D controllers.
+ */
+float pid_calc(pid_ctx_t *pid, float targetPos, float currPos, float currRate, time_t dt);
 
 
 /* TODO: Tuning gain coefficients */

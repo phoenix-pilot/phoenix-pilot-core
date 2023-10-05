@@ -1,10 +1,11 @@
 /*
  * Phoenix-RTOS
  *
- * PID (Proportional – Integral – Derivative Controller)
+ * Two stage R->PID controller
+ * Rate -> Proportional - Integral - Derivative controller
  *
- * Copyright 2022 Phoenix Systems
- * Author: Hubert Buczynski
+ * Copyright 2022-2023 Phoenix Systems
+ * Author: Hubert Buczynski, Mateusz Niewiadomski
  *
  * This file is part of Phoenix-RTOS.
  *
@@ -20,22 +21,32 @@
 #include <stdio.h>
 
 
-float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, time_t dt)
+/* Stores new coefficient value in `c`. Adjusts for final min/max values and IIR filtering */
+static void pid_store(pid_coef_t *c, float newVal)
+{
+	float val;
+
+	/* IIR filtering */
+	val = (c->f == 0.0) ? newVal : c->val * c->f + (1.0 - c->f) * newVal;
+
+	if (val > c->max) {
+		val = c->max;
+	}
+	if (val < -c->max) {
+		val = -c->max;
+	}
+
+	c->val = val;
+}
+
+
+float pid_calc(pid_ctx_t *pid, float targetPos, float currPos, float currRate, time_t dt)
 {
 	float err, out = 0;
-	float p, i, d; /* Results for proportional, integral and derivative parts of PID */
+	float timeStep = (float)dt / 1000;
 
-	if (pid == NULL) {
-		return -EINVAL;
-	}
-
-	if (__builtin_isfinite(setVal) == 0 || __builtin_isfinite(currVal) == 0) {
-		return pid->lastPid;
-	}
-
-	err = setVal - currVal;
-
-	/* account for boundary values */
+	/* Position error calculation with boundary values check */
+	err = targetPos - currPos;
 	if (pid->errBound != NO_BOUNDVAL) {
 		if (err > pid->errBound) {
 			err -= 2 * pid->errBound;
@@ -45,38 +56,31 @@ float pid_calc(pid_ctx_t *pid, float setVal, float currVal, float currValDot, ti
 		}
 	}
 
-	/* Derivative */
-	d = pid->kd * currValDot;
+	/* Target rate calculation */
+	pid_store(&pid->r, err * pid->r.k);
 
-	/* Proportional */
-	p = pid->kp * err;
-
-	/* Integral */
-	i = (pid->flags & PID_RESET_I) ? 0 : pid->integral;
-	i += (pid->flags & PID_IGNORE_I) ? 0 : pid->ki * (err * dt);
-	if (i > pid->maxInteg) {
-		i = pid->maxInteg;
+	/* P gain */
+	err = pid->r.val - currRate;
+	pid_store(&pid->p, err * pid->p.k);
+	if ((pid->flags & PID_IGNORE_P) == 0) {
+		out += pid->p.val;
 	}
 
-	if (i < pid->minInteg) {
-		i = pid->minInteg;
+	/* I gain */
+	pid_store(&pid->i, pid->i.val + err * timeStep * pid->i.k);
+	if ((pid->flags & PID_RESET_I) != 0) {
+		pid->i.val = 0;
+	}
+	if ((pid->flags & PID_IGNORE_I) == 0) {
+		out += pid->i.val;
 	}
 
-	/* PID */
-	out += (pid->flags & PID_IGNORE_P) ? 0 : p;
-	out += (pid->flags & PID_IGNORE_D) ? 0 : d;
-	if (out > pid->max) {
-		out = pid->max;
+	/* D gain */
+	pid_store(&pid->d, (err - pid->prevErr) * pid->d.k / timeStep);
+	if ((pid->flags & PID_IGNORE_D) == 0) {
+		out += pid->d.val;
 	}
-
-	if (out < pid->min) {
-		out = pid->min;
-	}
-
-	out += i;
-	pid->integral = i;
 	pid->prevErr = err;
-	pid->lastPid = out;
 
 	return out;
 }
@@ -99,12 +103,8 @@ int pid_init(pid_ctx_t *pid)
 		return -EINVAL;
 	}
 
-	pid->integral = 0;
-	pid->lastPid = 0;
 	pid->prevErr = 0;
-
 	pid->errBound = NO_BOUNDVAL;
-
 	pid->flags = PID_FULL;
 
 	return 0;
