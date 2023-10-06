@@ -143,8 +143,8 @@ static void quad_attPos(quad_att_t *att, const vec_t *setPos, const ekf_state_t 
 
 	vec_dif(setPos, &currPos, &target);
 
-	/* assuming constant time step for pid controller */
-	posPid = pid_calc(&quad_common.pids[pwm_pos], 0, vec_len(&target), vec_len(&currVel), 1);
+	/* FIXME: pass timeStep here so it is not constant assumption of 4ms */
+	posPid = pid_calc(&quad_common.pids[pwm_pos], 0, vec_len(&target), vec_len(&currVel), 4);
 
 	/* use `target` vector as lean direction for PID controller */
 	vec_normalize(&target);
