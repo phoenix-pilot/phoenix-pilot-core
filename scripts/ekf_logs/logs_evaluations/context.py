@@ -10,13 +10,13 @@ from common.models.visitor import LogsVisitor
 
 class StudyContext:
     def __init__(self, all_logs: list[log_types.LogReading]) -> None:
-        self.all_logs = all_logs
+        self.all_logs: list[log_types.LogEntry] = all_logs
 
-        self.time_logs = []
-        self.gps_logs = []
-        self.baro_logs = []
-        self.imu_logs = []
-        self.state_logs = []
+        self.time_logs: list[log_types.TimeLog] = []
+        self.gps_logs: list[log_types.GpsLog] = []
+        self.baro_logs: list[log_types.BaroLog] = []
+        self.imu_logs: list[log_types.ImuLog] = []
+        self.state_logs: list[log_types.EkfStateLog] = []
 
         filler = StudyContext.ContextFiller(self)
         for log in all_logs:
