@@ -1,3 +1,4 @@
 from logs_evaluations.evaluations.logs_cnt import LogsCnt
 from logs_evaluations.evaluations.loop_times import EkfLoopTiming
 from logs_evaluations.evaluations.missing_logs import MissingLogs
+from logs_evaluations.evaluations.gps_ekf_comparison import GpsEkfComparison
