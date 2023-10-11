@@ -12,6 +12,10 @@ def nanodegrees_to_degrees(nanodegrees):
     return nanodegrees / 1_000_000_000.0
 
 
+def microseconds_to_seconds(microseconds):
+    return microseconds / 1_000_000.0
+
+
 def geo_distance(latitude1, longitude1, latitude2, longitude2):
     return distance.geodesic(
         (latitude1, longitude1),
@@ -46,6 +50,12 @@ class GpsEkfComparison(LogEvaluation):
 
         self.init_evaluation(context)
 
+        self._position_comparison(context)
+        self._speed_comparison(context)
+
+        plt.show()
+
+    def _position_comparison(self, context: StudyContext):
         fig = plt.figure()
         ax = fig.add_subplot()
 
@@ -60,9 +70,19 @@ class GpsEkfComparison(LogEvaluation):
         ax.set_xlabel("$\\longleftarrow$ West, East $\\longrightarrow$\n" + common_msg)
         ax.set_ylabel(common_msg + "\n$\\longleftarrow$ South, North $\\longrightarrow$")
         ax.set_aspect('equal', adjustable='box')
+        ax.legend()
 
-        plt.legend()
-        plt.show()
+    def _speed_comparison(self, context: StudyContext):
+        fig = plt.figure()
+        ax = fig.add_subplot()
+
+        self._draw_ekf_velocities(ax, context)
+        self._draw_gps_velocities(ax, context)
+
+        ax.grid()
+        ax.set_title("GPS and EKF speed comparison")
+        ax.set_ylabel("Speed [$m/s$]")
+        ax.set_xlabel("Time [$s$]")
 
     def _draw_gps_pos(self, ax, context: StudyContext):
         x = np.array([self.calculate_gps_x(log) for log in context.gps_logs])
@@ -131,9 +151,50 @@ class GpsEkfComparison(LogEvaluation):
                 c=color
             )
 
+    def _draw_ekf_velocities(self, ax, context: StudyContext):
+        ekf_states = context.state_logs
+
+        ekf_x = np.array([microseconds_to_seconds(state.timestamp - self.start_time) for state in ekf_states])
+        ekf_velocity_NS = np.array([state.data.velocity.x for state in ekf_states])
+        ekf_velocity_EW = np.array([state.data.velocity.y for state in ekf_states])
+
+        ax.plot(ekf_x, ekf_velocity_NS, c="#0398fc", label="EKF N-S speed")
+        ax.plot(ekf_x, ekf_velocity_EW, c="#f403fc", label="EKF E-W speed")
+
+    def _draw_gps_velocities(self, ax, context: StudyContext):
+        gps_logs = context.gps_logs
+
+        gps_x = np.array([microseconds_to_seconds(log.timestamp - self.start_time) for log in gps_logs])
+        gps_velocity_NS = np.empty(len(gps_logs))
+        gps_velocity_EW = np.empty(len(gps_logs))
+
+        gps_velocity_NS[0] = 0
+        gps_velocity_EW[0] = 0
+
+        for i in range(1, len(gps_velocity_NS)):
+            prev_log = gps_logs[i-1]
+            curr_log = gps_logs[i]
+
+            dist_n = self.calculate_gps_y(curr_log) - self.calculate_gps_y(prev_log)
+            dist_e = self.calculate_gps_x(curr_log) - self.calculate_gps_x(prev_log)
+
+            dt = microseconds_to_seconds(curr_log.timestamp - prev_log.timestamp)
+
+            if dt == 0:
+                # Truncating the last element
+                gps_velocity_NS = gps_velocity_NS[:len(gps_velocity_NS) - 2]
+                gps_velocity_EW = gps_velocity_EW[:len(gps_velocity_EW) - 2]
+                continue
+
+            gps_velocity_NS[i] = dist_n/dt
+            gps_velocity_EW[i] = dist_e/dt
+
+        ax.plot(gps_x, gps_velocity_NS, label="GPS N-S speed", c="#2cfc03", linestyle="dashed")
+        ax.plot(gps_x, gps_velocity_EW, label="GPS E-W speed", c="#fc9d03", linestyle="dashed")
+
     def format_timestamp(self, timestamp) -> str:
         dt = timestamp - self.start_time
-        seconds = dt / 1_000_000
+        seconds = microseconds_to_seconds(dt)
 
         return "{:.1f}".format(seconds)
 
