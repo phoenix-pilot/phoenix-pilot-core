@@ -61,6 +61,5 @@ class EkfState:
     attitude: Rotation
     velocity: Vector3
     gyroscopeBias: Vector3
-    velocity: Vector3
     accelerometerBias: Vector3
     position: NEDCoordinates
