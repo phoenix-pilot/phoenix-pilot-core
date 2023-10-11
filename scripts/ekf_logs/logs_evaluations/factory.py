@@ -8,5 +8,6 @@ class EvaluationsFactory:
         return [
             evals.MissingLogs(),
             evals.LogsCnt(),
-            evals.EkfLoopTiming()
+            evals.EkfLoopTiming(),
+            evals.GpsEkfComparison()
         ]
