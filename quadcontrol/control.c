@@ -54,6 +54,7 @@
 #define ANGLE_THRESHOLD_HIGH (M_PI / 2) /* high threshold for maneuvers */
 #define RAD2DEG              ((float)180.0 / M_PI)
 #define DEG2RAD              0.0174532925f
+#define EARTH_G              9.80665F /* m/s^2 */
 
 /* rcbus trigger thresholds for manual switches SWA/SWB/SWC/SWD */
 #define RC_CHANNEL_THR_HIGH ((95 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) / 100 + MIN_CHANNEL_VALUE) /* high position threshold */
@@ -134,30 +135,54 @@ static inline void quad_levelAtt(quad_att_t *att)
 
 
 /* Additive attitude `att` control based on target position `setPos` and current position from `measure` */
-static void quad_attPos(quad_att_t *att, const vec_t *setPos, const ekf_state_t *measure)
+static void quad_attPos(const vec_t *setPos, const ekf_state_t *measure, float *dPitchOut, float *dRollOut, time_t dt)
 {
-	vec_t currPos = { .x = measure->enuX, .y = measure->enuY, .z = 0 };
-	vec_t currVel = { .x = measure->veloX, .y = measure->veloY, .z = 0 };
-	vec_t target;
-	float posPid, yawCos, yawSin;
+	const vec_t currPos = { .x = measure->enuX, .y = measure->enuY, .z = 0 };
+	const vec_t currVel = { .x = measure->veloX, .y = measure->veloY, .z = 0 };
 
-	vec_dif(setPos, &currPos, &target);
+	float posPid, yawCos, yawSin, dPitch, dRoll;
+	vec_t offset, accBody, accEarth;
 
-	/* FIXME: pass timeStep here so it is not constant assumption of 4ms */
-	posPid = pid_calc(&quad_common.pids[pwm_pos], 0, vec_len(&target), vec_len(&currVel), 4);
+	vec_dif(&currPos, setPos, &offset);
 
-	/* use `target` vector as lean direction for PID controller */
-	vec_normalize(&target);
-	vec_times(&target, posPid);
+	/* posPid is interpreted as acceleration towards the target */
+	posPid = pid_calc(&quad_common.pids[pwm_pos], 0, vec_len(&offset), vec_len(&currVel), dt);
+
+	/* use `offset` vector as acceleration direction */
+	accEarth = offset;
+	vec_normalize(&accEarth);
+	vec_times(&accEarth, posPid);
 
 	yawCos = cos(measure->yaw);
 	yawSin = sin(measure->yaw);
 
-	log_print("S %.1f %.1f C %.1f %.1f %.2f %.2f\n", setPos->x, setPos->y, measure->enuX, measure->enuY, measure->veloX, measure->veloY);
+	/* Calculating target acceleration vector in ENU body frame using NED yaw */
+	accBody.x = accEarth.x * yawCos - accEarth.y * yawSin;
+	accBody.y = accEarth.y * yawCos + accEarth.x * yawSin;
 
-	/* Local derivation of 2D rotational matrix (only yaw angle rotation present). Coordinates are in ENU, but YAW angle is taken as in NED. */
-	att->roll += -(target.x * yawCos - target.y * yawSin); /* roll addition is negatively correlated to local ENU east target distance */
-	att->pitch += (target.x * yawSin + target.y * yawCos); /* pitch addition is positively correlated to local ENU north target distance */
+	/* body frame ENU.x acceleration positively correlates with roll, and ENU.y negatively correlates with pitch */
+	dRoll = atan(accBody.x / EARTH_G);
+	dPitch = -atan(accBody.y / EARTH_G);
+
+	/* Limit dRoll and dPitch to ANGLE_THRESHOLD_LOW */
+	if (dRoll > ANGLE_THRESHOLD_LOW) {
+		dRoll = ANGLE_THRESHOLD_LOW;
+	}
+	if (dRoll < -ANGLE_THRESHOLD_LOW) {
+		dRoll = -ANGLE_THRESHOLD_LOW;
+	}
+
+	if (dPitch > ANGLE_THRESHOLD_LOW) {
+		dPitch = ANGLE_THRESHOLD_LOW;
+	}
+	if (dPitch < -ANGLE_THRESHOLD_LOW) {
+		dPitch = -ANGLE_THRESHOLD_LOW;
+	}
+
+	log_print("Y %f T %f %f Ae %f %f Ab %f %f D %f %f\n", measure->yaw, offset.x, offset.y, accEarth.x, accEarth.y, accBody.x, accBody.y, dPitch, dRoll);
+
+	*dPitchOut = dPitch;
+	*dRollOut = dRoll;
 }
 
 
@@ -179,9 +204,11 @@ static inline bool quad_periodLogEnable(time_t now)
 }
 
 
-static int quad_motorsCtrl(float throttle, int32_t alt, const quad_att_t *att, const ekf_state_t *measure)
+/* Controls motors using  */
+static int quad_motorsCtrl(float throttle, int32_t alt, const vec_t *setPos, const quad_att_t *att, const ekf_state_t *measure)
 {
 	time_t dt, now;
+	float dRollPos = 0, dPitchPos = 0;
 	float palt, proll, ppitch, pyaw;
 
 	if (fabs(measure->pitch) > ANGLE_THRESHOLD_HIGH || fabs(measure->roll) > ANGLE_THRESHOLD_HIGH) {
@@ -195,9 +222,14 @@ static int quad_motorsCtrl(float throttle, int32_t alt, const quad_att_t *att, c
 	dt = now - quad_common.lastTime;
 	quad_common.lastTime = now;
 
+
+	if (setPos != NULL) {
+		quad_attPos(setPos, measure, &dPitchPos, &dRollPos, dt);
+	}
+
 	palt = pid_calc(&quad_common.pids[pwm_alt], alt / 1000.f, measure->enuZ, measure->veloZ, dt);
-	proll = pid_calc(&quad_common.pids[pwm_roll], att->roll, measure->roll, measure->rollDot, dt);
-	ppitch = pid_calc(&quad_common.pids[pwm_pitch], att->pitch, measure->pitch, measure->pitchDot, dt);
+	proll = pid_calc(&quad_common.pids[pwm_roll], att->roll + dRollPos, measure->roll, measure->rollDot, dt);
+	ppitch = pid_calc(&quad_common.pids[pwm_pitch], att->pitch + dPitchPos, measure->pitch, measure->pitchDot, dt);
 	pyaw = pid_calc(&quad_common.pids[pwm_yaw], att->yaw, measure->yaw, measure->yawDot, dt);
 
 	if (mma_control(throttle + palt, proll, ppitch, pyaw) < 0) {
@@ -469,7 +501,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 		/* NO GPS! - override needed not to hit something */
 		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL | RC_OVRD_YAW);
 
-		if (quad_motorsCtrl(throttle, alt, &att, &measure) < 0) {
+		if (quad_motorsCtrl(throttle, alt, NULL, &att, &measure) < 0) {
 			return -1;
 		}
 	}
@@ -516,7 +548,7 @@ static int quad_hover(const flight_mode_t *mode)
 
 		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL | RC_OVRD_YAW);
 
-		if (quad_motorsCtrl(throttle, targetAlt, &att, &measure) < 0) {
+		if (quad_motorsCtrl(throttle, targetAlt, NULL, &att, &measure) < 0) {
 			return -1;
 		}
 	}
@@ -572,7 +604,7 @@ static int quad_landing(const flight_mode_t *mode)
 		/* NO GPS! - override needed not to hit something */
 		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL | RC_OVRD_YAW);
 
-		if (quad_motorsCtrl(throttle, targetAlt, &att, &measure) < 0) {
+		if (quad_motorsCtrl(throttle, targetAlt, NULL, &att, &measure) < 0) {
 			return -1;
 		}
 	}
@@ -595,7 +627,7 @@ static int quad_manual(void)
 	float throttle = 0;
 	time_t now;
 	int32_t setAlt, alt, stickSWC, rcThrottle;
-	vec_t setPos;
+	vec_t setPos, *setPosPtr;
 
 	/* Initialize yaw and altitude */
 	ekf_stateGet(&measure);
@@ -628,7 +660,8 @@ static int quad_manual(void)
 			att.yaw = measure.yaw;
 			alt = setAlt = measure.enuZ * 1000;
 
-			setPos = (vec_t) { .x = measure.enuX, .y = measure.enuY, .z = 0 };
+			/* Position control turned off */
+			setPosPtr = NULL;
 
 			/* We don`t want altitude pid to affect the hover in stabilize mode */
 			quad_common.pids[pwm_alt].flags |= PID_IGNORE_P | PID_IGNORE_I | PID_IGNORE_D;
@@ -656,12 +689,12 @@ static int quad_manual(void)
 				quad_common.pids[pwm_alt].flags &= ~PID_IGNORE_I;
 			}
 
+			/* Position control turned on */
+			setPosPtr = &setPos;
+
 			setAlt = alt;
 			quad_common.pids[pwm_pos].flags = PID_FULL;
 			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
-
-			/* Attitude control for position hold */
-			quad_attPos(&att, &setPos, &measure);
 		}
 		/* SWC == MID -> althold */
 		else {
@@ -673,14 +706,20 @@ static int quad_manual(void)
 				quad_common.pids[pwm_alt].flags &= ~PID_IGNORE_I;
 			}
 
-			setPos = (vec_t) { .x = measure.enuX, .y = measure.enuY, .z = 0 };
+			/* Position control turned off */
+			setPosPtr = NULL;
 
 			quad_common.pids[pwm_pos].flags |= PID_RESET_I;
 			setAlt = alt;
 			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 		}
 
-		if (quad_motorsCtrl(throttle, setAlt, &att, &measure) < 0) {
+		/* updates setPos only if setPosPtr is not used (position control turned off) */
+		if (setPosPtr == NULL) {
+			setPos = (vec_t) { .x = measure.enuX, .y = measure.enuY, .z = 0 };
+		}
+
+		if (quad_motorsCtrl(throttle, setAlt, setPosPtr, &att, &measure) < 0) {
 			return -1;
 		}
 	}
