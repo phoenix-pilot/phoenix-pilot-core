@@ -45,7 +45,7 @@
 /* Kalman filter index defines */
 /* */
 
-#define STATE_LENGTH     16
+#define STATE_LENGTH     19
 #define CTRL_LENGTH      6
 #define MEAS_IMU_LENGTH  6
 #define MEAS_BARO_LENGTH 2
@@ -73,6 +73,10 @@
 #define RX 13 /* position x component */
 #define RY 14 /* position y component */
 #define RZ 15 /* position z component */
+/* Earth magnetic field vector in inertial frame of reference */
+#define MX 16 /* flux x component */
+#define MY 17 /* flux y component */
+#define MZ 18 /* flux z component */
 
 
 /* control vector u */
@@ -87,9 +91,9 @@
 #define MGX 0
 #define MGY 1
 #define MGZ 2
-#define MEX 3
-#define MEY 4
-#define MEZ 5
+#define MMX 3
+#define MMY 4
+#define MMZ 5
 
 /* Baro measurement vector indexes */
 #define MDZ 0 /* Measurement of change in height (NED z component change) */
@@ -125,6 +129,7 @@ typedef struct {
 	float P_baerr;
 	float P_bwerr;
 	float P_rerr;
+	float P_merr;
 
 	/* IMU measurement model standard deviations */
 	float R_astdev;
@@ -142,6 +147,7 @@ typedef struct {
 	float Q_wstdev;
 	float Q_baDotstdev;
 	float Q_bwDotstdev;
+	float Q_mstdev;
 
 	/* Misc */
 	float magDeclSin; /* sine of magnetic field declination */

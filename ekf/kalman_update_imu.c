@@ -39,7 +39,7 @@ struct {
 /* Returns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
-	vec_t accel, accelRaw, mag, nedMeasE;
+	vec_t accel, accelRaw, mag;
 	float accelSigma, accLen;
 
 	/* Get current sensor readings */
@@ -65,18 +65,13 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	*matrix_at(R, MGY, MGY) = accelSigma;
 	*matrix_at(R, MGZ, MGZ) = accelSigma;
 
-	/* east versor calculations */
-	vec_cross(&accel, &mag, &nedMeasE);
-	vec_normalize(&nedMeasE);
-	vec_normalize(&accel);
-
 	Z->data[MGX] = accel.x;
 	Z->data[MGY] = accel.y;
 	Z->data[MGZ] = accel.z;
 
-	Z->data[MEX] = nedMeasE.x;
-	Z->data[MEY] = nedMeasE.y;
-	Z->data[MEZ] = nedMeasE.z;
+	Z->data[MMX] = mag.x;
+	Z->data[MMY] = mag.y;
+	Z->data[MMZ] = mag.z;
 
 	return Z;
 }
@@ -86,7 +81,7 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 {
 	/* gravity versor and east versor in NED frame of reference */
 	vec_t nedMeasG = { .x = 0, .y = 0, .z = 1 };
-	vec_t nedMeasE = { .x = -imu_common.inits->magDeclSin, .y = imu_common.inits->magDeclCos, .z = 0 };
+	vec_t nedMeasM = { .x = kmn_vecAt(state_est, MX), .y = kmn_vecAt(state_est, MY), .z = kmn_vecAt(state_est, MZ) };
 
 	/* Taking conjugation of quaternion as it should rotate from inertial frame to body frame */
 	const quat_t qState = {.a = kmn_vecAt(state_est, QA), .i = -kmn_vecAt(state_est, QB), .j = -kmn_vecAt(state_est, QC), .k = -kmn_vecAt(state_est, QD)};
@@ -94,15 +89,15 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 	matrix_zeroes(hx);
 
 	quat_vecRot(&nedMeasG, &qState);
-	quat_vecRot(&nedMeasE, &qState);
+	quat_vecRot(&nedMeasM, &qState);
 
 	hx->data[MGX] = nedMeasG.x;
 	hx->data[MGY] = nedMeasG.y;
 	hx->data[MGZ] = nedMeasG.z;
 
-	hx->data[MEX] = nedMeasE.x;
-	hx->data[MEY] = nedMeasE.y;
-	hx->data[MEZ] = nedMeasE.z;
+	hx->data[MMX] = nedMeasM.x;
+	hx->data[MMY] = nedMeasM.y;
+	hx->data[MMZ] = nedMeasM.z;
 
 	return hx;
 }
@@ -110,14 +105,15 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 
 static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_t timeStep)
 {
+	/* This is conjugation of state quaternion as it was used to rotate from earth NED to body frame */
 	const quat_t qState = {.a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD)};
-	const vec_t nedMeasE = { .x = -imu_common.inits->magDeclSin, .y = imu_common.inits->magDeclCos, .z = 0 };
+	const vec_t mState = { .x = kmn_vecAt(state, MX), .y = kmn_vecAt(state, MY), .z = kmn_vecAt(state, MZ) };
 
 	float dgdqData[3 * 4];
 	matrix_t dgdq = { .data = dgdqData, .rows = 3, .cols = 4, .transposed = 0 };
 
-	float dedqData[3 * 4];
-	matrix_t dedq = { .data = dedqData, .rows = 3, .cols = 4, .transposed = 0 };
+	float dmdqData[3 * 4];
+	matrix_t dmdq = { .data = dmdqData, .rows = 3, .cols = 4, .transposed = 0 };
 
 	matrix_zeroes(H);
 
@@ -131,11 +127,11 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 	dgdq.data[1] = dgdq.data[6] = dgdq.data[11] = qState.k;
 	matrix_times(&dgdq, 2);
 
-	/* Derivative of rotated east versor with respect to quaternion */
-	qvdiff_cqvqDiffQ(&qState, &nedMeasE, &dedq);
+	/* Derivative of inversly rotated mag vector with respect to quaternion */
+	qvdiff_cqvqDiffQ(&qState, &mState, &dmdq);
 
 	matrix_writeSubmatrix(H, MGX, QA, &dgdq);
-	matrix_writeSubmatrix(H, MEX, QA, &dedq);
+	matrix_writeSubmatrix(H, MMX, QA, &dmdq);
 }
 
 
@@ -148,7 +144,7 @@ static void imuUpdateInitializations(matrix_t *H, matrix_t *R)
 	*matrix_at(R, MGX, MGX) = *matrix_at(R, MGY, MGY) = *matrix_at(R, MGZ, MGZ) = imu_common.inits->R_astdev * imu_common.inits->R_astdev / (EARTH_G * EARTH_G);
 
 	/* Noise terms of east versor measurement */
-	*matrix_at(R, MEX, MEX) = *matrix_at(R, MEY, MEY) = *matrix_at(R, MEZ, MEZ) = imu_common.inits->R_mstdev * imu_common.inits->R_mstdev;
+	*matrix_at(R, MMX, MMX) = *matrix_at(R, MMY, MMY) = *matrix_at(R, MMZ, MMZ) = imu_common.inits->R_mstdev * imu_common.inits->R_mstdev;
 }
 
 
