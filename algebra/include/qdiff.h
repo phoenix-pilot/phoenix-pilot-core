@@ -44,6 +44,14 @@ int qvdiff_cqvqDiffQ(const quat_t *q, const vec_t *v, matrix_t *out);
 int qvdiff_qvqDiffV(const quat_t *q, matrix_t *out);
 
 
+/* Calculates derivative: d(cjg(q) * v * q) / d(v) with assumptions:
+ * 1) `out` is 3x3 matrix
+ * 2) q is quaternion
+ * Note: this derivative does not need value of `v`
+ */
+int qvdiff_cqvqDiffV(const quat_t *q, matrix_t *out);
+
+
 /* Calculates derivative: d(q * p) / d(q) with assumptions:
  * 1) `out` is 4x4 matrix
  * 2) 'q' and 'p' are quaternions
