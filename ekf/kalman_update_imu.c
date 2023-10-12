@@ -115,6 +115,9 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 	float dmdqData[3 * 4];
 	matrix_t dmdq = { .data = dmdqData, .rows = 3, .cols = 4, .transposed = 0 };
 
+	float dmdmData[3 * 3];
+	matrix_t dmdm = { .data = dmdmData, .rows = 3, .cols = 3, .transposed = 0 };
+
 	matrix_zeroes(H);
 
 	/* Derivative of rotated earth acceleration with respect to quaternion */
@@ -130,8 +133,12 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 	/* Derivative of inversly rotated mag vector with respect to quaternion */
 	qvdiff_cqvqDiffQ(&qState, &mState, &dmdq);
 
+	/* Derivative of inversly rotated vector with respect to earth mag vector estimation */
+	qvdiff_cqvqDiffV(&qState, &dmdm);
+
 	matrix_writeSubmatrix(H, MGX, QA, &dgdq);
 	matrix_writeSubmatrix(H, MMX, QA, &dmdq);
+	matrix_writeSubmatrix(H, MMX, MX, &dmdm);
 }
 
 
