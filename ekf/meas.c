@@ -317,9 +317,9 @@ static int meas_dAngle2si(sensor_event_t *evtNew, sensor_event_t *evtOld, vec_t 
 
 static void meas_mag2si(sensor_event_t *evt, vec_t *vec)
 {
-	vec->x = evt->mag.magX;
-	vec->y = evt->mag.magY;
-	vec->z = evt->mag.magZ;
+	vec->x = evt->mag.magX; /* 10^-7 T is 1 milligauss, leaving as is */
+	vec->y = evt->mag.magY; /* 10^-7 T is 1 milligauss, leaving as is */
+	vec->z = evt->mag.magZ; /* 10^-7 T is 1 milligauss, leaving as is */
 }
 
 
