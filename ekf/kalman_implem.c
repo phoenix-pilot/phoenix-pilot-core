@@ -52,6 +52,7 @@ static int kmn_PMatrixConverter(const hmap_t *h)
 	err |= parser_fieldGetFloat(h, "verr", &converterResult->P_verr);
 	err |= parser_fieldGetFloat(h, "baerr", &converterResult->P_baerr);
 	err |= parser_fieldGetFloat(h, "rerr", &converterResult->P_rerr);
+	err |= parser_fieldGetFloat(h, "merr", &converterResult->P_merr);
 
 	return err;
 }
@@ -82,6 +83,7 @@ static int kmn_QMatrixConverter(const hmap_t *h)
 	err |= parser_fieldGetFloat(h, "wstdev", &converterResult->Q_wstdev);
 	err |= parser_fieldGetFloat(h, "baDotstdev", &converterResult->Q_baDotstdev);
 	err |= parser_fieldGetFloat(h, "bwDotstdev", &converterResult->Q_bwDotstdev);
+	err |= parser_fieldGetFloat(h, "mstdev", &converterResult->Q_mstdev);
 
 	return err;
 }
@@ -327,6 +329,11 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	*matrix_at(state_est, BWY, 0) = kmn_vecAt(state, BWY);
 	*matrix_at(state_est, BWZ, 0) = kmn_vecAt(state, BWZ);
 
+	/* Earth magnetic field uses constant time evolution (mag. north should not change) */
+	*matrix_at(state_est, MX, 0) = kmn_vecAt(state, MX);
+	*matrix_at(state_est, MY, 0) = kmn_vecAt(state, MY);
+	*matrix_at(state_est, MZ, 0) = kmn_vecAt(state, MZ);
+
 	/* velocity estimation */
 	vec_dif(&aMeas, &baState, &aEst);
 	quat_vecRot(&aEst, &qState);
@@ -420,6 +427,9 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeSt
 	/* d(f_ba)/d(ba) calculations */
 	*matrix_at(F, BAX, BAX) = *matrix_at(F, BAY, BAY) = *matrix_at(F, BAZ, BAZ) = 1;
 
+	/* d(f_m)/d(m) calculations */
+	*matrix_at(F, MX, MX) = *matrix_at(F, MY, MY) = *matrix_at(F, MZ, MZ) = 1;
+
 	/* d(f_r)/d(r) and d(f_r)/d(v) */
 	*matrix_at(F, RX, RX) = *matrix_at(F, RY, RY) = *matrix_at(F, RZ, RZ) = 1;
 	*matrix_at(F, RX, VX) = *matrix_at(F, RY, VY) = *matrix_at(F, RZ, VZ) = dt;
@@ -464,15 +474,27 @@ static void kmn_getNoiseQ(matrix_t *state, matrix_t *U, matrix_t *Q, time_t time
 	*matrix_at(Q, BAX, BAX) = *matrix_at(Q, BAY, BAY) = *matrix_at(Q, BAZ, BAZ) = pred_common.inits->Q_baDotstdev * pred_common.inits->Q_baDotstdev * dtSq;
 
 	*matrix_at(Q, RX, RX) = *matrix_at(Q, RY, RY) = *matrix_at(Q, RZ, RZ) = (dtSq * pred_common.inits->Q_astdev) * (dtSq * pred_common.inits->Q_astdev);
+
+	/* EARTH MAGNETIC PROCESS NOISE */
+	*matrix_at(Q, MX, MX) = *matrix_at(Q, MY, MY) = *matrix_at(Q, MZ, MZ) = pred_common.inits->Q_mstdev;
+
 }
 
 
 static void kmn_initState(matrix_t *state, const meas_calib_t *calib)
 {
+	vec_t mag = calib->imu.initMag;
+
 	*matrix_at(state, QA, 0) = calib->imu.initQuat.a;
 	*matrix_at(state, QB, 0) = calib->imu.initQuat.i;
 	*matrix_at(state, QC, 0) = calib->imu.initQuat.j;
 	*matrix_at(state, QD, 0) = calib->imu.initQuat.k;
+
+	/* rotating `initMag` to earth frame of reference using `initQuat` */
+	quat_vecRot(&mag, &calib->imu.initQuat);
+	*matrix_at(state, MX, 0) = mag.x;
+	*matrix_at(state, MY, 0) = mag.y;
+	*matrix_at(state, MZ, 0) = mag.z;
 
 	*matrix_at(state, VX, 0) = 0;
 	*matrix_at(state, VY, 0) = 0;
@@ -516,6 +538,10 @@ static void kmn_initCov(matrix_t *cov, const kalman_init_t *inits)
 	*matrix_at(cov, RX, RX) = inits->P_rerr;
 	*matrix_at(cov, RY, RY) = inits->P_rerr;
 	*matrix_at(cov, RZ, RZ) = inits->P_rerr;
+
+	*matrix_at(cov, MX, MX) = inits->P_merr;
+	*matrix_at(cov, MY, MY) = inits->P_merr;
+	*matrix_at(cov, MZ, MZ) = inits->P_merr;
 }
 
 
