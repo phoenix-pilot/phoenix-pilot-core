@@ -164,6 +164,50 @@ int qvdiff_qvqDiffV(const quat_t *q, matrix_t *out)
 }
 
 
+int qvdiff_cqvqDiffV(const quat_t *q, matrix_t *out)
+{
+	float qqtData[3 * 3] = { 0 }, tmp;
+	matrix_t qqt = { .data = qqtData, .rows = 3, .cols = 3, .transposed = 0 };
+	const vec_t qVec = { .x = q->i, .y = q->j, .z = q->k };
+
+	if (matrix_rowsGet(out) != 3 || matrix_colsGet(out) != 3) {
+		return -1;
+	}
+
+	out->transposed = 0;
+
+	qvdiff_crossMat(&qVec, out);
+	matrix_times(out, -2 * q->a);
+	/* Diagonal terms of `out` are now set to zeroes by `qvdiff_crossMat`. Proceed with diagonal terms */
+	tmp = q->a * q->a - (q->i * q->i + q->j * q->j + q->k * q->k);
+	MATRIX_DATA(out, 0, 0) = tmp;
+	MATRIX_DATA(out, 1, 1) = tmp;
+	MATRIX_DATA(out, 2, 2) = tmp;
+
+	MATRIX_DATA(&qqt, 0, 0) = q->i * q->i;
+	MATRIX_DATA(&qqt, 1, 1) = q->j * q->j;
+	MATRIX_DATA(&qqt, 2, 2) = q->k * q->k;
+
+	tmp = q->i * q->j;
+	MATRIX_DATA(&qqt, 0, 1) = tmp;
+	MATRIX_DATA(&qqt, 1, 0) = tmp;
+
+	tmp = q->i * q->k;
+	MATRIX_DATA(&qqt, 0, 2) = tmp;
+	MATRIX_DATA(&qqt, 2, 0) = tmp;
+
+	tmp = q->j * q->k;
+	MATRIX_DATA(&qqt, 1, 2) = tmp;
+	MATRIX_DATA(&qqt, 2, 1) = tmp;
+
+	matrix_times(&qqt, 2);
+	matrix_add(out, &qqt, NULL);
+
+	return 0;
+}
+
+
+
 int qvdiff_qpDiffQ(const quat_t *p, matrix_t *out)
 {
 	if (out->cols != 4 || out->rows != 4) {
