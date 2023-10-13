@@ -32,7 +32,7 @@
 #include <matrix.h>
 #include <parser.h>
 
-#define KMN_CONFIG_HEADERS_CNT    6
+#define KMN_CONFIG_HEADERS_CNT    7
 #define KMN_CONFIG_MAX_FIELDS_CNT 9
 
 
@@ -217,6 +217,28 @@ static int kmn_modelConverter(const hmap_t *h)
 }
 
 
+static int kmn_miscConverter(const hmap_t *h)
+{
+	int err = 0;
+	float magDecl = 0;
+
+	err |= parser_fieldGetFloat(h, "magDecl", &magDecl);
+
+	if (err != 0) {
+		return err;
+	}
+
+	if (magDecl > 45 || magDecl < -45) {
+		return -1;
+	}
+
+	converterResult->magDeclCos = cos(M_PI * magDecl / 180);
+	converterResult->magDeclSin = sin(M_PI * magDecl / 180);
+
+	return 0;
+}
+
+
 /* reads config file named "config" from filesystem */
 int kmn_configRead(const char *configFile, kalman_init_t *initVals)
 {
@@ -236,6 +258,7 @@ int kmn_configRead(const char *configFile, kalman_init_t *initVals)
 	err |= parser_headerAdd(p, "LOGGING", kmn_loggingConverter);
 	err |= parser_headerAdd(p, "DATA_SOURCE", kmn_dataSourceConverter);
 	err |= parser_headerAdd(p, "MODEL", kmn_modelConverter);
+	err |= parser_headerAdd(p, "MISC", kmn_miscConverter);
 
 	if (err != 0) {
 		parser_free(p);

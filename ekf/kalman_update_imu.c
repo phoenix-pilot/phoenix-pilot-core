@@ -26,6 +26,7 @@
 #include <vec.h>
 #include <quat.h>
 #include <matrix.h>
+#include <qdiff.h>
 
 #include "kalman_implem.h"
 
@@ -85,7 +86,7 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 {
 	/* gravity versor and east versor in NED frame of reference */
 	vec_t nedMeasG = { .x = 0, .y = 0, .z = 1 };
-	vec_t nedMeasE = { .x = 0, .y = 1, .z = 0 };
+	vec_t nedMeasE = { .x = -imu_common.inits->magDeclSin, .y = imu_common.inits->magDeclCos, .z = 0 };
 
 	/* Taking conjugation of quaternion as it should rotate from inertial frame to body frame */
 	const quat_t qState = {.a = kmn_vecAt(state_est, QA), .i = -kmn_vecAt(state_est, QB), .j = -kmn_vecAt(state_est, QC), .k = -kmn_vecAt(state_est, QD)};
@@ -110,6 +111,7 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_t timeStep)
 {
 	const quat_t qState = {.a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD)};
+	const vec_t nedMeasE = { .x = -imu_common.inits->magDeclSin, .y = imu_common.inits->magDeclCos, .z = 0 };
 
 	float dgdqData[3 * 4];
 	matrix_t dgdq = { .data = dgdqData, .rows = 3, .cols = 4, .transposed = 0 };
@@ -130,14 +132,7 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 	matrix_times(&dgdq, 2);
 
 	/* Derivative of rotated east versor with respect to quaternion */
-	dedq.data[3] = dedq.data[4] = qState.a;
-	dedq.data[9] = -qState.a;
-	dedq.data[2] = qState.i;
-	dedq.data[5] = dedq.data[8] = -qState.i;
-	dedq.data[1] = dedq.data[6] = dedq.data[11] = qState.j;
-	dedq.data[0] = dedq.data[10] = qState.k;
-	dedq.data[7] = -qState.k;
-	matrix_times(&dedq, 2);
+	qvdiff_cqvqDiffQ(&qState, &nedMeasE, &dedq);
 
 	matrix_writeSubmatrix(H, MGX, QA, &dgdq);
 	matrix_writeSubmatrix(H, MEX, QA, &dedq);
