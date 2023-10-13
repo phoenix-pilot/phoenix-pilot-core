@@ -142,6 +142,10 @@ typedef struct {
 	float Q_wstdev;
 	float Q_baDotstdev;
 	float Q_bwDotstdev;
+
+	/* Misc */
+	float magDeclSin; /* sine of magnetic field declination */
+	float magDeclCos; /* cosine of magnetic field declination */
 } kalman_init_t;
 
 
