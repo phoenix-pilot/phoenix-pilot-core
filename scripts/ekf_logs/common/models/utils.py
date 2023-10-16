@@ -10,6 +10,9 @@ class Vector3:
     def Zero():
         return Vector3(0, 0, 0)
 
+    def as_array(self):
+        return [self.x, self.y, self.z]
+
 
 @dataclass
 class GlobalPosition:
