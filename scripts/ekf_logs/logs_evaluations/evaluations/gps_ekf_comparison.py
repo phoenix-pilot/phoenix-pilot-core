@@ -24,6 +24,13 @@ def geo_distance(latitude1, longitude1, latitude2, longitude2):
     ).m
 
 
+def nearser_values(known_array, test_array):
+    differences = (test_array.reshape(1, -1) - known_array.reshape(-1, 1))
+    indices = np.abs(differences).argmin(axis=0)
+
+    return indices
+
+
 class GpsEkfComparison(LogEvaluation):
     def __init__(self) -> None:
         self.start_lat = None
@@ -52,6 +59,7 @@ class GpsEkfComparison(LogEvaluation):
 
         self._position_comparison(context)
         self._speed_comparison(context)
+        self._acceleration_chart(context)
 
         plt.show()
 
@@ -83,6 +91,68 @@ class GpsEkfComparison(LogEvaluation):
         ax.set_title("GPS and EKF speed comparison")
         ax.set_ylabel("Speed [$m/s$]")
         ax.set_xlabel("Time [$s$]")
+
+    def _acceleration_chart(self, context: StudyContext):
+        if len(context.imu_logs) == 0:
+            print("Cannot draw acceleration graph - no data from IMU", file=sys.stderr)
+
+        north_direction_color = "#030f82"
+        east_direction_color = "#fa1bf2"
+
+        fig = plt.figure()
+        ax1 = fig.add_subplot(2, 1, 1)
+
+        north, east = self._accel_to_global_coord(context)
+
+        time_from_start = np.array([microseconds_to_seconds(log.timestamp - self.start_time) for log in context.imu_logs])
+
+        ax1.grid()
+        ax1.set_title("IMU accelerations (filtered) in earth frame of reference")
+        ax1.set_ylabel("Acceleration [$mm/s^2$]")
+        ax1.set_xlabel("Time [$s$]")
+
+        north_filtered = self._iir_filter(north)
+        east_filtered = self._iir_filter(east)
+
+        ax1.plot(time_from_start, north_filtered, linewidth=0.5, c=north_direction_color)
+        ax1.plot(time_from_start, east_filtered, linewidth=0.5, c=east_direction_color)
+
+        ax2 = fig.add_subplot(2, 1, 2)
+
+        ax2.scatter(time_from_start, north, s=2, label="North acceleration", c=north_direction_color)
+        ax2.scatter(time_from_start, east, s=2, label="North acceleration", c=east_direction_color)
+
+        ax2.grid()
+        ax2.set_title("IMU accelerations (raw sensor) in earth frame of reference")
+        ax2.set_ylabel("Acceleration [$mm/s^2$]")
+        ax2.set_xlabel("Time [$s$]")
+
+    def _accel_to_global_coord(self, context: StudyContext):
+        sensor_timestamp = np.array([log.timestamp for log in context.imu_logs])
+        state_timestamp = np.array([log.timestamp for log in context.state_logs])
+
+        nearest_state_indices = nearser_values(state_timestamp, sensor_timestamp)
+        rotations_inv = np.array([context.state_logs[i].data.attitude.inv() for i in nearest_state_indices])
+
+        north = np.empty(len(context.imu_logs))
+        east = np.empty(len(context.imu_logs))
+
+        for i in range(len(north)):
+            vector = rotations_inv[i].apply(context.imu_logs[i].data.accel.as_array())
+            north[i] = vector[0]
+            east[i] = vector[1]
+
+        return north, east
+
+    def _iir_filter(self, accels):
+        result = np.empty(len(accels))
+
+        result[0] = accels[0]
+
+        for i in range(1, len(result)):
+            result[i] = 0.1 * accels[i] + 0.9 * result[i-1]
+
+        return result
 
     def _draw_gps_pos(self, ax, context: StudyContext):
         x = np.array([self.calculate_gps_x(log) for log in context.gps_logs])
