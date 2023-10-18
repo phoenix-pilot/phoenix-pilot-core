@@ -24,7 +24,9 @@ def geo_distance(latitude1, longitude1, latitude2, longitude2):
     ).m
 
 
-def nearser_values(known_array, test_array):
+def nearest_values(known_array, test_array):
+    """Returns array of indices, were ith element is an index the nearest value in known_array to test_array[i] value"""
+
     differences = (test_array.reshape(1, -1) - known_array.reshape(-1, 1))
     indices = np.abs(differences).argmin(axis=0)
 
@@ -91,6 +93,7 @@ class GpsEkfComparison(LogEvaluation):
         ax.set_title("GPS and EKF speed comparison")
         ax.set_ylabel("Speed [$m/s$]")
         ax.set_xlabel("Time [$s$]")
+        ax.legend()
 
     def _acceleration_chart(self, context: StudyContext):
         if len(context.imu_logs) == 0:
@@ -106,39 +109,41 @@ class GpsEkfComparison(LogEvaluation):
 
         time_from_start = np.array([microseconds_to_seconds(log.timestamp - self.start_time) for log in context.imu_logs])
 
+        north_filtered = self._iir_filter(north)
+        east_filtered = self._iir_filter(east)
+
+        ax1.plot(time_from_start, north_filtered, label="North acceleration", linewidth=0.5, c=north_direction_color)
+        ax1.plot(time_from_start, east_filtered, label="East acceleration", linewidth=0.5, c=east_direction_color)
+
         ax1.grid()
         ax1.set_title("IMU accelerations (filtered) in earth frame of reference")
         ax1.set_ylabel("Acceleration [$mm/s^2$]")
         ax1.set_xlabel("Time [$s$]")
-
-        north_filtered = self._iir_filter(north)
-        east_filtered = self._iir_filter(east)
-
-        ax1.plot(time_from_start, north_filtered, linewidth=0.5, c=north_direction_color)
-        ax1.plot(time_from_start, east_filtered, linewidth=0.5, c=east_direction_color)
+        ax1.legend()
 
         ax2 = fig.add_subplot(2, 1, 2)
 
         ax2.scatter(time_from_start, north, s=2, label="North acceleration", c=north_direction_color)
-        ax2.scatter(time_from_start, east, s=2, label="North acceleration", c=east_direction_color)
+        ax2.scatter(time_from_start, east, s=2, label="East acceleration", c=east_direction_color)
 
         ax2.grid()
         ax2.set_title("IMU accelerations (raw sensor) in earth frame of reference")
         ax2.set_ylabel("Acceleration [$mm/s^2$]")
         ax2.set_xlabel("Time [$s$]")
+        ax2.legend()
 
     def _accel_to_global_coord(self, context: StudyContext):
         sensor_timestamp = np.array([log.timestamp for log in context.imu_logs])
         state_timestamp = np.array([log.timestamp for log in context.state_logs])
 
-        nearest_state_indices = nearser_values(state_timestamp, sensor_timestamp)
-        rotations_inv = np.array([context.state_logs[i].data.attitude.inv() for i in nearest_state_indices])
+        nearest_state_indices = nearest_values(state_timestamp, sensor_timestamp)
+        rotations = np.array([context.state_logs[i].data.attitude for i in nearest_state_indices])
 
         north = np.empty(len(context.imu_logs))
         east = np.empty(len(context.imu_logs))
 
         for i in range(len(north)):
-            vector = rotations_inv[i].apply(context.imu_logs[i].data.accel.as_array())
+            vector = rotations[i].apply(context.imu_logs[i].data.accel.as_array())
             north[i] = vector[0]
             east[i] = vector[1]
 
@@ -181,32 +186,36 @@ class GpsEkfComparison(LogEvaluation):
         extrapolated_x = np.empty(len(context.gps_logs) - 2)
         extrapolated_y = np.empty(len(context.gps_logs) - 2)
 
+        # Initiating last_dt with small value in case of the same timestamps in first two logs
+        last_dt = 1
+
         # Calculate extrapolation
         for i in range(1, len(context.gps_logs) - 1):
             prev_log = context.gps_logs[i-1]
             curr_log = context.gps_logs[i]
             next_log = context.gps_logs[i+1]
 
-            if (curr_log.timestamp == prev_log.timestamp):
-                # Truncating the last element
-                extrapolated_x = extrapolated_x[:len(extrapolated_x) - 2]
-                extrapolated_y = extrapolated_y[:len(extrapolated_y) - 2]
-                continue
-
             dt = curr_log.timestamp - prev_log.timestamp
+
+            # Prevents from dividing by zero
+            if dt == 0:
+                dt = last_dt
+
+            last_dt = dt
+
             extrapolation_dt = next_log.timestamp - curr_log.timestamp
 
-            prev_pos_x = self.calculate_gps_x(context.gps_logs[i-1])
-            prev_pos_y = self.calculate_gps_y(context.gps_logs[i-1])
+            prev_x = self.calculate_gps_x(context.gps_logs[i-1])
+            prev_y = self.calculate_gps_y(context.gps_logs[i-1])
 
-            curr_pos_x = self.calculate_gps_x(context.gps_logs[i])
-            curr_pos_y = self.calculate_gps_y(context.gps_logs[i])
+            curr_x = self.calculate_gps_x(context.gps_logs[i])
+            curr_y = self.calculate_gps_y(context.gps_logs[i])
 
-            prev_to_curr_vec_x = curr_pos_x - prev_pos_x
-            prev_to_curr_vec_y = curr_pos_y - prev_pos_y
+            pos_dx = curr_x - prev_x
+            pos_dy = curr_y - prev_y
 
-            extrapolated_x[i-1] = curr_pos_x + prev_to_curr_vec_x * extrapolation_dt/dt
-            extrapolated_y[i-1] = curr_pos_y + prev_to_curr_vec_y * extrapolation_dt/dt
+            extrapolated_x[i-1] = curr_x + pos_dx * extrapolation_dt/dt
+            extrapolated_y[i-1] = curr_y + pos_dy * extrapolation_dt/dt
 
         ax.scatter(extrapolated_x, extrapolated_y, c=color, s=5, label="Extrapolated GPS position")
 
@@ -224,12 +233,12 @@ class GpsEkfComparison(LogEvaluation):
     def _draw_ekf_velocities(self, ax, context: StudyContext):
         ekf_states = context.state_logs
 
-        ekf_x = np.array([microseconds_to_seconds(state.timestamp - self.start_time) for state in ekf_states])
+        time = np.array([microseconds_to_seconds(state.timestamp - self.start_time) for state in ekf_states])
         ekf_velocity_NS = np.array([state.data.velocity.x for state in ekf_states])
         ekf_velocity_EW = np.array([state.data.velocity.y for state in ekf_states])
 
-        ax.plot(ekf_x, ekf_velocity_NS, c="#0398fc", label="EKF N-S speed")
-        ax.plot(ekf_x, ekf_velocity_EW, c="#f403fc", label="EKF E-W speed")
+        ax.plot(time, ekf_velocity_NS, c="#0398fc", label="EKF N-S speed")
+        ax.plot(time, ekf_velocity_EW, c="#f403fc", label="EKF E-W speed")
 
     def _draw_gps_velocities(self, ax, context: StudyContext):
         gps_logs = context.gps_logs
@@ -241,6 +250,9 @@ class GpsEkfComparison(LogEvaluation):
         gps_velocity_NS[0] = 0
         gps_velocity_EW[0] = 0
 
+        # Initiating last_dt with small value in case of the same timestamps in first two logs
+        last_dt = 1
+
         for i in range(1, len(gps_velocity_NS)):
             prev_log = gps_logs[i-1]
             curr_log = gps_logs[i]
@@ -250,11 +262,11 @@ class GpsEkfComparison(LogEvaluation):
 
             dt = microseconds_to_seconds(curr_log.timestamp - prev_log.timestamp)
 
+            # Prevents from dividing by zero
             if dt == 0:
-                # Truncating the last element
-                gps_velocity_NS = gps_velocity_NS[:len(gps_velocity_NS) - 2]
-                gps_velocity_EW = gps_velocity_EW[:len(gps_velocity_EW) - 2]
-                continue
+                dt = last_dt
+
+            last_dt = dt
 
             gps_velocity_NS[i] = dist_n/dt
             gps_velocity_EW[i] = dist_e/dt
