@@ -75,7 +75,7 @@
 typedef enum { mode_rc = 0, mode_auto } control_mode_t;
 
 struct {
-	pid_ctx_t *pids;
+	quad_pids_t pids;
 	mma_atten_t atten;
 
 	handle_t rcbusLock;
@@ -119,11 +119,12 @@ static inline time_t quad_timeMsGet(void)
 
 static inline void quad_pidRestore(void)
 {
-	quad_common.pids[pwm_alt].flags = PID_FULL;
-	quad_common.pids[pwm_roll].flags = PID_FULL;
-	quad_common.pids[pwm_pitch].flags = PID_FULL;
-	quad_common.pids[pwm_yaw].flags = PID_FULL;
-	quad_common.pids[pwm_pos].flags = PID_FULL;
+	quad_common.pids.alt.flags = PID_FULL;
+	quad_common.pids.pitch.flags = PID_FULL;
+	quad_common.pids.roll.flags = PID_FULL;
+	quad_common.pids.yaw.flags = PID_FULL;
+
+	quad_common.pids.pos.flags = PID_FULL;
 }
 
 
@@ -139,19 +140,18 @@ static void quad_attPos(const vec_t *setPos, const ekf_state_t *measure, float *
 {
 	const vec_t currPos = { .x = measure->enuX, .y = measure->enuY, .z = 0 };
 	const vec_t currVel = { .x = measure->veloX, .y = measure->veloY, .z = 0 };
+	const float accMax = tan(ANGLE_THRESHOLD_LOW) * EARTH_G;
 
-	float posPid, yawCos, yawSin, dPitch, dRoll;
-	vec_t offset, accBody, accEarth;
+	float yawCos, yawSin, dPitch, dRoll, accLen;
+	vec_t accBody, accEarth;
 
-	vec_dif(&currPos, setPos, &offset);
+	pid_calc3d(&quad_common.pids.pos, setPos, &currPos, &currVel, dt, &accEarth);
 
-	/* posPid is interpreted as acceleration towards the target */
-	posPid = pid_calc(&quad_common.pids[pwm_pos], 0, vec_len(&offset), vec_len(&currVel), dt);
-
-	/* use `offset` vector as acceleration direction */
-	accEarth = offset;
-	vec_normalize(&accEarth);
-	vec_times(&accEarth, posPid);
+	/* Clip to max acceleration */
+	accLen = vec_len(&accEarth);
+	if (accLen > accMax) {
+		vec_times(&accEarth, accMax / accLen);
+	}
 
 	yawCos = cos(measure->yaw);
 	yawSin = sin(measure->yaw);
@@ -179,7 +179,7 @@ static void quad_attPos(const vec_t *setPos, const ekf_state_t *measure, float *
 		dPitch = -ANGLE_THRESHOLD_LOW;
 	}
 
-	log_print("Y %f T %f %f Ae %f %f Ab %f %f D %f %f\n", measure->yaw, offset.x, offset.y, accEarth.x, accEarth.y, accBody.x, accBody.y, dPitch, dRoll);
+	log_print("Y %f Ae %f %f Ab %f %f D %f %f\n", measure->yaw, accEarth.x, accEarth.y, accBody.x, accBody.y, dPitch, dRoll);
 
 	*dPitchOut = dPitch;
 	*dRollOut = dRoll;
@@ -227,10 +227,10 @@ static int quad_motorsCtrl(float throttle, int32_t alt, const vec_t *setPos, con
 		quad_attPos(setPos, measure, &dPitchPos, &dRollPos, dt);
 	}
 
-	palt = pid_calc(&quad_common.pids[pwm_alt], alt / 1000.f, measure->enuZ, measure->veloZ, dt);
-	proll = pid_calc(&quad_common.pids[pwm_roll], att->roll + dRollPos, measure->roll, measure->rollDot, dt);
-	ppitch = pid_calc(&quad_common.pids[pwm_pitch], att->pitch + dPitchPos, measure->pitch, measure->pitchDot, dt);
-	pyaw = pid_calc(&quad_common.pids[pwm_yaw], att->yaw, measure->yaw, measure->yawDot, dt);
+	palt = pid_calc(&quad_common.pids.alt, alt / 1000.f, measure->enuZ, measure->veloZ, dt);
+	proll = pid_calc(&quad_common.pids.roll, att->roll + dRollPos, measure->roll, measure->rollDot, dt);
+	ppitch = pid_calc(&quad_common.pids.pitch, att->pitch + dPitchPos, measure->pitch, measure->pitchDot, dt);
+	pyaw = pid_calc(&quad_common.pids.yaw, att->yaw, measure->yaw, measure->yawDot, dt);
 
 	if (mma_control(throttle + palt, proll, ppitch, pyaw) < 0) {
 		return -1;
@@ -431,7 +431,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 	log_print("TAKEOFF - alt: %d\n", targetAlt);
 
 	/* Ignoring I for a takeoff beginning so it doesn`t wind up */
-	quad_common.pids[pwm_alt].flags = PID_FULL | PID_IGNORE_I;
+	quad_common.pids.alt.flags = PID_FULL | PID_IGNORE_I;
 
 	now = quad_timeMsGet();
 	tIdle = now + idleTime;
@@ -452,20 +452,20 @@ static int quad_takeoff(const flight_mode_t *mode)
 			alt = startAlt;                 /* takeoff throttle sag enforced via negative target altitude */
 			throttle = 0.5 * hoverThrottle; /* relaxation time throttle sag */
 
-			quad_common.pids[pwm_yaw].flags = PID_FULL | PID_IGNORE_I | PID_RESET_I;
-			quad_common.pids[pwm_alt].flags = PID_FULL | PID_IGNORE_I | PID_RESET_I;
+			quad_common.pids.yaw.flags = PID_FULL | PID_IGNORE_I | PID_RESET_I;
+			quad_common.pids.alt.flags = PID_FULL | PID_IGNORE_I | PID_RESET_I;
 		}
 		else if (now < tStart) {
 			/* Bringing drone to hover throttle minus altitude pid */
 			alt = startAlt;
-			quad_common.pids[pwm_yaw].flags = PID_FULL | PID_IGNORE_I;
-			quad_common.pids[pwm_alt].flags = PID_FULL | PID_IGNORE_I;
+			quad_common.pids.yaw.flags = PID_FULL | PID_IGNORE_I;
+			quad_common.pids.alt.flags = PID_FULL | PID_IGNORE_I;
 			throttle = hoverThrottle * (1 - 0.5 * (float)(tStart - now) / spoolTime); /* reducing relaxation time throttle sag */
 		}
 		else if (now < tEnd) {
 			/* Lifting up the altitude to lift the drone */
-			quad_common.pids[pwm_yaw].flags = PID_FULL | PID_IGNORE_I;
-			quad_common.pids[pwm_alt].flags = PID_FULL | PID_IGNORE_I;
+			quad_common.pids.yaw.flags = PID_FULL | PID_IGNORE_I;
+			quad_common.pids.alt.flags = PID_FULL | PID_IGNORE_I;
 			alt = startAlt + (float)(targetAlt - startAlt) * (1 - (float)(tEnd - now) / liftTime);
 		}
 		else {
@@ -480,15 +480,15 @@ static int quad_takeoff(const flight_mode_t *mode)
 
 		/* Do not use I altitude pid if there is too big difference between current alt and set alt */
 		if (fabs(measure.enuZ * 1000 - targetAlt) > 1000) {
-			quad_common.pids[pwm_alt].flags |= PID_IGNORE_I;
+			quad_common.pids.alt.flags |= PID_IGNORE_I;
 		}
 		else {
-			quad_common.pids[pwm_alt].flags &= ~PID_IGNORE_I;
+			quad_common.pids.alt.flags &= ~PID_IGNORE_I;
 		}
 
 		/* switch on the I gain in altitude PID controller if we cross (targetAlt - 1m) threshold */
 		if ((measure.enuZ * 1000) > (targetAlt - 1000)) {
-			quad_common.pids[pwm_alt].flags = PID_FULL;
+			quad_common.pids.alt.flags = PID_FULL;
 		}
 
 		/* Perform low threshold check in case of drone tipping off */
@@ -540,10 +540,10 @@ static int quad_hover(const flight_mode_t *mode)
 
 		/* Do not use I altitude pid if there is too big difference between current alt and set alt */
 		if (fabs(measure.enuZ * 1000 - targetAlt) > 1000) {
-			quad_common.pids[pwm_alt].flags |= PID_IGNORE_I;
+			quad_common.pids.alt.flags |= PID_IGNORE_I;
 		}
 		else {
-			quad_common.pids[pwm_alt].flags &= ~PID_IGNORE_I;
+			quad_common.pids.alt.flags &= ~PID_IGNORE_I;
 		}
 
 		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL | RC_OVRD_YAW);
@@ -653,7 +653,7 @@ static int quad_manual(void)
 		rcThrottle = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
 		mutexUnlock(quad_common.rcbusLock);
 
-		quad_common.pids[pwm_alt].flags = PID_FULL;
+		quad_common.pids.alt.flags = PID_FULL;
 
 		/* SWC == LOW (or illegal value) -> stabilize */
 		if (quad_rcChLow(stickSWC) || stickSWC > MAX_CHANNEL_VALUE) {
@@ -664,8 +664,8 @@ static int quad_manual(void)
 			setPosPtr = NULL;
 
 			/* We don`t want altitude pid to affect the hover in stabilize mode */
-			quad_common.pids[pwm_alt].flags |= PID_IGNORE_P | PID_IGNORE_I | PID_IGNORE_D;
-			quad_common.pids[pwm_pos].flags |= PID_RESET_I;
+			quad_common.pids.alt.flags |= PID_IGNORE_P | PID_IGNORE_I | PID_IGNORE_D;
+			quad_common.pids.pos.flags |= PID_RESET_I;
 
 			quad_rcOverride(&att, &throttle, RC_OVRD_LEVEL | RC_OVRD_YAW | RC_OVRD_THROTTLE);
 
@@ -683,33 +683,33 @@ static int quad_manual(void)
 		else if (quad_rcChHgh(stickSWC)) {
 			/* Do not use I altitude pid if there is too big difference between current alt and set alt */
 			if (fabs(measure.enuZ * 1000 - setAlt) > 1000) {
-				quad_common.pids[pwm_alt].flags |= PID_IGNORE_I;
+				quad_common.pids.alt.flags |= PID_IGNORE_I;
 			}
 			else {
-				quad_common.pids[pwm_alt].flags &= ~PID_IGNORE_I;
+				quad_common.pids.alt.flags &= ~PID_IGNORE_I;
 			}
 
 			/* Position control turned on */
 			setPosPtr = &setPos;
 
 			setAlt = alt;
-			quad_common.pids[pwm_pos].flags = PID_FULL;
+			quad_common.pids.pos.flags = PID_FULL;
 			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 		}
 		/* SWC == MID -> althold */
 		else {
 			/* Do not use I altitude pid if there is too big difference between current alt and set alt */
 			if (fabs(measure.enuZ * 1000 - setAlt) > 1000) {
-				quad_common.pids[pwm_alt].flags |= PID_IGNORE_I;
+				quad_common.pids.alt.flags |= PID_IGNORE_I;
 			}
 			else {
-				quad_common.pids[pwm_alt].flags &= ~PID_IGNORE_I;
+				quad_common.pids.alt.flags &= ~PID_IGNORE_I;
 			}
 
 			/* Position control turned off */
 			setPosPtr = NULL;
 
-			quad_common.pids[pwm_pos].flags |= PID_RESET_I;
+			quad_common.pids.pos.flags |= PID_RESET_I;
 			setAlt = alt;
 			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 		}
@@ -901,7 +901,6 @@ static void quad_done(void)
 	rcbus_done();
 
 	free(quad_common.scenario);
-	free(quad_common.pids);
 
 	resourceDestroy(quad_common.rcbusLock);
 }
@@ -924,20 +923,17 @@ static int quad_config(void)
 
 	if (res != PID_NUMBERS) {
 		fprintf(stderr, "quadcontrol: wrong number of PIDs in %s\n", PATH_QUAD_CONFIG);
-		free(quad_common.pids);
 		return -1;
 	}
 
 	/* Reading throttle configs*/
 	if (config_throttleRead(PATH_QUAD_CONFIG, &throttleTmp, &res) != 0) {
 		fprintf(stderr, "quadcontrol: cannot parse throttle from %s\n", PATH_QUAD_CONFIG);
-		free(quad_common.pids);
 		return -1;
 	}
 
 	if (res != 1) {
 		fprintf(stderr, "quadcontrol: wrong number of throttle configs in %s\n", PATH_QUAD_CONFIG);
-		free(quad_common.pids);
 		free(throttleTmp);
 		return -1;
 	}
@@ -948,13 +944,11 @@ static int quad_config(void)
 	/* Reading pid attenuation configs*/
 	if (config_attenRead(PATH_QUAD_CONFIG, &attenTmp, &res) != 0) {
 		fprintf(stderr, "quadcontrol: cannot parse pid attenuation from %s\n", PATH_QUAD_CONFIG);
-		free(quad_common.pids);
 		return -1;
 	}
 
 	if (res != 1) {
 		fprintf(stderr, "quadcontrol: wrong number of attenuation configs in %s\n", PATH_QUAD_CONFIG);
-		free(quad_common.pids);
 		free(attenTmp);
 		return -1;
 	}
@@ -965,13 +959,11 @@ static int quad_config(void)
 #if TEST_ATTITUDE
 	if (config_attitudeRead(PATH_QUAD_CONFIG, &attTmp, &res) != 0) {
 		fprintf(stderr, "quadcontrol: cannot parse attitude from %s\n", PATH_QUAD_CONFIG);
-		free(quad_common.pids);
 		return -1;
 	}
 
 	if (res != 1) {
 		fprintf(stderr, "quadcontrol: wrong number of attitude configs in %s\n", PATH_QUAD_CONFIG);
-		free(quad_common.pids);
 		free(attTmp);
 		return -1;
 	}
@@ -981,7 +973,6 @@ static int quad_config(void)
 #endif
 
 	if (config_scenarioRead(PATH_SCENARIO_CONFIG, &quad_common.scenario, &quad_common.scenarioSz) != 0) {
-		free(quad_common.pids);
 		return -1;
 	}
 
@@ -992,7 +983,6 @@ static int quad_config(void)
 static int quad_init(void)
 {
 	int res;
-	unsigned int i = 0;
 
 	/* Enabling logging by default */
 	log_enable();
@@ -1011,24 +1001,27 @@ static int quad_init(void)
 	}
 
 	/* Set initial values */
-	for (i = 0; i < PID_NUMBERS; ++i) {
-		if (pid_init(&quad_common.pids[i]) < 0) {
-			fprintf(stderr, "quadcontrol: cannot initialize PID %d\n", i);
-			resourceDestroy(quad_common.rcbusLock);
-			free(quad_common.scenario);
-			free(quad_common.pids);
-			return -1;
-		}
+	res = 0;
+	res |= pid_init(&quad_common.pids.yaw);
+	res |= pid_init(&quad_common.pids.pitch);
+	res |= pid_init(&quad_common.pids.roll);
+	res |= pid_init(&quad_common.pids.alt);
+	res |= pid_init(&quad_common.pids.pos);
+	if (res != 0) {
+		fprintf(stderr, "quadcontrol: cannot initialize PIDs\n");
+		resourceDestroy(quad_common.rcbusLock);
+		free(quad_common.scenario);
+		return -1;
 	}
+
 	/* get boundary values of euler angles from ekf module */
-	ekf_boundsGet(&quad_common.pids[pwm_yaw].errBound, &quad_common.pids[pwm_roll].errBound, &quad_common.pids[pwm_pitch].errBound);
+	ekf_boundsGet(&quad_common.pids.yaw.errBound, &quad_common.pids.pos.errBound, &quad_common.pids.pos.errBound);
 
 	/* MMA initialization */
 	if (mma_init(&quadCoeffs, &quad_common.atten) < 0) {
 		fprintf(stderr, "quadcontrol: cannot initialize mma module\n");
 		resourceDestroy(quad_common.rcbusLock);
 		free(quad_common.scenario);
-		free(quad_common.pids);
 		return -1;
 	}
 
@@ -1038,7 +1031,6 @@ static int quad_init(void)
 		fprintf(stderr, "quadcontrol: cannot initialize rcbus using %s\n", PATH_DEV_RC_BUS);
 		resourceDestroy(quad_common.rcbusLock);
 		free(quad_common.scenario);
-		free(quad_common.pids);
 		return -1;
 	}
 
@@ -1047,7 +1039,6 @@ static int quad_init(void)
 		fprintf(stderr, "quadcontrol: cannot initialize ekf\n");
 		resourceDestroy(quad_common.rcbusLock);
 		free(quad_common.scenario);
-		free(quad_common.pids);
 		return -1;
 	}
 

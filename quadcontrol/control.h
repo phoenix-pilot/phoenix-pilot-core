@@ -17,6 +17,8 @@
 #include <time.h>
 #include <stdint.h>
 
+#include "pid.h"
+
 
 /* Flight Modes Definitions */
 
@@ -85,6 +87,14 @@ typedef struct {
 	float dist;       /* distance between motor axis and center of gravity [m] */
 	uint32_t maxRPM;
 } quad_coeffs_t;
+
+typedef struct {
+	pid_ctx_t alt;
+	pid_ctx_t pitch;
+	pid_ctx_t roll;
+	pid_ctx_t yaw;
+	pid_ctx_t pos;
+} quad_pids_t;
 
 
 #endif
