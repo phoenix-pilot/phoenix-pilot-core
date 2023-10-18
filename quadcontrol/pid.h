@@ -17,6 +17,8 @@
 
 #include <time.h>
 
+#include <vec.h>
+
 #define NO_BOUNDVAL 0.0
 
 #define PID_FULL     0
@@ -30,8 +32,12 @@ typedef struct {
 	float max; /* maximum impact of this coefficient */
 	float f;   /* coefficient IIR parameter (0 disables filtering) */
 
-	float val; /* current value of calculated coefficient impact */
+	union {
+		float scl;
+		vec_t vec;
+	} val;
 } pid_coef_t;
+
 
 typedef struct {
 	pid_coef_t r; /* rate error (R) coefficient */
@@ -39,8 +45,13 @@ typedef struct {
 	pid_coef_t i; /* rate error I coefficient */
 	pid_coef_t d; /* rate error D coefficient */
 
-	float prevErr;  /* previous error for D controller */
+	/* previous error for D controller */
+	union {
+		float scl;
+		vec_t vec;
+	} prevErr;
 	float errBound; /* positive boundary value for process variable (symmetric boundary value assumed) */
+
 	uint32_t flags; /* flags controlling pid controller behaviour */
 
 } pid_ctx_t;
@@ -57,7 +68,17 @@ extern int pid_init(pid_ctx_t *pid);
  * 3) use target rate and currRate as base variable for standard PID controller
  * Performs cyclic boundary check on position error, and max/min checks on R,P,I and D controllers.
  */
-float pid_calc(pid_ctx_t *pid, float targetPos, float currPos, float currRate, time_t dt);
+extern float pid_calc(pid_ctx_t *pid, float targetPos, float currPos, float currRate, time_t dt);
+
+
+/*
+ * 3d vectorial PID controller calculation process:
+ * 1) calculate position error from targetPos and currPos
+ * 2) translate position error into target rate
+ * 3) use target rate and currRate as base variable for standard PID controller
+ * Performs cyclic boundary check on position error, and max/min checks on R,P,I and D controllers.
+ */
+extern void pid_calc3d(pid_ctx_t *pid, const vec_t *targetPos, const vec_t *currPos, const vec_t *currRate, time_t dt, vec_t *out);
 
 
 /* TODO: Tuning gain coefficients */
