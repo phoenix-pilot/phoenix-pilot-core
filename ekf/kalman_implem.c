@@ -229,6 +229,7 @@ static int kmn_miscConverter(const hmap_t *h)
 	}
 
 	if (magDecl > 45 || magDecl < -45) {
+		fprintf(stderr, "Ekf config: magDecl outside of [-45 deg, +45 deg]");
 		return -1;
 	}
 

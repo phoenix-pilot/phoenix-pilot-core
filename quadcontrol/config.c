@@ -350,6 +350,7 @@ static int config_pidConverter(const hmap_t *h)
 	}
 	else {
 		fprintf(stderr, "pid: unknown type %s\n", type);
+		return -1;
 	}
 
 	res[cfg_pidID].invCnt++;
@@ -371,7 +372,7 @@ int config_pidRead(const char *path, quad_pids_t *ctx, int *sz)
 
 	*sz = 0;
 
-	/* Parser have to parser one header, which have twelve fields */
+	/* Parser have to parser one header, which have 13 fields */
 	p = parser_alloc(1, 13);
 	if (p == NULL) {
 		return -1;
