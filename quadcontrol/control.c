@@ -1098,10 +1098,8 @@ int main(int argc, char **argv)
 
 	priority(1);
 
-	err = quad_init();
-	if (err < 0) {
-		return EXIT_FAILURE;
-	}
+	/* Default mma initialization. It will be only used as crash warden */
+	mma_init(NULL, NULL);
 
 	signal(SIGINT, SIG_IGN);
 	signal(SIGQUIT, SIG_IGN);
@@ -1113,6 +1111,8 @@ int main(int argc, char **argv)
 		do {
 			ret = waitpid(pid, &status, 0);
 		} while (ret < 0 && errno == EINTR);
+
+		mma_stop();
 	}
 	/* Child process runs flight scenario and can be terminated */
 	else if (pid == 0) {
@@ -1122,6 +1122,11 @@ int main(int argc, char **argv)
 
 		/* Take terminal control */
 		tcsetpgrp(STDIN_FILENO, getpid());
+
+		if (quad_init() < 0) {
+			fprintf(stderr, "quadcontrol: cannot initialize\n");
+			exit(EXIT_FAILURE);
+		}
 
 		if (rcbus_run(quad_rcbusHandler, 500) < 0) {
 			fprintf(stderr, "quadcontrol: cannot run rcbus\n");
@@ -1151,8 +1156,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "quadcontrol: vfork failed with code %d\n", pid);
 	}
 
-
-	quad_done();
+	mma_done();
 
 	/* Take back terminal control */
 	tcsetpgrp(STDIN_FILENO, getpid());
