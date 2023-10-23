@@ -6,6 +6,7 @@ import numpy as np
 
 from logs_evaluations.log_evaluations import LogEvaluation
 from logs_evaluations.context import StudyContext
+from logs_evaluations.evaluations.gps_ekf_comparison.iir_filter import IIR_filter
 
 
 def nanodegrees_to_degrees(nanodegrees):
@@ -109,8 +110,10 @@ class GpsEkfComparison(LogEvaluation):
 
         time_from_start = np.array([microseconds_to_seconds(log.timestamp - self.start_time) for log in context.imu_logs])
 
-        north_filtered = self._iir_filter(north)
-        east_filtered = self._iir_filter(east)
+        filter = IIR_filter(cur_input_coef=0.1, prev_result_coef=0.9)
+
+        north_filtered = filter.run(north)
+        east_filtered = filter.run(east)
 
         ax1.plot(time_from_start, north_filtered, label="North acceleration", linewidth=0.5, c=north_direction_color)
         ax1.plot(time_from_start, east_filtered, label="East acceleration", linewidth=0.5, c=east_direction_color)
@@ -148,16 +151,6 @@ class GpsEkfComparison(LogEvaluation):
             east[i] = vector[1]
 
         return north, east
-
-    def _iir_filter(self, accels):
-        result = np.empty(len(accels))
-
-        result[0] = accels[0]
-
-        for i in range(1, len(result)):
-            result[i] = 0.1 * accels[i] + 0.9 * result[i-1]
-
-        return result
 
     def _draw_gps_pos(self, ax, context: StudyContext):
         x = np.array([self.calculate_gps_x(log) for log in context.gps_logs])
