@@ -150,22 +150,30 @@ int mma_init(const quad_coeffs_t *coeffs, const mma_atten_t *atten)
 		return -1;
 	}
 
-	if (atten->startVal < PID_ATTEN_FACTOR_MIN || atten->midVal < PID_ATTEN_FACTOR_MIN || atten->endVal < PID_ATTEN_FACTOR_MIN) {
-		printf("mma: attenuation curve below %f\n", PID_ATTEN_FACTOR_MIN);
-		return -1;
+	/* default attenuation values */
+	mma_common.atten.startVal = 1;
+	mma_common.atten.midArg = 0.5;
+	mma_common.atten.midVal = 1;
+	mma_common.atten.endVal = 1;
+
+	if (atten != NULL) {
+		if (atten->startVal < PID_ATTEN_FACTOR_MIN || atten->midVal < PID_ATTEN_FACTOR_MIN || atten->endVal < PID_ATTEN_FACTOR_MIN) {
+			printf("mma: attenuation curve below %f\n", PID_ATTEN_FACTOR_MIN);
+			return -1;
+		}
+		if (atten->startVal > PID_ATTEN_FACTOR_MAX || atten->midVal > PID_ATTEN_FACTOR_MAX || atten->endVal > PID_ATTEN_FACTOR_MAX) {
+			printf("mma: attenuation curve above %f\n", PID_ATTEN_FACTOR_MAX);
+			return -1;
+		}
+		if (atten->midArg < PID_ATTEN_MIDDLE_MIN || atten->midArg > PID_ATTEN_MIDDLE_MAX) {
+			printf("mma: illegal attenuation middle point\n");
+			return -1;
+		}
+		mma_common.atten = *atten;
 	}
-	if (atten->startVal > PID_ATTEN_FACTOR_MAX || atten->midVal > PID_ATTEN_FACTOR_MAX || atten->endVal > PID_ATTEN_FACTOR_MAX) {
-		printf("mma: attenuation curve above %f\n", PID_ATTEN_FACTOR_MAX);
-		return -1;
-	}
-	if (atten->midArg < PID_ATTEN_MIDDLE_MIN || atten->midArg > PID_ATTEN_MIDDLE_MAX) {
-		printf("mma: illegal attenuation middle point\n");
-		return -1;
-	}
-	mma_common.atten = *atten;
+
 	mma_common.atten.slope[0] = (mma_common.atten.midVal - mma_common.atten.startVal) / mma_common.atten.midArg;
 	mma_common.atten.slope[1] = (mma_common.atten.endVal - mma_common.atten.midVal) / (1 - mma_common.atten.midArg);
-
 
 	err = mutexCreate(&mma_common.lock);
 	if (err < 0) {
@@ -182,7 +190,9 @@ int mma_init(const quad_coeffs_t *coeffs, const mma_atten_t *atten)
 	}
 
 	/* TODO: mma_common.coeffs for future usage */
-	memcpy(&mma_common.coeffs, coeffs, sizeof(quad_coeffs_t));
+	if (coeffs != NULL) {
+		memcpy(&mma_common.coeffs, coeffs, sizeof(quad_coeffs_t));
+	}
 
 	return 0;
 }
