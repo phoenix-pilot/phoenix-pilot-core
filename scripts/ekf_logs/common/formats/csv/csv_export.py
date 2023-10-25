@@ -101,10 +101,11 @@ class CsvLogExporter(LogsVisitor):
 
         attitude_quat = state_log.data.attitude.as_quat()
 
+        # Scipy uses scalar-last quaternion format (x, y, z, w)
+        self.entry.append(attitude_quat[3])
         self.entry.append(attitude_quat[0])
         self.entry.append(attitude_quat[1])
         self.entry.append(attitude_quat[2])
-        self.entry.append(attitude_quat[3])
 
         self.entry.append(state_log.data.gyroscopeBias.x)
         self.entry.append(state_log.data.gyroscopeBias.y)

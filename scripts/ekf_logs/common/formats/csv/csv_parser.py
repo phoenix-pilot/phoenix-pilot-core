@@ -99,7 +99,8 @@ class CsvLogParser:
         timestamp = int(row[2])
 
         ekf_state_data = logs_data.EkfState(
-            attitude=Rotation.from_quat([float(row[3]), float(row[4]), float(row[5]), float(row[6])]),
+            # Scipy uses scalar-last quaternion format (x, y, z, w)
+            attitude=Rotation.from_quat([float(row[4]), float(row[5]), float(row[6]), float(row[3])]),
             gyroscopeBias=utils.Vector3(float(row[7]), float(row[8]), float(row[9])),
             velocity=utils.Vector3(float(row[10]), float(row[11]), float(row[12])),
             accelerometerBias=utils.Vector3(float(row[13]), float(row[14]), float(row[15])),

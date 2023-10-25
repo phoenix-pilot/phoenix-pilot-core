@@ -99,7 +99,8 @@ class BinaryLogParser:
         fields = self.__parse_struct(file, structs.STATE)
 
         ekf_state = log_data.EkfState(
-            attitude=Rotation.from_quat([fields[0], fields[1], fields[2], fields[3]]),
+            # Scipy uses scalar-last quaternion format (x, y, z, w)
+            attitude=Rotation.from_quat([fields[1], fields[2], fields[3], fields[0]]),
             gyroscopeBias=utils.Vector3(fields[4], fields[5], fields[6]),
             velocity=utils.Vector3(fields[7], fields[8], fields[9]),
             accelerometerBias=utils.Vector3(fields[10], fields[11], fields[12]),
