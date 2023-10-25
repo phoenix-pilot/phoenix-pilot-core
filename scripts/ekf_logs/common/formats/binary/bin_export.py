@@ -92,10 +92,11 @@ class BinaryLogExporter(LogsVisitor):
 
         self.file.write(
             structs.STATE.pack(
+                # Scipy uses scalar-last quaternion format (x, y, z, w)
+                attitude_quat[3],
                 attitude_quat[0],
                 attitude_quat[1],
                 attitude_quat[2],
-                attitude_quat[3],
                 state_log.data.gyroscopeBias.x,
                 state_log.data.gyroscopeBias.y,
                 state_log.data.gyroscopeBias.z,
