@@ -65,7 +65,7 @@
 
 #define ABORT_FRAMES_THRESH 5       /* number of correct abort frames from RC transmitter to initiate abort sequence */
 #define RC_ERROR_TIMEOUT    2000000 /* number of microseconds of continuous rc error that causes flight abort */
-#define LOG_PERIOD          1000    /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
+#define LOG_PERIOD          500     /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
 
 /* Flight modes magic numbers */
 #define QCTRL_ALTHOLD_JUMP   5000  /* altitude step (millimeters) for two-height althold mode in quad_manual */
@@ -179,8 +179,6 @@ static void quad_attPos(const vec_t *setPos, const ekf_state_t *measure, float *
 		dPitch = -ANGLE_THRESHOLD_LOW;
 	}
 
-	log_print("Y %f Ae %f %f Ab %f %f D %f %f\n", measure->yaw, accEarth.x, accEarth.y, accBody.x, accBody.y, dPitch, dRoll);
-
 	*dPitchOut = dPitch;
 	*dRollOut = dRoll;
 }
@@ -201,6 +199,19 @@ static inline bool quad_periodLogEnable(time_t now)
 	log_disable();
 
 	return false;
+}
+
+
+static void quad_cmdCockpit(const ekf_state_t *measure)
+{
+	int alt, dst, hdg, vel;
+
+	alt = measure->enuZ;
+	dst = sqrt(measure->enuX * measure->enuX + measure->enuY * measure->enuY);
+	hdg = measure->yaw * 180 / M_PI + (measure->yaw < 0) ? 360 : 0;
+	vel = sqrt(measure->veloX * measure->veloX + measure->veloY * measure->veloY);
+
+	log_print("ALT %3d DST %3d HDG %3d VEL %2d\n", alt, dst, hdg, vel);
 }
 
 
@@ -713,6 +724,8 @@ static int quad_manual(void)
 			setAlt = alt;
 			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 		}
+
+		quad_cmdCockpit(&measure);
 
 		/* updates setPos only if setPosPtr is not used (position control turned off) */
 		if (setPosPtr == NULL) {
