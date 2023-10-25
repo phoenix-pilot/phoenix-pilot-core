@@ -225,6 +225,7 @@ int meas_gpsCalib(void)
 	}
 
 	i = 0;
+	printf("Sampling gps position");
 	while (i < avg) {
 		if (meas_common.gpsAcq(&gpsEvt) < 0) {
 			if (++fails > MAX_CONSECUTIVE_FAILS) {
@@ -234,13 +235,14 @@ int meas_gpsCalib(void)
 			sleep(1);
 			continue;
 		}
+		printf(".");
 		ekflog_gpsWrite(&gpsEvt);
-		printf("Sampling gps position: sample %d/%d\n", i + 1, avg);
 		refPos.lat += (double)gpsEvt.gps.lat / 1e9;
 		refPos.lon += (double)gpsEvt.gps.lon / 1e9;
 		refPos.h += gpsEvt.gps.alt / 1e3;
 		i++;
 	}
+	printf("\n");
 	refPos.lat /= avg;
 	refPos.lon /= avg;
 	refPos.h /= avg;
@@ -255,7 +257,7 @@ int meas_gpsCalib(void)
 
 	meas_geo2ecef(&meas_common.calib.gps.refGeodetic, meas_common.calib.gps.refEcef);
 
-	printf("Acquired GPS position of (lat/lon/h): %f/%f/%f\n", meas_common.calib.gps.refEcef[0], meas_common.calib.gps.refEcef[1], meas_common.calib.gps.refEcef[2]);
+	printf("Acquired GPS position of (lat/lon/h): %f/%f/%f\n", meas_common.calib.gps.refGeodetic.lat, meas_common.calib.gps.refGeodetic.lon, meas_common.calib.gps.refGeodetic.h);
 
 	return 0;
 }
