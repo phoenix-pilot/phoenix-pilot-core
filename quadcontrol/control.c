@@ -233,6 +233,7 @@ static int quad_motorsCtrl(float throttle, int32_t alt, const vec_t *setPos, con
 	dt = now - quad_common.lastTime;
 	quad_common.lastTime = now;
 
+	quad_cmdCockpit(measure);
 
 	if (setPos != NULL) {
 		quad_attPos(setPos, measure, &dPitchPos, &dRollPos, dt);
@@ -639,6 +640,7 @@ static int quad_manual(void)
 	time_t now;
 	int32_t setAlt, alt, stickSWC, rcThrottle;
 	vec_t setPos, *setPosPtr;
+	enum subType { sub_stab, sub_alt, sub_phld } submode;
 
 	/* Initialize yaw and altitude */
 	ekf_stateGet(&measure);
@@ -666,66 +668,55 @@ static int quad_manual(void)
 
 		quad_common.pids.alt.flags = PID_FULL;
 
-		/* SWC == LOW (or illegal value) -> stabilize */
+		/* submode selection */
 		if (quad_rcChLow(stickSWC) || stickSWC > MAX_CHANNEL_VALUE) {
-			att.yaw = measure.yaw;
-			alt = setAlt = measure.enuZ * 1000;
-
-			/* Position control turned off */
-			setPosPtr = NULL;
-
-			/* We don`t want altitude pid to affect the hover in stabilize mode */
-			quad_common.pids.alt.flags |= PID_IGNORE_P | PID_IGNORE_I | PID_IGNORE_D;
-			quad_common.pids.pos.flags |= PID_RESET_I;
-
-			quad_rcOverride(&att, &throttle, RC_OVRD_LEVEL | RC_OVRD_YAW | RC_OVRD_THROTTLE);
-
-			/* Perform low threshold check only if throttle is at minimum (probable landing) in case of drone tipping off */
-			if (rcThrottle < 0.05 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) {
-				if (fabs(measure.pitch) > ANGLE_THRESHOLD_LOW || fabs(measure.roll) > ANGLE_THRESHOLD_LOW) {
-					fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors stop.\n", measure.roll, measure.pitch);
-					mma_stop();
-					return -1;
-				}
-			}
-
+			submode = sub_stab; /* SWC == LOW (or illegal value) -> stabilize */
 		}
-		/* SWC == HIGH -> poshold */
 		else if (quad_rcChHgh(stickSWC)) {
-			/* Do not use I altitude pid if there is too big difference between current alt and set alt */
-			if (fabs(measure.enuZ * 1000 - setAlt) > 1000) {
-				quad_common.pids.alt.flags |= PID_IGNORE_I;
-			}
-			else {
-				quad_common.pids.alt.flags &= ~PID_IGNORE_I;
-			}
-
-			/* Position control turned on */
-			setPosPtr = &setPos;
-
-			setAlt = alt;
-			quad_common.pids.pos.flags = PID_FULL;
-			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
+			submode = sub_phld; /* SWC == HIGH -> poshold */
 		}
-		/* SWC == MID -> althold */
 		else {
-			/* Do not use I altitude pid if there is too big difference between current alt and set alt */
-			if (fabs(measure.enuZ * 1000 - setAlt) > 1000) {
-				quad_common.pids.alt.flags |= PID_IGNORE_I;
-			}
-			else {
-				quad_common.pids.alt.flags &= ~PID_IGNORE_I;
-			}
+			submode = sub_alt; /* SWC == MID -> althold */
 
-			/* Position control turned off */
-			setPosPtr = NULL;
-
-			quad_common.pids.pos.flags |= PID_RESET_I;
-			setAlt = alt;
-			quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 		}
 
-		quad_cmdCockpit(&measure);
+		switch (submode) {
+			case sub_alt:
+				setPosPtr = NULL; /* Position control turned off */
+				setAlt = alt;
+				quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
+				break;
+
+			case sub_phld:
+				setPosPtr = &setPos; /* Position control turned on */
+				setAlt = alt;
+				quad_common.pids.pos.flags = PID_FULL;
+				quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
+				break;
+
+			case sub_stab:
+			default:
+				att.yaw = measure.yaw;
+				alt = setAlt = measure.enuZ * 1000;
+
+				setPosPtr = NULL; /* Position control turned off */
+
+				/* We don`t want altitude pid to affect the hover in stabilize mode */
+				quad_common.pids.alt.flags |= PID_IGNORE_P | PID_IGNORE_I | PID_IGNORE_D;
+				quad_common.pids.pos.flags |= PID_IGNORE_P | PID_IGNORE_I | PID_IGNORE_D;
+
+				quad_rcOverride(&att, &throttle, RC_OVRD_LEVEL | RC_OVRD_YAW | RC_OVRD_THROTTLE);
+
+				/* Perform low threshold check only if throttle is at minimum (probable landing) in case of drone tipping off */
+				if (rcThrottle < 0.05 * (MAX_CHANNEL_VALUE - MIN_CHANNEL_VALUE)) {
+					if (fabs(measure.pitch) > ANGLE_THRESHOLD_LOW || fabs(measure.roll) > ANGLE_THRESHOLD_LOW) {
+						fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors stop.\n", measure.roll, measure.pitch);
+						mma_stop();
+						return -1;
+					}
+				}
+				break;
+		}
 
 		/* updates setPos only if setPosPtr is not used (position control turned off) */
 		if (setPosPtr == NULL) {
