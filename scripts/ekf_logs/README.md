@@ -32,7 +32,9 @@ log types.
 execution time of every EKF iteration. Information is shown in form of a box plot with emphasized minimum, maximum
 and mean value. Every loop time is also presented on additional plot.
 
-4. GPS and EKF State Comparison: If the file contains data from GPS as well as EKF state, this evaluation compares position and velocities. Additionally raw acceleration data from the IMU and filtrated using IIR filter are provided.
+4. GPS and EKF State Comparison: If the file contains data from GPS as well as EKF state, this evaluation compares
+position and velocities. Additionally raw acceleration data from the IMU and filtrated using IIR filter are provided.
+In these figures clicking on legend lines toggles line visibility.
 
 ## Logs conversion
 
