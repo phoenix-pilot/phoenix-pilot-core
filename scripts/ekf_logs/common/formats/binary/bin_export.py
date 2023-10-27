@@ -6,9 +6,7 @@ import common.formats.binary.specifiers as specifiers
 
 
 class BinaryLogExporter(LogsVisitor):
-    def __init__(
-            self,
-    ) -> None:
+    def __init__(self) -> None:
         self.file = None
 
     def export(self, file_path, logs: Iterator[logs_types.LogEntry]) -> None:
