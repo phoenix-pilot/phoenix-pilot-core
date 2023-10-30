@@ -18,7 +18,7 @@ class GpsEkfComparison(LogEvaluation):
             return
 
         if len(context.state_logs) == 0:
-            print("Cannot compare gps data with ekf state, no gps logs", file=sys.stderr)
+            print("Cannot compare gps data with ekf state, no ekf state logs", file=sys.stderr)
             return
 
         position = PositionComparer(context)
