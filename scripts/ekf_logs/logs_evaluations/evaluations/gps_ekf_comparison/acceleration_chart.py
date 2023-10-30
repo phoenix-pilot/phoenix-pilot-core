@@ -38,7 +38,7 @@ class AccelerationChart:
 
     def draw_figure(self):
         north, east = self._accel_to_global_coord(self.context)
-        time_from_start = np.array([uc.micro_to_SI(log.timestamp - self.start_time) for log in self.context.imu_logs])
+        time_from_start = np.array([uc.from_micro(log.timestamp - self.start_time) for log in self.context.imu_logs])
 
         filter = IIR_filter(cur_input_coef=0.1, prev_result_coef=0.9)
 

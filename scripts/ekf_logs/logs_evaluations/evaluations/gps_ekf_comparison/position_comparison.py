@@ -15,8 +15,8 @@ class PositionComparer:
         self.context = context
 
         self.distCalc = GeodeticDistance(
-            origin_latitude=uc.nano_to_SI(context.gps_logs[0].data.position.latitude),
-            origin_longitude=uc.nano_to_SI(context.gps_logs[0].data.position.longitude)
+            origin_latitude=uc.from_nano(context.gps_logs[0].data.position.latitude),
+            origin_longitude=uc.from_nano(context.gps_logs[0].data.position.longitude)
         )
 
         self.legendFactory = InteractiveLegendFactory(self.ax)
@@ -48,8 +48,8 @@ class PositionComparer:
         y = np.empty(len(self.context.gps_logs))
 
         for i, gps_log in enumerate(self.context.gps_logs):
-            x[i] = self.distCalc.longitude_diff(uc.nano_to_SI(gps_log.data.position.longitude))
-            y[i] = self.distCalc.latitude_diff(uc.nano_to_SI(gps_log.data.position.latitude))
+            x[i] = self.distCalc.longitude_diff(uc.from_nano(gps_log.data.position.longitude))
+            y[i] = self.distCalc.latitude_diff(uc.from_nano(gps_log.data.position.latitude))
 
         scatter = self.ax.scatter(x, y, c="#f542e9", marker='s', label="GPS position")
 
@@ -91,11 +91,11 @@ class PositionComparer:
 
             extrapolation_dt = next_log.timestamp - curr_log.timestamp
 
-            prev_x = self.distCalc.longitude_diff(uc.nano_to_SI(prev_log.data.position.longitude))
-            prev_y = self.distCalc.latitude_diff(uc.nano_to_SI(prev_log.data.position.latitude))
+            prev_x = self.distCalc.longitude_diff(uc.from_nano(prev_log.data.position.longitude))
+            prev_y = self.distCalc.latitude_diff(uc.from_nano(prev_log.data.position.latitude))
 
-            curr_x = self.distCalc.longitude_diff(uc.nano_to_SI(curr_log.data.position.longitude))
-            curr_y = self.distCalc.latitude_diff(uc.nano_to_SI(curr_log.data.position.latitude))
+            curr_x = self.distCalc.longitude_diff(uc.from_nano(curr_log.data.position.longitude))
+            curr_y = self.distCalc.latitude_diff(uc.from_nano(curr_log.data.position.latitude))
 
             pos_dx = curr_x - prev_x
             pos_dy = curr_y - prev_y
@@ -128,6 +128,6 @@ class PositionComparer:
 
     def format_timestamp(self, timestamp) -> str:
         dt = timestamp - self.context.all_logs[0].timestamp
-        seconds = uc.micro_to_SI(dt)
+        seconds = uc.from_micro(dt)
 
         return "{:.1f}".format(seconds)
