@@ -18,7 +18,7 @@ class GeodeticDistance:
         return self.distance(self.originLat, self.originLon, latitude, longitude)
 
     def latitude_diff(self, latitude):
-        """Returns latitude difference in meters. If passed latitude is smaller than origin, the result is negative"""
+        """Returns latitude difference in meters. Northward difference is positive and southward's negative"""
 
         res = self.dist_from_origin(latitude, self.originLon)
 
@@ -28,7 +28,7 @@ class GeodeticDistance:
         return res
 
     def longitude_diff(self, longitude):
-        """Returns latitude difference in meters. If passed latitude is smaller than origin, the result is negative"""
+        """Returns longitude difference in meters. Eastward difference is positive and westward's negative"""
 
         res = self.dist_from_origin(self.originLat, longitude)
 

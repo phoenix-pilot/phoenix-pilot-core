@@ -19,18 +19,15 @@ class InteractiveLegendFactory:
         self._legend_map: dict[Artist, _HideablePlot] = {}
 
     def add_hideable_plot(self, plot: Artist, annotations: list[Artist] = []):
-        self._check_axes(plot)
+        # Legend should control elements only from their axes
+        for a in [plot] + annotations:
+            if a.axes not in (self.ax, None):
+                raise Exception("Incorrect axes instance")
 
-        for annotation in annotations:
-            self._check_axes(annotation)
+            # If element have no axes, then it is added to legend's one
+            a.axes = self.ax
 
         self._hideables.append(_HideablePlot(plot, annotations))
-
-    def _check_axes(self, artist: Artist):
-        if artist.axes is None:
-            artist.axes = self.ax
-        elif artist.axes is not self.ax:
-            raise Exception("Incorrect axes instance")
 
     def generate_legend(self):
         all_plots = [hideable.plot for hideable in self._hideables]

@@ -2,17 +2,17 @@ _nano_multiplier = 1_000_000_000.0
 _micro_multiplier = 1_000_000.0
 
 
-def nano_to_SI(value):
+def from_nano(value):
     return value / _nano_multiplier
 
 
-def SI_to_nano(value):
+def to_nano(value):
     return value * _nano_multiplier
 
 
-def micro_to_SI(value):
+def from_micro(value):
     return value / _micro_multiplier
 
 
-def SI_to_micro(value):
+def to_micro(value):
     return value * _micro_multiplier

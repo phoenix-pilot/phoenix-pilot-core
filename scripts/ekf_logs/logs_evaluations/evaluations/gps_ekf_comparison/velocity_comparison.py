@@ -30,7 +30,7 @@ class VelocityComparer:
     def _draw_ekf_velocities(self):
         ekf_states = self.context.state_logs
 
-        time = np.array([uc.micro_to_SI(state.timestamp - self.start_time) for state in ekf_states])
+        time = np.array([uc.from_micro(state.timestamp - self.start_time) for state in ekf_states])
         ekf_velocity_NS = np.array([state.data.velocity.x for state in ekf_states])
         ekf_velocity_EW = np.array([state.data.velocity.y for state in ekf_states])
 
@@ -43,7 +43,7 @@ class VelocityComparer:
     def _draw_gps_velocities(self):
         gps_logs = self.context.gps_logs
 
-        gps_x = np.array([uc.micro_to_SI(log.timestamp - self.start_time) for log in gps_logs])
+        gps_x = np.array([uc.from_micro(log.timestamp - self.start_time) for log in gps_logs])
         gps_velocity_NS = np.empty(len(gps_logs))
         gps_velocity_EW = np.empty(len(gps_logs))
 
@@ -57,11 +57,11 @@ class VelocityComparer:
             prev_log = gps_logs[i-1]
             curr_log = gps_logs[i]
 
-            prev_lat = uc.nano_to_SI(prev_log.data.position.latitude)
-            prev_lon = uc.nano_to_SI(prev_log.data.position.longitude)
+            prev_lat = uc.from_nano(prev_log.data.position.latitude)
+            prev_lon = uc.from_nano(prev_log.data.position.longitude)
 
-            curr_lat = uc.nano_to_SI(curr_log.data.position.latitude)
-            curr_lon = uc.nano_to_SI(curr_log.data.position.longitude)
+            curr_lat = uc.from_nano(curr_log.data.position.latitude)
+            curr_lon = uc.from_nano(curr_log.data.position.longitude)
 
             distCalc = GeodeticDistance(
                 origin_latitude=prev_lat,
@@ -71,7 +71,7 @@ class VelocityComparer:
             dist_n = distCalc.latitude_diff(curr_lat)
             dist_e = distCalc.longitude_diff(curr_lon)
 
-            dt = uc.micro_to_SI(curr_log.timestamp - prev_log.timestamp)
+            dt = uc.from_micro(curr_log.timestamp - prev_log.timestamp)
 
             # Prevents from dividing by zero
             if dt == 0:
