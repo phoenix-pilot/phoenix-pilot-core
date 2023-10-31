@@ -2,7 +2,7 @@ from geopy import distance
 
 
 class GeodeticDistance:
-    def __init__(self, origin_latitude=0, origin_longitude=0) -> None:
+    def __init__(self, origin_latitude=0.0, origin_longitude=0.0) -> None:
         self.originLat = origin_latitude
         self.originLon = origin_longitude
 
