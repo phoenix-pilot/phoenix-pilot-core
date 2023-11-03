@@ -48,7 +48,7 @@ class PositionComparer:
         annotations = []
         for gps_log in self.context.gps_logs:
             index = self.context.get_index(gps_log)
-            
+
             for i in range(index + 1, len(self.context.all_logs)):
                 if isinstance(self.context.all_logs[i], EkfStateLog):
                     ekf_status = typing.cast(EkfStateLog, self.context.all_logs[i])
@@ -87,7 +87,8 @@ class PositionComparer:
                 (x[i], y[i]),
                 ha="center",
                 xytext=(0, -12),
-                textcoords='offset points'
+                textcoords='offset points',
+                c="#8b188f"
             )
             annotations.append(an)
 
