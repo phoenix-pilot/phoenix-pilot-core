@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+import typing
+
+from common.models.log_reading import EkfStateLog
+
 import common.models.units_conversions as uc
 from logs_evaluations.context import StudyContext
 from logs_evaluations.evaluations.gps_ekf_comparison.geo_distance import GeodeticDistance
@@ -40,8 +44,31 @@ class PositionComparer:
         x = np.array([log.data.position.east for log in self.context.state_logs])
         y = np.array([log.data.position.north for log in self.context.state_logs])
 
+        # Adding timestamps annotations for statuses after GPS reading
+        annotations = []
+        for gps_log in self.context.gps_logs:
+            index = self.context.get_index(gps_log)
+            
+            for i in range(index + 1, len(self.context.all_logs)):
+                if isinstance(self.context.all_logs[i], EkfStateLog):
+                    ekf_status = typing.cast(EkfStateLog, self.context.all_logs[i])
+
+                    pos_x = ekf_status.data.position.east
+                    pos_y = ekf_status.data.position.north
+
+                    an = self.ax.annotate(
+                        self.format_timestamp(self.context.all_logs[i].timestamp),
+                        (pos_x, pos_y),
+                        ha="center",
+                        xytext=(0, -12),
+                        textcoords='offset points'
+                    )
+                    annotations.append(an)
+
+                    break
+
         scatter = self.ax.scatter(x, y, s=3, label="EKF state position")
-        self.legendFactory.add_hideable_plot(scatter)
+        self.legendFactory.add_hideable_plot(scatter, annotations)
 
     def _draw_gps_pos(self):
         x = np.empty(len(self.context.gps_logs))
