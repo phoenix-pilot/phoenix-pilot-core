@@ -61,7 +61,7 @@
 #define BWX 4 /* gyroscope x axis bias */
 #define BWY 5 /* gyroscope y axis bias */
 #define BWZ 6 /* gyroscope z axis bias */
-/* Velocity in inertial frame of reference */
+/* Velocity in inertial frame of reference (NED) */
 #define VX 7 /* velocity x component */
 #define VY 8 /* velocity y component */
 #define VZ 9 /* velocity z component */
