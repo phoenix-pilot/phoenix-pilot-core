@@ -9,7 +9,7 @@ from common.models.visitor import LogsVisitor
 
 
 class StudyContext:
-    def __init__(self, all_logs: list[log_types.LogReading]) -> None:
+    def __init__(self, all_logs: list[log_types.LogEntry]) -> None:
         self.all_logs: list[log_types.LogEntry] = all_logs
 
         self.time_logs: list[log_types.TimeLog] = []
@@ -24,10 +24,10 @@ class StudyContext:
 
         self.missed_logs_cnt = self.__calculate_missed()
 
-    def get_index(self, log: log_types.LogReading) -> int:
+    def get_index(self, log: log_types.LogEntry) -> int:
         """Returns index of log from all logs"""
 
-        i = bisect_left(self.all_logs, log, key=lambda entry: entry.id)
+        i = bisect_left(self.all_logs, log.id, key=lambda entry: entry.id)
         if i != len(self.all_logs) and self.all_logs[i] == log:
             return i
         raise ValueError
