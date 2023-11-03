@@ -25,6 +25,7 @@
 #include "kalman_implem.h"
 #include "meas.h"
 #include "logs/writer.h"
+#include "fltr3d.h"
 
 #include <vec.h>
 #include <quat.h>
@@ -38,6 +39,7 @@
 
 struct {
 	const kalman_init_t *inits;
+	fltr3d_ctx_t accelEartFltr;
 } pred_common;
 
 
@@ -283,9 +285,9 @@ static matrix_t *kmn_getCtrl(matrix_t *U)
 	*matrix_at(U, UWX, 0) = gyro.x;
 	*matrix_at(U, UWY, 0) = gyro.y;
 	*matrix_at(U, UWZ, 0) = gyro.z;
-	*matrix_at(U, UAX, 0) = accel.x;
-	*matrix_at(U, UAY, 0) = accel.y;
-	*matrix_at(U, UAZ, 0) = accel.z;
+	*matrix_at(U, UAX, 0) = accelRaw.x;
+	*matrix_at(U, UAY, 0) = accelRaw.y;
+	*matrix_at(U, UAZ, 0) = accelRaw.z;
 
 	return U;
 }
@@ -350,12 +352,11 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 	vec_dif(&aMeas, &baState, &aEst);
 	quat_vecRot(&aEst, &qState);
 	aEst.z += EARTH_G;
+	//fltr3d_filter(&aEst, &pred_common.accelEartFltr);
+	printf("%f %f %f\n", aEst.x, aEst.y,aEst.z);
 
 	/* Integrating z acceleration as is. Low impact from attitude error */
 	*matrix_at(state_est, VZ, 0) = kmn_vecAt(state, VZ) + aEst.z * dt;
-	/* Integrating damped x/y acceleration. High impact from attitude error */
-	aEst.z = 0;
-	vec_times(&aEst, kmn_accelDamp(&aEst));
 	*matrix_at(state_est, VX, 0) = kmn_vecAt(state, VX) + aEst.x * dt;
 	*matrix_at(state_est, VY, 0) = kmn_vecAt(state, VY) + aEst.y * dt;
 
@@ -544,6 +545,8 @@ static void kmn_initCov(matrix_t *cov, const kalman_init_t *inits)
 /* initialization of prediction step matrix values */
 void kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalman_init_t *inits)
 {
+	const vec_t initAccel = { .x = 0, .y = 0, .z = -EARTH_G };
+
 	pred_common.inits = inits;
 
 	kmn_initState(&engine->state, calib);
@@ -551,6 +554,8 @@ void kmn_predInit(state_engine_t *engine, const meas_calib_t *calib, const kalma
 
 	/* prepare noise matrix Q */
 	matrix_zeroes(&engine->Q);
+
+	fltr3d_init(ACCEL_WINDOW_PATH, &pred_common.accelEartFltr, NULL);
 
 	/* save function pointers */
 	engine->estimateState = kmn_stateEst;
