@@ -111,9 +111,9 @@ class CsvLogExporter(LogsVisitor):
         self.entry.append(state_log.data.gyroscopeBias.y)
         self.entry.append(state_log.data.gyroscopeBias.z)
 
-        self.entry.append(state_log.data.velocity.x)
-        self.entry.append(state_log.data.velocity.y)
-        self.entry.append(state_log.data.velocity.z)
+        self.entry.append(state_log.data.velocity.north)
+        self.entry.append(state_log.data.velocity.east)
+        self.entry.append(state_log.data.velocity.down)
 
         self.entry.append(state_log.data.accelerometerBias.x)
         self.entry.append(state_log.data.accelerometerBias.y)

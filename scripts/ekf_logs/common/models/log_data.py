@@ -59,7 +59,7 @@ class Baro:
 @dataclass
 class EkfState:
     attitude: Rotation
-    velocity: Vector3
+    velocity: NEDCoordinates
     gyroscopeBias: Vector3
     accelerometerBias: Vector3
     position: NEDCoordinates
