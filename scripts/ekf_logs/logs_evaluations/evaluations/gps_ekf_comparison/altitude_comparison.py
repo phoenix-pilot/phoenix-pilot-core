@@ -30,7 +30,7 @@ class AltitudeComparison:
 
         times = np.array([uc.from_micro(log.timestamp - self.start_time) for log in ekf_states])
 
-        ekf_state_based_vel = np.array([-log.data.velocity.z for log in ekf_states])
+        ekf_state_based_vel = np.array([-log.data.velocity.down for log in ekf_states])
         position_based_vel = np.empty(len(ekf_states))
 
         # Initiating last_dt with small value in case of the same timestamps in first two logs

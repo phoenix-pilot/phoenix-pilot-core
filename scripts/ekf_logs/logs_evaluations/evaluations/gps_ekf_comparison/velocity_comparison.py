@@ -31,8 +31,8 @@ class VelocityComparer:
         ekf_states = self.context.state_logs
 
         time = np.array([uc.from_micro(state.timestamp - self.start_time) for state in ekf_states])
-        ekf_velocity_NS = np.array([state.data.velocity.x for state in ekf_states])
-        ekf_velocity_EW = np.array([state.data.velocity.y for state in ekf_states])
+        ekf_velocity_NS = np.array([state.data.velocity.north for state in ekf_states])
+        ekf_velocity_EW = np.array([state.data.velocity.east for state in ekf_states])
 
         plot1, = self.ax.plot(time, ekf_velocity_NS, c="#0398fc", label="EKF N-S speed")
         plot2, = self.ax.plot(time, ekf_velocity_EW, c="#f403fc", label="EKF E-W speed")
