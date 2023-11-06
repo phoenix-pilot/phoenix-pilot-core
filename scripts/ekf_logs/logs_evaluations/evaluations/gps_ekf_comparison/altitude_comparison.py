@@ -27,24 +27,27 @@ class AltitudeComparison:
 
     def _draw_vertical_velocity(self):
         ekf_states = self.context.state_logs
+        baro_logs = self.context.baro_logs[self.baro_calib_logs_cnt:]
 
-        times = np.array([uc.from_micro(log.timestamp - self.start_time) for log in ekf_states])
+        state_times = np.array([uc.from_micro(log.timestamp - self.start_time) for log in ekf_states])
+        baro_times = np.array([uc.from_micro(log.timestamp - self.start_time) for log in baro_logs])
+
+        baro_alt = self._baro_to_altitude()
 
         ekf_state_based_vel = np.array([-log.data.velocity.down for log in ekf_states])
-        position_based_vel = np.empty(len(ekf_states))
+        baro_based_vel = np.empty(len(baro_alt))
+
+        baro_based_vel[0] = 0
 
         # Initiating last_dt with small value in case of the same timestamps in first two logs
         last_dt = 1
 
-        for i in range(1, len(position_based_vel)):
-            prev_log = ekf_states[i-1]
-            curr_log = ekf_states[i]
-
-            prev_alt = -prev_log.data.position.down
-            curr_alt = -curr_log.data.position.down
+        for i in range(1, len(baro_based_vel)):
+            prev_alt = baro_alt[i-1]
+            curr_alt = baro_alt[i]
 
             dist = curr_alt - prev_alt
-            dt = uc.from_micro(curr_log.timestamp - prev_log.timestamp)
+            dt = baro_times[i] - baro_times[i-1]
 
             # Prevents from dividing by zero
             if dt == 0:
@@ -52,12 +55,12 @@ class AltitudeComparison:
 
             last_dt = dt
 
-            position_based_vel[i] = dist/dt
+            baro_based_vel[i] = dist/dt
 
-        plot, = self.ax1.plot(times, position_based_vel, label="Vertical velocity from EKF position")
+        plot, = self.ax1.plot(baro_times, baro_based_vel, label="Vertical velocity from baro readings")
         self.legendFactory1.add_hideable_plot(plot)
 
-        plot, = self.ax1.plot(times, ekf_state_based_vel, label="Vertical velocity from EKF velocity")
+        plot, = self.ax1.plot(state_times, ekf_state_based_vel, label="Vertical velocity from EKF velocity")
         self.legendFactory1.add_hideable_plot(plot)
 
         self.legendFactory1.generate_legend()
