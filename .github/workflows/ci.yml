@@ -1,0 +1,17 @@
+name: ci
+
+# on events
+on:
+  push:
+    branches:
+      - master
+      - 'feature/*'
+  pull_request:
+    branches:
+      - master
+      - 'feature/*'
+
+jobs:
+  call-ci:
+    uses: phoenix-pilot/phoenix-pilot-project/.github/workflows/ci-submodule.yml@master
+    secrets: inherit

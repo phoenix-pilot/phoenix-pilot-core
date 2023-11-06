@@ -13,3 +13,4 @@ This directory contains unit tests of libraries responsible for operations on ma
 - `tools_tests.c` - contains unit tests for more complicated function from `tools.h` library
 - `tools.c` - implements functions used during testing
 - `tools.h` - header file with macros and functions used during testing
+- `test.yml` - specifies test case for our test runner

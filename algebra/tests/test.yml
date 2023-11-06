@@ -1,0 +1,7 @@
+test:
+  type: unity
+  tests:
+    - name: algebra
+      execute: ../usr/bin/algebra_tests
+      targets:
+        value: [host-generic-pilot, armv7a9-zynq7000-vpilot]
