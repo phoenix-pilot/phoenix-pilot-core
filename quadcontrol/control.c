@@ -627,24 +627,32 @@ static int quad_takeoff(const flight_mode_t *mode)
 
 static int quad_hover(const flight_mode_t *mode)
 {
-	const float throttle = quad_common.throttle.max;
-	const int32_t targetAlt = mode->hover.alt;
-
 	quad_att_t att = { 0 };
-	time_t now, end;
+	time_t now, stabTimer, stageStart = 0;
 	ekf_state_t measure;
+	vec_t setPos, *setPosPtr;
+	int32_t setAlt, alt;
+	bool modeComplete = false;
+	enum hoverStage { stage_travel, stage_maintain } stage = stage_travel;
+
+	log_enable();
+	log_print("HOVER - alt: %d time: %lld\n", mode->hover.alt, mode->hover.time);
 
 	ekf_stateGet(&measure);
 	att.yaw = measure.yaw;
 
-	log_enable();
-	log_print("HOVER - alt: %d, time: %lld\n", mode->hover.alt, mode->hover.time);
+	/* Use last target if available */
+	quad_prevTargetLoad(&setPos, &setAlt, &measure);
+	setPosPtr = &setPos;
 
 	now = quad_timeMsGet();
-	end = now + mode->hover.time;
+	stabTimer = now;
+	stageStart = 0;
 
-	while (now < end && quad_common.currFlight == flight_hover) {
+	while (modeComplete == false && quad_common.currFlight == flight_hover) {
 		ekf_stateGet(&measure);
+		alt = measure.enuZ * 1000;
+		setAlt = mode->hover.alt;
 
 		now = quad_timeMsGet();
 		quad_periodLogEnable(now);
@@ -653,20 +661,47 @@ static int quad_hover(const flight_mode_t *mode)
 		quad_levelAtt(&att);
 		att.yaw = measure.yaw;
 
-		/* Do not use I altitude pid if there is too big difference between current alt and set alt */
-		if (fabs(measure.enuZ * 1000 - targetAlt) > 1000) {
-			quad_common.pids.alt.flags |= PID_IGNORE_I;
-		}
-		else {
-			quad_common.pids.alt.flags &= ~PID_IGNORE_I;
+		switch (stage) {
+			/*
+			 *  Drone ascend/descent to target altitude.
+			 */
+			case stage_travel:
+				quad_stageStart(&stageStart, &now, "HOVER - travel\n");
+
+				if ((setAlt - alt) > 500 || (setAlt - alt) < -500) {
+					stabTimer = now;
+				}
+
+				if (now - stabTimer > 3000) {
+					stage = stage_maintain;
+					stageStart = 0;
+				}
+
+				break;
+
+			/*
+			 *  Drone hovering on target target altitude.
+			 */
+			case stage_maintain:
+			default:
+				quad_stageStart(&stageStart, &now, "HOVER - hovering\n");
+
+				if (now - stageStart > mode->hover.time) {
+					modeComplete = true;
+				}
+
+				break;
 		}
 
-		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL | RC_OVRD_YAW);
+		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 
 		if (quad_motorsCtrl(quad_common.hoverThrottle, &setAlt, setPosPtr, &att, &measure) < 0) {
 			return -1;
 		}
 	}
+
+	log_enable();
+	log_print("HOVER - alt: %d complete\n", mode->hover.alt);
 
 	return 0;
 }
