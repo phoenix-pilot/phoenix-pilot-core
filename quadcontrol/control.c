@@ -92,7 +92,16 @@ struct {
 	flight_mode_t *scenario;
 	size_t scenarioSz;
 
+	struct {
+		vec_t setPos;
+		int32_t setAlt;
+
+		vec_t *setPosPtr;
+		int32_t *setAltPtr;
+	} lastTarget;
+
 	quad_throttle_t throttle;
+	float hoverThrottle;
 } quad_common;
 
 
@@ -214,9 +223,51 @@ static void quad_cmdCockpit(const ekf_state_t *measure)
 	log_print("ALT %3d DST %3d HDG %3d VEL %2d\n", alt, dst, hdg, vel);
 }
 
+/* Stores target altitude and position (if set) as last used value.  */
+static void quad_prevTargetSave(const vec_t *setPos, const int32_t *setAlt)
+{
+	if (setPos != NULL) {
+		quad_common.lastTarget.setPos = *setPos;
+		quad_common.lastTarget.setPosPtr = &quad_common.lastTarget.setPos;
+	}
+	else {
+		quad_common.lastTarget.setPosPtr = NULL;
+	}
+
+	/* TODO: add possibility of last altitude not being set */
+	if (setAlt != NULL) {
+		quad_common.lastTarget.setAlt = *setAlt;
+		quad_common.lastTarget.setAltPtr = &quad_common.lastTarget.setAlt;
+	}
+	else {
+		quad_common.lastTarget.setAltPtr = NULL;
+	}
+}
+
+/* Loads last set position and altitude to `setPos` and `alt`. If there was none previous value, uses current data from `measure` */
+static void quad_prevTargetLoad(vec_t *setPos, int32_t *alt, ekf_state_t *measure)
+{
+	/* Loading last target position */
+	if (quad_common.lastTarget.setPosPtr == NULL) {
+		setPos->x = measure->enuX;
+		setPos->y = measure->enuY;
+	}
+	else {
+		*setPos = quad_common.lastTarget.setPos;
+	}
+
+	/* Load last target altitude */
+	if (quad_common.lastTarget.setAltPtr == NULL) {
+		*alt = measure->enuZ;
+	}
+	else {
+		*alt = quad_common.lastTarget.setAlt;
+	}
+}
+
 
 /* Controls motors using  */
-static int quad_motorsCtrl(float throttle, int32_t alt, const vec_t *setPos, const quad_att_t *att, const ekf_state_t *measure)
+static int quad_motorsCtrl(float throttle, int32_t *alt, const vec_t *setPos, const quad_att_t *att, const ekf_state_t *measure)
 {
 	time_t dt, now;
 	float dRollPos = 0, dPitchPos = 0;
@@ -234,12 +285,13 @@ static int quad_motorsCtrl(float throttle, int32_t alt, const vec_t *setPos, con
 	quad_common.lastTime = now;
 
 	quad_cmdCockpit(measure);
+	quad_prevTargetSave(setPos, alt);
 
 	if (setPos != NULL) {
 		quad_attPos(setPos, measure, &dPitchPos, &dRollPos, dt);
 	}
 
-	palt = pid_calc(&quad_common.pids.alt, alt / 1000.f, measure->enuZ, measure->veloZ, dt);
+	palt = pid_calc(&quad_common.pids.alt, *alt / 1000.f, measure->enuZ, measure->veloZ, dt);
 	proll = pid_calc(&quad_common.pids.roll, att->roll + dRollPos, measure->roll, measure->rollDot, dt);
 	ppitch = pid_calc(&quad_common.pids.pitch, att->pitch + dPitchPos, measure->pitch, measure->pitchDot, dt);
 	pyaw = pid_calc(&quad_common.pids.yaw, att->yaw, measure->yaw, measure->yawDot, dt);
@@ -503,10 +555,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 			quad_common.pids.alt.flags = PID_FULL;
 		}
 
-		/* Perform low threshold check in case of drone tipping off */
-		if (fabs(measure.pitch) > ANGLE_THRESHOLD_LOW || fabs(measure.roll) > ANGLE_THRESHOLD_LOW) {
-			fprintf(stderr, "Angles over threshold, roll: %f, pitch: %f. Motors stop.\n", measure.roll, measure.pitch);
-			mma_stop();
+		if (quad_motorsCtrl(throttle, &setAlt, setPosPtr, &att, &measure) < 0) {
 			return -1;
 		}
 
@@ -560,7 +609,7 @@ static int quad_hover(const flight_mode_t *mode)
 
 		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL | RC_OVRD_YAW);
 
-		if (quad_motorsCtrl(throttle, targetAlt, NULL, &att, &measure) < 0) {
+		if (quad_motorsCtrl(quad_common.hoverThrottle, &setAlt, setPosPtr, &att, &measure) < 0) {
 			return -1;
 		}
 	}
@@ -616,7 +665,7 @@ static int quad_landing(const flight_mode_t *mode)
 		/* NO GPS! - override needed not to hit something */
 		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL | RC_OVRD_YAW);
 
-		if (quad_motorsCtrl(throttle, targetAlt, NULL, &att, &measure) < 0) {
+		if (quad_motorsCtrl(quad_common.hoverThrottle, &setAlt, setPosPtr, &att, &measure) < 0) {
 			return -1;
 		}
 	}
@@ -723,7 +772,7 @@ static int quad_manual(void)
 			setPos = (vec_t) { .x = measure.enuX, .y = measure.enuY, .z = 0 };
 		}
 
-		if (quad_motorsCtrl(throttle, setAlt, setPosPtr, &att, &measure) < 0) {
+		if (quad_motorsCtrl(throttle, &setAlt, setPosPtr, &att, &measure) < 0) {
 			return -1;
 		}
 	}
