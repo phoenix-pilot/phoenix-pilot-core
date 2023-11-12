@@ -1158,6 +1158,7 @@ static int quad_init(void)
 
 	/* get boundary values of euler angles from ekf module */
 	ekf_boundsGet(&quad_common.pids.yaw.errBound, &quad_common.pids.pos.errBound, &quad_common.pids.pos.errBound);
+	quad_common.hoverThrottle = quad_common.throttle.min;
 
 	/* MMA initialization */
 	if (mma_init(&quadCoeffs, &quad_common.atten) < 0) {
