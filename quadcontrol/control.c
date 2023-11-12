@@ -48,8 +48,6 @@
 
 #define PATH_SCENARIO_CONFIG "/etc/q_mission.conf"
 
-#define HOVER_THROTTLE 0.27
-
 #define ANGLE_THRESHOLD_LOW  (M_PI / 4) /* low threshold for landing safety */
 #define ANGLE_THRESHOLD_HIGH (M_PI / 2) /* high threshold for maneuvers */
 #define RAD2DEG              ((float)180.0 / M_PI)
@@ -68,8 +66,8 @@
 #define LOG_PERIOD          500     /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
 
 /* Flight modes magic numbers */
-#define QCTRL_ALTHOLD_JUMP   5000  /* altitude step (millimeters) for two-height althold mode in quad_manual */
-#define QCTRL_TAKEOFF_ALTSAG -5000 /* altitude sag during takeoff for PID control of the liftoff procedure (should be negative as we start at alt=0mm) */
+#define QCTRL_HOVER_THRESH_TIME 3000 /* hover time threshold (milliseconds) */
+#define QCTRL_HOVER_THRESH_ALT  500  /* hover altitude threshold */
 
 
 typedef enum { mode_rc = 0, mode_auto } control_mode_t;
@@ -583,12 +581,12 @@ static int quad_takeoff(const flight_mode_t *mode)
 					quad_common.hoverThrottle = throttle;
 				}
 
-				if ((hvrAlt - alt) > 500 || (hvrAlt - alt) < -500) {
+				if ((hvrAlt - alt) > QCTRL_HOVER_THRESH_ALT || (hvrAlt - alt) < -QCTRL_HOVER_THRESH_ALT) {
 					stabTimer = now;
 				}
 
 				/* stage escape */
-				if (now - stabTimer > 3000) {
+				if (now - stabTimer > QCTRL_HOVER_THRESH_TIME) {
 					stage = stage_hover;
 					stageStart = 0;
 				}
@@ -668,11 +666,11 @@ static int quad_hover(const flight_mode_t *mode)
 			case stage_travel:
 				quad_stageStart(&stageStart, &now, "HOVER - travel\n");
 
-				if ((setAlt - alt) > 500 || (setAlt - alt) < -500) {
+				if ((setAlt - alt) > QCTRL_HOVER_THRESH_ALT || (setAlt - alt) < -QCTRL_HOVER_THRESH_ALT) {
 					stabTimer = now;
 				}
 
-				if (now - stabTimer > 3000) {
+				if (now - stabTimer > QCTRL_HOVER_THRESH_TIME) {
 					stage = stage_maintain;
 					stageStart = 0;
 				}
