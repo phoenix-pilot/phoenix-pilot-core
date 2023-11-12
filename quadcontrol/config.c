@@ -85,22 +85,10 @@ static int config_takeoffParse(const hmap_t *h, flight_mode_t *mode)
 
 	/* obligatory parameters */
 	err |= parser_fieldGetInt(h, "alt", &mode->takeoff.alt);
+	err |= parser_fieldGetTime(h, "time", &mode->takeoff.time);
 
 	if (err != 0) {
 		return -1;
-	}
-
-	/* optional parameters */
-	if (parser_fieldGetTime(h, "idleT", &mode->takeoff.idleTime) != 0) {
-		mode->takeoff.idleTime = 3000;
-	}
-
-	if (parser_fieldGetTime(h, "spoolT", &mode->takeoff.spoolTime) != 0) {
-		mode->takeoff.idleTime = 3000;
-	}
-
-	if (parser_fieldGetTime(h, "liftT", &mode->takeoff.liftTime) != 0) {
-		mode->takeoff.idleTime = 2000;
 	}
 
 	mode->type = flight_takeoff;
