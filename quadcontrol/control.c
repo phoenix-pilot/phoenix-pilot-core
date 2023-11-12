@@ -466,105 +466,159 @@ static flight_type_t quad_arm(void)
 }
 
 
+static inline void quad_stageStart(time_t *stageStart, time_t *now, const char *msg)
+{
+	if (*stageStart == 0) {
+		*stageStart = *now;
+		log_enable();
+		log_print(msg);
+	}
+}
+
 /* Handling flight modes */
 
 static int quad_takeoff(const flight_mode_t *mode)
 {
-	const float idleTime = mode->takeoff.idleTime;
-	const float spoolTime = mode->takeoff.spoolTime;
-	const float liftTime = mode->takeoff.liftTime;
+	const int32_t hvrAlt = mode->hover.alt;
+	const int32_t liftAlt = 2000;
 
-	const float hoverThrottle = quad_common.throttle.max; /* set hoverThrottle as throttle.max */
-	const int32_t startAlt = QCTRL_TAKEOFF_ALTSAG;        /* starting with negative altitude to lower the throttle */
-	const int32_t targetAlt = mode->takeoff.alt;
-
-	quad_att_t att = { 0 };
-	time_t now, tIdle, tStart, tEnd; /* time markers for current time and liftoff procedure */
+	quad_att_t att;
 	ekf_state_t measure;
 	float throttle = 0;
-	int32_t alt;
-	bool isHold = false;
+	time_t now, last, stageStart, stabTimer;
+	int32_t setAlt, alt;
+	vec_t setPos, *setPosPtr;
+	bool modeComplete = false;
+	enum takeoffStage { stage_spool, stage_lift, stage_stabilize, stage_hover } stage = stage_lift;
 
 	ekf_stateGet(&measure);
-
-	quad_levelAtt(&att);
 	att.yaw = measure.yaw;
-	alt = startAlt;
+	setPosPtr = NULL;
+	throttle = 0;
+	stageStart = 0;
 
 	log_enable();
-	log_print("TAKEOFF - alt: %d\n", targetAlt);
-
-	/* Ignoring I for a takeoff beginning so it doesn`t wind up */
-	quad_common.pids.alt.flags = PID_FULL | PID_IGNORE_I;
+	log_print("TAKEOFF\n", setAlt);
 
 	now = quad_timeMsGet();
-	tIdle = now + idleTime;
-	tStart = tIdle + spoolTime;
-	tEnd = tStart + (time_t)liftTime;
+	last = now;
 
-	throttle = hoverThrottle;
-
-	while (quad_common.currFlight == flight_takeoff && isHold == false) {
-		ekf_stateGet(&measure);
-
+	while (quad_common.currFlight == flight_takeoff && modeComplete == false) {
+		/* Setup timing and logging */
 		now = quad_timeMsGet();
 		quad_periodLogEnable(now);
 
-		if (now < tIdle) {
-			/* Relaxation period for drone to settle after engines spinoff */
+		/* Setup basic attitude */
+		quad_levelAtt(&att);
+		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 
-			alt = startAlt;                 /* takeoff throttle sag enforced via negative target altitude */
-			throttle = 0.5 * hoverThrottle; /* relaxation time throttle sag */
-
-			quad_common.pids.yaw.flags = PID_FULL | PID_IGNORE_I | PID_RESET_I;
-			quad_common.pids.alt.flags = PID_FULL | PID_IGNORE_I | PID_RESET_I;
-		}
-		else if (now < tStart) {
-			/* Bringing drone to hover throttle minus altitude pid */
-			alt = startAlt;
-			quad_common.pids.yaw.flags = PID_FULL | PID_IGNORE_I;
-			quad_common.pids.alt.flags = PID_FULL | PID_IGNORE_I;
-			throttle = hoverThrottle * (1 - 0.5 * (float)(tStart - now) / spoolTime); /* reducing relaxation time throttle sag */
-		}
-		else if (now < tEnd) {
-			/* Lifting up the altitude to lift the drone */
-			quad_common.pids.yaw.flags = PID_FULL | PID_IGNORE_I;
-			quad_common.pids.alt.flags = PID_FULL | PID_IGNORE_I;
-			alt = startAlt + (float)(targetAlt - startAlt) * (1 - (float)(tEnd - now) / liftTime);
-		}
-		else {
-			/* Liftup done, we are climbing/hover */
-			alt = targetAlt;
-			if ((measure.enuZ * 1000) > (targetAlt - 500)) {
-				isHold = true;
-			}
+		ekf_stateGet(&measure);
+		alt = measure.enuZ * 1000;
+		if (setPosPtr == NULL) {
+			/* updates setPos only if setPosPtr is not used (position control turned off) */
+			setPos = (vec_t) { .x = measure.enuX, .y = measure.enuY, .z = 0 };
 		}
 
-		att.yaw = measure.yaw;
-
-		/* Do not use I altitude pid if there is too big difference between current alt and set alt */
-		if (fabs(measure.enuZ * 1000 - targetAlt) > 1000) {
-			quad_common.pids.alt.flags |= PID_IGNORE_I;
-		}
-		else {
-			quad_common.pids.alt.flags &= ~PID_IGNORE_I;
+		/* Engage position lock at 1m AGL */
+		if (alt > 500 && setPosPtr == NULL) {
+			setPosPtr = &setPos;
 		}
 
-		/* switch on the I gain in altitude PID controller if we cross (targetAlt - 1m) threshold */
-		if ((measure.enuZ * 1000) > (targetAlt - 1000)) {
-			quad_common.pids.alt.flags = PID_FULL;
+		switch (stage) {
+			/*
+			 * Gentle engines spoolup.
+			 * At stage exit pitch/roll I terms are reset to mitigate non-level drone placement.
+			 *
+			 * Goal: reach non-lifting engines level for 1 second.
+			 */
+			case stage_spool:
+				quad_stageStart(&stageStart, &now, "TAKEOFF - spool\n");
+				setAlt = mode->hover.alt;
+
+				throttle = (now - stageStart > 1000) ? quad_common.throttle.min : throttle + quad_common.throttle.min * (now - last) / 1000.f;
+
+				if (now - stageStart > 2000 || throttle > quad_common.throttle.min) {
+					quad_common.pids.roll.flags |= PID_RESET_I;
+					quad_common.pids.pitch.flags |= PID_RESET_I;
+					stage = stage_lift;
+					stageStart = 0;
+				}
+
+				break;
+
+			/*
+			 * Drone lift from the ground maintaining the balance between overshooting and swift ascend.
+			 * Hover throttle initial estimation with integrating P term in rate (current P)/1 second
+			 * Additional 1%/s of throttle increase to assure faster/steady lift.
+			 *
+			 * Goal: reach threshold altitude or threshold ascent speed.
+			 */
+			case stage_lift:
+				quad_stageStart(&stageStart, &now, "TAKEOFF - lift\n");
+				setAlt = hvrAlt;
+
+				throttle += (quad_common.pids.alt.p.val.scl + 0.01) * (now - last) / 1000.f;
+				quad_common.hoverThrottle = throttle;
+
+				if (alt > liftAlt || measure.veloZ > 1000) {
+					stage = stage_stabilize;
+					stageStart = 0;
+					stabTimer = now;
+				}
+				break;
+
+			/*
+			 * Drone coarse stabilization.
+			 * Altitude I term is pumped into hover throttle so it has the most potential of being ascend-neutral.
+			 *
+			 * Goal: maintain altitude within error for threshold time.
+			 */
+			case stage_stabilize:
+				quad_stageStart(&stageStart, &now, "TAKEOFF - stabilize\n");
+				setAlt = hvrAlt;
+
+				if (throttle < quad_common.throttle.max) {
+					throttle += quad_common.pids.alt.i.val.scl;
+					quad_common.pids.alt.i.val.scl = 0;
+					quad_common.hoverThrottle = throttle;
+				}
+
+				if ((hvrAlt - alt) > 500 || (hvrAlt - alt) < -500) {
+					stabTimer = now;
+				}
+
+				/* stage escape */
+				if (now - stabTimer > 3000) {
+					stage = stage_hover;
+					stageStart = 0;
+				}
+
+				break;
+
+			/*
+			 * Drone fine stabilization.
+			 *
+			 * Goal: maintain hover for specified amount of time.
+			 */
+			case stage_hover:
+			default:
+				quad_stageStart(&stageStart, &now, "TAKEOFF - hover\n");
+
+				setAlt = hvrAlt;
+
+				/* stage escape */
+				if (now - stageStart > 10000) {
+					modeComplete = true;
+				}
+
+				break;
 		}
 
 		if (quad_motorsCtrl(throttle, &setAlt, setPosPtr, &att, &measure) < 0) {
 			return -1;
 		}
 
-		/* NO GPS! - override needed not to hit something */
-		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL | RC_OVRD_YAW);
-
-		if (quad_motorsCtrl(throttle, alt, NULL, &att, &measure) < 0) {
-			return -1;
-		}
+		last = now;
 	}
 
 	return 0;
