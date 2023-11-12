@@ -95,6 +95,7 @@ float pid_calc(pid_ctx_t *pid, float targetPos, float currPos, float currRate, t
 	pid_store(&pid->i, pid->i.val.scl + err * timeStep * pid->i.k);
 	if ((pid->flags & PID_RESET_I) != 0) {
 		pid->i.val.scl = 0;
+		pid->flags &= ~PID_RESET_I;
 	}
 	if ((pid->flags & PID_IGNORE_I) == 0) {
 		out += pid->i.val.scl;
