@@ -1,0 +1,7 @@
+test:
+  type: unity
+  tests:
+    - name: ekf_logs
+      execute: /usr/bin/ekflog_tests
+      targets:
+        value: [host-generic-pilot, armv7a9-zynq7000-vpilot]
