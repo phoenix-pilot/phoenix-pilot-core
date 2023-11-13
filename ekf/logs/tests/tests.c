@@ -27,7 +27,7 @@
 
 #include "../../kalman_implem.h"
 
-#define EKFLOG_TEST_FILE "tmp/ekf_logs_test.bin"
+#define EKFLOG_TEST_FILE "/tmp/ekf_logs_test.bin"
 
 #define SHORT_SEQUENCE_LEN 10
 #define LONG_SEQUENCE_LEN  100
