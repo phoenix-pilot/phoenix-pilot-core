@@ -4,4 +4,4 @@ test:
     - name: parser
       execute: /usr/bin/parser_tests
       targets:
-        value: [host-generic-pilot, armv7a9-zynq7000-vpilot]
+        value: [armv7a9-zynq7000-vpilot]
