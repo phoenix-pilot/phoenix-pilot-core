@@ -48,7 +48,7 @@
 #define STATE_LENGTH     16
 #define CTRL_LENGTH      6
 #define MEAS_IMU_LENGTH  6
-#define MEAS_BARO_LENGTH 2
+#define MEAS_BARO_LENGTH 1
 #define MEAS_GPS_LENGTH  4
 
 /* STATE VECTOR */
@@ -92,8 +92,7 @@
 #define MEZ 5
 
 /* Baro measurement vector indexes */
-#define MDZ 0 /* Measurement of change in height (NED z component change) */
-#define MRZ 1 /* Measurement of vertical position (NED height) */
+#define MRZ 0 /* Measurement of vertical position (NED height) */
 
 /* GPS measurement */
 #define MGPSRX 0 /* NED x position */
