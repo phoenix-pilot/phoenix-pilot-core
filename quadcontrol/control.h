@@ -56,8 +56,8 @@ typedef struct {
 
 typedef struct {
 	int32_t descent; /* Descent speed in millimeters per second */
-	int32_t diff;    /* Minimum altitude difference (millimeters) to occur when we suspect landing is done */
-	time_t timeout;  /* Time threshold (milliseconds) of `diff` persistence to decide that landing is finished */
+	int32_t alt;     /* Altitude from which cautious landing begins */
+	time_t timeout;  /* Time threshold (milliseconds) of low descend speed concluding landing */
 } flight_landing_t;
 
 
