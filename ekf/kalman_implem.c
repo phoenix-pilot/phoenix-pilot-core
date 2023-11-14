@@ -283,9 +283,9 @@ static matrix_t *kmn_getCtrl(matrix_t *U)
 	*matrix_at(U, UWX, 0) = gyro.x;
 	*matrix_at(U, UWY, 0) = gyro.y;
 	*matrix_at(U, UWZ, 0) = gyro.z;
-	*matrix_at(U, UAX, 0) = accel.x;
-	*matrix_at(U, UAY, 0) = accel.y;
-	*matrix_at(U, UAZ, 0) = accel.z;
+	*matrix_at(U, UAX, 0) = accelRaw.x;
+	*matrix_at(U, UAY, 0) = accelRaw.y;
+	*matrix_at(U, UAZ, 0) = accelRaw.z;
 
 	return U;
 }
@@ -434,7 +434,7 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeSt
 	qvdiff_qvqDiffV(&qState, &dfvdba);
 	matrix_times(&dfvdba, -dt);
 	/* d(f_v)/d(ba) write into F */
-	/* matrix_writeSubmatrix(F, VX, BAX, &dfvdba); */
+	matrix_writeSubmatrix(F, VX, BAX, &dfvdba);
 
 	/* d(f_v)/d(v) calculations */
 	*matrix_at(F, VX, VX) = *matrix_at(F, VY, VY) = *matrix_at(F, VZ, VZ) = 1;
