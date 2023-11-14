@@ -138,11 +138,11 @@ static int config_hoverParse(const hmap_t *h, flight_mode_t *mode)
 static int config_landingParse(const hmap_t *h, flight_mode_t *mode)
 {
 	if (parser_fieldGetInt(h, "descent", &mode->landing.descent) != 0) {
-		mode->landing.descent = 250;
+		mode->landing.descent = 500;
 	}
 
-	if (parser_fieldGetInt(h, "diff", &mode->landing.diff) != 0) {
-		mode->landing.diff = 4000;
+	if (parser_fieldGetInt(h, "alt", &mode->landing.alt) != 0) {
+		mode->landing.alt = 2000;
 	}
 
 	if (parser_fieldGetTime(h, "timeout", &mode->landing.timeout) != 0) {
