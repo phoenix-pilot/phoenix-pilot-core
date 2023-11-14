@@ -707,9 +707,97 @@ static int quad_hover(const flight_mode_t *mode)
 
 static int quad_landing(const flight_mode_t *mode)
 {
+	const time_t transTime = 1000;
+	const int32_t altDiff = ((float)mode->landing.descent / quad_common.pids.alt.r.val.scl);
+
+	ekf_state_t measure;
+	quad_att_t att = { 0 };
+	int32_t alt, setAlt, rcThrottle;
+	time_t now, stageStart, stabTimer;
+	vec_t setPos, *setPosPtr;
+	bool modeComplete = false;
+	enum landStage { stage_descent, stage_transition, stage_touchdown } stage = stage_descent;
+
 	log_enable();
-	log_print("LANDING NOT IMPLEMENTED! GOING MANUAL!\n");
-	quad_common.currFlight = flight_manual;
+	log_print("LAND - alt: %d\n", mode->landing.alt);
+
+	/* Use last target if available */
+	quad_prevTargetLoad(&setPos, &setAlt, &measure);
+	setPosPtr = &setPos;
+
+	ekf_stateGet(&measure);
+	att.yaw = measure.yaw;
+
+	now = quad_timeMsGet();
+	stabTimer = now;
+	stageStart = 0;
+
+	while (modeComplete == false && quad_common.currFlight == flight_landing) {
+		ekf_stateGet(&measure);
+		alt = measure.enuZ * 1000;
+
+		switch (stage) {
+			case stage_descent:
+				quad_stageStart(&stageStart, &now, "LAND - descent\n");
+				setAlt = mode->landing.alt;
+
+				if ((setAlt - alt) > QCTRL_HOVER_THRESH_ALT || (setAlt - alt) < -QCTRL_HOVER_THRESH_ALT) {
+					stabTimer = now;
+				}
+
+				if (now - stabTimer > QCTRL_HOVER_THRESH_TIME) {
+					stage = stage_transition;
+					stageStart = 0;
+				}
+
+				break;
+
+			case stage_transition:
+				quad_stageStart(&stageStart, &now, "LAND - transition\n");
+
+				if (now - stageStart < transTime) {
+					setAlt = alt - altDiff * (now - stageStart) / (float)transTime;
+				}
+				else {
+					setAlt = alt - altDiff;
+					stage = stage_touchdown;
+					stageStart = 0;
+					stabTimer = now;
+				}
+
+				break;
+
+			case stage_touchdown:
+				quad_stageStart(&stageStart, &now, "LAND - touchdown\n");
+				setAlt = alt - altDiff;
+
+				/* Half of target descent speed is a threshold */
+				if (fabs(measure.veloZ) > ((float)mode->landing.descent / 1000.f)) {
+					stabTimer = now;
+				}
+
+				if (now - stabTimer > mode->landing.timeout) {
+					mutexLock(quad_common.rcbusLock);
+					rcThrottle = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
+					mutexUnlock(quad_common.rcbusLock);
+
+					log_print("LANDING DETECTED! Set throttle = minimum to end!\n");
+					if (quad_rcChLow(rcThrottle)) {
+						log_enable();
+						log_print("LANDING DONE!\n");
+						modeComplete = true;
+					}
+				}
+
+				break;
+		}
+
+		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
+
+		if (quad_motorsCtrl(quad_common.hoverThrottle, &setAlt, setPosPtr, &att, &measure) < 0) {
+			return -1;
+		}
+	}
 
 	return 0;
 }
