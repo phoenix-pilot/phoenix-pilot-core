@@ -21,11 +21,6 @@
 #include "../kalman_implem.h"
 
 
-#define LOG_ID_SIZE         sizeof(uint32_t)
-#define LOG_IDENTIFIER_SIZE sizeof(char)
-#define LOG_TIMESTAMP_SIZE  sizeof(time_t)
-#define LOG_PREFIX_SIZE     (LOG_ID_SIZE + LOG_IDENTIFIER_SIZE + LOG_TIMESTAMP_SIZE)
-
 #define LOG_TYPES_CNT 5
 
 #define TIME_LOG_INDICATOR 'T'

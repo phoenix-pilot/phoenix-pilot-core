@@ -8,7 +8,7 @@
 
 NAME := ekflog_tests
 LOCAL_SRCS := main.c tests.c ../reader.c ../writer.c
-
+DEP_LIBS := libplog
 LIBS := unity
 
 ifeq ("$(LOG_VOL_CHECK)","TRUE")

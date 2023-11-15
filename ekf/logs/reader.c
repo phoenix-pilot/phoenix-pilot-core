@@ -19,6 +19,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include <plog.h>
+
 
 /* clang-format off */
 typedef enum { timeLog = 0, imuLog, gpsLog, baroLog, stateLog } logType_t;
