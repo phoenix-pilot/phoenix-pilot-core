@@ -9,16 +9,6 @@
  * This file is part of Phoenix-Pilot software
  *
  * %LICENSE%
- *
- *
- * The actual implementation of collection logs uses a two buffers.
- * The log producer saves data to the first one as long as there is enough space for new logs.
- * When there is not enough free memory, the producer marks it as dirty and starts using the next one.
- *
- * A separate thread saves the dirty buffers to a file and clears dirty flag.
- *
- * This approach allows for collecting logs without blocking the EKF thread due to potentially
- * time-consuming file writes.
  */
 
 #include "writer.h"
@@ -120,21 +110,7 @@ int ekflog_stateWrite(const matrix_t *state, time_t timestamp)
 }
 
 
-int ekflog_writerDone(void)
-{
-	int err = 0;
-
-	if (ekflog_common.logsEnabled == false) {
-		return 0;
-	}
-
-	plog_done(ekflog_common.ctx);
-
-	return err;
-}
-
-
-int ekflog_writerInit(const char *path, uint32_t flags)
+int ekflog_writerInit(plog_t *logger, uint32_t flags)
 {
 	if (flags == 0) {
 		ekflog_common.logsEnabled = false;
@@ -142,12 +118,12 @@ int ekflog_writerInit(const char *path, uint32_t flags)
 		return 0;
 	}
 
-	ekflog_common.ctx = plog_init(path, flags & EKFLOG_STRICT_MODE);
-	if (ekflog_common.ctx == NULL) {
+	if (logger == NULL) {
 		fprintf(stderr, "ekflog: failed to start plog\n");
 		return -1;
 	}
 
+	ekflog_common.ctx = logger;
 	ekflog_common.logFlags = flags;
 	ekflog_common.logsEnabled = true;
 

@@ -31,6 +31,7 @@
 #include <vec.h>
 #include <quat.h>
 #include <matrix.h>
+#include <plog.h>
 
 #include "ekflib.h"
 #include "filters.h"
@@ -141,7 +142,7 @@ static int ekf_measGate(int initFlags)
 }
 
 
-int ekf_init(int initFlags)
+int ekf_init(int initFlags, plog_t *logger)
 {
 	int err;
 
@@ -206,7 +207,7 @@ int ekf_init(int initFlags)
 		return -1;
 	}
 
-	if (ekflog_writerInit(EKF_LOG_FILE, ekf_common.initVals.log | ekf_common.initVals.logMode) != 0) {
+	if (ekflog_writerInit(logger, ekf_common.initVals.log) != 0) {
 		pthread_mutex_destroy(&ekf_common.lock);
 		pthread_attr_destroy(&ekf_common.threadAttr);
 		meas_done();
@@ -397,7 +398,6 @@ void ekf_done(void)
 	kalman_updateDealloc(&ekf_common.gpsEngine);
 
 	meas_done();
-	ekflog_writerDone();
 	pthread_mutex_destroy(&ekf_common.lock);
 }
 

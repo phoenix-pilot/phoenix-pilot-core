@@ -144,7 +144,7 @@ static int kmn_loggingConverter(const hmap_t *h)
 		converterResult->logMode = 0;
 	}
 	else if (strcmp(str, "STRICT") == 0) {
-		converterResult->logMode = EKFLOG_STRICT_MODE;
+		converterResult->logMode = PLOG_STRICT_MODE;
 	}
 	else {
 		fprintf(stderr, "EKF config: Invalid mode specifier: %s\n", str);

@@ -14,6 +14,8 @@
 #ifndef EKFLIB_H
 #define EKFLIB_H
 
+#include <plog.h>
+
 /* Ekf init flags */
 #define EKF_INIT_LOG_SRC (1 << 0) /* Sets logs as input data for EKF */
 
@@ -65,7 +67,7 @@ typedef struct {
 } ekf_state_t;
 
 
-extern int ekf_init(int initFlags);
+extern int ekf_init(int initFlags, plog_t *logger);
 
 
 extern int ekf_run(void);

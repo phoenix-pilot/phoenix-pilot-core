@@ -17,20 +17,12 @@
 
 #include <libsensors.h>
 #include <matrix.h>
+#include <plog.h>
 
 
 #define EKFLOG_SENSC (1 << 0)
 #define EKFLOG_TIME  (1 << 1)
 #define EKFLOG_STATE (1 << 2)
-
-/*
- * Potentially slower implementation, but with no possibility to lose logs.
- *
- * By default log module priorities execution speed over logs consistency.
- * It is possible that not all logs will be stored in result file.
- * It that case appropriate warning is added to file.
- */
-#define EKFLOG_STRICT_MODE (1 << 30)
 
 
 /* Logs timestamp */
@@ -53,12 +45,8 @@ extern int ekflog_baroWrite(const sensor_event_t *baroEvt);
 extern int ekflog_stateWrite(const matrix_t *state, time_t timestamp);
 
 
-/* Deinitialize ekflog writer module */
-extern int ekflog_writerDone(void);
-
-
 /* Initialize log module for `flags` log messages and `path` destination file. Returns 0 on success */
-extern int ekflog_writerInit(const char *path, uint32_t flags);
+extern int ekflog_writerInit(plog_t *logger, uint32_t flags);
 
 
 #endif
