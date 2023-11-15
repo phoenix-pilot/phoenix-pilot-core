@@ -14,6 +14,7 @@
 #include "mma.h"
 
 #include <ekflib.h>
+#include <plog.h>
 
 #include <math.h>
 #include <errno.h>
@@ -35,6 +36,7 @@ typedef enum { mode_rc = 0, mode_auto, mode_stabilize } control_mode_t;
 
 struct {
 	control_mode_t mode;
+	plog_t *logger;
 } plane_common;
 
 
@@ -71,6 +73,7 @@ static int plane_done(void)
 {
 	mma_done();
 	ekf_done();
+	plog_done(plane_common.logger);
 
 	return 0;
 }
@@ -84,14 +87,22 @@ static int plane_init(void)
 		return -1;
 	}
 
+	plane_common.logger = plog_init("log.bin", 0);
+	if (plane_common.logger == NULL) {
+		fprintf(stderr, "planecontrol: cannot initialize logger\n");
+		return -1;
+	}
+
 	/* EKF initialization */
-	if (ekf_init(0) < 0) {
+	if (ekf_init(0, plane_common.logger) < 0) {
 		fprintf(stderr, "planecontrol: cannot initialize ekf\n");
+		plog_done(plane_common.logger);
 		return -1;
 	}
 
 	if (ekf_run() < 0) {
 		fprintf(stderr, "planecontrol: cannot run ekf\n");
+		plog_done(plane_common.logger);
 		return -1;
 	}
 

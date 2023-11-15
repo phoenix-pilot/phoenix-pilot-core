@@ -20,6 +20,7 @@
 #include <ekflib.h>
 #include <rcbus.h>
 #include <vec.h>
+#include <plog.h>
 
 #include <math.h>
 #include <errno.h>
@@ -93,6 +94,8 @@ struct {
 	size_t scenarioSz;
 
 	quad_throttle_t throttle;
+
+	plog_t *logger;
 } quad_common;
 
 
@@ -902,6 +905,7 @@ static void quad_done(void)
 	mma_stop();
 	mma_done();
 	ekf_done();
+	plog_done(quad_common.logger);
 	rcbus_done();
 
 	free(quad_common.scenario);
@@ -1038,11 +1042,20 @@ static int quad_init(void)
 		return -1;
 	}
 
+	quad_common.logger = plog_init("flight.bin", 0);
+	if (quad_common.logger == NULL) {
+		fprintf(stderr, "quadcontrol: cannot initialize logger\n");
+		resourceDestroy(quad_common.rcbusLock);
+		free(quad_common.scenario);
+		return -1;
+	}
+
 	/* EKF initialization */
-	if (ekf_init(0) < 0) {
+	if (ekf_init(0, quad_common.logger) < 0) {
 		fprintf(stderr, "quadcontrol: cannot initialize ekf\n");
 		resourceDestroy(quad_common.rcbusLock);
 		free(quad_common.scenario);
+		plog_done(quad_common.logger);
 		return -1;
 	}
 

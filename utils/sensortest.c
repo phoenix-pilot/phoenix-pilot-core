@@ -23,6 +23,7 @@
 
 #include <sensc.h>
 #include <ekflib.h>
+#include <plog.h>
 
 #define R2D           57.2957
 #define THROTTLE_MAX  50
@@ -134,6 +135,7 @@ static int sensortest_motorsProcedure(void)
 
 int main(int argc, char **argv)
 {
+	plog_t *logger;
 	unsigned int throttle, i, flag = 0;
 	int ret;
 
@@ -182,15 +184,25 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
+	logger = plog_init("stest.bin", 0);
+	if (logger == NULL) {
+		printf("Cannot initialize ekf\n");
+		sensortest_motorsClose();
+		return EXIT_FAILURE;
+	}
+
+
 	if (ekf_init(EKF_INIT_LOG_SRC) != 0) {
 		printf("Cannot initialize ekf\n");
 		sensortest_motorsClose();
+		plog_done(logger);
 		return EXIT_FAILURE;
 	}
 
 	if (ekf_run() < 0) {
 		printf("Cannot start ekf\n");
 		sensortest_motorsClose();
+		plog_done(logger);
 		return EXIT_FAILURE;
 	}
 
@@ -207,6 +219,7 @@ int main(int argc, char **argv)
 	}
 
 	ekf_done();
+	plog_done(logger);
 
 	sensortest_motorsClose();
 

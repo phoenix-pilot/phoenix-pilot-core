@@ -20,6 +20,7 @@
 #include <errno.h>
 
 #include <ekflib.h>
+#include <plog.h>
 
 #include <vec.h>
 #include <quat.h>
@@ -130,6 +131,7 @@ static int handleUavStatus(int uavStatus)
 int main(int argc, char **argv)
 {
 	ekf_state_t uavState;
+	plog_t *logger;
 	enum printMode mode;
 	pthread_t keyboardHandlerTID;
 	pthread_attr_t threadAttr;
@@ -165,8 +167,13 @@ int main(int argc, char **argv)
 	printf("Press 'q' and confirm with enter to exit\n");
 	printf("\033[39m");
 
+	logger = plog_init("sim.bin", 0);
+	if (logger == NULL) {
+		fprintf(stderr, "devekf: cannot initialize logger\n");
+		return -1;
+	}
 
-	if (ekf_init(EKF_INIT_LOG_SRC) != 0) {
+	if (ekf_init(EKF_INIT_LOG_SRC, logger) != 0) {
 		fprintf(stderr, "devekf: error during ekf init\n");
 		return EXIT_FAILURE;
 	}
@@ -174,6 +181,7 @@ int main(int argc, char **argv)
 	if (ekf_run() != 0) {
 		fprintf(stderr, "devekf: cannot start ekf\n");
 		ekf_done();
+		plog_done(logger);
 		return EXIT_FAILURE;
 	}
 
@@ -184,6 +192,7 @@ int main(int argc, char **argv)
 		pthread_attr_destroy(&threadAttr);
 		ekf_stop();
 		ekf_done();
+		plog_done(logger);
 		return EXIT_FAILURE;
 	}
 
@@ -222,6 +231,7 @@ int main(int argc, char **argv)
 
 	ekf_stop();
 	ekf_done();
+	plog_done(logger);
 
 	pthread_attr_destroy(&threadAttr);
 
