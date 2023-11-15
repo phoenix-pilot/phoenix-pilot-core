@@ -43,19 +43,19 @@ static ssize_t ekflog_logSizeGet(char logIndicator)
 {
 	switch (logIndicator) {
 		case TIME_LOG_INDICATOR:
-			return TIME_LOG_SIZE;
+			return TIME_LOG_SIZE + LOG_PREFIX_SIZE;
 
 		case IMU_LOG_INDICATOR:
-			return IMU_LOG_SIZE;
+			return IMU_LOG_SIZE + LOG_PREFIX_SIZE;
 
 		case GPS_LOG_INDICATOR:
-			return GPS_LOG_SIZE;
+			return GPS_LOG_SIZE + LOG_PREFIX_SIZE;
 
 		case BARO_LOG_INDICATOR:
-			return BARO_LOG_SIZE;
+			return BARO_LOG_SIZE + LOG_PREFIX_SIZE;
 
 		case STATE_LOG_INDICATOR:
-			return STATE_LOG_SIZE;
+			return STATE_LOG_SIZE + LOG_PREFIX_SIZE;
 
 		default:
 			fprintf(stderr, "Log reader: Invalid log indicator in file: %c\n", logIndicator);
@@ -261,7 +261,7 @@ int ekflog_stateRead(matrix_t *state, time_t *timestamp)
 		return EOF;
 	}
 
-	if (fread(state->data, STATE_LOG_SIZE - LOG_PREFIX_SIZE, 1, ekflog_common.file) != 1) {
+	if (fread(state->data, STATE_LOG_SIZE, 1, ekflog_common.file) != 1) {
 		if (errno == 0) {
 			ekflog_ebadfMsg();
 		}

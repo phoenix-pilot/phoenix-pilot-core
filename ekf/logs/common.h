@@ -29,18 +29,18 @@
 #define LOG_TYPES_CNT 5
 
 #define TIME_LOG_INDICATOR 'T'
-#define TIME_LOG_SIZE      LOG_PREFIX_SIZE
+#define TIME_LOG_SIZE      0
 
 #define IMU_LOG_INDICATOR 'I'
-#define IMU_LOG_SIZE      (sizeof(accel_data_t) + sizeof(mag_data_t) + sizeof(gyro_data_t) + LOG_PREFIX_SIZE)
+#define IMU_LOG_SIZE      (sizeof(accel_data_t) + sizeof(mag_data_t) + sizeof(gyro_data_t))
 
 #define GPS_LOG_INDICATOR 'P'
-#define GPS_LOG_SIZE      (sizeof(gps_data_t) + LOG_PREFIX_SIZE)
+#define GPS_LOG_SIZE      (sizeof(gps_data_t))
 
 #define BARO_LOG_INDICATOR 'B'
-#define BARO_LOG_SIZE      (sizeof(baro_data_t) + LOG_PREFIX_SIZE)
+#define BARO_LOG_SIZE      (sizeof(baro_data_t))
 
 #define STATE_LOG_INDICATOR 'S'
-#define STATE_LOG_SIZE      (sizeof(float) * STATE_LENGTH + LOG_PREFIX_SIZE)
+#define STATE_LOG_SIZE      (sizeof(float) * STATE_LENGTH)
 
 #endif
