@@ -67,7 +67,7 @@
 
 /* Flight modes magic numbers */
 #define QCTRL_HOVER_THRESH_TIME 3000 /* hover time threshold (milliseconds) */
-#define QCTRL_HOVER_THRESH_ALT  500  /* hover altitude threshold */
+#define QCTRL_HOVER_THRESH_ALT  1000 /* hover altitude threshold */
 
 
 typedef enum { mode_rc = 0, mode_auto } control_mode_t;
@@ -215,8 +215,10 @@ static void quad_cmdCockpit(const ekf_state_t *measure)
 
 	alt = measure->enuZ;
 	dst = sqrt(measure->enuX * measure->enuX + measure->enuY * measure->enuY);
-	hdg = measure->yaw * 180 / M_PI + (measure->yaw < 0) ? 360 : 0;
 	vel = sqrt(measure->veloX * measure->veloX + measure->veloY * measure->veloY);
+
+	hdg = measure->yaw * 180.f / M_PI;
+	hdg += (measure->yaw > 0) ? 360 : 0;
 
 	log_print("ALT %3d DST %3d HDG %3d VEL %2d\n", alt, dst, hdg, vel);
 }
@@ -477,7 +479,7 @@ static inline void quad_stageStart(time_t *stageStart, time_t *now, const char *
 
 static int quad_takeoff(const flight_mode_t *mode)
 {
-	const int32_t hvrAlt = mode->hover.alt;
+	const int32_t hvrAlt = mode->takeoff.alt;
 	const int32_t liftAlt = 2000;
 
 	quad_att_t att;
@@ -499,6 +501,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 	log_print("TAKEOFF\n", setAlt);
 
 	now = quad_timeMsGet();
+	quad_periodLogEnable(now);
 	last = now;
 
 	while (quad_common.currFlight == flight_takeoff && modeComplete == false) {
@@ -531,7 +534,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 			 */
 			case stage_spool:
 				quad_stageStart(&stageStart, &now, "TAKEOFF - spool\n");
-				setAlt = mode->hover.alt;
+				setAlt = hvrAlt;
 
 				throttle = (now - stageStart > 1000) ? quad_common.throttle.min : throttle + quad_common.throttle.min * (now - last) / 1000.f;
 
@@ -605,7 +608,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 				setAlt = hvrAlt;
 
 				/* stage escape */
-				if (now - stageStart > 10000) {
+				if (now - stageStart > mode->takeoff.time) {
 					modeComplete = true;
 				}
 
@@ -644,16 +647,18 @@ static int quad_hover(const flight_mode_t *mode)
 	setPosPtr = &setPos;
 
 	now = quad_timeMsGet();
+	quad_periodLogEnable(now);
 	stabTimer = now;
 	stageStart = 0;
 
 	while (modeComplete == false && quad_common.currFlight == flight_hover) {
+		/* Setup timing and logging */
+		now = quad_timeMsGet();
+		quad_periodLogEnable(now);
+
 		ekf_stateGet(&measure);
 		alt = measure.enuZ * 1000;
 		setAlt = mode->hover.alt;
-
-		now = quad_timeMsGet();
-		quad_periodLogEnable(now);
 
 		/* Setup basic attitude */
 		quad_levelAtt(&att);
@@ -708,7 +713,7 @@ static int quad_hover(const flight_mode_t *mode)
 static int quad_landing(const flight_mode_t *mode)
 {
 	const time_t transTime = 1000;
-	const int32_t altDiff = ((float)mode->landing.descent / quad_common.pids.alt.r.val.scl);
+	const int32_t altSink = ((float)mode->landing.descent / quad_common.pids.alt.r.k);
 
 	ekf_state_t measure;
 	quad_att_t att = { 0 };
@@ -733,6 +738,10 @@ static int quad_landing(const flight_mode_t *mode)
 	stageStart = 0;
 
 	while (modeComplete == false && quad_common.currFlight == flight_landing) {
+		/* Setup timing and logging */
+		now = quad_timeMsGet();
+		quad_periodLogEnable(now);
+
 		ekf_stateGet(&measure);
 		alt = measure.enuZ * 1000;
 
@@ -756,10 +765,10 @@ static int quad_landing(const flight_mode_t *mode)
 				quad_stageStart(&stageStart, &now, "LAND - transition\n");
 
 				if (now - stageStart < transTime) {
-					setAlt = alt - altDiff * (now - stageStart) / (float)transTime;
+					setAlt = alt - altSink * (now - stageStart) / (float)transTime;
 				}
 				else {
-					setAlt = alt - altDiff;
+					setAlt = alt - altSink;
 					stage = stage_touchdown;
 					stageStart = 0;
 					stabTimer = now;
@@ -769,10 +778,10 @@ static int quad_landing(const flight_mode_t *mode)
 
 			case stage_touchdown:
 				quad_stageStart(&stageStart, &now, "LAND - touchdown\n");
-				setAlt = alt - altDiff;
+				setAlt = alt - altSink;
 
 				/* Half of target descent speed is a threshold */
-				if (fabs(measure.veloZ) > ((float)mode->landing.descent / 1000.f)) {
+				if (abs(measure.veloZ) > ((float)mode->landing.descent / 1000.f)) {
 					stabTimer = now;
 				}
 
