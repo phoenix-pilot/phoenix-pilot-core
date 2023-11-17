@@ -291,25 +291,6 @@ static matrix_t *kmn_getCtrl(matrix_t *U)
 }
 
 
-/* Damping acceleration magnitude if its length is below ACC_DAMP_THRESHOLD */
-float kmn_accelDamp(vec_t *accel)
-{
-	float len, damp;
-
-	len = vec_len(accel);
-
-	if (len < ACC_DAMP_THRESHOLD) {
-		len /= ACC_DAMP_THRESHOLD;
-		damp = len * len * len * len;
-	}
-	else {
-		damp = 1.0;
-	}
-
-	return damp;
-}
-
-
 /* State estimation function definition */
 static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time_t timeStep)
 {
@@ -353,9 +334,6 @@ static void kmn_stateEst(matrix_t *state, matrix_t *state_est, matrix_t *U, time
 
 	/* Integrating z acceleration as is. Low impact from attitude error */
 	*matrix_at(state_est, VZ, 0) = kmn_vecAt(state, VZ) + aEst.z * dt;
-	/* Integrating damped x/y acceleration. High impact from attitude error */
-	aEst.z = 0;
-	vec_times(&aEst, kmn_accelDamp(&aEst));
 	*matrix_at(state_est, VX, 0) = kmn_vecAt(state, VX) + aEst.x * dt;
 	*matrix_at(state_est, VY, 0) = kmn_vecAt(state, VY) + aEst.y * dt;
 
