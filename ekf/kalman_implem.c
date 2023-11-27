@@ -426,9 +426,9 @@ static void kmn_predJcb(matrix_t *F, matrix_t *state, matrix_t *U, time_t timeSt
 	*matrix_at(F, BWX, BWX) = *matrix_at(F, BWY, BWY) = *matrix_at(F, BWZ, BWZ) = 1;
 
 	/*
-	* DISABLED USE OF POSITION DERIVATIVES
-	* Not yet tested in flight!
-	*/
+	 * DISABLED USE OF POSITION DERIVATIVES
+	 * Not yet tested in flight!
+	 */
 
 	/* d(f_v)/d(q) calculations */
 	vec_dif(&aMeas, &baState, &aTrue);
@@ -498,8 +498,7 @@ static void kmn_getNoiseQ(matrix_t *state, matrix_t *U, matrix_t *Q, time_t time
 	*matrix_at(Q, RX, RX) = *matrix_at(Q, RY, RY) = *matrix_at(Q, RZ, RZ) = (dtSq * pred_common.inits->Q_astdev) * (dtSq * pred_common.inits->Q_astdev);
 
 	/* EARTH MAGNETIC PROCESS NOISE */
-	*matrix_at(Q, MX, MX) = *matrix_at(Q, MY, MY) = *matrix_at(Q, MZ, MZ) = pred_common.inits->Q_mstdev;
-
+	*matrix_at(Q, MX, MX) = *matrix_at(Q, MY, MY) = *matrix_at(Q, MZ, MZ) = pred_common.inits->Q_mstdev * pred_common.inits->Q_mstdev;
 }
 
 
