@@ -79,8 +79,8 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 
 static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, time_t timestep)
 {
-	/* gravity versor and east versor in NED frame of reference */
-	vec_t nedMeasG = { .x = 0, .y = 0, .z = 1 };
+	/* gravity vector and east versor in NED frame of reference */
+	vec_t nedMeasG = { .x = 0, .y = 0, .z = EARTH_G };
 	vec_t nedMeasM = { .x = kmn_vecAt(state_est, MX), .y = kmn_vecAt(state_est, MY), .z = kmn_vecAt(state_est, MZ) };
 
 	/* Taking conjugation of quaternion as it should rotate from inertial frame to body frame */
@@ -130,10 +130,10 @@ static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_
 	dgdq.data[1] = dgdq.data[6] = dgdq.data[11] = qState.k;
 	matrix_times(&dgdq, 2);
 
-	/* Derivative of inversly rotated mag vector with respect to quaternion */
+	/* Derivative of inversely rotated mag vector with respect to quaternion */
 	qvdiff_cqvqDiffQ(&qState, &mState, &dmdq);
 
-	/* Derivative of inversly rotated vector with respect to earth mag vector estimation */
+	/* Derivative of inversely rotated vector with respect to earth mag vector estimation */
 	qvdiff_cqvqDiffV(&qState, &dmdm);
 
 	matrix_writeSubmatrix(H, MGX, QA, &dgdq);
