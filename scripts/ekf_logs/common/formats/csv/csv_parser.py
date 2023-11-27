@@ -104,7 +104,8 @@ class CsvLogParser:
             gyroscopeBias=utils.Vector3(float(row[7]), float(row[8]), float(row[9])),
             velocity=utils.Vector3(float(row[10]), float(row[11]), float(row[12])),
             accelerometerBias=utils.Vector3(float(row[13]), float(row[14]), float(row[15])),
-            position=utils.NEDCoordinates(float(row[16]), float(row[17]), float(row[18]))
+            position=utils.NEDCoordinates(float(row[16]), float(row[17]), float(row[18])),
+            magneticField=utils.Vector3(float(row[19]), float(row[20]), float(row[21]))
         )
 
         return logs_types.EkfStateLog(id, timestamp, ekf_state_data)

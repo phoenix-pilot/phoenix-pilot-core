@@ -13,4 +13,4 @@ GPS = Struct("IiqqQHHiIiiiIIIHhHBB4x")
 
 BARO = Struct("III")
 
-STATE = Struct("=16f")
+STATE = Struct("=19f")
