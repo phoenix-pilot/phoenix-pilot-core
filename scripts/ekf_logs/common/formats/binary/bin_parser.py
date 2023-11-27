@@ -104,7 +104,8 @@ class BinaryLogParser:
             gyroscopeBias=utils.Vector3(fields[4], fields[5], fields[6]),
             velocity=utils.Vector3(fields[7], fields[8], fields[9]),
             accelerometerBias=utils.Vector3(fields[10], fields[11], fields[12]),
-            position=utils.NEDCoordinates(fields[13], fields[14], fields[15])
+            position=utils.NEDCoordinates(fields[13], fields[14], fields[15]),
+            magneticField=utils.Vector3(fields[16], fields[17], fields[18])
         )
 
         return logs_types.EkfStateLog(log_id, timestamp, ekf_state)

@@ -108,7 +108,10 @@ class BinaryLogExporter(LogsVisitor):
                 state_log.data.accelerometerBias.z,
                 state_log.data.position.north,
                 state_log.data.position.east,
-                state_log.data.position.down
+                state_log.data.position.down,
+                state_log.data.magneticField.x,
+                state_log.data.magneticField.y,
+                state_log.data.magneticField.z
             )
         )
 
