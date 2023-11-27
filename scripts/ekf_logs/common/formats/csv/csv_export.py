@@ -122,3 +122,7 @@ class CsvLogExporter(LogsVisitor):
         self.entry.append(state_log.data.position.north)
         self.entry.append(state_log.data.position.east)
         self.entry.append(state_log.data.position.down)
+
+        self.entry.append(state_log.data.magneticField.x)
+        self.entry.append(state_log.data.magneticField.y)
+        self.entry.append(state_log.data.magneticField.z)

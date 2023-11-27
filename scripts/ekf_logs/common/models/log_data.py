@@ -63,3 +63,4 @@ class EkfState:
     gyroscopeBias: Vector3
     accelerometerBias: Vector3
     position: NEDCoordinates
+    magneticField: Vector3
