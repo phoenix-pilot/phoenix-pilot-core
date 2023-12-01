@@ -1,4 +1,5 @@
 import sys
+import math
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,12 +11,18 @@ from logs_evaluations.evaluations.gps_ekf_comparison.interactive_legend_factory 
 
 
 def nearest_values(known_array, test_array):
-    """Returns array of indices, were ith element is an index the nearest value in known_array to test_array[i] value"""
+    """Returns array of indices, were i-th element is an index the nearest value in known_array to test_array[i] value. Array known_array must be sorted."""
 
-    differences = (test_array.reshape(1, -1) - known_array.reshape(-1, 1))
-    indices = np.abs(differences).argmin(axis=0)
+    result = np.empty(len(test_array), dtype=np.int_)
 
-    return indices
+    for i, value in enumerate(test_array):
+        idx = np.searchsorted(known_array, value, side="left")
+        if idx > 0 and (idx == len(known_array) or math.fabs(value - known_array[idx-1]) < math.fabs(value - known_array[idx])):
+            result[i] = idx-1
+        else:
+            result[i] = idx
+
+    return result
 
 
 class AccelerationChart:
