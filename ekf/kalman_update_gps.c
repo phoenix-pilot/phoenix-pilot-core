@@ -33,7 +33,7 @@
 /* Returns pointer to passed Z matrix filled with newest measurements vector */
 static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_t timeStep)
 {
-	static float lastRX = 0, lastRY = 0;
+	static meas_gps_t gpsDataLast;
 	static int firstMeas = 0;
 
 	meas_gps_t gpsData;
@@ -54,12 +54,11 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 		firstMeas = 1;
 	}
 	else {
-		Z->data[MGPSVX] = (gpsData.pos.x - lastRX) / ((float)timeStep / 1000000);
-		Z->data[MGPSVY] = (gpsData.pos.y - lastRY) / ((float)timeStep / 1000000);
+		Z->data[MGPSVX] = (gpsData.pos.x - gpsDataLast.pos.x) / ((float)timeStep / 1000000);
+		Z->data[MGPSVY] = (gpsData.pos.y - gpsDataLast.pos.y) / ((float)timeStep / 1000000);
 	}
 
-	lastRX = gpsData.pos.x;
-	lastRY = gpsData.pos.y;
+	gpsDataLast = gpsData;
 
 	return Z;
 }
