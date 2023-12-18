@@ -489,7 +489,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 	int32_t setAlt, alt;
 	vec_t setPos, *setPosPtr;
 	bool modeComplete = false;
-	enum takeoffStage { stage_spool, stage_lift, stage_stabilize, stage_hover } stage = stage_lift;
+	enum takeoffStage { stage_spool, stage_lift, stage_stabilize, stage_hover } stage = stage_spool;
 
 	ekf_stateGet(&measure);
 	att.yaw = measure.yaw;
@@ -520,11 +520,6 @@ static int quad_takeoff(const flight_mode_t *mode)
 			setPos = (vec_t) { .x = measure.enuX, .y = measure.enuY, .z = 0 };
 		}
 
-		/* Engage position lock at 1m AGL */
-		if (alt > 500 && setPosPtr == NULL) {
-			setPosPtr = &setPos;
-		}
-
 		switch (stage) {
 			/*
 			 * Gentle engines spoolup.
@@ -543,6 +538,8 @@ static int quad_takeoff(const flight_mode_t *mode)
 					quad_common.pids.pitch.flags |= PID_RESET_I;
 					stage = stage_lift;
 					stageStart = 0;
+
+					setPosPtr = &setPos;
 				}
 
 				break;
@@ -589,7 +586,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 				}
 
 				/* stage escape */
-				if (now - stabTimer > QCTRL_HOVER_THRESH_TIME) {
+				if ((now - stabTimer) > QCTRL_HOVER_THRESH_TIME) {
 					stage = stage_hover;
 					stageStart = 0;
 				}
