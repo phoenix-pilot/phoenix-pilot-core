@@ -66,8 +66,9 @@
 #define LOG_PERIOD          500     /* drone control loop logs data once per 'LOG_PERIOD' milliseconds */
 
 /* Flight modes magic numbers */
-#define QCTRL_HOVER_THRESH_TIME 3000 /* hover time threshold (milliseconds) */
-#define QCTRL_HOVER_THRESH_ALT  1000 /* hover altitude threshold */
+#define QCTRL_HOVER_THRESH_TIME  3000 /* hover time threshold (milliseconds) */
+#define QCTRL_HOVER_THRESH_ALT   1000 /* hover altitude threshold */
+#define QCTRL_LAND_THRESH_VSPEED 250  /* landing vertical speed threshold */
 
 
 typedef enum { mode_rc = 0, mode_auto } control_mode_t;
@@ -717,8 +718,9 @@ static int quad_landing(const flight_mode_t *mode)
 	int32_t alt, setAlt, rcThrottle;
 	time_t now, stageStart, stabTimer;
 	vec_t setPos, *setPosPtr;
+	float throttle = quad_common.hoverThrottle;
 	bool modeComplete = false;
-	enum landStage { stage_descent, stage_transition, stage_touchdown } stage = stage_descent;
+	enum landStage { stage_descent, stage_transition, stage_touchdown, stage_landed, stage_confirm } stage = stage_descent;
 
 	log_enable();
 	log_print("LAND - alt: %d\n", mode->landing.alt);
@@ -777,22 +779,66 @@ static int quad_landing(const flight_mode_t *mode)
 				quad_stageStart(&stageStart, &now, "LAND - touchdown\n");
 				setAlt = alt - altSink;
 
-				/* Half of target descent speed is a threshold */
-				if (abs(measure.veloZ) > ((float)mode->landing.descent / 1000.f)) {
+				/* meet descend speed threshold */
+				if (fabs(measure.veloZ) > (QCTRL_LAND_THRESH_VSPEED / 1000.f)) {
 					stabTimer = now;
 				}
 
 				if (now - stabTimer > mode->landing.timeout) {
-					mutexLock(quad_common.rcbusLock);
-					rcThrottle = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
-					mutexUnlock(quad_common.rcbusLock);
+					setAlt = alt - altSink;
+					stage = stage_landed;
+					stageStart = 0;
+					stabTimer = now;
+				}
 
-					log_print("LANDING DETECTED! Set throttle = minimum to end!\n");
-					if (quad_rcChLow(rcThrottle)) {
-						log_enable();
-						log_print("LANDING DONE!\n");
-						modeComplete = true;
+				break;
+
+			case stage_landed:
+				quad_stageStart(&stageStart, &now, "LAND - DONE\n");
+				setAlt = alt - altSink;
+				setPosPtr = NULL;
+				throttle = quad_common.throttle.min;
+
+				/*
+				 * First two seconds of landed stage checks if UAV indeed landed.
+				 * If landed, sudden throttle drop should NOT result in vertical speed increase.
+				 */
+				if (now - stageStart < 2000) {
+					/* Stabilization timer measures drop in height by velocity threshold */
+					if (measure.veloZ < (-QCTRL_LAND_THRESH_VSPEED / 1000.f)) {
+						stabTimer = now;
 					}
+
+					/* vertical speed outside threshold means we did not landed */
+					if (now - stabTimer > 250) {
+						setAlt = alt - altSink;
+						setPosPtr = &setPos;
+						throttle = quad_common.hoverThrottle;
+						stage = stage_touchdown;
+					}
+				}
+				else {
+					throttle = quad_common.throttle.min;
+					stage = stage_confirm;
+				}
+
+				break;
+
+			case stage_confirm:
+				quad_stageStart(&stageStart, &now, "LAND - DONE\n");
+				setAlt = alt;
+				setPosPtr = NULL;
+				throttle = quad_common.throttle.min;
+
+				mutexLock(quad_common.rcbusLock);
+				rcThrottle = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
+				mutexUnlock(quad_common.rcbusLock);
+
+				log_print("LANDING DETECTED! Set throttle = minimum to end!\n");
+				if (quad_rcChLow(rcThrottle)) {
+					log_enable();
+					log_print("LANDING DONE!\n");
+					modeComplete = true;
 				}
 
 				break;
@@ -800,7 +846,7 @@ static int quad_landing(const flight_mode_t *mode)
 
 		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 
-		if (quad_motorsCtrl(quad_common.hoverThrottle, &setAlt, setPosPtr, &att, &measure) < 0) {
+		if (quad_motorsCtrl(throttle, &setAlt, setPosPtr, &att, &measure) < 0) {
 			return -1;
 		}
 	}
