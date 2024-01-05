@@ -504,6 +504,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 	now = quad_timeMsGet();
 	quad_periodLogEnable(now);
 	last = now;
+	stabTimer = now;
 
 	while (quad_common.currFlight == flight_takeoff && modeComplete == false) {
 		/* Setup timing and logging */
@@ -803,13 +804,16 @@ static int quad_landing(const flight_mode_t *mode)
 				 * First two seconds of landed stage checks if UAV indeed landed.
 				 * If landed, sudden throttle drop should NOT result in vertical speed increase.
 				 */
-				if (now - stageStart < 2000) {
-					/* Stabilization timer measures drop in height by velocity threshold */
-					if (measure.veloZ < (-QCTRL_LAND_THRESH_VSPEED / 1000.f)) {
+				if ((now - stageStart) < (transTime * 2)) {
+					/*
+					 * `stabTimer` measures DESTABILIZATION of drone vertical speed.
+					 * It is zeroed to `now` if the vertical speed does not cross the negative speed threshold.
+					 */
+					if (measure.veloZ > (-QCTRL_LAND_THRESH_VSPEED / 1000.f)) {
 						stabTimer = now;
 					}
 
-					/* vertical speed outside threshold means we did not landed */
+					/* destabilisation means we did not land - revert to 'touchdown' */
 					if (now - stabTimer > 250) {
 						setAlt = alt - altSink;
 						setPosPtr = &setPos;
@@ -829,6 +833,10 @@ static int quad_landing(const flight_mode_t *mode)
 				setAlt = alt;
 				setPosPtr = NULL;
 				throttle = quad_common.throttle.min;
+
+				quad_common.pids.yaw.flags = PID_IGNORE_I;
+				quad_common.pids.pitch.flags = PID_IGNORE_I;
+				quad_common.pids.roll.flags = PID_IGNORE_I;
 
 				mutexLock(quad_common.rcbusLock);
 				rcThrottle = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
