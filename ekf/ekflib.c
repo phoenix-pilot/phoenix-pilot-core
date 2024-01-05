@@ -413,6 +413,7 @@ void ekf_boundsGet(float *bYaw, float *bRoll, float *bPitch)
 void ekf_stateGet(ekf_state_t *ekfState)
 {
 	quat_t q;
+	vec_t accel, accelRaw;
 	pthread_mutex_lock(&ekf_common.lock);
 
 	ekfState->status = 0;
@@ -437,10 +438,6 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	ekfState->veloY = kmn_vecAt(&ekf_common.stateEngine.state, VX);
 	ekfState->veloZ = -kmn_vecAt(&ekf_common.stateEngine.state, VZ);
 
-	ekfState->accelX = kmn_vecAt(&ekf_common.stateEngine.U, UAX);
-	ekfState->accelY = kmn_vecAt(&ekf_common.stateEngine.U, UAY);
-	ekfState->accelZ = kmn_vecAt(&ekf_common.stateEngine.U, UAZ);
-
 	ekfState->rollDot = ekf_common.stateEngine.U.data[UWX] - ekf_common.stateEngine.state.data[BWX];
 	ekfState->pitchDot = ekf_common.stateEngine.U.data[UWY] - ekf_common.stateEngine.state.data[BWY];
 	ekfState->yawDot = ekf_common.stateEngine.U.data[UWZ] - ekf_common.stateEngine.state.data[BWZ];
@@ -451,6 +448,12 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	ekfState->imuTime = ekf_common.imuTime;
 
 	pthread_mutex_unlock(&ekf_common.lock);
+
+	meas_accelGet(&accel, &accelRaw);
+	quat_vecRot(&accel, &q);
+	ekfState->accelX = accel.x;
+	ekfState->accelY = accel.y;
+	ekfState->accelZ = accel.z;
 
 	/* calculate and save euler attitude */
 	quat_quat2euler(&q, &ekfState->roll, &ekfState->pitch, &ekfState->yaw);
