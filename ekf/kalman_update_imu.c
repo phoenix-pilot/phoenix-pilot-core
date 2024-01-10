@@ -65,6 +65,15 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	*matrix_at(R, MGY, MGY) = accelSigma;
 	*matrix_at(R, MGZ, MGZ) = accelSigma;
 
+	/* Accelerometer measurement normalization to earth acceleration */
+	vec_normalize(&accel);
+	vec_times(&accel, EARTH_G);
+
+	/* Magnetometer measurement normalization to vector length from calibration */
+	const meas_calib_t *calib = meas_calibGet();
+	vec_normalize(&mag);
+	vec_times(&mag, vec_len(&calib->imu.initMag));
+
 	Z->data[MGX] = accel.x;
 	Z->data[MGY] = accel.y;
 	Z->data[MGZ] = accel.z;
