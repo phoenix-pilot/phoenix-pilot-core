@@ -46,8 +46,11 @@ typedef struct {
 typedef struct {
 	struct {
 		quat_t initQuat; /* starting position quaternion */
-		vec_t initMag;   /* starting magnetic field */
-		vec_t gyroBias;  /* starting gyro bias */
+
+		vec_t initMag;    /* starting magnetic field */
+		float initMagLen; /* length of starting magnetic field vector */
+
+		vec_t gyroBias; /* starting gyro bias */
 	} imu;
 
 	struct {
