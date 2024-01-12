@@ -33,6 +33,7 @@
 
 struct {
 	const kalman_init_t *inits;
+	float calibMagLen; /* Length of a magnetic vector from calibration */
 } imu_common;
 
 
@@ -66,13 +67,10 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	*matrix_at(R, MGZ, MGZ) = accelSigma;
 
 	/* Accelerometer measurement normalization to earth acceleration */
-	vec_normalize(&accel);
-	vec_times(&accel, EARTH_G);
+	vec_times(&accel, EARTH_G / vec_len(&accel));
 
 	/* Magnetometer measurement normalization to vector length from calibration */
-	const meas_calib_t *calib = meas_calibGet();
-	vec_normalize(&mag);
-	vec_times(&mag, vec_len(&calib->imu.initMag));
+	vec_times(&mag, imu_common.calibMagLen / vec_len(&mag));
 
 	Z->data[MGX] = accel.x;
 	Z->data[MGY] = accel.y;
@@ -166,11 +164,17 @@ static void imuUpdateInitializations(matrix_t *H, matrix_t *R)
 
 void kmn_imuEngInit(update_engine_t *engine, const kalman_init_t *inits)
 {
+	const meas_calib_t *calib;
+
 	if (!engine->active) {
 		return;
 	}
 
 	imu_common.inits = inits;
+
+	calib = meas_calibGet();
+	imu_common.calibMagLen = vec_len(&calib->imu.initMag);
+	printf("Calib mag len: %f\n", imu_common.calibMagLen);
 
 	imuUpdateInitializations(&engine->H, &engine->R);
 
