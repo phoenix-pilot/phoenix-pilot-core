@@ -364,8 +364,9 @@ int meas_imuCalib(void)
 	vec_times(&gyrAvg, 1. / (float)avg);
 	vec_times(&magAvg, 1. / (float)avg);
 
-	meas_common.calib.imu.gyroBias = gyrAvg; /* save gyro drift parameters */
-	meas_common.calib.imu.initMag = magAvg;  /* save initial magnetometer reading */
+	meas_common.calib.imu.gyroBias = gyrAvg;             /* save gyro drift parameters */
+	meas_common.calib.imu.initMag = magAvg;              /* save initial magnetometer reading */
+	meas_common.calib.imu.initMagLen = vec_len(&magAvg); /* save initial magnetic vector length */
 
 	/* calculate initial rotation */
 	vec_normalize(&accAvg);

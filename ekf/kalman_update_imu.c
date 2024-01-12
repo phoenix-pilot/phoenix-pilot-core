@@ -33,7 +33,6 @@
 
 struct {
 	const kalman_init_t *inits;
-	float calibMagLen; /* Length of a magnetic vector from calibration */
 } imu_common;
 
 
@@ -70,7 +69,8 @@ static matrix_t *getMeasurement(matrix_t *Z, matrix_t *state, matrix_t *R, time_
 	vec_times(&accel, EARTH_G / vec_len(&accel));
 
 	/* Magnetometer measurement normalization to vector length from calibration */
-	vec_times(&mag, imu_common.calibMagLen / vec_len(&mag));
+	const meas_calib_t *calib = meas_calibGet();
+	vec_times(&mag, calib->imu.initMagLen / vec_len(&mag));
 
 	Z->data[MGX] = accel.x;
 	Z->data[MGY] = accel.y;
@@ -91,7 +91,7 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 	vec_t nedMeasM = { .x = kmn_vecAt(state_est, MX), .y = kmn_vecAt(state_est, MY), .z = kmn_vecAt(state_est, MZ) };
 
 	/* Taking conjugation of quaternion as it should rotate from inertial frame to body frame */
-	const quat_t qState = {.a = kmn_vecAt(state_est, QA), .i = -kmn_vecAt(state_est, QB), .j = -kmn_vecAt(state_est, QC), .k = -kmn_vecAt(state_est, QD)};
+	const quat_t qState = { .a = kmn_vecAt(state_est, QA), .i = -kmn_vecAt(state_est, QB), .j = -kmn_vecAt(state_est, QC), .k = -kmn_vecAt(state_est, QD) };
 
 	matrix_zeroes(hx);
 
@@ -113,7 +113,7 @@ static matrix_t *getMeasurementPrediction(matrix_t *state_est, matrix_t *hx, tim
 static void getMeasurementPredictionJacobian(matrix_t *H, matrix_t *state, time_t timeStep)
 {
 	/* This is conjugation of state quaternion as it was used to rotate from earth NED to body frame */
-	const quat_t qState = {.a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD)};
+	const quat_t qState = { .a = kmn_vecAt(state, QA), .i = kmn_vecAt(state, QB), .j = kmn_vecAt(state, QC), .k = kmn_vecAt(state, QD) };
 	const vec_t mState = { .x = kmn_vecAt(state, MX), .y = kmn_vecAt(state, MY), .z = kmn_vecAt(state, MZ) };
 
 	float dgdqData[3 * 4];
@@ -164,17 +164,11 @@ static void imuUpdateInitializations(matrix_t *H, matrix_t *R)
 
 void kmn_imuEngInit(update_engine_t *engine, const kalman_init_t *inits)
 {
-	const meas_calib_t *calib;
-
 	if (!engine->active) {
 		return;
 	}
 
 	imu_common.inits = inits;
-
-	calib = meas_calibGet();
-	imu_common.calibMagLen = vec_len(&calib->imu.initMag);
-	printf("Calib mag len: %f\n", imu_common.calibMagLen);
 
 	imuUpdateInitializations(&engine->H, &engine->R);
 
