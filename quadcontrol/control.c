@@ -1026,13 +1026,16 @@ static int quad_landing(const flight_mode_t *mode)
 */
 static int quad_manual(void)
 {
+	const vec_t homePos = { .x = 0, .y = 0, .z = 0 };
+
 	quad_att_t att;
 	ekf_state_t measure;
 	float throttle = 0;
 	time_t now;
 	int32_t setAlt, alt, stickSWC, rcThrottle;
-	vec_t setPos, *setPosPtr;
-	enum subType { sub_stab, sub_alt, sub_phld } submode;
+	vec_t setPos;
+	const vec_t *setPosPtr;
+	enum subType { sub_stab, sub_phld, sub_rth } submode;
 
 	/* Initialize yaw and altitude */
 	ekf_stateGet(&measure);
@@ -1065,16 +1068,15 @@ static int quad_manual(void)
 			submode = sub_stab; /* SWC == LOW (or illegal value) -> stabilize */
 		}
 		else if (quad_rcChHgh(stickSWC)) {
-			submode = sub_phld; /* SWC == HIGH -> poshold */
+			submode = sub_rth; /* SWC == HIGH -> Return to Home (RTH) */
 		}
 		else {
-			submode = sub_alt; /* SWC == MID -> althold */
-
+			submode = sub_phld; /* SWC == MID -> poshold */
 		}
 
 		switch (submode) {
-			case sub_alt:
-				setPosPtr = NULL; /* Position control turned off */
+			case sub_rth:
+				setPosPtr = &homePos; /* Position control turned off */
 				setAlt = alt;
 				quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 				break;
