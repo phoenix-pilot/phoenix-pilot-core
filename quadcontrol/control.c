@@ -237,7 +237,7 @@ static void quad_cmdCockpit(const ekf_state_t *measure)
 	vel = sqrt(measure->veloX * measure->veloX + measure->veloY * measure->veloY);
 
 	hdg = measure->yaw * 180.f / M_PI;
-	hdg += (measure->yaw > 0) ? 360 : 0;
+	hdg += (measure->yaw < 0) ? 360 : 0;
 
 	log_print("ALT %3d DST %3d HDG %3d VEL %2d\n", alt, dst, hdg, vel);
 }
@@ -285,7 +285,14 @@ static void quad_prevTargetLoad(vec_t *setPos, int32_t *alt, ekf_state_t *measur
 }
 
 
-/* Controls motors using  */
+/*
+ * Drone attitude control
+ * `throttle` - base throttle for all engines.
+ * `alt` - pointer to target altitude. NULL means no altitude control.
+ * `setPos` - pointer to target position in ENU coordinates. NULL means no position control.
+ * 'att` - pointer to base attitude. Must not be NULL.
+ * `measure` - pointer to latest ekf state reading
+ */
 static int quad_motorsCtrl(float throttle, int32_t *alt, const vec_t *setPos, const quad_att_t *att, const ekf_state_t *measure)
 {
 	time_t dt, now;
