@@ -70,6 +70,12 @@
 #define QCTRL_HOVER_THRESH_ALT   1000 /* hover altitude threshold */
 #define QCTRL_LAND_THRESH_VSPEED 250  /* landing vertical speed threshold */
 
+#define QCTRL_POS_MINDIST_DFLT 2.0f                       /* Default minimum waypoint acceptance distance (meters) */
+#define QCTRL_POS_YAW_THRESH   5.f                        /* Maximum distance (meters) from waypoint which allows UAV to fly non-head-first toward it */
+#define QCTRL_POS_YAW_UPDT_MIN (QCTRL_POS_YAW_THRESH * 2) /* Minimum distance (meters) from waypoint at which yaw is updated mid-flight */
+#define QCTRL_POS_YAW_ACCEPT   (5 * DEG2RAD)              /* Minimum yaw error to accept yaw change */
+#define QCTRL_POS_ALT_ACCEPT   1000                       /* Minimum altitude error to accept altitude change */
+
 
 typedef enum { mode_rc = 0, mode_auto } control_mode_t;
 
@@ -140,6 +146,18 @@ static inline void quad_levelAtt(quad_att_t *att)
 {
 	att->pitch = 0;
 	att->roll = 0;
+}
+
+
+/* Returns [-PI, +PI] yaw angle which points to `enuTarget`. On error returns 0 yaw angle. */
+static inline float quad_aimAt(const vec_t *enuTarget)
+{
+	float yaw;
+
+	/* inverted atan2 arguments: coordinates in ENU, yaw derived from NED */
+	yaw = atan2(enuTarget->x, enuTarget->y);
+
+	return (isnan(yaw)) ? 0 : yaw;
 }
 
 
@@ -709,6 +727,135 @@ static int quad_hover(const flight_mode_t *mode)
 }
 
 
+static int quad_flyto(const flight_mode_t *mode)
+{
+	const vec_t targetENU = { .x = mode->flyto.posEast / 1000.f, .y = mode->flyto.posNorth / 1000.f, .z = 0 };
+
+	vec_t pos, setPos, *setPosPtr, targetDelta;
+	int32_t setAlt, alt;
+	quad_att_t att = { 0 };
+	ekf_state_t measure;
+	time_t now, stageStart;
+	float targetDist, acceptDist, targetYaw;
+	bool modeComplete = false, yawChange = false;
+	enum flytoStage { stage_vertical, stage_horizontal, stage_poshold } stage = stage_vertical;
+
+	log_enable();
+	log_print("FLYTO - N/E/H: %d/%d/%d\n", mode->flyto.posNorth, mode->flyto.posEast, mode->flyto.alt);
+
+	/* position and altitude updated preemptively to decide on yaw update */
+	ekf_stateGet(&measure);
+	att.yaw = measure.yaw;
+	targetYaw = measure.yaw;
+	alt = measure.enuZ * 1000;
+	pos.x = measure.enuX;
+	pos.y = measure.enuZ;
+	pos.z = 0;
+
+	/* Current and target position setup */
+	quad_prevTargetLoad(&setPos, &setAlt, &measure);
+	setPosPtr = &setPos;
+	vec_dif(&targetENU, &setPos, &targetDelta);
+
+	/* Face the target if sufficiently far away */
+	if (vec_len(&targetDelta) > QCTRL_POS_YAW_THRESH) {
+		yawChange = true;
+		targetYaw = quad_aimAt(&targetDelta);
+	}
+
+	/* Minimum arrival acceptance distance setup */
+	acceptDist = (float)mode->flyto.dist / 1000;
+	if (acceptDist < QCTRL_POS_MINDIST_DFLT) {
+		acceptDist = QCTRL_POS_MINDIST_DFLT;
+	}
+
+	/* timers update */
+	now = quad_timeMsGet();
+	quad_periodLogEnable(now);
+	stageStart = 0;
+
+	while (modeComplete == false && quad_common.currFlight == flight_flyto) {
+		/* Setup timing and logging */
+		now = quad_timeMsGet();
+		quad_periodLogEnable(now);
+
+		ekf_stateGet(&measure);
+		alt = measure.enuZ * 1000;
+		pos.x = measure.enuX;
+		pos.y = measure.enuY;
+		pos.z = 0;
+
+		vec_dif(&targetENU, &pos, &targetDelta);
+		targetDist = vec_len(&targetDelta);
+
+		switch (stage) {
+			/*
+			 * Height and yaw correction step.
+			 */
+			case stage_vertical:
+				quad_stageStart(&stageStart, &now, "FLYTO - height\n");
+				setAlt = mode->flyto.alt;
+				att.yaw = targetYaw;
+
+				/* exit stage only if yaw and height errors are within acceptance limits */
+				if (abs(alt - setAlt) < QCTRL_POS_ALT_ACCEPT && fabs(targetYaw - measure.yaw) < QCTRL_POS_YAW_ACCEPT) {
+					stageStart = 0;
+					stage = stage_horizontal;
+				}
+
+				break;
+
+			/*
+			 * Position correction step.
+			 * Yaw is not updated closer than the limit value
+			 */
+			case stage_horizontal:
+				quad_stageStart(&stageStart, &now, "FLYTO - pos\n");
+
+				/* Yaw is updated only if it was meant to be updated and UAV is above yaw update threshold distance away from waypoint */
+				if (targetDist > QCTRL_POS_YAW_UPDT_MIN && yawChange == true) {
+					targetYaw = quad_aimAt(&targetDelta);
+				}
+
+				setPos = targetENU;
+				setAlt = mode->flyto.alt;
+				att.yaw = targetYaw;
+
+				if (targetDist < acceptDist) {
+					stageStart = 0;
+					stage = stage_poshold;
+				}
+
+				break;
+
+			/*
+			 * Hover step
+			 */
+			case stage_poshold:
+				quad_stageStart(&stageStart, &now, "FLYTO - hold\n");
+				setPos = targetENU;
+				setAlt = mode->flyto.alt;
+				att.yaw = targetYaw;
+
+				if ((now - stageStart) > mode->flyto.time) {
+					stageStart = 0;
+					modeComplete = true;
+				}
+
+				break;
+		}
+
+		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
+
+		if (quad_motorsCtrl(quad_common.hoverThrottle, &setAlt, setPosPtr, &att, &measure) < 0) {
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+
 static int quad_landing(const flight_mode_t *mode)
 {
 	const time_t transTime = 1000;
@@ -1035,6 +1182,11 @@ static int quad_run(void)
 			case flight_hover:
 				log_print("f_hover\n");
 				err = quad_hover(&quad_common.scenario[i++]);
+				break;
+
+			case flight_flyto:
+				log_print("f_flyto\n");
+				err = quad_flyto(&quad_common.scenario[i++]);
 				break;
 
 			case flight_landing:
