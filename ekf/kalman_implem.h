@@ -113,6 +113,10 @@
 #define MAX_PATH_LEN 200
 
 
+/* Multiplier of magnetometer Z axis  measurement uncertainty */
+#define R_MSTDEV_Z_AXIS_MULTIPLIER 10
+
+
 typedef struct {
 	meas_sourceType_t measSource;
 	char sourceFile[MAX_PATH_LEN + 1];

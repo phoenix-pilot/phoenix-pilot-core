@@ -159,6 +159,8 @@ static void imuUpdateInitializations(matrix_t *H, matrix_t *R)
 
 	/* Noise terms of east versor measurement */
 	*matrix_at(R, MMX, MMX) = *matrix_at(R, MMY, MMY) = *matrix_at(R, MMZ, MMZ) = imu_common.inits->R_mstdev * imu_common.inits->R_mstdev;
+
+	*matrix_at(R, MMZ, MMZ) *= R_MSTDEV_Z_AXIS_MULTIPLIER;
 }
 
 
