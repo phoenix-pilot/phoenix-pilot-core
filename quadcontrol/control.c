@@ -987,10 +987,11 @@ static int quad_landing(const flight_mode_t *mode)
 				setAlt = alt;
 				setPosPtr = NULL;
 				throttle = quad_common.throttle.min;
+				att.yaw = measure.yaw;
 
-				quad_common.pids.yaw.flags = PID_IGNORE_I;
-				quad_common.pids.pitch.flags = PID_IGNORE_I;
-				quad_common.pids.roll.flags = PID_IGNORE_I;
+				quad_common.pids.yaw.flags |= PID_IGNORE_I | PID_IGNORE_P;
+				quad_common.pids.pitch.flags |= PID_IGNORE_I;
+				quad_common.pids.roll.flags |= PID_IGNORE_I;
 
 				mutexLock(quad_common.rcbusLock);
 				rcThrottle = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
