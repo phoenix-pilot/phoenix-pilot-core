@@ -515,7 +515,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 	int32_t setAlt, alt;
 	vec_t setPos, *setPosPtr;
 	bool modeComplete = false;
-	enum takeoffStage { stage_spool, stage_lift, stage_stabilize, stage_hover } stage = stage_spool;
+	enum takeoffStage { stage_spool, stage_lift, stage_stabilize, stage_poshold } stage = stage_spool;
 
 	ekf_stateGet(&measure);
 	att.yaw = measure.yaw;
@@ -614,7 +614,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 
 				/* stage escape */
 				if ((now - stabTimer) > QCTRL_HOVER_THRESH_TIME) {
-					stage = stage_hover;
+					stage = stage_poshold;
 					stageStart = 0;
 				}
 
@@ -625,7 +625,7 @@ static int quad_takeoff(const flight_mode_t *mode)
 			 *
 			 * Goal: maintain hover for specified amount of time.
 			 */
-			case stage_hover:
+			case stage_poshold:
 			default:
 				quad_stageStart(&stageStart, &now, "TAKEOFF - hover\n");
 
@@ -658,7 +658,7 @@ static int quad_hover(const flight_mode_t *mode)
 	vec_t setPos, *setPosPtr;
 	int32_t setAlt, alt;
 	bool modeComplete = false;
-	enum hoverStage { stage_travel, stage_maintain } stage = stage_travel;
+	enum hoverStage { stage_vertical, stage_poshold } stage = stage_vertical;
 
 	log_enable();
 	log_print("HOVER - alt: %d time: %lld\n", mode->hover.alt, mode->hover.time);
@@ -692,7 +692,7 @@ static int quad_hover(const flight_mode_t *mode)
 			/*
 			 *  Drone ascend/descent to target altitude.
 			 */
-			case stage_travel:
+			case stage_vertical:
 				quad_stageStart(&stageStart, &now, "HOVER - travel\n");
 
 				if ((setAlt - alt) > QCTRL_HOVER_THRESH_ALT || (setAlt - alt) < -QCTRL_HOVER_THRESH_ALT) {
@@ -700,7 +700,7 @@ static int quad_hover(const flight_mode_t *mode)
 				}
 
 				if (now - stabTimer > QCTRL_HOVER_THRESH_TIME) {
-					stage = stage_maintain;
+					stage = stage_poshold;
 					stageStart = 0;
 				}
 
@@ -709,7 +709,7 @@ static int quad_hover(const flight_mode_t *mode)
 			/*
 			 *  Drone hovering on target target altitude.
 			 */
-			case stage_maintain:
+			case stage_poshold:
 			default:
 				quad_stageStart(&stageStart, &now, "HOVER - hovering\n");
 
@@ -875,7 +875,7 @@ static int quad_landing(const flight_mode_t *mode)
 	vec_t setPos, *setPosPtr;
 	float throttle = quad_common.hoverThrottle;
 	bool modeComplete = false;
-	enum landStage { stage_descent, stage_transition, stage_touchdown, stage_landed, stage_confirm } stage = stage_descent;
+	enum landStage { stage_vertical, stage_transition, stage_touchdown, stage_landed, stage_confirm } stage = stage_vertical;
 
 	log_enable();
 	log_print("LAND - alt: %d\n", mode->landing.alt);
@@ -900,7 +900,7 @@ static int quad_landing(const flight_mode_t *mode)
 		alt = measure.enuZ * 1000;
 
 		switch (stage) {
-			case stage_descent:
+			case stage_vertical:
 				quad_stageStart(&stageStart, &now, "LAND - descent\n");
 				setAlt = mode->landing.alt;
 
