@@ -26,7 +26,7 @@
 /* Quadcopter flight modes */
 /* clang-format off */
 typedef enum { /* Basic modes:  */ flight_idle = 0, flight_disarm, flight_arm,
-			   /* Auto modes:   */ flight_takeoff, flight_pos, flight_hover, flight_flyto, flight_landing, flight_end,
+			   /* Auto modes:   */ flight_takeoff, flight_flyto, flight_landing, flight_end,
                /* Manual modes: */ flight_manual, flight_manualAbort } flight_type_t;
 /* clang-format on */
 
@@ -48,12 +48,6 @@ typedef struct {
 	int32_t lat; /* latitude in 1E-7 degrees */
 	int32_t lon; /* longitude in 1E-7 degrees */
 } flight_position_t;
-
-
-typedef struct {
-	uint32_t alt; /* altitude in 1E-3 [m] (millimetres) above MSL */
-	time_t time;  /* time in milliseconds spend in hover */
-} flight_hover_t;
 
 
 typedef struct {
