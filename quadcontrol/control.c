@@ -1138,7 +1138,7 @@ static int quad_run(void)
 				ret = quad_manual();
 				break;
 
-			case flight_manualAbort:
+			case flight_exit:
 				log_print("Mission abort\n");
 				mma_stop();
 				armed = 0;
@@ -1182,7 +1182,7 @@ static void quad_rcbusHandler(const rcbus_msg_t *msg, rcbus_err_t err)
 			gettime(&currTime, NULL);
 			if (currTime - rcErrTime > RC_ERROR_TIMEOUT) {
 				printf("rcerr: f_abort reached\n");
-				quad_common.currFlight = flight_manualAbort;
+				quad_common.currFlight = flight_exit;
 			}
 		}
 		return;
@@ -1195,13 +1195,13 @@ static void quad_rcbusHandler(const rcbus_msg_t *msg, rcbus_err_t err)
 	}
 
 	/* Emergency abort: SWD == MAX, throttle = MIN */
-	if (quad_rcChHgh(msg->channels[RC_SWD_CH]) && quad_rcChLow(msg->channels[RC_LEFT_VSTICK_CH]) && quad_common.currFlight < flight_manualAbort) {
+	if (quad_rcChHgh(msg->channels[RC_SWD_CH]) && quad_rcChLow(msg->channels[RC_LEFT_VSTICK_CH]) && quad_common.currFlight < flight_exit) {
 		abortCnt++;
 		printf("rc: f_abort called %i\n", abortCnt);
 
 		if (abortCnt >= ABORT_FRAMES_THRESH) {
 			printf("rc: f_abort reached\n");
-			quad_common.currFlight = flight_manualAbort;
+			quad_common.currFlight = flight_exit;
 		}
 
 		return;

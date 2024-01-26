@@ -177,8 +177,8 @@ static int config_scenarioConverter(const hmap_t *h)
 	else if (strcmp(type, "flight_manual") == 0) {
 		mode->type = flight_manual;
 	}
-	else if (strcmp(type, "flight_manualAbort") == 0) {
-		mode->type = flight_manualAbort;
+	else if (strcmp(type, "flight_exit") == 0) {
+		mode->type = flight_exit;
 	}
 	else {
 		fprintf(stderr, "config: not recognised type\n");

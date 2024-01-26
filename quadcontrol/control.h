@@ -27,7 +27,7 @@
 /* clang-format off */
 typedef enum { /* Basic modes:  */ flight_idle = 0, flight_disarm, flight_arm,
 			   /* Auto modes:   */ flight_takeoff, flight_waypoint, flight_landing, flight_end,
-               /* Manual modes: */ flight_manual, flight_manualAbort } flight_type_t;
+               /* Manual modes: */ flight_manual, flight_exit } flight_type_t;
 /* clang-format on */
 
 typedef struct {
