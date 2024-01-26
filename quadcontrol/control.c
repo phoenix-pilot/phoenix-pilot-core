@@ -1127,9 +1127,8 @@ static int quad_run(void)
 
 			case flight_end:
 				log_print("f_end\n");
-				mma_stop();
-				armed = 0;
-				run = 0;
+				quad_common.currFlight = flight_disarm;
+				i = 0;
 				break;
 
 			/* Handling manual modes: */
