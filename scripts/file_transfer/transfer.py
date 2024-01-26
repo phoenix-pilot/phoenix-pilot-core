@@ -1,14 +1,43 @@
 import argparse
-import subprocess
 import serial
-import os
+import sys
 import re
+import base64
+from bz2 import BZ2Decompressor
+import hashlib
 
 
 PROMPT = r"root@\?:(.*) # "
-EOL = "\r+\n"
 
-TMP_FILE = "/tmp/file_transfer.bz2.b64"
+
+class StatusPrinter:
+    def __init__(self, file_size) -> None:
+        self.file_size = file_size
+        self.i = 0
+        self.print_suffix = ".  "
+
+    def print(self, received_bytes):
+        self.i = (self.i + 1) % 101
+
+        if self.i == 0 or received_bytes == self.file_size:
+            proc = received_bytes/self.file_size * 100.0
+            print("\r{0:.2f} % {1}".format(proc, self.print_suffix), end="")
+            self._next_suffix()
+
+    def _next_suffix(self):
+        if self.print_suffix == "   ":
+            self.print_suffix = ".  "
+
+        elif self.print_suffix == ".  ":
+            self.print_suffix =   ".. "
+
+        elif self.print_suffix == ".. ":
+            self.print_suffix =   "..."
+
+        elif self.print_suffix == "...":
+            self.print_suffix =   "   "
+
+
 
 
 def get_args():
@@ -65,53 +94,133 @@ def get_args():
     return parser.parse_args()
 
 
-def start_transition(console_port: str, baudrate: int, source_path: str, device_transfer_port: str):
-    with serial.Serial(console_port, baudrate=baudrate, timeout=1) as device_console:
-        command = f"sleep 1 ; bzip2 -k9fc {source_path} | base64 > {device_transfer_port}"
 
-        device_console.write(bytes(command + "\n", "ascii"))
-        device_console.readline()
+def get_prompt_on_device(serial: serial):
+    serial.write(bytes("cd .\n", "ascii"))
+
+    # Catching new line form echo
+    line = serial.readline().decode("ascii")
+
+    # Catching prompt
+    line = serial.readline().decode("ascii")
+
+    if re.match(PROMPT, line) is None:
+        raise Exception("cannot get prompt on device")
 
 
-def receive_data(receive_port: str, baudrate: int):
+def get_file_size(serial: serial, source_path: str) -> int:
+    command = f"stat -c %s {source_path}\n"
+    serial.write(bytes(command, "ascii"))
+
+    # Catching command echo
+    line = serial.readline().decode("ascii")
+
+    # Returned string
+    line = serial.readline().decode("ascii")
+
+    return int(line)
+
+
+def get_file_hash(serial: serial, source_path: str):
+    command = f"sha256sum {source_path}\n"
+    serial.write(bytes(command, "ascii"))
+
+    # Command echo
+    line = serial.readline().decode("ascii")
+
+    # Command output
+    line = serial.readline().decode("ascii")
+
+    # Parsing hash
+    match = re.match(f"([0-9a-f]+)\s+{source_path}", line)
+    if not match:
+        raise Exception("cannot get file hash")
+
+    return match.group(1)
+
+
+def start_transition(serial: serial, source_path: str, device_transfer_port: str):
+    command = f"bzip2 -k1fc {source_path} | base64 > {device_transfer_port}\n"
+    serial.write(bytes(command, "ascii"))
+
+    # Catch command echo
+    serial.readline().decode("ascii")
+
+
+def receive_data(receive_port: str, baudrate: int, dest_path: str, bytes):
+    decompressor = BZ2Decompressor()
+    hashCalc = hashlib.sha256()
+    received = 0
+    printer = StatusPrinter(bytes)
+
     with serial.Serial(receive_port, baudrate=baudrate, timeout=5) as receive:
-        with open(TMP_FILE, "w", newline="") as file:
+        with open(dest_path, "wb") as dest_file:
             while True:
                 line = receive.readline().decode("ascii")
 
                 if re.match(PROMPT, line) is not None or len(line) == 0:
                     break
 
-                file.write(line.removesuffix("\r\n"))
+                line = line.removesuffix("\r\n")
+                data = base64.b64decode(line)
 
+                while True:
+                    decomp_data = decompressor.decompress(data)
+                    data = b''
 
-def decode_data(dest_path: str):
-    with open(dest_path, "w") as dest_file:
-        ps = subprocess.Popen(["base64", "-d", TMP_FILE], stdout=subprocess.PIPE)
-        subprocess.run(["bunzip2", "-fcq9"], stdin=ps.stdout, stdout=dest_file)
+                    hashCalc.update(decomp_data)
+                    dest_file.write(decomp_data)
+                    received += len(decomp_data)
 
-    os.remove(TMP_FILE)
+                    printer.print(received)
+
+                    if decompressor.eof:
+                        return hashCalc.hexdigest()
+
+                    if decompressor.needs_input:
+                        break;
 
 
 def main() -> None:
     args = get_args()
 
-    try:
-        start_transition(args.portc, args.baudc, args.source_path, args.porttx)
-    except Exception:
-        print(f"Error while writing to {args.portc}")
+    with serial.Serial(args.portc, args.baudc, timeout=5) as consoleSerial:
+
+        try:
+            get_prompt_on_device(consoleSerial)
+        except Exception:
+            print("Cannot get prompt on device")
+            sys.exit()
+
+        originalHash = get_file_hash(consoleSerial, args.source_path)
+
+        try:
+            file_size = get_file_size(consoleSerial, args.source_path)
+        except Exception:
+            print("Cannot get target file size")
+            sys.exit()
+
+        try:
+            start_transition(consoleSerial, args.source_path, args.porttx)
+        except Exception:
+            print(f"Error while writing to {args.portc}")
+            sys.exit()
 
     try:
-        receive_data(args.portrx, args.baudx)
+        transferredFileHash = receive_data(args.portrx, args.baudx, args.dest_path, file_size)
     except serial.SerialException as e:
         print(f"Error while writing to {args.portrx}: {e}")
+        sys.exit()
     except IOError as e:
         print(f"Error while writing to file: {e}")
+        sys.exit()
 
-    try:
-        decode_data(args.dest_path)
-    except Exception as e:
-        print(f"Error while decoding data: {e}")
+
+    if originalHash == transferredFileHash:
+        print("Successful file transfer")
+    else:
+        print("Error during file transfer. file {args.des_path} can be corrupted")
+
 
 
 if __name__ == "__main__":
