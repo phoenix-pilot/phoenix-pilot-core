@@ -650,9 +650,9 @@ static int quad_takeoff(const flight_mode_t *mode)
 }
 
 
-static int quad_flyto(const flight_mode_t *mode)
+static int quad_waypoint(const flight_mode_t *mode)
 {
-	const vec_t targetENU = { .x = mode->flyto.posEast / 1000.f, .y = mode->flyto.posNorth / 1000.f, .z = 0 };
+	const vec_t targetENU = { .x = mode->waypoint.posEast / 1000.f, .y = mode->waypoint.posNorth / 1000.f, .z = 0 };
 
 	vec_t pos, setPos, *setPosPtr, targetDelta;
 	int32_t setAlt, alt;
@@ -661,10 +661,10 @@ static int quad_flyto(const flight_mode_t *mode)
 	time_t now, stageStart;
 	float targetDist, acceptDist, targetYaw;
 	bool modeComplete = false, yawChange = false;
-	enum flytoStage { stage_vertical, stage_horizontal, stage_poshold } stage = stage_vertical;
+	enum waypointStage { stage_vertical, stage_horizontal, stage_poshold } stage = stage_vertical;
 
 	log_enable();
-	log_print("FLYTO - N/E/H: %d/%d/%d\n", mode->flyto.posNorth, mode->flyto.posEast, mode->flyto.alt);
+	log_print("FLYTO - N/E/H: %d/%d/%d\n", mode->waypoint.posNorth, mode->waypoint.posEast, mode->waypoint.alt);
 
 	/* position and altitude updated preemptively to decide on yaw update */
 	ekf_stateGet(&measure);
@@ -687,7 +687,7 @@ static int quad_flyto(const flight_mode_t *mode)
 	}
 
 	/* Minimum arrival acceptance distance setup */
-	acceptDist = (float)mode->flyto.dist / 1000;
+	acceptDist = (float)mode->waypoint.dist / 1000;
 	if (acceptDist < QCTRL_POS_MINDIST_DFLT) {
 		acceptDist = QCTRL_POS_MINDIST_DFLT;
 	}
@@ -697,7 +697,7 @@ static int quad_flyto(const flight_mode_t *mode)
 	quad_periodLogEnable(now);
 	stageStart = 0;
 
-	while (modeComplete == false && quad_common.currFlight == flight_flyto) {
+	while (modeComplete == false && quad_common.currFlight == flight_waypoint) {
 		/* Setup timing and logging */
 		now = quad_timeMsGet();
 		quad_periodLogEnable(now);
@@ -717,7 +717,7 @@ static int quad_flyto(const flight_mode_t *mode)
 			 */
 			case stage_vertical:
 				quad_stageStart(&stageStart, &now, "FLYTO - height\n");
-				setAlt = mode->flyto.alt;
+				setAlt = mode->waypoint.alt;
 				att.yaw = targetYaw;
 
 				/* exit stage only if yaw and height errors are within acceptance limits */
@@ -741,7 +741,7 @@ static int quad_flyto(const flight_mode_t *mode)
 				}
 
 				setPos = targetENU;
-				setAlt = mode->flyto.alt;
+				setAlt = mode->waypoint.alt;
 				att.yaw = targetYaw;
 
 				if (targetDist < acceptDist) {
@@ -757,10 +757,10 @@ static int quad_flyto(const flight_mode_t *mode)
 			case stage_poshold:
 				quad_stageStart(&stageStart, &now, "FLYTO - hold\n");
 				setPos = targetENU;
-				setAlt = mode->flyto.alt;
+				setAlt = mode->waypoint.alt;
 				att.yaw = targetYaw;
 
-				if ((now - stageStart) > mode->flyto.time) {
+				if ((now - stageStart) > mode->waypoint.time) {
 					stageStart = 0;
 					modeComplete = true;
 				}
@@ -1100,9 +1100,9 @@ static int quad_run(void)
 				err = quad_takeoff(&quad_common.scenario[i++]);
 				break;
 
-			case flight_flyto:
-				log_print("f_flyto\n");
-				err = quad_flyto(&quad_common.scenario[i++]);
+			case flight_waypoint:
+				log_print("f_waypoint\n");
+				err = quad_waypoint(&quad_common.scenario[i++]);
 				break;
 
 			case flight_landing:
