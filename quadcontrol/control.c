@@ -503,7 +503,7 @@ static inline void quad_stageStart(time_t *stageStart, time_t *now, const char *
 
 /* Handling flight modes */
 
-static int quad_takeoff(const flight_mode_t *mode)
+static int quad_takeoff(const flight_mode_t *mode, bool *done)
 {
 	const int32_t hvrAlt = mode->takeoff.alt;
 	const int32_t liftAlt = 2000;
@@ -646,11 +646,14 @@ static int quad_takeoff(const flight_mode_t *mode)
 		last = now;
 	}
 
+	/* TODO: no means of proper takeoff restor, thus ALWAYS exits as DONE */
+	*done = true;
+
 	return 0;
 }
 
 
-static int quad_waypoint(const flight_mode_t *mode)
+static int quad_waypoint(const flight_mode_t *mode, bool *done)
 {
 	const vec_t targetENU = { .x = mode->waypoint.posEast / 1000.f, .y = mode->waypoint.posNorth / 1000.f, .z = 0 };
 
@@ -775,11 +778,13 @@ static int quad_waypoint(const flight_mode_t *mode)
 		}
 	}
 
+	*done = modeComplete;
+
 	return 0;
 }
 
 
-static int quad_landing(const flight_mode_t *mode)
+static int quad_landing(const flight_mode_t *mode, bool *done)
 {
 	const time_t transTime = 1000;
 	const int32_t altSink = ((float)mode->landing.descent / quad_common.pids.alt.r.k);
@@ -930,6 +935,8 @@ static int quad_landing(const flight_mode_t *mode)
 		}
 	}
 
+	*done = modeComplete;
+
 	return 0;
 }
 
@@ -1045,8 +1052,9 @@ static int quad_manual(void)
 
 static int quad_run(void)
 {
-	int err = 0, armed = 0;
+	int ret = 0, armed = 0;
 	unsigned int i = 0, run = 1;
+	bool isDone = false;
 
 	quad_common.lastTime = quad_timeMsGet();
 
@@ -1055,6 +1063,7 @@ static int quad_run(void)
 		if ((quad_common.currFlight >= flight_arm && armed == 1) && quad_common.currFlight < flight_manual) {
 			quad_common.currFlight = quad_common.scenario[i].type;
 		}
+		isDone = false;
 
 		quad_pidRestore();
 
@@ -1097,17 +1106,17 @@ static int quad_run(void)
 			/* Handling auto modes: */
 			case flight_takeoff:
 				log_print("f_takeoff\n");
-				err = quad_takeoff(&quad_common.scenario[i++]);
+				ret = quad_takeoff(&quad_common.scenario[i], &isDone);
 				break;
 
 			case flight_waypoint:
 				log_print("f_waypoint\n");
-				err = quad_waypoint(&quad_common.scenario[i++]);
+				ret = quad_waypoint(&quad_common.scenario[i], &isDone);
 				break;
 
 			case flight_landing:
 				log_print("f_landing\n");
-				err = quad_landing(&quad_common.scenario[i++]);
+				ret = quad_landing(&quad_common.scenario[i], &isDone);
 				break;
 
 			case flight_end:
@@ -1121,7 +1130,7 @@ static int quad_run(void)
 			case flight_manual:
 				log_print("f_manual\n");
 				quad_common.mode = mode_rc;
-				err = quad_manual();
+				ret = quad_manual();
 				break;
 
 			case flight_manualAbort:
@@ -1136,14 +1145,18 @@ static int quad_run(void)
 				break;
 		}
 
-		if (err < 0) {
+		if (isDone) {
+			i++;
+		}
+
+		if (ret < 0) {
 			/* Disarm motors */
 			mma_stop();
 			break;
 		}
 	}
 
-	return err;
+	return ret;
 }
 
 
