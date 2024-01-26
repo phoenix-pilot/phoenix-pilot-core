@@ -97,44 +97,6 @@ static int config_takeoffParse(const hmap_t *h, flight_mode_t *mode)
 }
 
 
-static int config_positionParse(const hmap_t *h, flight_mode_t *mode)
-{
-	int err = 0;
-
-	err |= parser_fieldGetInt(h, "alt", &mode->pos.alt);
-	err |= parser_fieldGetInt(h, "lat", &mode->pos.lat);
-	err |= parser_fieldGetInt(h, "lon", &mode->pos.lon);
-
-	if (err != 0) {
-		return -1;
-	}
-
-	mode->type = flight_pos;
-
-	return 0;
-}
-
-
-static int config_hoverParse(const hmap_t *h, flight_mode_t *mode)
-{
-	int err = 0;
-	int32_t alt;
-
-	err |= parser_fieldGetInt(h, "alt", &alt);
-	err |= parser_fieldGetTime(h, "time", &mode->hover.time);
-
-	if (err != 0 || alt < 0) {
-		return -1;
-	}
-
-	mode->hover.alt = alt;
-
-	mode->type = flight_hover;
-
-	return 0;
-}
-
-
 static int config_flytoParse(const hmap_t *h, flight_mode_t *mode)
 {
 	int err = 0;
@@ -202,12 +164,6 @@ static int config_scenarioConverter(const hmap_t *h)
 
 	if (strcmp(type, "flight_takeoff") == 0) {
 		err = config_takeoffParse(h, mode);
-	}
-	else if (strcmp(type, "flight_position") == 0) {
-		err = config_positionParse(h, mode);
-	}
-	else if (strcmp(type, "flight_hover") == 0) {
-		err = config_hoverParse(h, mode);
 	}
 	else if (strcmp(type, "flight_flyto") == 0) {
 		err = config_flytoParse(h, mode);

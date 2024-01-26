@@ -650,90 +650,6 @@ static int quad_takeoff(const flight_mode_t *mode)
 }
 
 
-static int quad_hover(const flight_mode_t *mode)
-{
-	quad_att_t att = { 0 };
-	time_t now, stabTimer, stageStart = 0;
-	ekf_state_t measure;
-	vec_t setPos, *setPosPtr;
-	int32_t setAlt, alt;
-	bool modeComplete = false;
-	enum hoverStage { stage_vertical, stage_poshold } stage = stage_vertical;
-
-	log_enable();
-	log_print("HOVER - alt: %d time: %lld\n", mode->hover.alt, mode->hover.time);
-
-	ekf_stateGet(&measure);
-	att.yaw = measure.yaw;
-
-	/* Use last target if available */
-	quad_prevTargetLoad(&setPos, &setAlt, &measure);
-	setPosPtr = &setPos;
-
-	now = quad_timeMsGet();
-	quad_periodLogEnable(now);
-	stabTimer = now;
-	stageStart = 0;
-
-	while (modeComplete == false && quad_common.currFlight == flight_hover) {
-		/* Setup timing and logging */
-		now = quad_timeMsGet();
-		quad_periodLogEnable(now);
-
-		ekf_stateGet(&measure);
-		alt = measure.enuZ * 1000;
-		setAlt = mode->hover.alt;
-
-		/* Setup basic attitude */
-		quad_levelAtt(&att);
-		att.yaw = measure.yaw;
-
-		switch (stage) {
-			/*
-			 *  Drone ascend/descent to target altitude.
-			 */
-			case stage_vertical:
-				quad_stageStart(&stageStart, &now, "HOVER - travel\n");
-
-				if ((setAlt - alt) > QCTRL_HOVER_THRESH_ALT || (setAlt - alt) < -QCTRL_HOVER_THRESH_ALT) {
-					stabTimer = now;
-				}
-
-				if (now - stabTimer > QCTRL_HOVER_THRESH_TIME) {
-					stage = stage_poshold;
-					stageStart = 0;
-				}
-
-				break;
-
-			/*
-			 *  Drone hovering on target target altitude.
-			 */
-			case stage_poshold:
-			default:
-				quad_stageStart(&stageStart, &now, "HOVER - hovering\n");
-
-				if (now - stageStart > mode->hover.time) {
-					modeComplete = true;
-				}
-
-				break;
-		}
-
-		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
-
-		if (quad_motorsCtrl(quad_common.hoverThrottle, &setAlt, setPosPtr, &att, &measure) < 0) {
-			return -1;
-		}
-	}
-
-	log_enable();
-	log_print("HOVER - alt: %d complete\n", mode->hover.alt);
-
-	return 0;
-}
-
-
 static int quad_flyto(const flight_mode_t *mode)
 {
 	const vec_t targetENU = { .x = mode->flyto.posEast / 1000.f, .y = mode->flyto.posNorth / 1000.f, .z = 0 };
@@ -1182,16 +1098,6 @@ static int quad_run(void)
 			case flight_takeoff:
 				log_print("f_takeoff\n");
 				err = quad_takeoff(&quad_common.scenario[i++]);
-				break;
-
-			case flight_pos:
-				log_print("f_pos\n");
-				/* TBD */
-				break;
-
-			case flight_hover:
-				log_print("f_hover\n");
-				err = quad_hover(&quad_common.scenario[i++]);
 				break;
 
 			case flight_flyto:
