@@ -97,27 +97,27 @@ static int config_takeoffParse(const hmap_t *h, flight_mode_t *mode)
 }
 
 
-static int config_flytoParse(const hmap_t *h, flight_mode_t *mode)
+static int config_posParse(const hmap_t *h, flight_mode_t *mode)
 {
 	int err = 0;
 
-	err |= parser_fieldGetInt(h, "north", &mode->flyto.posNorth);
-	err |= parser_fieldGetInt(h, "east", &mode->flyto.posEast);
-	err |= parser_fieldGetInt(h, "alt", &mode->flyto.alt);
+	err |= parser_fieldGetInt(h, "north", &mode->pos.posNorth);
+	err |= parser_fieldGetInt(h, "east", &mode->pos.posEast);
+	err |= parser_fieldGetInt(h, "alt", &mode->pos.alt);
 
-	if (parser_fieldGetInt(h, "dist", &mode->flyto.dist) != 0) {
-		mode->flyto.dist = 0;
+	if (parser_fieldGetInt(h, "dist", &mode->pos.dist) != 0) {
+		mode->pos.dist = 0;
 	}
 
-	if (parser_fieldGetTime(h, "time", &mode->flyto.time) != 0) {
-		mode->flyto.time = 0;
+	if (parser_fieldGetTime(h, "time", &mode->pos.time) != 0) {
+		mode->pos.time = 0;
 	}
 
-	if (err != 0 || mode->flyto.time < 0 || mode->flyto.dist < 0) {
+	if (err != 0 || mode->pos.time < 0 || mode->pos.dist < 0) {
 		return -1;
 	}
 
-	mode->type = flight_flyto;
+	mode->type = flight_pos;
 
 	return 0;
 }
@@ -165,11 +165,8 @@ static int config_scenarioConverter(const hmap_t *h)
 	if (strcmp(type, "flight_takeoff") == 0) {
 		err = config_takeoffParse(h, mode);
 	}
-	else if (strcmp(type, "flight_position") == 0) {
-		err = config_positionParse(h, mode);
-	}
-	else if (strcmp(type, "flight_flyto") == 0) {
-		err = config_flytoParse(h, mode);
+	else if (strcmp(type, "flight_pos") == 0) {
+		err = config_posParse(h, mode);
 	}
 	else if (strcmp(type, "flight_landing") == 0) {
 		err = config_landingParse(h, mode);

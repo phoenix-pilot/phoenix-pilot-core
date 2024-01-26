@@ -649,10 +649,16 @@ static int quad_takeoff(const flight_mode_t *mode)
 	return 0;
 }
 
-
-static int quad_flyto(const flight_mode_t *mode)
+/*
+ * Flight mode performs a flight to specified point in space in order:
+ * 1) climb do desired cruise altitude and rotate to point towards the target
+ * 2) flight in straight line to the target
+ * 
+ * Returns 0 if succesfully finished, +1 if interrupted or -1 on error.
+ */
+static int quad_fly2pos(const flight_mode_t *mode, flight_mode_t *exitFlightMode)
 {
-	const vec_t targetENU = { .x = mode->flyto.posEast / 1000.f, .y = mode->flyto.posNorth / 1000.f, .z = 0 };
+	const vec_t targetENU = { .x = mode->pos.posEast / 1000.f, .y = mode->pos.posNorth / 1000.f, .z = 0 };
 
 	vec_t pos, setPos, *setPosPtr, targetDelta;
 	int32_t setAlt, alt;
@@ -661,10 +667,10 @@ static int quad_flyto(const flight_mode_t *mode)
 	time_t now, stageStart;
 	float targetDist, acceptDist, targetYaw;
 	bool modeComplete = false, yawChange = false;
-	enum flytoStage { stage_vertical, stage_horizontal, stage_poshold } stage = stage_vertical;
+	enum posStage { stage_vertical, stage_horizontal, stage_poshold } stage = stage_vertical;
 
 	log_enable();
-	log_print("FLYTO - N/E/H: %d/%d/%d\n", mode->flyto.posNorth, mode->flyto.posEast, mode->flyto.alt);
+	log_print("FLYTO - N/E/H: %d/%d/%d\n", mode->pos.posNorth, mode->pos.posEast, mode->pos.alt);
 
 	/* position and altitude updated preemptively to decide on yaw update */
 	ekf_stateGet(&measure);
@@ -687,7 +693,7 @@ static int quad_flyto(const flight_mode_t *mode)
 	}
 
 	/* Minimum arrival acceptance distance setup */
-	acceptDist = (float)mode->flyto.dist / 1000;
+	acceptDist = (float)mode->pos.dist / 1000;
 	if (acceptDist < QCTRL_POS_MINDIST_DFLT) {
 		acceptDist = QCTRL_POS_MINDIST_DFLT;
 	}
@@ -697,7 +703,7 @@ static int quad_flyto(const flight_mode_t *mode)
 	quad_periodLogEnable(now);
 	stageStart = 0;
 
-	while (modeComplete == false && quad_common.currFlight == flight_flyto) {
+	while (modeComplete == false && quad_common.currFlight == flight_pos) {
 		/* Setup timing and logging */
 		now = quad_timeMsGet();
 		quad_periodLogEnable(now);
@@ -717,7 +723,7 @@ static int quad_flyto(const flight_mode_t *mode)
 			 */
 			case stage_vertical:
 				quad_stageStart(&stageStart, &now, "FLYTO - height\n");
-				setAlt = mode->flyto.alt;
+				setAlt = mode->pos.alt;
 				att.yaw = targetYaw;
 
 				/* exit stage only if yaw and height errors are within acceptance limits */
@@ -741,7 +747,7 @@ static int quad_flyto(const flight_mode_t *mode)
 				}
 
 				setPos = targetENU;
-				setAlt = mode->flyto.alt;
+				setAlt = mode->pos.alt;
 				att.yaw = targetYaw;
 
 				if (targetDist < acceptDist) {
@@ -757,10 +763,10 @@ static int quad_flyto(const flight_mode_t *mode)
 			case stage_poshold:
 				quad_stageStart(&stageStart, &now, "FLYTO - hold\n");
 				setPos = targetENU;
-				setAlt = mode->flyto.alt;
+				setAlt = mode->pos.alt;
 				att.yaw = targetYaw;
 
-				if ((now - stageStart) > mode->flyto.time) {
+				if ((now - stageStart) > mode->pos.time) {
 					stageStart = 0;
 					modeComplete = true;
 				}
@@ -775,7 +781,11 @@ static int quad_flyto(const flight_mode_t *mode)
 		}
 	}
 
-	return 0;
+	exitFlightMode->pos.posEast = measure.enuX * 1000;
+	exitFlightMode->pos.posNorth = measure.enuY * 1000;
+	exitFlightMode->pos.alt = measure.enuZ * 1000;
+
+	return (modeComplete == true) ? 0 : 1;
 }
 
 
@@ -1042,6 +1052,51 @@ static int quad_manual(void)
 	return 0;
 }
 
+/*
+ * Wrapper on quad_pos flight type with fallback to last known position.
+ *
+ * Returns 0 if succesfully finished, +1 if interrupted or -1 on error.
+ */
+static int quad_pos(flight_mode_t *mode)
+{
+	static flight_mode_t retPoint = { .type = flight_pos };
+	static bool fallback = false;
+
+	flight_mode_t exitPoint = { .type = flight_pos };
+	flight_mode_t *currScen;
+	int ret;
+
+	currScen = (fallback) ? &retPoint : mode;
+	ret = quad_fly2pos(currScen, &exitPoint);
+	switch (ret) {
+		/* 
+		* Succesfull exit from either scenario or fallback to scenario
+		*/
+		case 0:
+			fallback = false;
+			break;
+
+		/* 
+		* No error, but scenario interrupted
+		*/
+		case 1:
+			if (fallback == false) {
+				retPoint = exitPoint;
+			}
+			fallback = true;
+			break;
+
+		/*
+		* Scenario exited with error
+		*/
+		default:
+		case -1:
+			break;
+	}
+
+	return ret;
+}
+
 
 static int quad_run(void)
 {
@@ -1100,9 +1155,13 @@ static int quad_run(void)
 				err = quad_takeoff(&quad_common.scenario[i++]);
 				break;
 
-			case flight_flyto:
-				log_print("f_flyto\n");
-				err = quad_flyto(&quad_common.scenario[i++]);
+			case flight_pos:
+				log_print("f_pos\n");
+				err = quad_pos(&quad_common.scenario[i++]);
+				if (err > 0) {
+					err = 0; /* err > 0 is not an error (informative) */
+					i--;
+				}
 				break;
 
 			case flight_landing:

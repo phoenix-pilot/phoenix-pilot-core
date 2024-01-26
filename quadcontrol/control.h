@@ -26,7 +26,7 @@
 /* Quadcopter flight modes */
 /* clang-format off */
 typedef enum { /* Basic modes:  */ flight_idle = 0, flight_disarm, flight_arm,
-			   /* Auto modes:   */ flight_takeoff, flight_flyto, flight_landing, flight_end,
+			   /* Auto modes:   */ flight_takeoff, flight_pos, flight_landing, flight_end,
                /* Manual modes: */ flight_manual, flight_manualAbort } flight_type_t;
 /* clang-format on */
 
@@ -44,13 +44,6 @@ typedef struct {
 
 
 typedef struct {
-	int32_t alt; /* altitude in 1E-3 [m] (millimetres) above MSL */
-	int32_t lat; /* latitude in 1E-7 degrees */
-	int32_t lon; /* longitude in 1E-7 degrees */
-} flight_position_t;
-
-
-typedef struct {
 	int32_t descent; /* Descent speed in millimeters per second */
 	int32_t alt;     /* Altitude from which cautious landing begins */
 	time_t timeout;  /* Time threshold (milliseconds) of low descend speed concluding landing */
@@ -63,7 +56,7 @@ typedef struct {
 	int32_t posEast;  /* Waypoint position east of home (millimeters) */
 	int32_t alt;      /* Waypoint height above home (millimeters) */
 	int32_t dist;     /* Minimum distance of waypoint arrival acceptance (millimeters) */
-} flight_flyto_t;
+} flight_pos_t;
 
 
 typedef struct {
@@ -71,9 +64,7 @@ typedef struct {
 
 	union {
 		flight_takeoff_t takeoff;
-		flight_position_t pos;
-		flight_hover_t hover;
-		flight_flyto_t flyto;
+		flight_pos_t pos;
 		flight_landing_t landing;
 	};
 } flight_mode_t;
