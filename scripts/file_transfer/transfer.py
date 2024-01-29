@@ -164,21 +164,17 @@ def receive_data(receive_port: str, baudrate: int, dest_path: str, bytes):
                 line = line.removesuffix("\r\n")
                 data = base64.b64decode(line)
 
-                while True:
-                    decomp_data = decompressor.decompress(data)
-                    data = b''
+                decomp_data = decompressor.decompress(data)
+                data = b''
 
-                    hashCalc.update(decomp_data)
-                    dest_file.write(decomp_data)
-                    received += len(decomp_data)
+                hashCalc.update(decomp_data)
+                dest_file.write(decomp_data)
+                received += len(decomp_data)
 
-                    printer.print(received)
+                printer.print(received)
 
-                    if decompressor.eof:
-                        return hashCalc.hexdigest()
-
-                    if decompressor.needs_input:
-                        break;
+                if decompressor.eof:
+                    return hashCalc.hexdigest()
 
 
 def main() -> None:
