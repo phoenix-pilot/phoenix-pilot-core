@@ -135,4 +135,7 @@ extern int meas_gpsGet(meas_gps_t *gpsData, time_t *timestamp);
 
 extern int meas_timeGet(time_t *useconds);
 
+/* Returns (east, north) local frame coords of lat/lon  geodesic point */
+extern int meas_latlon2en(double lat, double lon, float *east, float *north);
+
 #endif

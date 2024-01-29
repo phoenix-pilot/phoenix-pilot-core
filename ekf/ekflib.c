@@ -458,3 +458,9 @@ void ekf_stateGet(ekf_state_t *ekfState)
 	/* calculate and save euler attitude */
 	quat_quat2euler(&q, &ekfState->roll, &ekfState->pitch, &ekfState->yaw);
 }
+
+
+extern int ekf_latlon2en(double lat, double lon, float *east, float *north)
+{
+	return meas_latlon2en(lat, lon, east, north);
+}

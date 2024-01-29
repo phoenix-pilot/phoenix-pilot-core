@@ -82,4 +82,9 @@ extern void ekf_stateGet(ekf_state_t *ekf_state);
 
 extern void ekf_boundsGet(float *bYaw, float *bRoll, float *bPitch);
 
+
+/* calculates local ENU `east` and `north` coordinates of lat/lon geodesic coordinates (assumes height = MSL) */
+extern int ekf_latlon2en(double lat, double lon, float *east, float *north);
+
+
 #endif
