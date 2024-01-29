@@ -192,6 +192,28 @@ static void meas_geo2ned(const meas_geodetic_t *geo, const meas_geodetic_t *refG
 }
 
 
+extern int meas_latlon2en(double lat, double lon, float *east, float *north)
+{
+	meas_geodetic_t geo;
+	vec_t ned = { 0 };
+
+	geo.lat = lat;
+	geo.lon = lon;
+	geo.h = 0;
+
+	geo.cosLat = cos(geo.lat * DEG2RAD);
+	geo.sinLat = sin(geo.lat * DEG2RAD);
+	geo.cosLon = cos(geo.lon * DEG2RAD);
+	geo.sinLon = sin(geo.lon * DEG2RAD);
+
+	meas_geo2ned(&geo, &meas_common.calib.gps.refGeodetic, meas_common.calib.gps.refEcef, &ned);
+	*east = ned.y;
+	*north = ned.x;
+
+	return 0;
+}
+
+
 int meas_gpsCalib(void)
 {
 	int i, avg = GPS_CALIB_AVG, fails = 0;
