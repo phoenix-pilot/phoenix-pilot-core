@@ -498,6 +498,30 @@ int parser_fieldGetFloat(const hmap_t *h, const char *fieldName, float *target)
 }
 
 
+int parser_fieldGetDouble(const hmap_t *h, const char *fieldName, double *target)
+{
+	char *valueStr, *endptr;
+	double tmp;
+
+	valueStr = hmap_get(h, fieldName);
+	if (valueStr == NULL) {
+		fprintf(stderr, "%s: no \"%s\" field in header\n", __FUNCTION__, fieldName);
+		return -1;
+	}
+
+	tmp = strtod(valueStr, &endptr);
+
+	if (*endptr != '\0') {
+		fprintf(stderr, "%s: cannot parser value of \"%s\" - %s - to double.\n", __FUNCTION__, fieldName, valueStr);
+		return -1;
+	}
+
+	*target = tmp;
+
+	return 0;
+}
+
+
 int parser_fieldGetTime(const hmap_t *h, const char *fieldName, time_t *target)
 {
 	char *valueStr, *endptr;
