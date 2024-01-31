@@ -101,19 +101,28 @@ static int config_waypointParse(const hmap_t *h, flight_mode_t *mode)
 {
 	int err = 0;
 
-	err |= parser_fieldGetInt(h, "north", &mode->waypoint.posNorth);
-	err |= parser_fieldGetInt(h, "east", &mode->waypoint.posEast);
+	err |= parser_fieldGetDouble(h, "lat", &mode->waypoint.lat);
+	err |= parser_fieldGetDouble(h, "lon", &mode->waypoint.lon);
 	err |= parser_fieldGetInt(h, "alt", &mode->waypoint.alt);
 
 	if (parser_fieldGetInt(h, "dist", &mode->waypoint.dist) != 0) {
 		mode->waypoint.dist = 0;
 	}
 
-	if (parser_fieldGetTime(h, "time", &mode->waypoint.time) != 0) {
-		mode->waypoint.time = 0;
+	if (parser_fieldGetTime(h, "time", &mode->waypoint.hold) != 0) {
+		mode->waypoint.hold = 0;
 	}
 
-	if (err != 0 || mode->waypoint.time < 0 || mode->waypoint.dist < 0) {
+	if (parser_fieldGetInt(h, "yaw", &mode->waypoint.yaw) != 0) {
+		mode->waypoint.yaw = INT32_MAX;
+	}
+	else {
+		if (mode->waypoint.yaw > 180 || mode->waypoint.yaw < -180) {
+			err = -1;
+		}
+	}
+
+	if (err != 0 || mode->waypoint.hold < 0 || mode->waypoint.dist < 0) {
 		return -1;
 	}
 
