@@ -1147,6 +1147,7 @@ static int quad_run(void)
 
 			default:
 				log_print("f_unknown\n");
+				i++;
 				break;
 		}
 
