@@ -51,11 +51,12 @@ typedef struct {
 
 
 typedef struct {
-	time_t time;      /* Minimal time at waypoint (milliseconds) */
-	int32_t posNorth; /* Waypoint position north of home (millimeters) */
-	int32_t posEast;  /* Waypoint position east of home (millimeters) */
-	int32_t alt;      /* Waypoint height above home (millimeters) */
-	int32_t dist;     /* Minimum distance of waypoint arrival acceptance (millimeters) */
+	time_t hold;  /* Minimal time at waypoint (milliseconds) */
+	double lat;   /* Waypoint position north of home (millimeters) */
+	double lon;   /* Waypoint position east of home (millimeters) */
+	int32_t alt;  /* Waypoint height above home (millimeters) */
+	int32_t dist; /* Minimum distance of waypoint arrival acceptance (millimeters) */
+	int32_t yaw;  /* Desired yaw at the waypoint in degrees (+-180) */
 } flight_waypoint_t;
 
 

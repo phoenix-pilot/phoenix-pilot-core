@@ -763,7 +763,7 @@ static int quad_waypoint(const flight_mode_t *mode, bool *done)
 				setAlt = mode->waypoint.alt;
 				att.yaw = targetYaw;
 
-				if ((now - stageStart) > mode->waypoint.time) {
+				if ((now - stageStart) > mode->waypoint.hold) {
 					stageStart = 0;
 					modeComplete = true;
 				}
