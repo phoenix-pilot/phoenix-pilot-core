@@ -655,9 +655,7 @@ static int quad_takeoff(const flight_mode_t *mode, bool *done)
 
 static int quad_waypoint(const flight_mode_t *mode, bool *done)
 {
-	const vec_t targetENU = { .x = mode->waypoint.posEast / 1000.f, .y = mode->waypoint.posNorth / 1000.f, .z = 0 };
-
-	vec_t pos, setPos, *setPosPtr, targetDelta;
+	vec_t pos, setPos, *setPosPtr, targetENU, targetDelta;
 	int32_t setAlt, alt;
 	quad_att_t att = { 0 };
 	ekf_state_t measure;
@@ -667,7 +665,10 @@ static int quad_waypoint(const flight_mode_t *mode, bool *done)
 	enum waypointStage { stage_vertical, stage_horizontal, stage_poshold } stage = stage_vertical;
 
 	log_enable();
-	log_print("FLYTO - N/E/H: %d/%d/%d\n", mode->waypoint.posNorth, mode->waypoint.posEast, mode->waypoint.alt);
+	log_print("FLYTO - N/E/H: %f/%f/%d\n", mode->waypoint.lat, mode->waypoint.lon, mode->waypoint.alt);
+
+	ekf_latlon2en(mode->waypoint.lat, mode->waypoint.lon, &targetENU.x, &targetENU.y);
+	targetENU.z = 0;
 
 	/* position and altitude updated preemptively to decide on yaw update */
 	ekf_stateGet(&measure);
