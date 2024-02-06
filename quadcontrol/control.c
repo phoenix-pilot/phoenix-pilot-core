@@ -499,13 +499,18 @@ static flight_type_t quad_arm(void)
 		stickThrtl = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
 		mutexUnlock(quad_common.rcbusLock);
 
-		if (!quad_rcChLow(swa)) {
-			printf("quad_arm: scenario\n");
-			return flight_arm;
-		}
-		else if (!quad_rcChLow(stickThrtl)) {
-			printf("quad_arm: f_arm->f_manual\n");
-			return flight_manual;
+		if (!quad_rcChLow(stickThrtl)) {
+			if (quad_rcChLow(swa)) {
+				printf("quad_arm: f_arm->f_manual\n");
+				return flight_manual;
+			}
+			else if (quad_common.mode == mode_auto) {
+				printf("quad_arm: scenario\n");
+				return flight_arm;
+			}
+			else {
+				printf("quad_arm: can't run scenario in 'rc' mode!\n");
+			}
 		}
 
 		sleep(1);
