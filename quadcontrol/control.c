@@ -957,7 +957,7 @@ static int quad_manual(void)
 	ekf_state_t measure;
 	float throttle = 0;
 	time_t now;
-	int32_t setAlt, alt, sickSWA, stickSWC, rcThrottle;
+	int32_t setAlt, alt, stickSWC, rcThrottle;
 	vec_t setPos;
 	const vec_t *setPosPtr;
 	enum subType { sub_stab, sub_phld, sub_rth } submode;
@@ -982,15 +982,9 @@ static int quad_manual(void)
 
 		/* Read values necessary for safety and submode selection */
 		mutexLock(quad_common.rcbusLock);
-		sickSWA = quad_common.rcChannels[RC_SWA_CH];
 		stickSWC = quad_common.rcChannels[RC_SWC_CH];
 		rcThrottle = quad_common.rcChannels[RC_LEFT_VSTICK_CH];
 		mutexUnlock(quad_common.rcbusLock);
-
-		/* Exit manual mode only if there is scenario to go back to */
-		if (quad_common.mode == mode_auto && !quad_rcChLow(sickSWA)) {
-			break;
-		}
 
 		quad_common.pids.alt.flags = PID_FULL;
 
