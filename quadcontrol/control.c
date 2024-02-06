@@ -258,7 +258,7 @@ static void quad_cmdCockpit(const ekf_state_t *measure)
 
 	alt = measure->enuZ;
 	dst = sqrt(measure->enuX * measure->enuX + measure->enuY * measure->enuY);
-	vel = sqrt(measure->veloX * measure->veloX + measure->veloY * measure->veloY);
+	vel = sqrt(measure->veloX * measure->veloX + measure->veloY * measure->veloY) * 10;
 
 	hdg = measure->yaw * 180.f / M_PI;
 	hdg += (measure->yaw < 0) ? 360 : 0;
