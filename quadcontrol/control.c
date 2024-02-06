@@ -75,6 +75,7 @@
 #define QCTRL_POS_YAW_UPDT_MIN (QCTRL_POS_YAW_THRESH * 2) /* Minimum distance (meters) from waypoint at which yaw is updated mid-flight */
 #define QCTRL_POS_YAW_ACCEPT   (5 * DEG2RAD)              /* Minimum yaw error to accept yaw change */
 #define QCTRL_POS_ALT_ACCEPT   1000                       /* Minimum altitude error to accept altitude change */
+#define QCTRL_VIRT_TGT_DST     10.0                       /* Virtual target (carrot on a stick that UAV follows) distance from current position (meters) */
 
 
 typedef enum { mode_rc = 0, mode_auto } control_mode_t;
@@ -158,6 +159,29 @@ static inline float quad_aimAt(const vec_t *enuTarget)
 	yaw = atan2(enuTarget->x, enuTarget->y);
 
 	return (isnan(yaw)) ? 0 : yaw;
+}
+
+
+/* Calculates the shortest vector between `point` and line parallel to `path` and going through `pathStart` and stores it in `ret` */
+static void quad_pathRetGet(const vec_t *pathStart, const vec_t *path, const vec_t *point, vec_t *ret)
+{
+	/*
+	* Given that 't' is a vector from `pathStart` to `point` this function calculates:
+	* r = (dot(t, path) / len(path)^2) * path - t
+	* where `r` is is the shortest vector connecting `point` to a line that is: parallel to `path` and goes through `pathStart`
+	*/
+
+	float lenSq;
+	vec_t trace, r;
+
+	lenSq = path->x * path->x + path->y * path->y + path->z * path->z;
+	vec_dif(point, pathStart, &trace);
+
+	r = *path;
+	vec_times(&r, vec_dot(&trace, path) / lenSq);
+	vec_sub(&r, &trace);
+
+	*ret = r;
 }
 
 
@@ -655,39 +679,53 @@ static int quad_takeoff(const flight_mode_t *mode, bool *done)
 
 static int quad_waypoint(const flight_mode_t *mode, bool *done)
 {
-	vec_t pos, setPos, *setPosPtr, targetENU, targetDelta;
+	struct {
+		vec_t start; /* Path start point */
+		vec_t end;   /* Path end point */
+		vec_t r;     /* Path vector (from start to finish) */
+
+		float len; /* Total path length */
+	} path = { 0 };
+
+	struct {
+		vec_t curr; /* current position in ENU */
+		vec_t tgt;  /* virtal "carrot on a stick" that the drone follows towords the path end (ENU) */
+
+		float dst; /* distance from current position to path end */
+	} pos = { 0 };
+
+	vec_t tmp;
 	int32_t setAlt, alt;
 	quad_att_t att = { 0 };
 	ekf_state_t measure;
 	time_t now, stageStart;
-	float targetDist, acceptDist, targetYaw;
+	float acceptDist, setYaw;
 	bool modeComplete = false, yawChange = false;
 	enum waypointStage { stage_vertical, stage_horizontal, stage_poshold } stage = stage_vertical;
 
 	log_enable();
-	log_print("FLYTO - N/E/H: %f/%f/%d\n", mode->waypoint.lat, mode->waypoint.lon, mode->waypoint.alt);
+	log_print("WPT - N/E/H: %f/%f/%d\n", mode->waypoint.lat, mode->waypoint.lon, mode->waypoint.alt);
 
-	ekf_latlon2en(mode->waypoint.lat, mode->waypoint.lon, &targetENU.x, &targetENU.y);
-	targetENU.z = 0;
+	ekf_latlon2en(mode->waypoint.lat, mode->waypoint.lon, &path.end.x, &path.end.y);
 
 	/* position and altitude updated preemptively to decide on yaw update */
 	ekf_stateGet(&measure);
 	att.yaw = measure.yaw;
-	targetYaw = measure.yaw;
+	setYaw = measure.yaw;
 	alt = measure.enuZ * 1000;
-	pos.x = measure.enuX;
-	pos.y = measure.enuZ;
-	pos.z = 0;
+	pos.curr.x = measure.enuX;
+	pos.curr.y = measure.enuZ;
+	pos.curr.z = 0;
 
 	/* Current and target position setup */
-	quad_prevTargetLoad(&setPos, &setAlt, &measure);
-	setPosPtr = &setPos;
-	vec_dif(&targetENU, &setPos, &targetDelta);
+	quad_prevTargetLoad(&path.start, &setAlt, &measure);
+	vec_dif(&path.end, &path.start, &path.r);
+	path.len = vec_len(&path.r);
 
 	/* Face the target if sufficiently far away */
-	if (vec_len(&targetDelta) > QCTRL_POS_YAW_THRESH) {
+	if (path.len > QCTRL_POS_YAW_THRESH) {
 		yawChange = true;
-		targetYaw = quad_aimAt(&targetDelta);
+		setYaw = quad_aimAt(&path.end);
 	}
 
 	/* Minimum arrival acceptance distance setup */
@@ -708,24 +746,25 @@ static int quad_waypoint(const flight_mode_t *mode, bool *done)
 
 		ekf_stateGet(&measure);
 		alt = measure.enuZ * 1000;
-		pos.x = measure.enuX;
-		pos.y = measure.enuY;
-		pos.z = 0;
+		pos.curr.x = measure.enuX;
+		pos.curr.y = measure.enuY;
+		pos.curr.z = 0;
 
-		vec_dif(&targetENU, &pos, &targetDelta);
-		targetDist = vec_len(&targetDelta);
+		vec_dif(&path.end, &pos.curr, &tmp);
+		pos.dst = vec_len(&tmp);
 
 		switch (stage) {
 			/*
 			 * Height and yaw correction step.
 			 */
 			case stage_vertical:
-				quad_stageStart(&stageStart, &now, "FLYTO - height\n");
+				quad_stageStart(&stageStart, &now, "WPT - height\n");
+				pos.tgt = path.start;
 				setAlt = mode->waypoint.alt;
-				att.yaw = targetYaw;
+				att.yaw = setYaw;
 
 				/* exit stage only if yaw and height errors are within acceptance limits */
-				if (abs(alt - setAlt) < QCTRL_POS_ALT_ACCEPT && fabs(targetYaw - measure.yaw) < QCTRL_POS_YAW_ACCEPT) {
+				if (abs(alt - setAlt) < QCTRL_POS_ALT_ACCEPT && fabs(setYaw - measure.yaw) < QCTRL_POS_YAW_ACCEPT) {
 					stageStart = 0;
 					stage = stage_horizontal;
 				}
@@ -737,18 +776,30 @@ static int quad_waypoint(const flight_mode_t *mode, bool *done)
 			 * Yaw is not updated closer than the limit value
 			 */
 			case stage_horizontal:
-				quad_stageStart(&stageStart, &now, "FLYTO - pos\n");
+				quad_stageStart(&stageStart, &now, "WPT - pos\n");
 
 				/* Yaw is updated only if it was meant to be updated and UAV is above yaw update threshold distance away from waypoint */
-				if (targetDist > QCTRL_POS_YAW_UPDT_MIN && yawChange == true) {
-					targetYaw = quad_aimAt(&targetDelta);
+				if (pos.dst > QCTRL_POS_YAW_UPDT_MIN && yawChange == true) {
+					setYaw = quad_aimAt(&path.end);
 				}
 
-				setPos = targetENU;
-				setAlt = mode->waypoint.alt;
-				att.yaw = targetYaw;
+				pos.tgt = path.end;
+				if (pos.dst > QCTRL_VIRT_TGT_DST) {
+					vec_times(&pos.tgt, QCTRL_VIRT_TGT_DST / pos.dst);
 
-				if (targetDist < acceptDist) {
+					/*
+					* Correction vector is calculated based on virtual target position, not UAV position.
+					* It is the virtual target that should stay on path.
+					* Assures smooth transition when hitting QCTRL_CARROT_STICK_LEN
+					*/
+					quad_pathRetGet(&path.start, &path.r, &pos.tgt, &tmp);
+					vec_add(&pos.tgt, &tmp);
+				}
+
+				setAlt = mode->waypoint.alt;
+				att.yaw = setYaw;
+
+				if (pos.dst < acceptDist) {
 					stageStart = 0;
 					stage = stage_poshold;
 				}
@@ -759,10 +810,10 @@ static int quad_waypoint(const flight_mode_t *mode, bool *done)
 			 * Hover step
 			 */
 			case stage_poshold:
-				quad_stageStart(&stageStart, &now, "FLYTO - hold\n");
-				setPos = targetENU;
+				quad_stageStart(&stageStart, &now, "WPT - hold\n");
+				pos.tgt = path.end;
 				setAlt = mode->waypoint.alt;
-				att.yaw = targetYaw;
+				att.yaw = setYaw;
 
 				if ((now - stageStart) > mode->waypoint.hold) {
 					stageStart = 0;
@@ -774,7 +825,7 @@ static int quad_waypoint(const flight_mode_t *mode, bool *done)
 
 		quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
 
-		if (quad_motorsCtrl(quad_common.hoverThrottle, &setAlt, setPosPtr, &att, &measure) < 0) {
+		if (quad_motorsCtrl(quad_common.hoverThrottle, &setAlt, &pos.tgt, &att, &measure) < 0) {
 			return -1;
 		}
 	}
