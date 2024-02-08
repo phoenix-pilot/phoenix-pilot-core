@@ -20,6 +20,7 @@
 #include <ekflib.h>
 #include <rcbus.h>
 #include <vec.h>
+#include <quat.h>
 
 #include <math.h>
 #include <errno.h>
@@ -50,6 +51,8 @@
 
 #define ANGLE_THRESHOLD_LOW  (M_PI / 4) /* low threshold for landing safety */
 #define ANGLE_THRESHOLD_HIGH (M_PI / 2) /* high threshold for maneuvers */
+#define COS_MIN_THRTL_COMP   0.909f     /* maximum lean angle for throttle-angle compensation */
+#define COS_MAX_THRTL_COMP   0.999f     /* minimum lean angle for throttle-angle compensation */
 #define RAD2DEG              ((float)180.0 / M_PI)
 #define DEG2RAD              0.0174532925f
 #define EARTH_G              9.80665F /* m/s^2 */
@@ -181,7 +184,24 @@ static void quad_pathRetGet(const vec_t *pathStart, const vec_t *path, const vec
 	vec_times(&r, vec_dot(&trace, path) / lenSq);
 	vec_sub(&r, &trace);
 
-	*ret = r;
+
+/* Returns throttle value compensated by the lean angle the drone */
+static float quad_throttleAngComp(const ekf_state_t *measure, float throttle)
+{
+	quat_t q = { .a = measure->q0, .i = measure->q1, .j = measure->q2, .k = measure->q3 };
+	float cosine;
+
+	cosine = quat_zlean(&q);
+
+	if (cosine < COS_MIN_THRTL_COMP) {
+		return throttle / COS_MIN_THRTL_COMP;
+	}
+	
+	if (cosine > COS_MAX_THRTL_COMP) {
+		return throttle;
+	}
+
+	return throttle / cosine;
 }
 
 
@@ -345,6 +365,8 @@ static int quad_motorsCtrl(float throttle, int32_t *alt, const vec_t *setPos, co
 	proll = pid_calc(&quad_common.pids.roll, att->roll + dRollPos, measure->roll, measure->rollDot, dt);
 	ppitch = pid_calc(&quad_common.pids.pitch, att->pitch + dPitchPos, measure->pitch, measure->pitchDot, dt);
 	pyaw = pid_calc(&quad_common.pids.yaw, att->yaw, measure->yaw, measure->yawDot, dt);
+
+	throttle = quad_throttleAngComp(measure, throttle);
 
 	if (mma_control(throttle + palt, proll, ppitch, pyaw) < 0) {
 		return -1;
