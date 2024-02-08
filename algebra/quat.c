@@ -158,6 +158,12 @@ void quat_quat2euler(const quat_t *q, float *roll, float *pitch, float *yaw)
 }
 
 
+float quat_zlean(quat_t *q)
+{
+	return (q->a * q->a) - (q->i * q->i) - (q->j * q->j) + (q->k * q->k);
+}
+
+
 void quat_uvec2uvec(const vec_t *v1, const vec_t *v2, quat_t *q)
 {
 	float a = vec_dot(v1, v2);

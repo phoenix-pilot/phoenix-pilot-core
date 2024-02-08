@@ -99,6 +99,10 @@ extern void quat_times(quat_t *A, float x);
 extern void quat_quat2euler(const quat_t *q, float *roll, float *pitch, float *yaw);
 
 
+/* Calculates cosine of the angle between unrotated and rotated (using 'q') z-axis directions */
+extern float quat_zlean(quat_t *q);
+
+
 /* calculate quaternion q that rotates v1 into v2 along axis perpendicular to `v1` and `v2`. Both vectors need to be unit vectors */
 extern void quat_uvec2uvec(const vec_t *v1, const vec_t *v2, quat_t *q);
 
