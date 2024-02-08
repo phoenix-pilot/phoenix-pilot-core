@@ -165,8 +165,11 @@ static inline float quad_aimAt(const vec_t *enuTarget)
 }
 
 
-/* Calculates the shortest vector between `point` and line parallel to `path` and going through `pathStart` and stores it in `ret` */
-static void quad_pathRetGet(const vec_t *pathStart, const vec_t *path, const vec_t *point, vec_t *ret)
+/* 
+ * Moves `point` to the closest location on line that is parallel to `path` and goes through `pathStart`.
+ * If path is shorter than `minLen` then `point`= `pathStart` + `path`
+ */
+static void quad_point2path(const vec_t *pathStart, const vec_t *pathEnd, float minLen, vec_t *point)
 {
 	/*
 	* Given that 't' is a vector from `pathStart` to `point` this function calculates:
@@ -175,14 +178,49 @@ static void quad_pathRetGet(const vec_t *pathStart, const vec_t *path, const vec
 	*/
 
 	float lenSq;
-	vec_t trace, r;
+	vec_t trace, r, path;
 
-	lenSq = path->x * path->x + path->y * path->y + path->z * path->z;
+	vec_dif(pathEnd, pathStart, &path);
+	lenSq = path.x * path.x + path.y * path.y + path.z * path.z;
 	vec_dif(point, pathStart, &trace);
 
-	r = *path;
-	vec_times(&r, vec_dot(&trace, path) / lenSq);
-	vec_sub(&r, &trace);
+	if (lenSq > (minLen * minLen)) {
+		r = path;
+		vec_times(&r, vec_dot(&trace, &path) / lenSq);
+		vec_sub(&r, &trace);
+		vec_add(point, &r);
+	}
+	else {
+		vec_sum(pathStart, &path, point);
+	}
+}
+
+
+/*
+ * Calculates position of virtual target `tgt`:
+ * `pathStart` - path starting point
+ * `pathEnd` - path end point
+ * `curr` - current UAV posotion
+ */
+static void quad_virtTgt(const vec_t *pathStart, const vec_t *pathEnd, const vec_t *curr, vec_t *tgt)
+{
+	vec_t remain;
+	float remainLen;
+
+	vec_dif(pathEnd, curr, &remain);
+	remainLen = vec_len(&remain);
+
+	if (remainLen > QCTRL_VIRT_TGT_DST) {
+		/* Make target QCTRL_VIRT_TGT_DST meters towards the pathEnd  */
+		vec_times(&remain, QCTRL_VIRT_TGT_DST / remainLen);
+		vec_sum(curr, &remain, tgt);
+
+		quad_point2path(pathStart, pathEnd, 1.0, tgt);
+	}
+	else {
+		*tgt = *pathEnd;
+	}
+}
 
 
 /* Returns throttle value compensated by the lean angle the drone */
@@ -715,13 +753,13 @@ static int quad_waypoint(const flight_mode_t *mode, bool *done)
 	} path = { 0 };
 
 	struct {
-		vec_t curr; /* current position in ENU */
-		vec_t tgt;  /* virtal "carrot on a stick" that the drone follows towords the path end (ENU) */
+		vec_t curr;   /* current position in ENU */
+		vec_t tgt;    /* virtal "carrot on a stick" that the drone follows towords the path end (ENU) */
+		vec_t endRel; /* path end relative position to curr */
 
 		float dst; /* distance from current position to path end */
 	} pos = { 0 };
 
-	vec_t tmp;
 	int32_t setAlt, alt;
 	quad_att_t att = { 0 };
 	ekf_state_t measure;
@@ -777,8 +815,8 @@ static int quad_waypoint(const flight_mode_t *mode, bool *done)
 		pos.curr.y = measure.enuY;
 		pos.curr.z = 0;
 
-		vec_dif(&path.end, &pos.curr, &tmp);
-		pos.dst = vec_len(&tmp);
+		vec_dif(&path.end, &pos.curr, &pos.endRel);
+		pos.dst = vec_len(&pos.endRel);
 
 		switch (stage) {
 			/*
@@ -807,22 +845,10 @@ static int quad_waypoint(const flight_mode_t *mode, bool *done)
 
 				/* Yaw is updated only if it was meant to be updated and UAV is above yaw update threshold distance away from waypoint */
 				if (pos.dst > QCTRL_POS_YAW_UPDT_MIN && yawChange == true) {
-					setYaw = quad_aimAt(&path.end);
+					setYaw = quad_aimAt(&pos.endRel);
 				}
 
-				pos.tgt = path.end;
-				if (pos.dst > QCTRL_VIRT_TGT_DST) {
-					vec_times(&pos.tgt, QCTRL_VIRT_TGT_DST / pos.dst);
-
-					/*
-					* Correction vector is calculated based on virtual target position, not UAV position.
-					* It is the virtual target that should stay on path.
-					* Assures smooth transition when hitting QCTRL_CARROT_STICK_LEN
-					*/
-					quad_pathRetGet(&path.start, &path.r, &pos.tgt, &tmp);
-					vec_add(&pos.tgt, &tmp);
-				}
-
+				quad_virtTgt(&path.start, &path.end, &pos.curr, &pos.tgt);
 				setAlt = mode->waypoint.alt;
 				att.yaw = setYaw;
 
