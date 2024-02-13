@@ -106,6 +106,13 @@
 #define KMN_UPDT_BARO (1 << 1)
 #define KMN_UPDT_GPS  (1 << 2)
 
+/* Kalman looptime limits */
+#define KMN_LOOP_US_MAX 1500
+#define KMN_LOOP_US_MIN 1000
+#define KMN_USLEEP_MAX  1000
+#define KMN_USLEEP_MIN  200
+#define KMN_USLEEP_INCR 1
+
 #define MAX_PATH_LEN 200
 
 

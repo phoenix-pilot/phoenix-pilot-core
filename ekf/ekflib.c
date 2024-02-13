@@ -269,6 +269,20 @@ static int ekf_dtGet(time_t *result)
 }
 
 
+static time_t ekf_loopTimeOptimize(time_t loopStep, time_t sleepTime)
+{
+	if (loopStep < KMN_LOOP_US_MIN && sleepTime < KMN_USLEEP_MAX) {
+		return sleepTime + KMN_USLEEP_INCR;
+	}
+	else if (loopStep > KMN_LOOP_US_MAX && sleepTime > KMN_USLEEP_MIN) {
+		return sleepTime - KMN_USLEEP_INCR;
+	}
+	else {
+		return sleepTime;
+	}
+}
+
+
 static int ekf_pollErrHandle(void)
 {
 	ekf_common.status |= (errno == 0) ? EKF_MEAS_EOF : EKF_ERROR;
@@ -282,7 +296,7 @@ static void *ekf_thread(void *arg)
 {
 	static time_t lastBaroUpdate = 0, lastGpsUpdate = 0;
 	time_t imuTime;
-	time_t loopStep, updateStep;
+	time_t loopStep = 1000, updateStep, sleepTime = 1000;
 	update_engine_t *currUpdate;
 
 	printf("ekf: starting ekf thread\n");
@@ -299,11 +313,12 @@ static void *ekf_thread(void *arg)
 	lastGpsUpdate = ekf_common.lastTime;
 
 	while (ekf_common.run == 1) {
-		usleep(1000);
+		usleep(sleepTime);
 
 		if (ekf_dtGet(&loopStep) != 0) {
 			ekf_common.run = ekf_pollErrHandle();
 		}
+		sleepTime = ekf_loopTimeOptimize(loopStep, sleepTime);
 
 		/* IMU polling is done regardless on update procedure */
 		if (meas_imuPoll(&imuTime) != 0) {
