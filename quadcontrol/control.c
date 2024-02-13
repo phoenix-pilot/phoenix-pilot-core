@@ -321,7 +321,7 @@ static void quad_cmdCockpit(const ekf_state_t *measure)
 	hdg = measure->yaw * 180.f / M_PI;
 	hdg += (measure->yaw < 0) ? 360 : 0;
 
-	log_print("ALT %3d DST %3d HDG %3d VEL %2d\n", alt, dst, hdg, vel);
+	log_print("A %3d D %3d H %3d V %2d\n", alt, dst, hdg, vel);
 }
 
 /* Stores target altitude and position (if set) as last used value.  */
