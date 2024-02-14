@@ -790,7 +790,7 @@ static int quad_waypoint(const flight_mode_t *mode, bool *done)
 	/* Face the target if sufficiently far away */
 	if (path.len > QCTRL_POS_YAW_THRESH) {
 		yawChange = true;
-		setYaw = quad_aimAt(&path.end);
+		setYaw = quad_aimAt(&path.r);
 	}
 
 	/* Minimum arrival acceptance distance setup */
@@ -845,7 +845,7 @@ static int quad_waypoint(const flight_mode_t *mode, bool *done)
 
 				/* Yaw is updated only if it was meant to be updated and UAV is above yaw update threshold distance away from waypoint */
 				if (pos.dst > QCTRL_POS_YAW_UPDT_MIN && yawChange == true) {
-					setYaw = quad_aimAt(&pos.endRel);
+					setYaw = quad_aimAt(&path.r);
 				}
 
 				quad_virtTgt(&path.start, &path.end, &pos.curr, &pos.tgt);
