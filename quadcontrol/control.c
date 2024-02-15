@@ -165,17 +165,17 @@ static inline float quad_aimAt(const vec_t *enuTarget)
 }
 
 
-/* 
+/*
  * Moves `point` to the closest location on line that is parallel to `path` and goes through `pathStart`.
  * If path is shorter than `minLen` then `point`= `pathStart` + `path`
  */
 static void quad_point2path(const vec_t *pathStart, const vec_t *pathEnd, float minLen, vec_t *point)
 {
 	/*
-	* Given that 't' is a vector from `pathStart` to `point` this function calculates:
-	* r = (dot(t, path) / len(path)^2) * path - t
-	* where `r` is is the shortest vector connecting `point` to a line that is: parallel to `path` and goes through `pathStart`
-	*/
+	 * Given that 't' is a vector from `pathStart` to `point` this function calculates:
+	 * r = (dot(t, path) / len(path)^2) * path - t
+	 * where `r` is is the shortest vector connecting `point` to a line that is: parallel to `path` and goes through `pathStart`
+	 */
 
 	float lenSq;
 	vec_t trace, r, path;
@@ -200,7 +200,7 @@ static void quad_point2path(const vec_t *pathStart, const vec_t *pathEnd, float 
  * Calculates position of virtual target `tgt`:
  * `pathStart` - path starting point
  * `pathEnd` - path end point
- * `curr` - current UAV posotion
+ * `curr` - current UAV position
  */
 static void quad_virtTgt(const vec_t *pathStart, const vec_t *pathEnd, const vec_t *curr, vec_t *tgt)
 {
@@ -234,7 +234,7 @@ static float quad_throttleAngComp(const ekf_state_t *measure, float throttle)
 	if (cosine < COS_MIN_THRTL_COMP) {
 		return throttle / COS_MIN_THRTL_COMP;
 	}
-	
+
 	if (cosine > COS_MAX_THRTL_COMP) {
 		return throttle;
 	}
@@ -735,7 +735,7 @@ static int quad_takeoff(const flight_mode_t *mode, bool *done)
 		last = now;
 	}
 
-	/* TODO: no means of proper takeoff restor, thus ALWAYS exits as DONE */
+	/* TODO: no means of proper takeoff restore, thus ALWAYS exits as DONE */
 	*done = true;
 
 	return 0;
@@ -754,7 +754,7 @@ static int quad_waypoint(const flight_mode_t *mode, bool *done)
 
 	struct {
 		vec_t curr;   /* current position in ENU */
-		vec_t tgt;    /* virtal "carrot on a stick" that the drone follows towords the path end (ENU) */
+		vec_t tgt;    /* virtual "carrot on a stick" that the drone follows towards the path end (ENU) */
 		vec_t endRel; /* path end relative position to curr */
 
 		float dst; /* distance from current position to path end */
