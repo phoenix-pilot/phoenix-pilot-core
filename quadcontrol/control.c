@@ -467,6 +467,8 @@ static int quad_idle(void)
 {
 	int16_t swa, swb, swc, swd, stickThrtl;
 
+	qmav_setStatus(MAV_STATE_STANDBY, MAV_MODE_PREFLIGHT);
+
 	while (quad_common.currFlight == flight_idle) {
 		mutexLock(quad_common.rcbusLock);
 		swa = quad_common.rcChannels[RC_SWA_CH];
@@ -533,6 +535,8 @@ static int quad_disarm(void)
 			armReqTime = 0;
 		}
 
+		qmav_setStatus(MAV_STATE_STANDBY, MAV_MODE_MANUAL_DISARMED);
+
 		sleep(1);
 		printf("quad_disarm: idling...\n");
 	}
@@ -575,6 +579,8 @@ static flight_type_t quad_arm(void)
 			}
 		}
 
+		qmav_setStatus(MAV_STATE_ACTIVE, MAV_MODE_MANUAL_ARMED);
+
 		sleep(1);
 	}
 
@@ -616,6 +622,7 @@ static int quad_takeoff(const flight_mode_t *mode, bool *done)
 
 	log_enable();
 	log_print("TAKEOFF\n", setAlt);
+	qmav_setStatus(MAV_STATE_ACTIVE, MAV_MODE_AUTO_ARMED);
 
 	now = quad_timeMsGet();
 	quad_periodLogEnable(now);
@@ -772,6 +779,7 @@ static int quad_waypoint(const flight_mode_t *mode, bool *done)
 
 	log_enable();
 	log_print("WPT - N/E/H: %f/%f/%d\n", mode->waypoint.lat, mode->waypoint.lon, mode->waypoint.alt);
+	qmav_setStatus(MAV_STATE_ACTIVE, MAV_MODE_AUTO_ARMED);
 
 	ekf_latlon2en(mode->waypoint.lat, mode->waypoint.lon, &path.end.x, &path.end.y);
 
@@ -907,6 +915,7 @@ static int quad_landing(const flight_mode_t *mode, bool *done)
 
 	log_enable();
 	log_print("LAND - alt: %d\n", mode->landing.alt);
+	qmav_setStatus(MAV_STATE_ACTIVE, MAV_MODE_AUTO_ARMED);
 
 	/* Use last target if available */
 	quad_prevTargetLoad(&setPos, &setAlt, &measure);
@@ -1064,6 +1073,7 @@ static int quad_manual(void)
 	float throttle = 0;
 	time_t now;
 	int32_t setAlt, alt, stickSWC, rcThrottle;
+	uint8_t mavMode = MAV_MODE_MANUAL_ARMED;
 	vec_t setPos;
 	const vec_t *setPosPtr;
 	enum subType { sub_stab, sub_phld, sub_rth } submode;
@@ -1110,6 +1120,12 @@ static int quad_manual(void)
 				setPosPtr = &homePos; /* Position control turned off */
 				setAlt = alt;
 				quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
+
+				if (mavMode != MAV_MODE_GUIDED_ARMED) {
+					mavMode = MAV_MODE_GUIDED_ARMED;
+					qmav_setStatus(MAV_STATE_ACTIVE, mavMode);
+				}
+
 				break;
 
 			case sub_phld:
@@ -1117,6 +1133,12 @@ static int quad_manual(void)
 				setAlt = alt;
 				quad_common.pids.pos.flags = PID_FULL;
 				quad_rcOverride(&att, NULL, RC_OVRD_LEVEL);
+
+				if (mavMode != MAV_MODE_GUIDED_ARMED) {
+					mavMode = MAV_MODE_GUIDED_ARMED;
+					qmav_setStatus(MAV_STATE_ACTIVE, mavMode);
+				}
+
 				break;
 
 			case sub_stab:
@@ -1140,6 +1162,12 @@ static int quad_manual(void)
 						return -1;
 					}
 				}
+
+				if (mavMode != MAV_MODE_MANUAL_ARMED) {
+					mavMode = MAV_MODE_MANUAL_ARMED;
+					qmav_setStatus(MAV_STATE_ACTIVE, mavMode);
+				}
+
 				break;
 		}
 
