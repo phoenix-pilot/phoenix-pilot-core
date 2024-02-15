@@ -16,11 +16,13 @@
 #include "pid.h"
 #include "log.h"
 #include "config.h"
+#include "qmav.h"
 
 #include <ekflib.h>
 #include <rcbus.h>
 #include <vec.h>
 #include <quat.h>
+#include <mavlink_enums.h>
 
 #include <math.h>
 #include <errno.h>
@@ -1326,6 +1328,7 @@ static void quad_done(void)
 	mma_done();
 	ekf_done();
 	rcbus_done();
+	qmav_done();
 
 	free(quad_common.scenario);
 
@@ -1454,9 +1457,17 @@ static int quad_init(void)
 	}
 
 
+	if (qmav_init(NULL) < 0) {
+		fprintf(stderr, "quadcontrol: cannot initialize qmav module\n");
+		resourceDestroy(quad_common.rcbusLock);
+		free(quad_common.scenario);
+		return -1;
+	}
+
 	/* RC bus initialization */
 	if (rcbus_init(PATH_DEV_RC_BUS, rc_typeIbus) < 0) {
 		fprintf(stderr, "quadcontrol: cannot initialize rcbus using %s\n", PATH_DEV_RC_BUS);
+		qmav_done();
 		resourceDestroy(quad_common.rcbusLock);
 		free(quad_common.scenario);
 		return -1;
@@ -1465,6 +1476,7 @@ static int quad_init(void)
 	/* EKF initialization */
 	if (ekf_init(0) < 0) {
 		fprintf(stderr, "quadcontrol: cannot initialize ekf\n");
+		qmav_done();
 		resourceDestroy(quad_common.rcbusLock);
 		free(quad_common.scenario);
 		return -1;
@@ -1562,9 +1574,20 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 
+		if (qmav_run() != 0) {
+			fprintf(stderr, "qmav: cannot start");
+			quad_done();
+			exit(EXIT_FAILURE);
+		}
+		else {
+			qmav_setStatus(MAV_STATE_BOOT, MAV_MODE_PREFLIGHT);
+		}
+
 		if (ekf_run() < 0) {
 			fprintf(stderr, "quadcontrol: cannot run ekf\n");
 			rcbus_stop();
+			qmav_stop();
+			qmav_done();
 			quad_done();
 			exit(EXIT_FAILURE);
 		}
@@ -1575,6 +1598,7 @@ int main(int argc, char **argv)
 		/* Stop threads from external libs */
 		ekf_stop();
 		rcbus_stop();
+		qmav_stop();
 
 		quad_done();
 
