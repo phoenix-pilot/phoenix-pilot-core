@@ -7,5 +7,5 @@
 NAME := plane-control
 LOCAL_SRCS := control.c mma.c
 DEP_LIBS := libekf libparser libhmap libalgeb libsensc libmctl libcalib
-LIBS := libzynq7000pwm
+LIBS := libzynq7000pwm libsensors-spi libzynq7000-gpio-msg libspi-msg
 include $(binary.mk)

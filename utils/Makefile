@@ -12,17 +12,19 @@ DEP_LIBS := libekf libparser libhmap libalgeb libsensc libcalib
 ifeq ("$(TARGET)","host-generic-pilot")
 	LOCAL_LDFLAGS += -lm
 endif
-
+LIBS := libzynq7000pwm libsensors-spi libzynq7000-gpio-msg libspi-msg
 include $(binary.mk)
 
 NAME := sensortest
 LOCAL_SRCS := sensortest.c
 DEP_LIBS := libekf libparser libhmap libalgeb libsensc libcalib
+LIBS := libzynq7000pwm libsensors-spi libzynq7000-gpio-msg libspi-msg
 include $(binary.mk)
 
 NAME := senslog
 LOCAL_SRCS := senslog.c
 DEP_LIBS := libsensc libcalib libalgeb
+LIBS := libzynq7000pwm libsensors-spi libzynq7000-gpio-msg libspi-msg
 include $(binary.mk)
 
 NAME := rclog

@@ -11,5 +11,5 @@ NAME := calibtool
 CALIBS := magmot.c magiron.c motesc.c motlin.c accorth.c tempimu.c gyrorth.c
 LOCAL_SRCS := main.c ellcal.c linlsm.c $(CALIBS)
 DEP_LIBS := libsensc libmctl libalgeb libcalib libhmap
-LIBS := libzynq7000pwm
+LIBS := libzynq7000pwm libsensors-spi libzynq7000-gpio-msg libspi-msg
 include $(binary.mk)

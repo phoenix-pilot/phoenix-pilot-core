@@ -9,7 +9,7 @@
 # Sensorhub client library
 NAME := libsensc
 
-LOCAL_SRCS := sensc.c corr.c
+LOCAL_SRCS := sensc.c corr.c mpu6000loc.c
 
 LOCAL_HEADERS := sensc.h
 DEPS := libalgeb libcalib

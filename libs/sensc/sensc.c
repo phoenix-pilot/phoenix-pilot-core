@@ -23,6 +23,7 @@
 
 #include "sensc.h"
 #include "corr.h"
+#include "mpu6000loc.h"
 
 #define SENSORHUB_PIPES 3       /* number of connections with sensorhub */
 #define SECONDS_2_MICRO 1000000 /* number of microseconds in one second */
@@ -38,6 +39,8 @@ struct {
 	int fdImu;
 	int fdBaro;
 	int fdGps;
+
+	mpu6000_ctx_t mpuctx;
 
 	int corrInitFlags;
 } sensc_common;
@@ -84,9 +87,19 @@ static int sensc_openDescr(const char *path, int typeFlag, int initFlags, int *s
 		return 0;
 	}
 
+
+	if (typeFlag == SENSC_INIT_IMU) {
+		char name[] = "/dev/spi0.2::2\0";
+
+		if (libmpu6000_alloc(&sensc_common.mpuctx, name) < 0) {
+			fprintf(stderr, "sensc: failed local mpu6000\n");
+			return -1;
+		}
+	}
+
 	switch (typeFlag) {
 		case SENSC_INIT_IMU:
-			sensorType = SENSOR_TYPE_ACCEL | SENSOR_TYPE_GYRO | SENSOR_TYPE_MAG;
+			sensorType = SENSOR_TYPE_MAG;
 			break;
 
 		case SENSC_INIT_BARO:
@@ -162,37 +175,41 @@ void sensc_deinit(void)
 
 int sensc_imuGet(sensor_event_t *accelEvt, sensor_event_t *gyroEvt, sensor_event_t *magEvt)
 {
+	static sensor_event_t lastMag = { 0 };
+
 	sensors_data_t *data;
 	data = (sensors_data_t *)(sensc_common.buff);
-	unsigned int flag = SENSOR_TYPE_ACCEL | SENSOR_TYPE_MAG | SENSOR_TYPE_GYRO;
+	unsigned int flag = SENSOR_TYPE_MAG;
 	int j;
 
-	/* read from sensorhub */
-	if (read(sensc_common.fdImu, sensc_common.buff, sizeof(sensc_common.buff)) < 0) {
+	if (mpu6000_getData(&sensc_common.mpuctx, gyroEvt, accelEvt) < 0) {
 		return -1;
 	}
 
-	/* decompose sensorhub output */
-	for (j = 0; (j < data->size) && (flag != 0); ++j) {
-		switch (data->events[j].type) {
-			case SENSOR_TYPE_ACCEL:
-				*accelEvt = data->events[j];
-				flag &= ~SENSOR_TYPE_ACCEL;
-				break;
-
-			case SENSOR_TYPE_MAG:
-				*magEvt = data->events[j];
-				flag &= ~SENSOR_TYPE_MAG;
-				break;
-
-			case SENSOR_TYPE_GYRO:
-				*gyroEvt = data->events[j];
-				flag &= ~SENSOR_TYPE_GYRO;
-				break;
-
-			default:
-				break;
+	if (accelEvt->timestamp - lastMag.timestamp < 100000 && lastMag.timestamp != 0) {
+		*magEvt = lastMag;
+		flag &= ~SENSOR_TYPE_MAG;
+	}
+	else {
+		/* read from sensorhub */
+		if (read(sensc_common.fdImu, sensc_common.buff, sizeof(sensc_common.buff)) < 0) {
+			return -1;
 		}
+
+		/* decompose sensorhub output */
+		for (j = 0; (j < data->size) && (flag != 0); ++j) {
+			switch (data->events[j].type) {
+				case SENSOR_TYPE_MAG:
+					lastMag = data->events[j];
+					flag &= ~SENSOR_TYPE_MAG;
+					break;
+
+				default:
+					break;
+			}
+		}
+
+		*magEvt = lastMag;
 	}
 
 	/* Corrections */
