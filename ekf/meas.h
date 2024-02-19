@@ -138,4 +138,7 @@ extern int meas_timeGet(time_t *useconds);
 /* Returns (east, north) local frame coords of lat/lon  geodesic point */
 extern int meas_latlon2en(double lat, double lon, float *east, float *north);
 
+/* Returns (lat, lon, len) geodetic coordinates of enu point (given current datum) */
+extern int meas_en2latlon(vec_t *enu, double *lat, double *lon, double *h);
+
 #endif
