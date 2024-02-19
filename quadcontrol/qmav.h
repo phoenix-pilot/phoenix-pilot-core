@@ -21,6 +21,17 @@
 void qmav_setStatus(uint8_t state, uint8_t mode);
 
 
+/*
+ * Sets the qmav position status buffer. Non-blockin operation.
+ * Units:
+ * - lat/lon in degrees,
+ * - h (height) in meters,
+ * - vx/vy/vz in m/s,
+ * - yawDeg in degrees.
+ */ 
+void qmav_setPos(double lat, double lon, float h, float vx, float vy, float vz, float yawDeg);
+
+
 /* Starts previously initialized qmav thread */
 int qmav_run(void);
 

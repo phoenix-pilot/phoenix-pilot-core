@@ -20,18 +20,41 @@ struct {
 	pthread_mutex_t lock;
 	pthread_attr_t threadAttr;
 
-	/* heartbeat status/mode buffers */
-	volatile uint8_t state;
-	volatile uint8_t mode;
-	volatile uint8_t custMode;
+	/* message buffers */
+	volatile mav_heartbeat_t heart;
+	volatile mav_globalPositionInt_t pos;
 } qmav_common;
 
 
 void qmav_setStatus(uint8_t state, uint8_t mode)
 {
 	if (pthread_mutex_trylock(&qmav_common.lock) == 0) {
-		qmav_common.state = state;
-		qmav_common.mode = mode;
+		qmav_common.heart.system_status = state;
+		qmav_common.heart.base_mode = mode;
+		qmav_common.heart.custom_mode = 0;
+		qmav_common.heart.type = MAV_TYPE_QUADROTOR;
+		qmav_common.heart.autopilot = MAV_AUTOPILOT_GENERIC;
+		pthread_mutex_unlock(&qmav_common.lock);
+	}
+}
+
+
+void qmav_setPos(double latDeg, double lonDeg, float h, float vx, float vy, float vz, float yawDeg)
+{
+	if (pthread_mutex_trylock(&qmav_common.lock) == 0) {
+		qmav_common.pos.time_boot_ms = 0;
+
+		qmav_common.pos.lat = latDeg * 1e7;
+		qmav_common.pos.lon = lonDeg * 1e7;
+
+		qmav_common.pos.alt = h * 1000;
+		qmav_common.pos.relative_alt = h * 1000;
+
+		qmav_common.pos.vx = vx * 100;
+		qmav_common.pos.vy = vy * 100;
+		qmav_common.pos.vz = vz * 100;
+
+		qmav_common.pos.hdg = yawDeg * 100;
 
 		pthread_mutex_unlock(&qmav_common.lock);
 	}
@@ -41,18 +64,19 @@ void qmav_setStatus(uint8_t state, uint8_t mode)
 static void *qmav_thread(void *arg)
 {
 	mav_heartbeat_t heartbeat = { .type = MAV_TYPE_QUADROTOR, .autopilot = MAV_AUTOPILOT_GENERIC };
+	mav_globalPositionInt_t position = { 0 };
 
 	fprintf(stdout, "qmav: started...\n");
 	qmav_common.run = 1;
 
 	while (qmav_common.run) {
 		pthread_mutex_lock(&qmav_common.lock);
-		heartbeat.base_mode = qmav_common.mode;
-		heartbeat.custom_mode = qmav_common.custMode;
-		heartbeat.system_status = qmav_common.state;
+		heartbeat = qmav_common.heart;
+		position = qmav_common.pos;
 		pthread_mutex_unlock(&qmav_common.lock);
 
 		mav_sendHeartbeat(&qmav_common.autopilot, &heartbeat);
+		mav_sendGlobalPositionInt(&qmav_common.autopilot, &position);
 
 		sleep(1);
 	}
@@ -139,9 +163,6 @@ int qmav_init(const char *path)
 	}
 
 	qmav_common.run = 0;
-	qmav_common.state = MAV_STATE_UNINIT;
-	qmav_common.mode = MAV_MODE_PREFLIGHT;
-	qmav_common.custMode = 0;
 
 	return 0;
 }
