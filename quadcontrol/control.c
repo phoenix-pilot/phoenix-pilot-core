@@ -369,6 +369,31 @@ static void quad_prevTargetLoad(vec_t *setPos, int32_t *alt, ekf_state_t *measur
 }
 
 
+void quad_posBroadcast(time_t dt, const ekf_state_t *measure)
+{
+	static time_t period = ~((time_t)0);
+	double lat, lon;
+	float hdg;
+
+	period += dt;
+
+	if ((period > 0 && period < 1000) || dt == 0) {
+		return;
+	}
+	period = 0;
+
+	ekf_enu2latlon(measure->enuX, measure->enuY, measure->enuZ, &lat, &lon);
+
+	lat /= DEG2RAD;
+	lon /= DEG2RAD;
+
+	hdg = measure->yaw * 180.f / M_PI;
+	hdg += (measure->yaw < 0) ? 360 : 0;
+
+	qmav_setPos(lat, lon, measure->enuZ, measure->veloX, measure->veloY, measure->veloZ, hdg);
+}
+
+
 /*
  * Drone attitude control
  * `throttle` - base throttle for all engines.
@@ -394,7 +419,9 @@ static int quad_motorsCtrl(float throttle, int32_t *alt, const vec_t *setPos, co
 	dt = now - quad_common.lastTime;
 	quad_common.lastTime = now;
 
-	quad_cmdCockpit(measure);
+	quad_posBroadcast(dt, measure);
+
+	//quad_cmdCockpit(measure);
 	quad_prevTargetSave(setPos, alt);
 
 	if (setPos != NULL) {
@@ -466,8 +493,7 @@ static inline bool quad_rcChHgh(int32_t ch)
 static int quad_idle(void)
 {
 	int16_t swa, swb, swc, swd, stickThrtl;
-
-	qmav_setStatus(MAV_STATE_STANDBY, MAV_MODE_PREFLIGHT);
+	ekf_state_t measure;
 
 	while (quad_common.currFlight == flight_idle) {
 		mutexLock(quad_common.rcbusLock);
@@ -484,6 +510,10 @@ static int quad_idle(void)
 			break;
 		}
 
+		ekf_stateGet(&measure);
+		quad_posBroadcast(1000, &measure);
+		qmav_setStatus(MAV_STATE_STANDBY, MAV_MODE_PREFLIGHT);
+
 		sleep(1);
 		printf("quad_idle: idling...\n");
 	}
@@ -498,6 +528,7 @@ static int quad_disarm(void)
 
 	int16_t swa, swb, swc, swd, stickThrtl, stickYaw;
 	time_t currTime, armReqTime = 0;
+	ekf_state_t measure;
 
 	while (quad_common.currFlight == flight_disarm) {
 		mutexLock(quad_common.rcbusLock);
@@ -535,6 +566,8 @@ static int quad_disarm(void)
 			armReqTime = 0;
 		}
 
+		ekf_stateGet(&measure);
+		quad_posBroadcast(1000, &measure);
 		qmav_setStatus(MAV_STATE_STANDBY, MAV_MODE_MANUAL_DISARMED);
 
 		sleep(1);
@@ -548,6 +581,7 @@ static int quad_disarm(void)
 static flight_type_t quad_arm(void)
 {
 	const time_t maxArmTime = 30 * 1000000;
+	ekf_state_t measure;
 
 	time_t armBeginTime, currTime;
 	int16_t swa, stickThrtl;
@@ -579,6 +613,8 @@ static flight_type_t quad_arm(void)
 			}
 		}
 
+		ekf_stateGet(&measure);
+		quad_posBroadcast(1000, &measure);
 		qmav_setStatus(MAV_STATE_ACTIVE, MAV_MODE_MANUAL_ARMED);
 
 		sleep(1);
