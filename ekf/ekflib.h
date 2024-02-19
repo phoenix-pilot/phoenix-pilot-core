@@ -87,4 +87,7 @@ extern void ekf_boundsGet(float *bYaw, float *bRoll, float *bPitch);
 extern int ekf_latlon2en(double lat, double lon, float *east, float *north);
 
 
+extern int ekf_enu2latlon(float e, float n, float u, double *lat, double *lon);
+
+
 #endif

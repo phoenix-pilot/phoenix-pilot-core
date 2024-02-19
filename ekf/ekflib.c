@@ -475,7 +475,16 @@ void ekf_stateGet(ekf_state_t *ekfState)
 }
 
 
-extern int ekf_latlon2en(double lat, double lon, float *east, float *north)
+int ekf_latlon2en(double lat, double lon, float *east, float *north)
 {
 	return meas_latlon2en(lat, lon, east, north);
+}
+
+
+int ekf_enu2latlon(float e, float n, float u, double *lat, double *lon)
+{
+	vec_t enu = { .x = e, .y = n, .z = u };
+	double h = 0;
+
+	return meas_en2latlon(&enu, lat, lon, &h);
 }
