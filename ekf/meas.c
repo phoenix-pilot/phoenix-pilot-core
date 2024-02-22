@@ -170,7 +170,7 @@ static void meas_gps2geo(const sensor_event_t *gpsEvt, meas_geodetic_t *geo)
 
 static void meas_geo2ecef(const meas_geodetic_t *geo, double ecef[3])
 {
-	double N = WGS84_A / sqrt(1 - WGS84_EE * geo->sinLat);
+	double N = WGS84_A / sqrt(1 - WGS84_EE * geo->sinLat * geo->sinLat);
 
 	ecef[0] = (N + geo->h) * geo->cosLat * geo->cosLon;
 	ecef[1] = (N + geo->h) * geo->cosLat * geo->sinLon;
