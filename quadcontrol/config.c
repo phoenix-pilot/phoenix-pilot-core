@@ -21,7 +21,7 @@
 #include <errno.h>
 
 
-enum { cfg_scenarioID = 0, cfg_pidID, cfg_throttleID, cfg_attitudeID, cfg_attenuateID, cfg_end };
+enum { cfg_scenarioID = 0, cfg_pidID, cfg_throttleID, cfg_attitudeID, cfg_attenuateID, cfg_telemID, cfg_end };
 
 static struct {
 	void *data;
@@ -389,6 +389,95 @@ int config_pidRead(const char *path, quad_pids_t *ctx, int *sz)
 
 	*sz = res[cfg_pidID].sz;
 	*ctx = *(quad_pids_t *)res[cfg_pidID].data;
+
+	return 0;
+}
+
+
+static int config_telemConverter(const hmap_t *h)
+{
+	int err = 0, len;
+	quad_telem_t *telem;
+	int id = res[cfg_telemID].invCnt;
+	char *pathLocal = NULL;
+
+	if (config_reallocData(cfg_telemID, sizeof(quad_telem_t)) != 0) {
+		return -1;
+	}
+
+	telem = (quad_telem_t *)res[cfg_telemID].data + id;
+
+	pathLocal = hmap_get(h, "path");
+	err |= parser_fieldGetInt(h, "baud", &telem->baud);
+
+	if (err != 0 || pathLocal == NULL) {
+		return -1;
+	}
+
+	/* validating telemetry device path */
+	len = strlen(pathLocal);
+	if (len < sizeof(telem->path) || len == 0) {
+		memcpy(telem->path, pathLocal, len);
+		telem->path[sizeof(telem->path) - 1] = '\0';
+	}
+	else {
+		fprintf(stderr, "config: invalid telemetry path\n");
+		return -1;
+	}
+
+	res[cfg_telemID].invCnt++;
+
+	return 0;
+}
+
+
+
+int config_telemRead(const char*path, quad_telem_t *telem, int *sz)
+{
+	int err;
+	parser_t *p;
+	static const unsigned int initSz = 2;
+
+	if (path == NULL || telem == NULL || sz == NULL) {
+		fprintf(stderr, "config: invalid arguments\n");
+		return -1;
+	}
+
+	/* Parser have to parser one header, which have 13 fields */
+	p = parser_alloc(1, 2);
+	if (p == NULL) {
+		return -1;
+	}
+
+	if (parser_headerAdd(p, "TELEMETRY", config_telemConverter) != 0) {
+		parser_free(p);
+		return -1;
+	}
+
+	res[cfg_telemID].data = malloc(sizeof(quad_telem_t));
+	if (res[cfg_telemID].data == NULL) {
+		parser_free(p);
+		return -1;
+	}
+
+	res[cfg_telemID].sz = initSz;
+	res[cfg_telemID].invCnt = 0;
+
+	err = parser_execute(p, path, PARSER_IGN_UNKNOWN_HEADERS);
+	parser_free(p);
+	if (err != 0) {
+		free(res[cfg_telemID].data);
+		return -1;
+	}
+
+	if (config_trimUnusedData(cfg_telemID, sizeof(quad_telem_t)) != 0) {
+		fprintf(stderr, "config: realloc error\n");
+		free(res[cfg_telemID].data);
+		return -1;
+	}
+
+	*sz = res[cfg_telemID].sz;
+	memcpy(telem, res[cfg_telemID].data, sizeof(quad_telem_t));
 
 	return 0;
 }

@@ -38,4 +38,7 @@ extern int config_attitudeRead(const char *path, quad_att_t **attitude, int *sz)
 /* Parses attenuation config structures from file defined by `path`. If succeeded returns 0 and `atten` is array with length equal to one. In other case returns -1. */
 extern int config_attenRead(const char *path, mma_atten_t **atten, int *sz);
 
+
+extern int config_telemRead(const char*path, quad_telem_t *telem, int *sz);
+
 #endif
