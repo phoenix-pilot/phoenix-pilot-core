@@ -45,7 +45,7 @@ void qmav_done(void);
 
 
 /* Initializes qmav module */
-int qmav_init(const char *path);
+int qmav_init(const char *path, int baudrate);
 
 
 #endif

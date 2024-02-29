@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <termios.h>
 #include <pthread.h>
 #include <sched.h>
 #include <sys/time.h>
@@ -19,6 +21,8 @@ struct {
 	volatile int run;
 	pthread_mutex_t lock;
 	pthread_attr_t threadAttr;
+
+	struct termios attr;
 
 	/* message buffers */
 	volatile mav_heartbeat_t heart;
@@ -104,6 +108,53 @@ int qmav_stop(void)
 }
 
 
+static int qmav_openFile(const char *path, int baudrate)
+{
+	struct termios attr;
+	int fd;
+
+	fd = open(path, O_WRONLY);
+
+	if (fd < 0) {
+		return -1;
+	}
+
+	if (isatty(fd)) {
+		if (tcgetattr(fd, &attr) != 0) {
+			close(fd);
+			return -1;
+		}
+		qmav_common.attr = attr;
+
+		if (baudrate != 0) {
+			cfsetispeed(&attr, B115200);
+		}
+
+		attr.c_lflag &= ~(ICANON | ECHO);
+		attr.c_oflag &= ~(OPOST);
+		attr.c_cflag &= ~PARENB;              // No parity bit
+		attr.c_cflag &= ~CSTOPB;              // 1 stop bit
+		attr.c_cflag &= ~CSIZE;               // Clear data size bits
+		attr.c_cflag |= CS8;                  // 8 bits per byte
+		if (tcsetattr(fd, TCSANOW, &attr) != 0) {
+			close(fd);
+			return -1;
+		}
+	}
+
+	return fd;
+}
+
+
+static void qmav_closeFile(int fd)
+{
+	if (isatty(fd)) {
+		tcsetattr(fd, TCSANOW, &qmav_common.attr);
+	}
+	close(fd);
+}
+
+
 void qmav_done(void)
 {
 	pthread_mutex_destroy(&qmav_common.lock);
@@ -112,22 +163,15 @@ void qmav_done(void)
 	mav_sysDone(&qmav_common.sys);
 	mav_compDone(&qmav_common.autopilot);
 
-	close(qmav_common.sys.fd);
+	qmav_closeFile(qmav_common.sys.fd);
 }
 
 
-int qmav_init(const char *path)
+int qmav_init(const char *path, int baudrate)
 {
 	int fd = -1;
 
-	if (path == NULL) {
-		fd = dup(STDOUT_FILENO);
-	}
-	else {
-		fprintf(stderr, "qmav: device/file opening not supported!\n");
-		return -1;
-	}
-
+	fd = qmav_openFile(path, baudrate);
 	if (fd < 0) {
 		fprintf(stderr, "Failed to open file for mavlink\n");
 		return -1;
@@ -141,7 +185,7 @@ int qmav_init(const char *path)
 	if (pthread_mutex_init(&qmav_common.lock, NULL) < 0) {
 		printf("Cannot create mutex for qmav\n");
 		pthread_attr_destroy(&qmav_common.threadAttr);
-		close(fd);
+		qmav_closeFile(fd);
 		return -1;
 	}
 
@@ -149,7 +193,7 @@ int qmav_init(const char *path)
 		fprintf(stderr, "Failed to init mavlink system context\n");
 		pthread_mutex_destroy(&qmav_common.lock);
 		pthread_attr_destroy(&qmav_common.threadAttr);
-		close(fd);
+		qmav_closeFile(fd);
 		return -1;
 	}
 
@@ -158,7 +202,7 @@ int qmav_init(const char *path)
 		pthread_mutex_destroy(&qmav_common.lock);
 		pthread_attr_destroy(&qmav_common.threadAttr);
 		mav_sysDone(&qmav_common.sys);
-		close(fd);
+		qmav_closeFile(fd);
 		return -1;
 	}
 
