@@ -113,6 +113,8 @@ struct {
 
 	quad_throttle_t throttle;
 	float hoverThrottle;
+
+	quad_telem_t telemetry;
 } quad_common;
 
 
@@ -1450,6 +1452,17 @@ static int quad_config(void)
 	quad_common.atten = *attenTmp;
 	free(attenTmp);
 
+	/* Reading telemetry port configuration */
+	if (config_telemRead(PATH_QUAD_CONFIG, &quad_common.telemetry, &res) != 0) {
+		fprintf(stderr, "quadcontrol: cannot parse telemetry config from %s\n", PATH_QUAD_CONFIG);
+		return -1;
+	}
+
+	if (res != 1) {
+		fprintf(stderr, "quadcontrol: wrong number of telemetry configs in %s\n", PATH_QUAD_CONFIG);
+		return -1;
+	}
+
 #if TEST_ATTITUDE
 	if (config_attitudeRead(PATH_QUAD_CONFIG, &attTmp, &res) != 0) {
 		fprintf(stderr, "quadcontrol: cannot parse attitude from %s\n", PATH_QUAD_CONFIG);
@@ -1520,8 +1533,7 @@ static int quad_init(void)
 		return -1;
 	}
 
-
-	if (qmav_init(NULL) < 0) {
+	if (qmav_init(quad_common.telemetry.path, quad_common.telemetry.baud) < 0) {
 		fprintf(stderr, "quadcontrol: cannot initialize qmav module\n");
 		resourceDestroy(quad_common.rcbusLock);
 		free(quad_common.scenario);

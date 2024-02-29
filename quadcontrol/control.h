@@ -93,4 +93,10 @@ typedef struct {
 } quad_pids_t;
 
 
+typedef struct {
+	char path[16];
+	int baud;
+} quad_telem_t;
+
+
 #endif
