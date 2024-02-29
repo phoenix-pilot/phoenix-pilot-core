@@ -23,10 +23,6 @@
 
 #define MAVLINK_LABEL "mavlink"
 
-
-
-
-
 #define MAVLINK_10_MAGIC      0xfe /* magic number for mavlink v1.0 */
 #define MAVLINK_20_MAGIC      0xfd /* magic number for mavlink v2.0 */
 #define MAVLINK_10_LEN_HEADER 6    /* header length for mavlink v1.0 */
@@ -79,10 +75,6 @@ static int mav_sendMsg(mav_comp_t *comp, enum mav_msgid msgId, const uint8_t *pa
 	uint8_t *buf;
 	uint16_t checksum, totalLen = 0;
 	int ret, sent, tries;
-
-	if (comp == NULL || payload == NULL || payloadLen == 0) {
-		return -1;
-	}
 
 	/* Message buffer alias for better readability */
 	buf = comp->sys->msgBuf;
@@ -153,7 +145,8 @@ int mav_compDone(mav_comp_t *comp)
 
 int mav_compInit(mav_comp_t *comp, uint8_t id, mav_sys_t *sys)
 {
-	if (comp == NULL || sys == NULL || id == 0) {
+	/* component id == 	MAV_COMP_ID_ALL is invalid by mavlink standard */
+	if (id == MAV_COMP_ID_ALL) {
 		return -1;
 	}
 
@@ -172,9 +165,10 @@ int mav_sysDone(mav_sys_t *sys)
 }
 
 
-int mav_sysInit(mav_sys_t *sys, int fd, uint8_t sysid, enum mav_version ver)
+int mav_sysInit(mav_sys_t *sys, int fd, uint8_t id, enum mav_version ver)
 {
-	if (fd < 0 || sys == NULL) {
+	/* system id == 0 is invalid by mavlink standard */
+	if (fd < 0 || id == 0) {
 		return -1;
 	}
 
@@ -182,6 +176,7 @@ int mav_sysInit(mav_sys_t *sys, int fd, uint8_t sysid, enum mav_version ver)
 		case mav_version_1:
 			sys->fd = fd;
 			sys->ver = mav_version_1;
+			sys->id = id;
 			break;
 
 		case mav_version_2:
